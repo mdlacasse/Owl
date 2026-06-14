@@ -590,6 +590,52 @@ def _compute_estate(plan, N):
     return estate, heirs_tax, savings_estate, total_estate, debts
 
 
+def balance_sheet_arrays(plan, N=None) -> dict:
+    """
+    Return per-year balance-sheet arrays (length N) as a dict of numpy arrays.
+
+    Combines savings accounts (taxable, tax-deferred, tax-free, HSA), fixed
+    assets, and debts into traditional and liquid net-worth series.  The liquid
+    series nets the future income tax owed on tax-deferred/HSA balances (at
+    ``plan.liquidationTaxRate``) and the disposition costs of fixed assets.
+
+    All values are nominal dollars (beginning-of-year snapshot).  This is the
+    shared source for the balance-sheet worksheet, the summary metrics, and the
+    per-year JSON output, so they stay consistent.
+    """
+    if N is None:
+        N = plan.N_n
+
+    taxable = np.sum(plan.b_ijn[:, 0, :N], axis=0)
+    taxdef = np.sum(plan.b_ijn[:, 1, :N], axis=0)
+    taxfree = np.sum(plan.b_ijn[:, 2, :N], axis=0)
+    hsa = np.sum(plan.b_ijn[:, 3, :N], axis=0)
+    fixed = np.asarray(plan.fixed_assets_current_asset_values_n[:N], dtype=float)
+    debt = np.asarray(plan.fixed_assets_debt_balances_remaining_n[:N], dtype=float)
+    dispo = np.asarray(plan.fixed_assets_disposition_costs_n[:N], dtype=float)
+
+    savings = taxable + taxdef + taxfree + hsa
+    total_assets = savings + fixed
+    net_worth = total_assets - debt
+    deferred_tax = (taxdef + hsa) * plan.liquidationTaxRate
+    liquid_net_worth = net_worth - deferred_tax - dispo
+
+    return {
+        "taxable": taxable,
+        "tax_deferred": taxdef,
+        "tax_free": taxfree,
+        "hsa": hsa,
+        "savings_total": savings,
+        "fixed_assets": fixed,
+        "total_assets": total_assets,
+        "debt": debt,
+        "net_worth": net_worth,
+        "deferred_income_tax": deferred_tax,
+        "disposition_costs": dispo,
+        "liquid_net_worth": liquid_net_worth,
+    }
+
+
 def plan_metrics(plan, N=None) -> dict:
     """
     Return key plan metrics as a dict of plain Python floats.
@@ -610,6 +656,9 @@ def plan_metrics(plan, N=None) -> dict:
     roth_n = np.sum(plan.x_in[:, :N], axis=0)   # per-year total Roth conversions (N_n,)
 
     estate, heirs_tax, savings_estate, total_estate, _ = _compute_estate(plan, N)
+
+    bs = balance_sheet_arrays(plan, N)
+    g0 = float(gamma[0])
 
     def _s(arr):
         return float(np.sum(arr))
@@ -660,6 +709,17 @@ def plan_metrics(plan, N=None) -> dict:
         "final_bequest_savings_nominal": savings_estate,
         "heirs_tax_liability_nominal":   heirs_tax,
         "remaining_debt_balance":        float(plan.remaining_debt_balance),
+        # Opening balance sheet (beginning of plan, year 0)
+        "fixed_assets_start_nominal":    float(bs["fixed_assets"][0]),
+        "debt_start_nominal":            float(bs["debt"][0]),
+        "net_worth_start_nominal":       float(bs["net_worth"][0]),
+        "net_worth_start_today":         float(bs["net_worth"][0]) / g0,
+        "liquid_net_worth_start_nominal": float(bs["liquid_net_worth"][0]),
+        "liquid_net_worth_start_today":  float(bs["liquid_net_worth"][0]) / g0,
+        "deferred_income_tax_start_nominal": float(bs["deferred_income_tax"][0]),
+        # Liquidation assumptions (fractions, 0–1)
+        "liquidation_tax_rate":          float(plan.liquidationTaxRate),
+        "liquidation_capgains_rate":     float(plan.liquidationCapGainsRate),
         # Plan info
         "time_horizon_years":            float(N),
         "inflation_factor":              float(gamma[N]),

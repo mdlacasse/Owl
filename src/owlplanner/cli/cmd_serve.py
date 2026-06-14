@@ -261,8 +261,15 @@ def explain_case(
         except Exception as e:
             return json.dumps({"error": f"Invalid override: {e}"})
 
+    # Load the HFP workbook so fixed assets and debts are described too; fall
+    # back to skipping it if the referenced file is missing.
     try:
-        plan = config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=False)
+        plan = config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True)
+    except FileNotFoundError:
+        try:
+            plan = config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=False)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to build plan: {e}"})
     except Exception as e:
         return json.dumps({"error": f"Failed to build plan: {e}"})
 
@@ -693,6 +700,8 @@ def _build_plan_from_params(
     ss_trim_year=None,
     obbba_expiration_year=None,
     dividend_rate=None,
+    liquidation_tax_rate=None,
+    liquidation_capgains_rate=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve."""
     N_i = len(names)
@@ -857,6 +866,13 @@ def _build_plan_from_params(
     if heirs_tax_rate is not None:
         plan.setHeirsTaxRate(float(heirs_tax_rate))
 
+    # Liquidation rates drive the liquid balance sheet (set before solve so the
+    # disposition-cost array uses the requested capital-gains rate).
+    if liquidation_tax_rate is not None:
+        plan.setLiquidationTaxRate(float(liquidation_tax_rate))
+    if liquidation_capgains_rate is not None:
+        plan.setLiquidationCapGainsRate(float(liquidation_capgains_rate))
+
     if slcsp is not None and float(slcsp) > 0:
         plan.setACA(float(slcsp), units="1", start_year=aca_start_year)
 
@@ -933,6 +949,7 @@ def _run_from_params_blocking(
     with_aca=None, aca_start_year=None,
     slcsp=None,
     ss_trim_pct=None, ss_trim_year=None, obbba_expiration_year=None, dividend_rate=None,
+    liquidation_tax_rate=None, liquidation_capgains_rate=None,
 ):
     plan = _build_plan_from_params(
         names, birth_years, life_expectancy, state,
@@ -955,6 +972,8 @@ def _run_from_params_blocking(
         ss_trim_year=ss_trim_year,
         obbba_expiration_year=obbba_expiration_year,
         dividend_rate=dividend_rate,
+        liquidation_tax_rate=liquidation_tax_rate,
+        liquidation_capgains_rate=liquidation_capgains_rate,
     )
     opts = _build_mcp_opts(
         solver=solver, max_time=max_time, net_spending=net_spending,
@@ -1040,6 +1059,16 @@ async def run_from_params(
     ss_trim_year: int | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
+    liquidation_tax_rate: Annotated[
+        float | None,
+        Field(description="Assumed ordinary tax rate (%) on tax-deferred/HSA if liquidated, for the "
+                          "liquid balance sheet (default 24)."),
+    ] = None,
+    liquidation_capgains_rate: Annotated[
+        float | None,
+        Field(description="Assumed capital-gains tax rate (%) on fixed-asset disposition, for the "
+                          "liquid balance sheet (default 15)."),
+    ] = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -1265,6 +1294,12 @@ async def run_from_params(
                         and revert to pre-TCJA levels (default 2032).  Adjusting this
                         models different Congressional scenarios.
         dividend_rate:  Annual dividend yield for taxable accounts in % (default 1.8).
+        liquidation_tax_rate: Assumed ordinary income tax rate (%) applied to
+                        tax-deferred and HSA balances on the liquid balance sheet —
+                        the tax owed if those accounts were liquidated (default 24).
+        liquidation_capgains_rate: Assumed capital-gains tax rate (%) on fixed-asset
+                        disposition (commission plus gains tax) for the liquid
+                        balance sheet (default 15).
 
     slcsp:          Annual ACA Silver benchmark premium in $/year (today's $) for
                     individuals under 65 not yet on Medicare.  Omit if covered by
@@ -1299,6 +1334,7 @@ async def run_from_params(
             with_aca, aca_start_year,
             slcsp,
             ss_trim_pct, ss_trim_year, obbba_expiration_year, dividend_rate,
+            liquidation_tax_rate, liquidation_capgains_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -1375,6 +1411,8 @@ def save_case(
     ss_trim_year: int | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
+    liquidation_tax_rate: float | None = None,
+    liquidation_capgains_rate: float | None = None,
     output_dir: str = ".",
     case_name: str | None = None,
 ) -> str:
@@ -1414,6 +1452,8 @@ def save_case(
             ss_trim_year=ss_trim_year,
             obbba_expiration_year=obbba_expiration_year,
             dividend_rate=dividend_rate,
+            liquidation_tax_rate=liquidation_tax_rate,
+            liquidation_capgains_rate=liquidation_capgains_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})

@@ -18,6 +18,21 @@ balances are treated as ordinary-taxable (a conservative estimate). Both rates a
 in the **Worksheets** page and honor all display options (nominal/today's dollars, optional
 age columns, hide all-zero columns) and the Excel download.
 
+#### MCP & CLI: balance sheet and net worth in results
+
+The balance-sheet quantities are now reachable through the MCP server and CLI, not just the
+Streamlit worksheets. `run_case`/`run_from_params` add the opening balance sheet to the
+`summary` block (`net_worth_start_*`, `liquid_net_worth_start_*`, `fixed_assets_start_nominal`,
+`debt_start_nominal`, `deferred_income_tax_start_nominal`) and the liquidation-rate
+assumptions, plus per-year `fixed_assets`, `debt`, `net_worth`, `deferred_income_tax`,
+`disposition_costs`, and `liquid_net_worth` in `by_year` (the existing `portfolio_total`
+remains savings-only). `explain_case` now loads the HFP workbook so it can report the
+`fixed_assets` and `debts` inputs and an `opening_balance_sheet` summary. `run_from_params`
+and `save_case` accept new `liquidation_tax_rate` / `liquidation_capgains_rate` parameters
+(percent), which `save_case` persists to the case TOML. A shared
+`export.balance_sheet_arrays()` helper is the single source for the worksheet, the summary
+metrics, and the JSON output so they stay consistent. Documented in `docs/mcp.md`.
+
 #### Tests: generic schema-driven config round-trip guard
 
 Added `tests/config/test_roundtrip_generic.py`, which introspects the Pydantic schema and

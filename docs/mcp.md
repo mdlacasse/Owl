@@ -10,7 +10,7 @@ optimizations, and compare scenarios through natural conversation.
 | Tool | Description | Solves? |
 |------|-------------|---------|
 | `list_cases(directory)` | Enumerate `.toml` case files in a directory | No |
-| `explain_case(filename, overrides)` | Describe a case: individuals, balances, income, options | No |
+| `explain_case(filename, overrides)` | Describe a case: individuals, balances, fixed assets, debts, opening balance sheet, income, options | No |
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
 | `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
 | `convert_ss_benefit(birth_year, claiming_age, ...)` | Convert between SS PIA and actual benefit at a claiming age | No |
@@ -79,6 +79,8 @@ at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 | | `survivor_fraction` | Surviving-spouse spending as % of couple spending (default 60) |
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
+| | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
+| | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
 | **Rate model** | `rate_method` | Return model name (use `list_rate_models`; default `"conservative"`) |
 | | `rate_values` | Fixed rates `[equities, corp_bonds, t_notes, inflation]` in % for `rate_method="user"` |
 | | `rate_frm` | First year of historical rate window (e.g. `1966`) |
@@ -119,6 +121,21 @@ at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 | | `seed` | Random seed for reproducibility |
 | **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
 | | `case_name` | Override the auto-generated filename stem (default: names joined with `+`, e.g. `alice+bob`) |
+
+**Balance sheet & net worth in results:** `run_case` and `run_from_params` return a
+full balance-sheet view alongside the cash-flow metrics. The top-level `summary`
+block reports the **opening balance sheet** (`net_worth_start_nominal` /
+`_today_dollars`, `liquid_net_worth_start_*`, `fixed_assets_start_nominal`,
+`debt_start_nominal`, `deferred_income_tax_start_nominal`) plus the liquidation
+assumptions (`liquidation_tax_rate`, `liquidation_capgains_rate`, as fractions). Each
+`by_year` entry adds `fixed_assets`, `debt`, `net_worth`, `deferred_income_tax`,
+`disposition_costs`, and `liquid_net_worth`. (Note: `portfolio_total` in `by_year` is
+savings accounts only — use `net_worth` for the full picture.) **Net worth** =
+savings + fixed assets − debt; **liquid net worth** additionally nets the future
+income tax owed on tax-deferred/HSA balances and the disposition costs (commission +
+capital-gains tax) of fixed assets. `explain_case` reports the same opening
+balance-sheet view from the unsolved inputs, plus the `fixed_assets` and `debts`
+lists read from the HFP workbook.
 
 **Three distinct stress-test tools:**
 
@@ -411,6 +428,11 @@ translate your description into `--set` overrides, and interpret the results.
 > mortgage at 3.5% with 20 years remaining, and a house worth \$800k
 > (basis \$400k) they plan to sell in 2040 with 3% commission."*
 > → calls `run_from_params` with `wages`, `debts`, and `fixed_assets`
+
+> *"What's our net worth today and how does it evolve — and what would we
+> actually keep after taxes if we liquidated everything?"*
+> → calls `run_from_params` and reads `summary.net_worth_start_*` /
+> `liquid_net_worth_start_*` and the `by_year` `net_worth` / `liquid_net_worth` series
 
 > *"Robert is 69, born 1957, expects to live to 85. He has \$600k IRA,
 > \$100k Roth, \$80k taxable, SS PIA \$2,400/month claiming at 68, lives

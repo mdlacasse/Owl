@@ -11,7 +11,7 @@ Copyright (C) 2025-2026 The Owl Authors
 import json
 import numpy as np
 
-from owlplanner.export import plan_metrics
+from owlplanner.export import plan_metrics, balance_sheet_arrays
 
 
 class _NumpyEncoder(json.JSONEncoder):
@@ -70,6 +70,15 @@ def _metrics_to_summary(m: dict) -> dict:
         "final_bequest_today_dollars":           r("final_bequest_today"),
         "heirs_tax_liability_nominal":           r("heirs_tax_liability_nominal"),
         "remaining_debt_balance":                r("remaining_debt_balance"),
+        "fixed_assets_start_nominal":            r("fixed_assets_start_nominal"),
+        "debt_start_nominal":                    r("debt_start_nominal"),
+        "net_worth_start_nominal":               r("net_worth_start_nominal"),
+        "net_worth_start_today_dollars":         r("net_worth_start_today"),
+        "liquid_net_worth_start_nominal":        r("liquid_net_worth_start_nominal"),
+        "liquid_net_worth_start_today_dollars":  r("liquid_net_worth_start_today"),
+        "deferred_income_tax_start_nominal":     r("deferred_income_tax_start_nominal"),
+        "liquidation_tax_rate":                  round(m["liquidation_tax_rate"], 4),
+        "liquidation_capgains_rate":             round(m["liquidation_capgains_rate"], 4),
         "time_horizon_years":                    int(m["time_horizon_years"]),
         "cumulative_inflation_factor":           round(m["inflation_factor"], 4),
     }
@@ -103,6 +112,9 @@ def plan_to_dict(plan) -> dict:
     portfolio_total = np.sum(plan.b_ijn[:, :, :N], axis=(0, 1))
     gamma = plan.gamma_n[:N]
 
+    # Balance-sheet series (savings + fixed assets - debts, plus liquid net worth)
+    bs = balance_sheet_arrays(plan, N)
+
     by_year = []
     for n in range(N):
         year = int(plan.year_n[n])
@@ -118,7 +130,13 @@ def plan_to_dict(plan) -> dict:
             "aca_premiums": _round(aca[n]),
             "roth_conversions": _round(roth_conv[n]),
             "ss_income": [_round(ss_income[i, n]) for i in range(plan.N_i)],
-            "portfolio_total": _round(portfolio_total[n]),
+            "portfolio_total": _round(portfolio_total[n]),   # savings accounts only
+            "fixed_assets": _round(bs["fixed_assets"][n]),
+            "debt": _round(bs["debt"][n]),
+            "net_worth": _round(bs["net_worth"][n]),
+            "deferred_income_tax": _round(bs["deferred_income_tax"][n]),
+            "disposition_costs": _round(bs["disposition_costs"][n]),
+            "liquid_net_worth": _round(bs["liquid_net_worth"][n]),
         })
 
     # ---- Roth conversion schedule (non-zero years only) -----------------
