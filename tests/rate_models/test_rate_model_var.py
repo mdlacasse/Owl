@@ -32,6 +32,7 @@ import numpy as np
 import pytest
 
 from owlplanner import Plan
+from owlplanner.rate_models._builtin_impl import _historical_arith_means
 from owlplanner.rate_models.vector_ar import VARRateModel
 
 
@@ -277,6 +278,59 @@ def test_roll_applies():
     tau_rolled = p_rolled.tau_kn.copy()
 
     assert np.allclose(tau_rolled, np.roll(tau_base, k, axis=1))
+
+
+# ------------------------------------------------------------
+# Constrain-mean option
+# ------------------------------------------------------------
+
+def test_constrain_mean_declared():
+    """The constrain_mean option must be exposed in optional_parameters."""
+    assert "constrain_mean" in VARRateModel.optional_parameters
+
+
+def test_constrain_mean_matches_historical_window_mean():
+    """
+    With constrain_mean=True, each generated column's arithmetic mean must equal
+    the historical window's arithmetic mean (additive correction is exact).
+    """
+    frm, to = 1928, 2024
+    config = {"method": "vector_ar", "frm": frm, "to": to, "constrain_mean": True}
+    model = VARRateModel(config, seed=42)
+    out = model.generate(400)
+
+    target = _historical_arith_means(frm, to)
+    # Inflation (col 3) passes through a non-linear floor; the equities/bonds/T-notes
+    # columns are corrected additively and should match the target exactly.
+    assert np.allclose(out[:, :3].mean(axis=0), target[:3], atol=1e-9)
+
+
+def test_constrain_mean_off_does_not_match_exactly():
+    """
+    Without the option, the sample mean is free to drift from the historical mean
+    (sequence-of-return / sample fluctuation is retained).
+    """
+    frm, to = 1928, 2024
+    config = {"method": "vector_ar", "frm": frm, "to": to, "constrain_mean": False}
+    model = VARRateModel(config, seed=42)
+    out = model.generate(400)
+
+    target = _historical_arith_means(frm, to)
+    assert not np.allclose(out[:, :3].mean(axis=0), target[:3], atol=1e-9)
+
+
+def test_constrain_mean_preserves_spread():
+    """
+    The correction is a pure shift: the per-column standard deviation should be
+    unchanged between constrained and unconstrained runs sharing the same seed.
+    """
+    frm, to = 1928, 2024
+    base = VARRateModel({"method": "vector_ar", "frm": frm, "to": to}, seed=7).generate(300)
+    shifted = VARRateModel(
+        {"method": "vector_ar", "frm": frm, "to": to, "constrain_mean": True}, seed=7
+    ).generate(300)
+    # Equities/bonds/T-notes are shifted additively → identical spread.
+    assert np.allclose(base[:, :3].std(axis=0), shifted[:, :3].std(axis=0), atol=1e-9)
 
 
 # ------------------------------------------------------------

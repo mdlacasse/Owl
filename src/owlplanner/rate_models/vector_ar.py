@@ -34,7 +34,12 @@ import numpy as np
 
 from owlplanner.rate_models.base import BaseRateModel
 from owlplanner.rate_models.inflation_transform import fit_inflation_transform, inv_pwl_transform, pwl_transform
-from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR, load_historical_slice
+from owlplanner.rate_models._builtin_impl import (
+    _historical_arith_means,
+    apply_return_floors,
+    constrain_series_mean,
+    load_historical_slice,
+)
 from owlplanner.rates import FROM, TO
 
 
@@ -76,6 +81,15 @@ class VARRateModel(BaseRateModel):
             ),
             "example": "true",
         },
+        "constrain_mean": {
+            "type": "bool",
+            "default": False,
+            "description": (
+                "Shift each generated series so its arithmetic mean matches the historical window mean. "
+                "Preserves momentum and mean-reversion dynamics; only the mean is corrected. Default False."
+            ),
+            "example": "true",
+        },
     }
 
     #######################################################################
@@ -88,6 +102,7 @@ class VARRateModel(BaseRateModel):
         self.frm = int(self.get_param("frm"))
         self.to = int(self.get_param("to"))
         self.shrink = bool(self.get_param("shrink"))
+        self._constrain_mean = bool(self.get_param("constrain_mean"))
 
         if not (FROM <= self.frm <= TO):
             raise ValueError(f"frm={self.frm} out of bounds [{FROM}, {TO}].")
@@ -116,6 +131,11 @@ class VARRateModel(BaseRateModel):
 
         self._mean = data.mean(axis=0)
         self._fit(data)
+
+        # Target means are computed from raw (untransformed) historical returns, since
+        # self._mean lives in the PWL-transformed inflation space and cannot be reused.
+        if self._constrain_mean:
+            self._hist_target_means = _historical_arith_means(self.frm, self.to)
 
         self._rng = np.random.default_rng(seed)
 
@@ -208,6 +228,10 @@ class VARRateModel(BaseRateModel):
         # Invert inflation transform to recover actual inflation values
         k, slope_lo, slope_hi = self._infl_transform
         out[:, 3] = inv_pwl_transform(out[:, 3], k, slope_lo, slope_hi)
-        out[:, 3] = np.maximum(out[:, 3], INFLATION_FLOOR)
 
-        return out
+        # Optionally shift each column so its sample mean matches the historical window mean.
+        # Applied on final decimal-scale output, before floors, mirroring the other models.
+        if self._constrain_mean:
+            out = constrain_series_mean(out, self._hist_target_means)
+
+        return apply_return_floors(out)

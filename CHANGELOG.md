@@ -22,6 +22,15 @@ now counted through their disposition year and drop out the year after, when the
 keeping net worth continuous. The cash flow, taxes, and bequest values were already correct and
 are unchanged.
 
+#### Constrain-mean option for the VAR(1) rate model
+
+The `constrain_mean` option (shift each generated series so its arithmetic mean matches the
+historical calibration window, isolating sequence-of-return risk from sample fluctuation) is now
+available for the `vector_ar` method, bringing it in line with the other historically-calibrated
+stochastic models (`historical_gaussian`, `historical_lognormal`, `historical_copula`, `garch_dcc`,
+`gmm`, `hmm`). The "Constrain mean" checkbox appears automatically on the **Rates** page when
+`vector_ar` is selected.
+
 #### Clearer "today's dollars" labeling on plots and in the UI
 
 Inflation-adjusted plots now label the vertical axis as `$k (constant <year>)` (e.g.

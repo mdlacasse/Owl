@@ -105,6 +105,7 @@ CONSTRAIN_MEAN_METHODS = (
     "garch_dcc",
     "gmm",
     "hmm",
+    "vector_ar",
 )
 
 # Methods the UI treats as "varying" type (alphabetically ordered for selector).
