@@ -53,15 +53,12 @@ def init():
     """
     Initialize variables through a function as it will only happen once through module.
     """
-    # Dictionary of dictionaries for each case.
     global ss
     ss = st.session_state
-    if "cases" not in ss:
-        ss.cases = {}
-
+    # Dictionary of dictionaries for each case.
+    initGlobalKey("cases", {})
     # Variable for storing name of current case.
-    if "currentCase" not in ss:
-        ss.currentCase = None
+    initGlobalKey("currentCase", None)
 
     initGlobalKey("plotGlobalBackend", "plotly")
     initGlobalKey("menuLocation", "top")
@@ -99,7 +96,7 @@ def runOncePerSession(func):
 
 def runOncePerCase(func):
     key = "oNcE_" + func.__name__
-    if key not in ss.cases[ss.currentCase]:
+    if key not in currentCaseDic():
         func()
         storeCaseKey(key, 1)
 
@@ -224,7 +221,7 @@ def setCurrentCase(case):
 
 
 def copyCase():
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return
     baseName = re.sub(r"\s*\(\d+\)$", "", ss.currentCase)
     for i in range(1, 10):
@@ -236,10 +233,11 @@ def copyCase():
 
     # Copy everything except the plan itself.
     # print(ss.currentCase, "->", ss.cases[ss.currentCase])
-    currentPlan = ss.cases[ss.currentCase]["plan"]
-    ss.cases[ss.currentCase]["plan"] = None
-    ss.cases[dupname] = copy.deepcopy(ss.cases[ss.currentCase])
-    ss.cases[ss.currentCase]["plan"] = currentPlan
+    currentCase = currentCaseDic()
+    currentPlan = currentCase["plan"]
+    currentCase["plan"] = None
+    ss.cases[dupname] = copy.deepcopy(currentCase)
+    currentCase["plan"] = currentPlan
 
     # If reproducibility is enabled, copy the seed; otherwise generate a new one. Token be False or missing.
     if not ss.cases[dupname].get("reproducibleRates", False):
@@ -362,7 +360,7 @@ def dumpCase(case=None):
 
 
 def setpull(key):
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return None
     gen_key = genCaseKey(key)
     if gen_key not in ss:
@@ -371,7 +369,7 @@ def setpull(key):
 
 
 def storepull(key):
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return None
     gen_key = genCaseKey(key)
     if gen_key not in ss:
@@ -381,30 +379,31 @@ def storepull(key):
 
 def pushCaseKey(key, val=None):
     if val is not None:
-        ss.cases[ss.currentCase][key] = val
+        currentCaseDic()[key] = val
         ss[genCaseKey(key)] = val
     else:
-        val = ss.cases[ss.currentCase][key]
+        val = currentCaseDic()[key]
         ss[genCaseKey(key)] = val
 
     return val
 
 
 def setCaseKey(key, val):
-    ss.cases[ss.currentCase][key] = val
+    currentCaseDic()[key] = val
     flagModified()
     return val
 
 
 def flagModified():
-    ss.cases[ss.currentCase]["caseStatus"] = "modified"
-    ss.cases[ss.currentCase]["summaryDf"] = None
+    case = currentCaseDic()
+    case["caseStatus"] = "modified"
+    case["summaryDf"] = None
 
 
 def storeCaseKey(key, val):
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return None
-    ss.cases[ss.currentCase][key] = val
+    currentCaseDic()[key] = val
     return val
 
 
@@ -423,13 +422,13 @@ def ensureCaseConfigDefaults(ni: int | None = None) -> None:
     e.g. when status switches to married (spouse keys) or for legacy cases.
     Does not overwrite existing keys.
     """
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return
+    case = currentCaseDic()
     if ni is None:
-        status = ss.cases[ss.currentCase].get("status", "single")
+        status = case.get("status", "single")
         ni = 2 if status == "married" else 1
     defaults = _get_default_ui_keys(ni)
-    case = ss.cases[ss.currentCase]
     for k, v in defaults.items():
         if k not in case:
             case[k] = v
@@ -443,9 +442,9 @@ def initCaseKey(key, val):
     This consolidates default logic so config keys (life expectancy, SS age,
     rates, etc.) come from the config layer rather than scattered page literals.
     """
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return
-    case = ss.cases[ss.currentCase]
+    case = currentCaseDic()
     if key in case:
         return
     status = case.get("status", "single")
@@ -457,10 +456,15 @@ def initCaseKey(key, val):
         storeCaseKey(key, val)
 
 
+def hasCurrentCase():
+    """True when a current case is selected and present in ss.cases."""
+    return ss.currentCase is not None and ss.currentCase in ss.cases
+
+
 def getCaseKey(key):
-    if ss.currentCase is None or ss.currentCase not in ss.cases:
+    if not hasCurrentCase():
         return None
-    return ss.cases[ss.currentCase].get(key)
+    return currentCaseDic().get(key)
 
 
 def storeGlobalKey(key, val):
@@ -470,10 +474,6 @@ def storeGlobalKey(key, val):
 
 def getGlobalKey(key):
     return ss.get(key)
-
-
-def getDict(key=ss.currentCase):
-    return ss.cases[key]
 
 
 def getAccountBalances(ni):
