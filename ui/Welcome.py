@@ -71,8 +71,8 @@ Plus, you can stress-test your plan against market volatility and changing regul
 to see exactly how robust your future really is.
 
 ### :orange[Built for US Retirees]
-**Owl** integrates US federal tax laws, Social Security rules, and 401(k)/Roth regulations
-to ensure your plan is grounded in reality.
+**Owl** integrates US federal and state income taxes (all 50 states + DC), Social Security
+rules, Medicare IRMAA, and 401(k)/Roth regulations to ensure your plan is grounded in reality.
 
 ### :orange[Powered by Actual Intelligence — connect it to your AI assistant]
 **Owl**'s optimizer runs on real mathematical optimization — mixed-integer linear programming,
@@ -244,7 +244,7 @@ with gi3:
 st.markdown("### :orange[Disclaimer]")
 st.markdown("""
 **Owl** is an educational tool for exploring retirement planning concepts such as spending strategies,
-Roth conversions, and tax-efficient drawdown. It incorporates current US federal tax rules (including 2026)
+Roth conversions, and tax-efficient drawdown. It incorporates current US federal and state tax rules (including 2026)
 to support realistic scenario modeling. **Owl** is intended for research and educational purposes only.
 Nothing produced in this session constitutes financial, tax, or investment advice. For decisions specific to
 your situation, please consult a qualified professional.""")
