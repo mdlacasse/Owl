@@ -24,6 +24,9 @@ the edge image will dynamically clone Owl from GitHub and download/install all i
 The resulting Owl version is the one available from GitHub at the time when the container is launched.
 This leads to a slower start, but this approach guarantees to have Owl's latest version.
 
+The `latest` tag always points to the most recent versioned image. Specific releases are also published
+under their version number (e.g. `owldocker:<version>`), so you can pin to a particular Owl release if needed.
+
 #### Option 1: Command line
 
 Download the image (select one from `latest` or `edge`):
@@ -71,11 +74,11 @@ Owl will run locally and safely through a container on your computer.
 This approach requires cloning the Owl package from GitHub,
 and having both Python and Docker installed on your computer.
 
-##### Building the Docker images
 There are two images you can create. One builds Owl at run time, while
 the other builds it statically in the image.
-These two approaches trade startup time for image space
-(~126 MB vs. ~279 MB, ~52 sec vs. 8 sec).
+These two approaches trade startup time for image space: the edge image is small
+(~37 MB) but slower to start (~52 sec), while the versioned image is larger (~264 MB)
+and starts in a few seconds (~8 sec).
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
