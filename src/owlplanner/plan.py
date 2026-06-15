@@ -5361,6 +5361,64 @@ class Plan:
         return None
 
     @_checkCaseStatus
+    def showBalanceSheet(self, tag="", value=None, figure=False):
+        """
+        Plot the combined balance sheet over time: assets stacked above zero,
+        liabilities below zero, with the traditional and liquid net-worth lines.
+
+        Returns None if the balance sheet is empty (all components zero).
+
+        A tag string can be set to add information to the title of the plot.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
+        """
+        # Beginning-of-year snapshots plus a final end-of-plan (bequest) row,
+        # mirroring the balance-sheet worksheets in export.py.
+        taxable = np.sum(self.b_ijn[:, 0, :], axis=0)
+        taxdef = np.sum(self.b_ijn[:, 1, :], axis=0)
+        taxfree = np.sum(self.b_ijn[:, 2, :], axis=0)
+        hsa = np.sum(self.b_ijn[:, 3, :], axis=0)
+        fixed = np.append(self.fixed_assets_current_asset_values_n, self.fixed_assets_bequest_value)
+        debt = np.append(self.fixed_assets_debt_balances_remaining_n, self.remaining_debt_balance)
+        dispo = np.append(self.fixed_assets_disposition_costs_n, 0.0)
+
+        total_assets = taxable + taxdef + taxfree + hsa + fixed
+        deferred_tax = (taxdef + hsa) * self.liquidationTaxRate
+        total_liab = debt + deferred_tax + dispo
+
+        if np.max(np.abs(total_assets)) + np.max(np.abs(total_liab)) < 1.0:
+            return None
+
+        bs_data = {
+            "assets": {
+                "taxable": taxable,
+                "tax-deferred": taxdef,
+                "tax-free": taxfree,
+                "HSA": hsa,
+                "fixed assets": fixed,
+            },
+            "liabilities": {
+                "debt": debt,
+                "deferred income tax": deferred_tax,
+                "disposition costs": dispo,
+            },
+            "net worth": total_assets - debt,
+            "liquid net worth": total_assets - total_liab,
+        }
+
+        value = self._checkValueType(value)
+        title = self._name + "\nBalance Sheet"
+        if tag:
+            title += " - " + tag
+        fig = self._plotter.plot_balance_sheet(self.year_n, bs_data, self.gamma_n, value, title)
+        if figure:
+            return fig
+
+        self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
     def showHSA(self, tag="", value=None, figure=False):
         """
         Plot HSA activity (balance, contributions, withdrawals) over time.

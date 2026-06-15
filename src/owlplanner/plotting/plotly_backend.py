@@ -1406,6 +1406,68 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
+    def plot_balance_sheet(self, year_n, bs_data, gamma_n, value, title):
+        """Plot the combined balance sheet (assets, liabilities, net worth) over time."""
+        fig = go.Figure()
+
+        year_n_full = np.append(year_n, [year_n[-1] + 1])
+        if value == "nominal":
+            yformat = "$k (nominal)"
+            scale = 1.0
+        else:
+            yformat = f"$k (constant {year_n[0]})"
+            scale = gamma_n[:len(year_n_full)]
+
+        def _scaled(arr):
+            return np.asarray(arr) / (scale * 1000)
+
+        # Assets stacked above zero.
+        for name, arr in bs_data["assets"].items():
+            data = _scaled(arr)
+            if np.max(np.abs(data)) > 1.0e-3:
+                fig.add_trace(go.Scatter(
+                    x=year_n_full, y=data, name=name,
+                    stackgroup="assets", fill="tonexty", opacity=0.6,
+                ))
+
+        # Liabilities stacked below zero (shown as negative).
+        for name, arr in bs_data["liabilities"].items():
+            data = -_scaled(arr)
+            if np.max(np.abs(data)) > 1.0e-3:
+                fig.add_trace(go.Scatter(
+                    x=year_n_full, y=data, name=name,
+                    stackgroup="liabilities", fill="tonexty", opacity=0.6,
+                ))
+
+        # Net-worth lines overlaid on top.  A neutral mid-grey reads as a summary
+        # line (every stacked band is colored) and keeps roughly equal contrast
+        # against both light and dark themes.
+        nw_color = "#808080"
+        fig.add_trace(go.Scatter(
+            x=year_n_full, y=_scaled(bs_data["net worth"]),
+            name="net worth", mode="lines",
+            line=dict(color=nw_color, width=2.5),
+        ))
+        fig.add_trace(go.Scatter(
+            x=year_n_full, y=_scaled(bs_data["liquid net worth"]),
+            name="liquid net worth", mode="lines",
+            line=dict(color=nw_color, width=2.5, dash="dash"),
+        ))
+
+        title = title.replace("\n", "<br>")
+        fig.update_layout(
+            title=title,
+            yaxis_title=yformat,
+            template=self.template,
+            showlegend=True,
+            legend=_LEGEND_BOTTOM_REVERSED,
+            margin=dict(b=150),
+        )
+        fig.update_yaxes(tickformat=",.0f")
+        fig.add_hline(y=0, line_width=1, line_color="gray")
+
+        return fig
+
     def plot_hsa(self, year_n, hsa_data, gamma_n, value, title, inames):
         """Plot HSA balance, contributions, and withdrawals over time."""
         year_n_full = np.append(year_n, [year_n[-1] + 1])

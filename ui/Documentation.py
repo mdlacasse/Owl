@@ -1421,6 +1421,9 @@ Graphs are organized into four tabs:
   The retention rate is `1 − net draw / balance`; the real break-even is `(1 + inflation) / (1 + portfolio return) × 100%`.
   **Blue bars** (above zero) mean real wealth is growing; **red bars** (below zero) mean it is shrinking.
 - *Asset Composition* — allocation-weighted asset mix across all accounts over time.
+- *Balance Sheet* — assets (taxable, tax-deferred, tax-free, HSA, fixed assets) stacked above zero and
+  liabilities (debt, deferred income tax, fixed-asset disposition costs) below, with the traditional and
+  liquid net-worth lines overlaid. The graph companion to the **Balance Sheets** worksheets.
 
 **Rates** — return and rate assumptions used for this run:
 - *Selected Rates Over Time Horizon* — the rate sequence used for this run.

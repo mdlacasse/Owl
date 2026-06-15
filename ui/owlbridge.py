@@ -1119,6 +1119,12 @@ def plotPortfolioGraphs(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+    fig = plan.showBalanceSheet(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Balance Sheet]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
     figs = plan.showAssetComposition(figure=True)
     if figs:
         st.markdown("#### :orange[Asset Composition]")

@@ -2,6 +2,16 @@
 
 ### Version 2026.6.15
 
+#### Balance Sheet graph
+
+A new **Balance Sheet** graph on the **Graphs** page (Portfolio section) complements the
+traditional and liquid balance-sheet worksheets. Assets (taxable, tax-deferred, tax-free, HSA,
+fixed assets) are stacked above the zero line and liabilities (debt, deferred income tax on
+tax-deferred/HSA balances, and fixed-asset disposition costs) below it, with the traditional and
+liquid net-worth lines overlaid so the gap between gross and liquidatable wealth is visible at a
+glance. Available as `Plan.showBalanceSheet()` for notebook use; honors the nominal/today's-dollars
+toggle and renders in both the Plotly (UI) and Matplotlib (CLI/notebook) backends.
+
 #### Clearer "today's dollars" labeling on plots and in the UI
 
 Inflation-adjusted plots now label the vertical axis as `$k (constant <year>)` (e.g.

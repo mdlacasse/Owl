@@ -543,6 +543,57 @@ class MatplotlibBackend(PlotBackend):
 
         return fig
 
+    def plot_balance_sheet(self, year_n, bs_data, gamma_n, value, title):
+        """Plot the combined balance sheet (assets, liabilities, net worth) over time."""
+        year_n_full = np.append(year_n, [year_n[-1] + 1])
+        if value == "nominal":
+            yformat = r"\$k (nominal)"
+            scale = 1.0
+        else:
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
+            scale = gamma_n[:len(year_n_full)]
+
+        def _scaled(arr):
+            return np.asarray(arr) / (scale * 1000)
+
+        fig, ax = plt.subplots(1, 1)
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        ci = 0
+
+        # Assets stacked above zero.
+        cum = np.zeros(len(year_n_full))
+        for name, arr in bs_data["assets"].items():
+            data = _scaled(arr)
+            if np.max(np.abs(data)) > 1.0e-3:
+                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6,
+                                color=colors[ci % len(colors)], label=name)
+                cum = cum + data
+                ci += 1
+
+        # Liabilities stacked below zero (shown as negative).
+        cum = np.zeros(len(year_n_full))
+        for name, arr in bs_data["liabilities"].items():
+            data = -_scaled(arr)
+            if np.max(np.abs(data)) > 1.0e-3:
+                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6,
+                                color=colors[ci % len(colors)], label=name)
+                cum = cum + data
+                ci += 1
+
+        # Net-worth lines overlaid on top.
+        ax.plot(year_n_full, _scaled(bs_data["net worth"]), color="black",
+                linewidth=2, label="net worth")
+        ax.plot(year_n_full, _scaled(bs_data["liquid net worth"]), color="black",
+                linewidth=2, linestyle="--", label="liquid net worth")
+
+        ax.axhline(0, color="gray", linewidth=1)
+        ax.set_title(title)
+        ax.set_ylabel(yformat)
+        ax.legend(loc="best", fontsize=8)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+        fig.tight_layout()
+        return fig
+
     def plot_hsa(self, year_n, hsa_data, gamma_n, value, title, inames):
         """Plot HSA balance, contributions, and withdrawals over time."""
         year_n_full = np.append(year_n, [year_n[-1] + 1])
