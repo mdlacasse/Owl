@@ -12,6 +12,16 @@ liquid net-worth lines overlaid so the gap between gross and liquidatable wealth
 glance. Available as `Plan.showBalanceSheet()` for notebook use; honors the nominal/today's-dollars
 toggle and renders in both the Plotly (UI) and Matplotlib (CLI/notebook) backends.
 
+#### Fix: one-year net-worth dip when a fixed asset is sold
+
+Corrected an accounting error in the beginning-of-year fixed-asset arrays. A disposed asset was
+dropped from the balance sheet at the start of its disposition year, but its sale proceeds only
+land in the savings accounts the following year, so net worth was under-counted for that one year
+(an artificial dip in the Balance Sheet graph, worksheets, and per-year JSON). Fixed assets are
+now counted through their disposition year and drop out the year after, when the proceeds appear,
+keeping net worth continuous. The cash flow, taxes, and bequest values were already correct and
+are unchanged.
+
 #### Clearer "today's dollars" labeling on plots and in the UI
 
 Inflation-adjusted plots now label the vertical axis as `$k (constant <year>)` (e.g.

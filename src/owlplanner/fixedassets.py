@@ -381,8 +381,14 @@ def get_fixed_assets_disposition_costs_array(
 
         for n in range(N_n):
             year = thisyear + n
-            # Asset not yet acquired, or already disposed (cash flow booked elsewhere)
-            if year < reference_year or year >= yod:
+            # Asset not yet acquired, or disposed in a prior year. The asset is
+            # still counted in its disposition year (year == yod): the sale
+            # proceeds are booked as a cash flow during yod but only land in the
+            # savings-account balances at the start of yod+1, so keeping the
+            # asset on this beginning-of-year snapshot through yod keeps the
+            # balance sheet continuous (no one-year gap between the asset
+            # disappearing and the proceeds appearing).
+            if year < reference_year or year > yod:
                 continue
 
             years_from_reference = year - reference_year
@@ -416,8 +422,12 @@ def get_fixed_assets_current_values_array(fixed_assets_df, N_n, gamma_n, thisyea
     Unlike get_fixed_assets_arrays(), no commission or tax treatment is applied
     here: this is a gross market value, suitable for a balance-sheet snapshot
     of assets owned at the start of each year. An asset disposed in year n
-    (yod == thisyear + n) is no longer counted starting that year, since its
-    value has already been converted to a cash flow in get_fixed_assets_arrays().
+    (yod == thisyear + n) is still counted in that year and drops out starting
+    the following year (yod + 1): its sale proceeds are booked as a cash flow
+    during yod by get_fixed_assets_arrays() but only land in the savings-account
+    balances at the start of yod + 1, so counting the asset through yod keeps the
+    balance sheet continuous (no one-year gap between the asset disappearing and
+    the proceeds appearing).
 
     Parameters:
     -----------
@@ -476,8 +486,14 @@ def get_fixed_assets_current_values_array(fixed_assets_df, N_n, gamma_n, thisyea
 
         for n in range(N_n):
             year = thisyear + n
-            # Asset not yet acquired, or already disposed (cash flow booked elsewhere)
-            if year < reference_year or year >= yod:
+            # Asset not yet acquired, or disposed in a prior year. The asset is
+            # still counted in its disposition year (year == yod): the sale
+            # proceeds are booked as a cash flow during yod but only land in the
+            # savings-account balances at the start of yod+1, so keeping the
+            # asset on this beginning-of-year snapshot through yod keeps the
+            # balance sheet continuous (no one-year gap between the asset
+            # disappearing and the proceeds appearing).
+            if year < reference_year or year > yod:
                 continue
 
             years_from_reference = year - reference_year

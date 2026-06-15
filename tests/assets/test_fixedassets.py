@@ -793,14 +793,15 @@ class TestGetFixedAssetsCurrentValuesArray:
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
-        # Held from 2025 (index 0) through 2029 (index 4), gone by 2030 (index 5)
-        for n in range(5):
+        # Held from 2025 (index 0) through its 2030 disposition year (index 5),
+        # gone by 2031 (index 6). The proceeds land in savings the year after yod.
+        for n in range(6):
             expected = 100_000 * (1.05 ** n)
             assert values[n] == pytest.approx(expected, abs=1.0)
-        assert np.all(values[5:] == 0)
+        assert np.all(values[6:] == 0)
 
-    def test_asset_disposed_year_not_counted(self):
-        """Test that an asset is no longer counted starting in its disposition year."""
+    def test_asset_counted_through_disposition_year(self):
+        """An asset is still counted in its disposition year and drops out the year after."""
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
@@ -816,8 +817,8 @@ class TestGetFixedAssetsCurrentValuesArray:
         n = 2027 - 2025  # Disposition year index
         assert values[0] == pytest.approx(120_000, abs=1.0)
         assert values[1] == pytest.approx(120_000, abs=1.0)
-        assert values[n] == 0.0
-        assert np.all(values[n:] == 0)
+        assert values[n] == pytest.approx(120_000, abs=1.0)  # counted through yod
+        assert np.all(values[n + 1:] == 0)  # gone the year after yod
 
     def test_asset_acquired_mid_horizon(self):
         """Test asset acquired after plan start is not counted before its reference year."""
@@ -854,10 +855,11 @@ class TestGetFixedAssetsCurrentValuesArray:
         thisyear = 2025
         N_n = 3  # Plan years: 2025, 2026, 2027
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
-        # yod = -1 maps to end_year (2027), so the asset is held through 2026 (index 1)
+        # yod = -1 maps to end_year (2027), so the asset is held through its 2027
+        # disposition year (index 2), the last year of the plan.
         assert values[0] == pytest.approx(120_000, abs=1.0)
         assert values[1] == pytest.approx(120_000, abs=1.0)
-        assert values[2] == 0.0
+        assert values[2] == pytest.approx(120_000, abs=1.0)
 
     def test_asset_disposed_before_acquisition_ignored(self):
         """Test asset with invalid yod < acquisition year is ignored."""
@@ -921,11 +923,13 @@ class TestGetFixedAssetsCurrentValuesArray:
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
-        # In 2025 and 2026, both assets present
+        # In 2025-2027, both assets present (stocks counted through their 2027
+        # disposition year).
         assert values[0] == pytest.approx(380_000, abs=1.0)
         assert values[1] == pytest.approx(380_000, abs=1.0)
-        # From 2027 on, stocks are gone (disposed), only house remains
-        assert values[2] == pytest.approx(300_000, abs=1.0)
+        assert values[2] == pytest.approx(380_000, abs=1.0)
+        # From 2028 on, stocks are gone (disposed), only house remains
+        assert values[3] == pytest.approx(300_000, abs=1.0)
 
 
 class TestGetFixedAssetsDispositionCostsArray:
@@ -985,7 +989,7 @@ class TestGetFixedAssetsDispositionCostsArray:
             assert costs[n] == pytest.approx(commission, abs=1.0)
 
     def test_asset_excluded_after_disposition(self):
-        """No disposition cost is booked once the asset's disposition year is reached."""
+        """The embedded disposition cost is booked through the disposition year, then drops out."""
         df = pd.DataFrame([{
             "name": "stocks",
             "type": "stocks",
@@ -1001,7 +1005,8 @@ class TestGetFixedAssetsDispositionCostsArray:
         n = 2027 - 2025
         assert costs[0] > 0
         assert costs[1] > 0
-        assert np.all(costs[n:] == 0)
+        assert costs[n] > 0  # counted through yod, matching the gross value array
+        assert np.all(costs[n + 1:] == 0)  # gone the year after yod
 
     def test_loss_incurs_commission_only(self):
         """An asset sold at a loss incurs only commission (no negative tax)."""
