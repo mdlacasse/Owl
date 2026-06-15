@@ -565,10 +565,12 @@ def test_rate_bool_optional_params_survive_ui_roundtrip(method):
     from owlplanner.rate_models.loader import load_rate_model
 
     ModelClass = load_rate_model(method)
+    # Skip params explicitly marked ui_excluded: these are numerical knobs intentionally
+    # not surfaced in the UI (TOML/API only), so they are not expected to round-trip.
     bool_params = {
         k: v["default"]
         for k, v in ModelClass.optional_parameters.items()
-        if v.get("type") == "bool"
+        if v.get("type") == "bool" and not v.get("ui_excluded", False)
     }
     if not bool_params:
         pytest.skip(f"No bool optional_parameters for method={method!r}")

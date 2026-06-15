@@ -75,6 +75,7 @@ class VARRateModel(BaseRateModel):
         "shrink": {
             "type": "bool",
             "default": True,
+            "ui_excluded": True,  # numerical-stability knob; not surfaced in the UI (TOML/API only)
             "description": (
                 "If True, apply spectral shrinkage to A when its spectral radius >= 0.95, "
                 "ensuring stationarity."
