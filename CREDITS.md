@@ -39,4 +39,3 @@ and [Streamlit](https://streamlit.io) for the front-end.
 - Optional [Jupyter](https://jupyter.org) supports the tutorial notebooks in the `notebooks/`
 directory; it is not installed by default. From a source checkout, use
 `pip install -e ".[notebooks]"` (see [INSTALL.md](https://github.com/mdlacasse/Owl/blob/main/INSTALL.md)).
-- Owl image is from [freepik](https://freepik.com).

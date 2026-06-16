@@ -1,5 +1,16 @@
 
 
+### Version 2026.6.16
+
+### Owl has a new logo!
+Consolidated images and made local references thus avoiding download from the internet.
+The logo and favicon now live in a single repo-root `assets/` directory, and all UI references
+were centralized to one source of truth (`LOGOFILE`/`FAVICONFILE` in `sskeys.py`), so the app no
+longer fetches its branding from the internet at startup. Documentation (README, INSTALL, User
+Guide, Docker) now points at the same `assets/` images.
+
+---
+
 ### Version 2026.6.15
 
 #### Balance Sheet graph

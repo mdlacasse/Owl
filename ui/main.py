@@ -37,8 +37,8 @@ st.set_page_config(layout="wide", page_title="Owl — Optimal wealth lab")
 
 kz.init()
 
-# Use URL-based logo from ui folder for simplicity and reliability
-st.logo("https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png", size="large")
+# Logo path is centralized in sskeys (single source of truth, repo-root /assets).
+st.logo(kz.FAVICONFILE, size="large")
 
 pages = {
     "Case Setup": [

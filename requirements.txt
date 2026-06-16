@@ -5,7 +5,7 @@ altair==6.2.1
     # via streamlit
 annotated-types==0.7.0
     # via pydantic
-anyio==4.13.0
+anyio==4.14.0
     # via
     #   httpx
     #   mcp

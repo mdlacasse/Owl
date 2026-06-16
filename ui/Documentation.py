@@ -40,7 +40,7 @@ with col1:
     with sub_toggle:
         expand_all = st.toggle("Expand all", key="docExpandAll", help=_help)
 with col2:
-    logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
+    logofile = kz.LOGOFILE
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 

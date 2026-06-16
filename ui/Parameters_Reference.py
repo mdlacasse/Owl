@@ -26,7 +26,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
-logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
+logofile = kz.LOGOFILE
 
 parameters_path = Path(__file__).resolve().parents[1] / "info" / "PARAMETERS.md"
 try:

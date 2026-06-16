@@ -28,7 +28,7 @@ import streamlit as st
 import sskeys as kz
 import owlbridge as owb
 
-logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
+logofile = kz.LOGOFILE
 
 col1, col2 = st.columns([2.8, 1], gap="large")
 with col1:

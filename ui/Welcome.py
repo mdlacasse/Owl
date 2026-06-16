@@ -29,7 +29,7 @@ _SHOW_DISCLAIMER = os.environ.get("OWL_SKIP_DISCLAIMER", "0") not in ("1", "true
 _GPLV3_URL = "https://www.gnu.org/licenses/gpl-3.0.html#license-text"
 _WELCOME_DISCLAIMER_DISMISSED = "welcome_disclaimer_dismissed"
 
-logofile = "https://raw.githubusercontent.com/mdlacasse/Owl/main/ui/owl.png"
+logofile = kz.LOGOFILE
 owl_pdf_url = "https://raw.githubusercontent.com/mdlacasse/Owl/refs/heads/main/papers/owl.pdf"
 
 

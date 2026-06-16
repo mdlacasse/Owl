@@ -9,7 +9,7 @@ force-include = { "info/PARAMETERS.md" = "owlplanner/PARAMETERS.md" }
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
 # via `make sync-version` (enforced by tests/utils/test_version.py).
-version = "2026.6.15"
+version = "2026.6.16"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
