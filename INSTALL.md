@@ -1,10 +1,11 @@
+<img align=right src="https://github.com/mdlacasse/Owl/blob/main/assets/owl.png?raw=true" width="300">
+
 # Owl - Optimal wealth lab
 
 ## A retirement exploration tool based on mixed-integer linear programming
 
-<img align=right src="https://github.com/mdlacasse/Owl/blob/main/assets/owl.png?raw=true" width="300">
-
 ------------------------------------------------------------------------------------
+
 ### About
 This document is aimed at software developers desiring to install the Owl source code
 and run it locally on their computer.
