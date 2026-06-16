@@ -41,7 +41,7 @@ with col1:
     )
     st.markdown("### :orange[The **Owl** Retirement Planner]")
     st.markdown("""
-##### A retirement financial exploration tool based on linear programming
+##### A retirement financial exploration tool based on mathematical optimization
 
 The goal of **Owl** is to provide a free and open-source ecosystem that has cutting-edge
 optimization capabilities, allowing for the new generation of computer-literate retirees
@@ -65,7 +65,7 @@ Amounts, which impose income-based surcharges on Medicare Parts B and D) are cal
 """)
     st.markdown(
         """
-- Owl is an open-source retirement financial planner capable of optimization through
+- **Owl** is an open-source retirement financial planner capable of optimization through
 mixed-integer linear programming.
 - Source code is available from a repository on [GitHub](https://github.com/mdlacasse/Owl).
 - Mathematical formulation of the linear optimization problem can be
@@ -122,7 +122,7 @@ your computer and can be used to reproduce a case at a later time.
 This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
-Copyright &copy; 2025-2026 - The Owl [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
+Copyright &copy; 2025-2026 - The **Owl** [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )
 
