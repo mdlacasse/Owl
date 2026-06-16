@@ -117,6 +117,12 @@ your computer and can be used to reproduce a case at a later time.
 
 Copyright &copy; 2024-2026 - Martin-D. Lacasse
 
+The source code is licensed under the GPLv3 (see [LICENSE](LICENSE)). The **Owl - Optimal
+Wealth Lab** name and the logo/icon image files in the `assets/` directory are **not**
+covered by the GPLv3 — they are Copyright &copy; 2024-2026 Martin-D. Lacasse, all rights
+reserved, and may not be reproduced or modified without permission (see
+[assets/LICENSE](assets/LICENSE)).
+
 Disclaimers:
 **Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
 investment advice**—consult a qualified professional for decisions specific to your situation.
