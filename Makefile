@@ -23,7 +23,7 @@ site: ## Render the Quarto website to docs/ and clean up render artifacts
 
 requirements: ## Regenerate requirements.txt from uv lockfile
 	uv export --frozen --no-dev --no-hashes -o requirements.txt
-	echo "requirements.txt updated."
+	@echo "requirements.txt updated."
 
 sync-version: ## Sync version from pyproject.toml into src/owlplanner/version.py
 	uv run python -c "\
@@ -35,6 +35,7 @@ print('version.py synced to', ver)"
 
 lock: ## Upgrade uv.lock (owlplanner version is recorded natively)
 	uv lock --upgrade
-	echo "uv.lock updated."
+	uv sync
+	@echo "uv.lock updated."
 
 update: sync-version lock requirements ## Sync version, upgrade uv.lock, and regenerate requirements.txt
