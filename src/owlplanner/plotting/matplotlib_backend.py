@@ -357,10 +357,10 @@ class MatplotlibBackend(PlotBackend):
         nbins = int((to - frm) / 4)
         fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
 
-        dat0 = np.array(SP500[frm:to])
-        dat1 = np.array(BondsBaa[frm:to])
-        dat2 = np.array(TNotes[frm:to])
-        dat3 = np.array(Inflation[frm:to])
+        dat0 = np.array(SP500[frm:to + 1])
+        dat1 = np.array(BondsBaa[frm:to + 1])
+        dat2 = np.array(TNotes[frm:to + 1])
+        dat3 = np.array(Inflation[frm:to + 1])
 
         fig.suptitle(title)
         data = [dat0, dat1, dat2, dat3]
@@ -394,7 +394,7 @@ class MatplotlibBackend(PlotBackend):
             ax.step(mc_data, p_mc, where="post", linewidth=1.5, label=f"{rate_method} (N={N_samples})")
 
             if show_hist:
-                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM], dtype=float))
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM + 1], dtype=float))
                 n_h = len(h_arr)
                 p_h = np.arange(1, n_h + 1) / n_h
                 ax.step(h_arr, p_h, where="post", color="gray", linestyle="--", linewidth=1.5,

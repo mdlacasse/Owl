@@ -377,10 +377,10 @@ class PlotlyBackend(PlotBackend):
 
         # Get data arrays
         data = [
-            np.array(SP500[frm_idx:to_idx]),
-            np.array(BondsBaa[frm_idx:to_idx]),
-            np.array(TNotes[frm_idx:to_idx]),
-            np.array(Inflation[frm_idx:to_idx])
+            np.array(SP500[frm_idx:to_idx + 1]),
+            np.array(BondsBaa[frm_idx:to_idx + 1]),
+            np.array(TNotes[frm_idx:to_idx + 1]),
+            np.array(Inflation[frm_idx:to_idx + 1])
         ]
 
         # Add histograms
@@ -466,7 +466,7 @@ class PlotlyBackend(PlotBackend):
             ), row=1, col=k + 1)
 
             if show_hist:
-                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM], dtype=float))
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM + 1], dtype=float))
                 n_h = len(h_arr)
                 p_h = np.arange(1, n_h + 1) / n_h
                 fig.add_trace(go.Scatter(
