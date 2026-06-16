@@ -13,7 +13,7 @@
 
 *Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Gemini Cursor Zed VS Code*
 
-<img align="right" src="assets/owl.png" width="300">
+<img align="right" src="assets/owl.png" width="350">
 
 -------------------------------------------------------------------------------------
 
