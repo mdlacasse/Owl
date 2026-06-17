@@ -13,7 +13,7 @@
 
 *Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Gemini Cursor Zed VS Code*
 
-<img align="right" src="assets/owl.png" width="350">
+<img align="right" src="https://raw.githubusercontent.com/mdlacasse/Owl/main/assets/owl.png" width="350">
 
 -------------------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ premiums, RMDs, and Roth conversion rules — all embedded directly in the optim
 tax-efficient retirement income planning is built into every result, not applied as an afterthought.
 
 <p align="center">
-<img src="info/images/chris+pat_savings.png" width="700" alt="Owl Savings Balance plot: tax-deferred accounts drawn down while Roth balances grow through optimized conversions">
+<img src="https://raw.githubusercontent.com/mdlacasse/Owl/main/info/images/chris+pat_savings.png" width="700" alt="Owl Savings Balance plot: tax-deferred accounts drawn down while Roth balances grow through optimized conversions">
 <br>
 <em>Optimized account balances over time (today's dollars): Owl draws down tax-deferred
 accounts while growing tax-free Roth balances through early-retirement conversions.</em>

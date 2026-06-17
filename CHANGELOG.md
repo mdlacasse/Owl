@@ -3,7 +3,7 @@
 ### Version 2026.6.17
 
 #### Fix: CDF comparison year range
-The least (earliest) year is now included in CDF comparisons, which previously dropped it.
+The last (latest) year is now included in CDF comparisons, which previously dropped it.
 
 #### Example cases reviewed
 Diversified the no-income-tax states across the example set, added a new deep-in-retirement

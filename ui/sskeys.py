@@ -28,7 +28,6 @@ import copy
 import re
 import json
 import sys
-from pathlib import Path
 
 sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
@@ -44,11 +43,12 @@ newCase = "New Case..."
 loadCaseFile = "Upload Case File..."
 help1000 = "Values are in thousands of dollars (\\$k)."
 
-# Single source of truth for brand image paths. Resolved relative to this file
-# (repo-root /assets), so it is independent of the launch directory.
-_ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
-LOGOFILE = str(_ASSETS_DIR / "owl.png")
-FAVICONFILE = str(_ASSETS_DIR / "owl_favicon.png")
+# Single source of truth for brand image paths. Served as absolute raw URLs from
+# the repository so they render identically in the UI, on GitHub, and on PyPI, and
+# avoid the local-file load race condition seen with on-disk paths.
+_ASSETS_URL = "https://raw.githubusercontent.com/mdlacasse/Owl/main/assets"
+LOGOFILE = f"{_ASSETS_URL}/owl.png"
+FAVICONFILE = f"{_ASSETS_URL}/owl_favicon.png"
 
 
 def initGlobalKey(key, val):
