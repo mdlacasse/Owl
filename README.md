@@ -84,17 +84,16 @@ Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="no
 
 | Document | Description |
 |---------|-------------|
-| <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">INSTALL.md</a> | Installation guide, Python environment setup, and developer build steps |
-| <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG.md</a> | Version history and changelog |
-| <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">CONTRIBUTING.md</a> | Guidelines for contributing code, issues, and pull requests |
-| <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">info/modeling-capabilities.md</a> | Summary of modeled components, assumptions, and limitations |
-| <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">info/USER_GUIDE.md</a> | Python API usage with examples for Jupyter notebooks and scripts |
-| <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">info/PARAMETERS.md</a> | Complete reference for TOML case file parameters |
-| <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">info/RATE_MODELS.md</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
-| <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
-| <a href="papers/" target="_blank" rel="noopener noreferrer">papers/owl.pdf</a> | Mathematical foundations |
-
-Documentation for the app user interface is also available from the [Streamlit UI](https://owlplanner.streamlit.app/Documentation).
+| 📥 <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">Installation Guide</a> | Installation, Python environment setup, and developer build steps |
+| 📋 <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a> | Version history and changelog |
+| 🤝 <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a> | Guidelines for contributing code, issues, and pull requests |
+| 📊 <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">Modeling Capabilities</a> | Summary of modeled components, assumptions, and limitations |
+| 📖 <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a> | Python API usage with examples for Jupyter notebooks and scripts |
+| ⚙️ <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">Parameter Reference</a> | Complete reference for TOML case file parameters |
+| 📈 <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">Rate Models</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
+| 🤖 <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">MCP Server</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
+| 🖥️ <a href="https://owlplanner.streamlit.app/Documentation" target="_blank" rel="noopener noreferrer">Web App Guide</a> | Guide to the Streamlit web app user interface |
+| 📐 <a href="papers/" target="_blank" rel="noopener noreferrer">Mathematical Foundations</a> | The LP formulation paper (owl.pdf) |
 
 ---------------------------------------------------------------------
 
@@ -118,7 +117,7 @@ your computer and can be used to reproduce a case at a later time.
 Copyright &copy; 2024-2026 - Martin-D. Lacasse
 
 The source code is licensed under the GPLv3 (see [LICENSE](LICENSE)). The **Owl - Optimal
-Wealth Lab** name and the logo/icon image files in the `assets/` directory are **not**
+wealth lab** name and the logo/icon image files in the `assets/` directory are **not**
 covered by the GPLv3 — they are Copyright &copy; 2024-2026 Martin-D. Lacasse, all rights
 reserved, and may not be reproduced or modified without permission (see
 [assets/LICENSE](assets/LICENSE)).

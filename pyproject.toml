@@ -9,14 +9,14 @@ force-include = { "info/PARAMETERS.md" = "owlplanner/PARAMETERS.md" }
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
 # via `make sync-version` (enforced by tests/utils/test_version.py).
-version = "2026.6.17"
+version = "2026.6.18"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
 maintainers = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
-description = "Owl - Optimal Wealth Lab: Retirement planner with great wisdom"
+description = "Owl - Optimal wealth lab: Retirement planner with great wisdom"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -55,7 +55,8 @@ notebooks = ["jupyter>=1.1.1"]
 HomePage = "https://github.com/mdlacasse/owl"
 Repository = "https://github.com/mdlacasse/owl"
 Issues = "https://github.com/mdlacasse/owl/issues"
-Documentation = "https://github.com/mdlacasse/Owl/blob/main/docs/owl.pdf"
+Documentation = "https://github.com/mdlacasse/Owl#documentation"
+Paper = "https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf"
 DOWNLOAD = "https://github.com/mdlacasse/Owl/archive/refs/heads/main.zip"
 
 [project.scripts]

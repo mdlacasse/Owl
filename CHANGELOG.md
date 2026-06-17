@@ -1,5 +1,24 @@
 
 
+### Version 2026.6.18
+
+#### References to images
+Images are cached when local and are dispatched by a local service. This leads
+to race conditions on Streamlit startup, leading to images not always being displayed.
+Using URL for images pointing to GitHub brings two benefits:
+- Bypass the caching service, avoiding the race condition
+- Allow pypi.org to display images when re-using the README.md file per default.
+
+But is hasAnd inconvenient:
+- **Owl** needs web access to be able to load images.
+
+If a case surfaces where a user needs to run Owl in airgap mode we can revisit
+this issue with a fallback approach.
+
+#### Add UI doc to table in README.md.
+
+---
+
 ### Version 2026.6.17
 
 #### Fix: CDF comparison year range
