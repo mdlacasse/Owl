@@ -1,8 +1,10 @@
 case_name = "alex+jamie"
 description = """
-Alex and Jamie face a stark longevity gap: Alex has a shorter life expectancy (72) while Jamie may live to 90. This creates unique planning challenges—how much to spend now vs. preserve for the survivor, and how to structure Roth conversions when one spouse will likely outlive the other by two decades.
+Alex and Jamie face a stark longevity gap: Alex has a shorter life expectancy (72, planned through 2032) while Jamie may live to 90 (planned through 2051). This creates unique planning challenges—how much to spend now vs. preserve for the survivor, and how to structure Roth conversions when one spouse will likely outlive the other by nearly two decades. Both are still working into the late 2020s, carry a mortgage, and own a home they intend to leave to their heirs.
 
-This case showcases Owl's handling of asymmetric life expectancies, the AMO (at-most-one) Roth and AMO surplus options for aggressive optimization, and the importance of survivor spending assumptions. The 60% surviving-spouse factor means Jamie's longer horizon drives much of the strategy.
+The optimal strategy is striking: Owl front-loads roughly $886k (today's dollars) of Roth conversions into Alex's final years—racing the closing window before the household drops to single-filer brackets—so that when Alex passes in 2032, about $927k transfers to Jamie completely tax-free, alongside the home. With the AMO (at-most-one) Roth and AMO surplus options enabled and a 60% surviving-spouse factor, the plan sustains a $228,536/yr spending basis while Jamie's long horizon and the survivor tax exposure drive nearly every decision.
+
+This case showcases Owl's handling of asymmetric life expectancies, aggressive pre-death Roth positioning, mortgage debt, and a home passed to heirs as the final bequest.
 """
 
 [basic_info]

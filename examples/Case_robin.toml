@@ -1,10 +1,10 @@
 case_name = "robin"
 description = """
-Robin is a 65-year-old single retiree who spent a 30-year career in school administration. Robin owns a home outright — the mortgage was paid off in the mid-2050s — and does not plan to sell it; the home passes to heirs as part of the estate. Social Security will be claimed at 67 with the belief to maximize the monthly benefits. Optimizing for SS gives a different answer however - try it out and compare results.
+Robin is a 65-year-old single retiree who spent a 30-year career in school administration. Robin owns a home outright — the mortgage was paid off in the mid-2010s — and does not plan to sell it; the home passes to heirs as part of the estate. Social Security will be claimed at 67 with the belief to maximize the monthly benefits. Optimizing for SS gives a different answer however - try it out and compare results.
 
 Robin built retirement savings steadily throughout the career: a 403(b) plan through the school district, with contributions ramping up significantly in the final decade. In the last five working years Robin contributed ~$14–16k per year to the 403(b) while also maxing out a Roth IRA ($7–7.5k/yr) and an HSA ($3.6–4.3k/yr) while on a high-deductible health plan. The starting account balances reflect those 30 years of accumulated savings and investment growth, including a difficult 2022 market.
 
-This case demonstrates Owl's account-type asset allocation (keeping equities in Roth and HSA, bonds in tax-deferred), a common tax-location strategy recommended by financial advisors. The HFP file records the final five working years for Roth five-year rule tracking.
+This case demonstrates Owl's account-type asset allocation (keeping equities in Roth and HSA, bonds in tax-deferred), a common tax-location strategy recommended by financial advisors. On Robin's modest portfolio the optimizer holds a $44,344/yr spending basis at just an 11% effective tax rate, runs about $98k of Roth conversions, and lets the HSA cover roughly $33k of Medicare premiums. Because the home is never sold, it dominates the legacy: of the ~$335k after-tax final bequest, about $285k is the house passing to heirs. The HFP file records the final five working years for Roth five-year-rule tracking.
 """
 
 [basic_info]

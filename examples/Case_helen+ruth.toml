@@ -1,0 +1,72 @@
+case_name = "helen+ruth"
+description = """
+Helen and Ruth are a married couple deep into retirement. Helen is 77 and Ruth is 75 in 2026; they married in 2015 once it became legal, after decades together. Both stopped working long ago, both have already claimed Social Security, and—being past 73—both are already taking Required Minimum Distributions from sizable traditional IRAs. They own their home outright and intend to leave it to their heirs.
+
+Unlike the near-retirement examples, almost every lever here is already pulled: no wages, no contributions, benefits already in pay status, and RMDs forcing a high floor of taxable income every year. The interesting tension is the survivor \"widow's penalty\"—when the first spouse dies, the survivor keeps most of the household's RMD-driven income but files under single brackets, where the same income is taxed harder and Medicare IRMAA surcharges bite sooner. Helen carries the larger IRA and a pension with a 50% survivor election, so Ruth (the younger, longer-lived spouse) inherits both the assets and the tax exposure.
+
+This case demonstrates Owl on an already-retired household: automatic RMDs, a narrow remaining Roth-conversion window squeezed between RMD income and IRMAA thresholds, and the asymmetric-longevity survivor planning that drives the strategy. Try widening the Roth conversion limit, or comparing maxSpending against maxBequest, to see how the optimizer trades present spending against the survivor's future tax bill.
+"""
+
+[basic_info]
+status = "married"
+names = [ "Helen", "Ruth",]
+sexes = [ "F", "F",]
+date_of_birth = [ "1949-01-15", "1951-01-15",]
+life_expectancy = [ 90, 95,]
+start_date = "2026-01-01"
+state = "AZ"
+
+[savings_assets]
+taxable_savings_balances = [ 250.0, 90.0,]
+tax_deferred_savings_balances = [ 1_300.0, 550.0,]
+tax_free_savings_balances = [ 70.0, 60.0,]
+taxable_cost_basis = [ 120.0, 50.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "HFP_helen+ruth.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 2_800.0, 0.0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ true, false,]
+pension_survivor_fraction = [ 0.5, 0.0,]
+social_security_pia_amounts = [ 3_200, 2_400,]
+social_security_ages = [ 67.0, 67.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "user"
+values = [ 6.0, 4.0, 3.3, 2.8,]
+from = 1928
+to = 2025
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
+generic = [ [ [ 40, 60, 0, 0,], [ 40, 60, 0, 0,],], [ [ 40, 60, 0, 0,], [ 40, 60, 0, 0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 70
+objective = "maxSpending"
+
+[solver_options]
+maxRothConversion = 75
+noRothConversions = "none"
+startRothConversions = 2026
+bequest = 200
+solver = "default"
+spendingSlack = 0
+withSCLoop = true
+withMedicare = "loop"
+withSSTaxability = "loop"
+previousMAGIs = [ 175.0, 185.0,]
+
+[results]
+default_plots = "today"

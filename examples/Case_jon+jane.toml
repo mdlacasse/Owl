@@ -2,7 +2,7 @@ case_name = "jon+jane"
 description = """
 Jon and Jane are close to retirement with a classic 60/40 split—he has the taxable and tax-deferred assets, she has the Roth. They've chosen an optimistic return assumption (10% equity, 3.5% inflation) and a 100% stock allocation to stress-test their plan. Roth conversions are disabled, so this case focuses on withdrawal sequencing and spending sustainability.
 
-Inspired by discussions on retirement forums, this scenario shows how couples with asymmetric account ownership can optimize their retirement cash flow. Try enabling Roth conversions to see how the strategy changes.
+Inspired by discussions on retirement forums, this scenario shows how couples with asymmetric account ownership can optimize their retirement cash flow. Both are still working into the late 2020s/early 2030s and contributing to HSAs, which go on to cover about $82k of lifetime Medicare premiums. With those optimistic returns the plan sustains a hefty $161,740/yr spending basis—but with conversions switched off it pays roughly $927k in lifetime ordinary-income tax, the visible price of forgoing a Roth strategy. Try enabling Roth conversions to see how much of that tax bill the optimizer can trim.
 """
 
 [basic_info]

@@ -122,6 +122,11 @@ your computer and can be used to reproduce a case at a later time.
 This software is released under the
 [Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 
+The **Owl - Optimal wealth lab** name and the logo/icon images are **not** covered by the
+GPLv3. They are Copyright &copy; 2024-2026 Martin-D. Lacasse, all rights reserved, and may
+not be reproduced or modified without permission
+([details](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
+
 Copyright &copy; 2025-2026 - The **Owl** [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )

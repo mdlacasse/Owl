@@ -2,7 +2,7 @@ case_name = "john+sally"
 description = """
 John and Sally are identical-age twins who retired together with substantial tax-deferred balances. John has a corporate pension with a 75% joint-and-survivor election—so when he passes, Sally will receive three-quarters of his benefit for life. Both have been maxing out their HSAs in their final working years.
 
-This case, inspired by Eric Sajdak's work, compares the heuristic of \"surfing a tax bracket\" for Roth conversions to a solution optimized by linear programming.  With constant rates, bracket-surfing works well; when rates vary and markets drop, the optimizer may recommend converting between brackets. Run with different rate assumptions to explore the effects on Roth conversion strategy.
+This case, inspired by Eric Sajdak's work, compares the heuristic of \"surfing a tax bracket\" for Roth conversions to a solution optimized by linear programming. With constant rates, bracket-surfing works well; when rates vary and markets drop, the optimizer may recommend converting between brackets. Maximizing the estate behind a fixed $145k spending floor, Owl converts roughly $496k (today's dollars) to Roth—front-loaded before Required Minimum Distributions begin—while the 75% survivor pension and HSAs (which absorb about $76k of Medicare premiums) cushion the household. The example also surfaces a cost that is easy to overlook: under Minnesota's income tax, this couple pays about $148k in state tax over the plan, a meaningful drag on the legacy. Run with different rate assumptions to explore the effects on Roth conversion strategy.
 """
 
 [basic_info]

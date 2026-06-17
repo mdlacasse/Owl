@@ -54,7 +54,7 @@ def _render_case_loader():
             kz.initGlobalKey("_example_case_idx", 0)
             case = st.selectbox(
                 "Examples available from GitHub",
-                tomlex.cases,
+                tomlex.CASES,
                 index=None,
                 key="_example_case" + str(kz.getGlobalKey("_example_case_idx")),
                 placeholder="Select an example case")

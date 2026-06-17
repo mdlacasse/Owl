@@ -95,7 +95,7 @@ matplotlib==3.11.0
     # via
     #   owlplanner
     #   seaborn
-mcp==1.27.2
+mcp==1.28.0
     # via owlplanner
 mosek==11.2.2
     # via owlplanner

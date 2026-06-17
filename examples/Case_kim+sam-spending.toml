@@ -2,7 +2,7 @@ case_name = "kim+sam-spending"
 description = """
 Kim and Sam are a high-net-worth couple in their late fifties, optimizing for maximum lifetime spending. They've accumulated significant tax-deferred savings and have been contributing to HSAs while on high-deductible plans. They plan to downsize their home in 2038, with the sale proceeds helping fund their later years.
 
-This case showcases maxSpending optimization with HSA accounts, fixed assets (primary residence sale with capital gains exclusion), and Roth conversion strategy. Compare with the bequest variant to see how the objective shifts withdrawal and conversion timing.
+This case showcases maxSpending optimization with HSA accounts, fixed assets (primary residence sale with capital gains exclusion), and Roth conversion strategy. Owl drives the spending basis to $186,697/yr, running about $789k (today's dollars) of Roth conversions and ending with essentially nothing left to heirs—every dollar is consumed. It is the deliberate twin of Case_kim+sam-bequest, which holds the same couple to a $145k floor and instead maximizes the estate: there the optimizer converts far more (~$1.18M) and preserves about $1.99M after tax. Comparing the two shows how the objective alone reshapes withdrawal and conversion timing for an identical household.
 """
 
 [basic_info]

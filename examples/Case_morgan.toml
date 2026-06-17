@@ -2,6 +2,8 @@ case_name = "morgan"
 description = """
 Morgan is a 54-year-old single professional who retired in early 2026. Morgan has built moderate savings across taxable, tax-deferred, and Roth accounts. With 11 years until Medicare (age 65), Morgan must obtain health insurance through the ACA marketplace. This case highlights Owl's ACA marketplace modeling: the optimizer accounts for Premium Tax Credits when MAGI falls within subsidy-eligible ranges (roughly 100%–400% of federal poverty level) and adjusts Roth conversion and withdrawal timing accordingly.
 
+The tension is visible in the result: across the 11 pre-65 years Morgan still pays about $69k in ACA premiums (net of Premium Tax Credits), and Owl keeps Roth conversions deliberately modest—roughly $112k total—rather than converting aggressively, because every extra dollar of MAGI claws back subsidy. The plan settles at a $42,550/yr spending basis, with the HSA later covering about $38k of Medicare premiums.
+
 Key features: pre-65 ACA costs with SLCSP benchmark premium, subsidy-aware income optimization, and the trade-off between Roth conversions (higher MAGI, lower ACA subsidy) versus tax-deferred withdrawals.
 """
 

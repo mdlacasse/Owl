@@ -1,5 +1,23 @@
 
 
+### Version 2026.6.17
+
+#### Fix: CDF comparison year range
+The least (earliest) year is now included in CDF comparisons, which previously dropped it.
+
+#### Example cases reviewed
+Diversified the no-income-tax states across the example set, added a new deep-in-retirement
+same-sex couple case (`helen+ruth`), and refreshed every case description to better reflect what
+each scenario demonstrates.
+
+#### Logo and images licensed separately from the GPL
+The logo and image assets are now covered by their own `assets/LICENSE` rather than the GPL.
+
+#### Maintenance
+Updated dependencies to address a flagged vulnerability.
+
+---
+
 ### Version 2026.6.16
 
 ### Owl has a new logo!

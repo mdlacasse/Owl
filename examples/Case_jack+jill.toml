@@ -2,7 +2,7 @@ case_name = "jack+jill"
 description = """
 Jack and Jill are a married couple in their early sixties, a few years from retirement.  Jill has a modest pension from her teaching career, and they've elected a 50% joint-and-survivor option so the survivor receives half of her benefit. Both have built solid nest eggs across taxable, tax-deferred, and Roth accounts—plus they've been maxing out their HSAs while still on an HDHP (high-deductible health plan). They're carrying a small mortgage on their home and plan to sell a vacation property in 2035 to simplify their life.
 
-This case showcases Owl's full feature set: pension survivor benefits, HSA accounts, fixed assets (real estate disposition), and debt (mortgage payments). It uses the historical rate sequence of 1969—a near worst-case scenario—to stress-test their plan.  You'll see that optimal Roth conversion strategy doesn't always mean surfing a tax bracket; sometimes converting more in down years pays off. Try duplicating this case and comparing with and without Roth conversions, or swap in a different historical sequence like 1966.
+This case exercises Owl's full feature set: pension survivor benefits, HSA accounts, fixed assets (the vacation condo sells in 2035), and debt (the mortgage runs through the mid-2030s). It uses the historical rate sequence of 1969—a near worst-case scenario—to stress-test the plan, and turns on Benders decomposition to certify a globally optimal assignment of the Medicare-IRMAA and Social-Security-taxability brackets. Several results are concrete and instructive: the HSAs cover about $88k of lifetime Medicare premiums, Owl runs roughly $212k of Roth conversions, and the plan holds a $102,880/yr spending basis (front-loaded by the smile profile to $112,558 in 2026). You'll also see that optimal Roth conversion timing doesn't always mean surfing a tax bracket; sometimes converting more in down years pays off. Try duplicating this case and comparing with and without Roth conversions, or swap in a different historical sequence like 1966.
 """
 
 [basic_info]
@@ -12,7 +12,7 @@ sexes = [ "M", "F",]
 date_of_birth = [ "1963-01-15", "1966-01-15",]
 life_expectancy = [ 89, 92,]
 start_date = "2026-01-01"
-state = "TX"
+state = "TN"
 
 [savings_assets]
 taxable_savings_balances = [ 90.5, 60.2,]

@@ -1,5 +1,11 @@
 case_name = "jordan+taylor"
-description = "This is an edge case for a high-net-worth couple in retirement. It demonstrates the purchase and sale of a house and stocks. For testing purposes, it contains previous MAGIS that are at the high end of IRMAA brackets."
+description = """
+Jordan and Taylor are a high-net-worth couple—roughly $8M across taxable, tax-deferred, Roth, and HSA accounts—optimizing to maximize the estate they leave to heirs (Taylor inherits in full; other beneficiaries share Jordan's accounts). This is Owl's stress-test of its real-estate and high-income machinery: the couple buys a $1.2M lake house in 2028 (partly financed with a $400k mortgage), sells an Apple stock position in 2030, and sells the primary residence in 2040, all while previous MAGIs are deliberately seeded at the top of the IRMAA brackets to push Medicare surcharges to their ceiling.
+
+The optimization is aggressive and the numbers are large: Owl converts about $979k (today's dollars) to Roth so that roughly $2.36M passes to heirs entirely tax-free, lifting the after-tax legacy to about $2.63M. At this income level the secondary taxes all engage—Net Investment Income Tax, top-tier Medicare premiums near $265k, and—because they retire in Minnesota—about $425k of state income tax over the plan.
+
+This case demonstrates fixed-asset purchases and dispositions, debt, IRMAA at the high end, NIIT, and large-scale Roth conversion for bequest maximization. It is also used in the test suite as a complex, slow-converging MILP.
+"""
 
 [basic_info]
 status = "married"
