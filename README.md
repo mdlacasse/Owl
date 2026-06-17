@@ -13,9 +13,10 @@
 
 *Roth conversion optimizer · Social Security claiming strategy · Monte Carlo retirement simulator · Python retirement calculator · AI retirement planner · MCP retirement tool · Claude Gemini Cursor Zed VS Code*
 
+---
+
 <img align="right" src="https://raw.githubusercontent.com/mdlacasse/Owl/main/assets/owl.png" width="350">
 
--------------------------------------------------------------------------------------
 
 ### TL;DR
 Owl is an open-source **retirement planning tool** that helps US retirees answer the hardest
