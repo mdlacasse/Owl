@@ -1,3 +1,9 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
+
 # Year-End Update Checklist
 
 This document describes the steps required when advancing Owl to a new tax year (e.g., from 2026 to 2027).

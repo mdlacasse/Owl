@@ -1,6 +1,11 @@
 ---
 title: Users Guide
 ---
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
 
 This document replicates the [Users guide](../users_guide.qmd), except that it's using
 owlplanner live.

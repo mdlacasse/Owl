@@ -1,3 +1,9 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
+
 # OWLCLI — Owl (*Optimal Wealth Lab*) Command Line Interface
 
 `owlcli` is the command-line interface for Owl. It can list, run, and compare

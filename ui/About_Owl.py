@@ -119,15 +119,19 @@ own data to your computer before closing the session. These data will be stored 
 your computer and can be used to reproduce a case at a later time.
 
 #### :orange[License]
-This software is released under the
-[Gnu General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
+This project is distributed under three separate licenses depending on the type of file:
 
-The **Owl - Optimal wealth lab** name and the logo/icon images are **not** covered by the
-GPLv3. They are Copyright &copy; 2024-2026 Martin-D. Lacasse, all rights reserved, and may
-not be reproduced or modified without permission
-([details](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
+- **Source code** is licensed under the
+  [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
+- **Documentation** is licensed under the
+  [Creative Commons Attribution-ShareAlike 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+  license (CC-BY-SA-4.0).
+- The **Owl - Optimal wealth lab** name and the logo/icon images are **all rights reserved**,
+  Copyright &copy; 2024-2026 Martin-D. Lacasse. They are **not** covered by the GPLv3 and may
+  not be reproduced or modified without permission
+  ([details](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
 
-Copyright &copy; 2025-2026 - The **Owl** [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
+Copyright &copy; 2024-2026 Martin-D. Lacasse and The **Owl** [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )
 

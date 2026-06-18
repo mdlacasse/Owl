@@ -1,3 +1,9 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
+
 ## :orange[Available Rate Models]
 
 The following rate models are available via the `method` field in `[rates_selection]`.
@@ -300,6 +306,7 @@ VAR(1) model fitted by Ordinary Least Squares (OLS) on the historical window. Ca
 | `from` | Yes | int | First historical year used for fitting (inclusive). |
 | `to` | Yes | int | Last historical year used for fitting (inclusive). |
 | `shrink` | No | bool | If True, apply spectral shrinkage to A when its spectral radius >= 0.95, ensuring stationarity. |
+| `constrain_mean` | No | bool | Shift each generated series so its arithmetic mean matches the historical window mean. Preserves momentum and mean-reversion dynamics; only the mean is corrected. Default False. |
 
 **Example:**
 

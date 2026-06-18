@@ -1,6 +1,11 @@
 ---
 title: Installation - Owl using UV on WSL
 ---
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
 
 This installation guide uses the [UV](https://docs.astral.sh/uv/) family of tools to install [Owl](https://github.com/mdlacasse/OWN).
 

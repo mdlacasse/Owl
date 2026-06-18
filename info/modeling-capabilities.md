@@ -1,3 +1,9 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
+
 ### Modeling Capabilities
 
 This document summarizes all modeling components in Owl (Optimal wealth lab), how each is implemented, and the assumptions and limitations that apply. It serves as a quick reference for understanding the scope and boundaries of the optimizer.

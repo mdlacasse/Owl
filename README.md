@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-SA-4.0
+This documentation is licensed under Creative Commons Attribution-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
 
 # Owl - Optimal wealth lab
 
@@ -115,13 +120,21 @@ your computer and can be used to reproduce a case at a later time.
 
 ---------------------------------------------------------------------
 
-Copyright &copy; 2024-2026 - Martin-D. Lacasse
+## Licensing
 
-The source code is licensed under the GPLv3 (see [LICENSE](LICENSE)). The **Owl - Optimal
-wealth lab** name and the logo/icon image files in the `assets/` directory are **not**
-covered by the GPLv3 — they are Copyright &copy; 2024-2026 Martin-D. Lacasse, all rights
-reserved, and may not be reproduced or modified without permission (see
-[assets/LICENSE](assets/LICENSE)).
+Copyright &copy; 2024-2026 Martin-D. Lacasse and The Owl Authors.
+
+This project is distributed under three separate licenses depending on the type of file:
+
+- **Source code** (`.py`, `.sh`) is licensed under the
+  **GNU General Public License v3** (see [LICENSE](LICENSE)).
+- **Documentation** (`.md`, `.qmd`, `.ipynb`, `.tex`) is licensed under the
+  **Creative Commons Attribution-ShareAlike 4.0** license, CC-BY-SA-4.0
+  (see [LICENSE-docs](LICENSE-docs)).
+- **Name, logo, and image assets** — the **Owl - Optimal wealth lab** name and the
+  logo/icon image files in the `assets/` directory — are **all rights reserved**,
+  Copyright &copy; 2024-2026 Martin-D. Lacasse. They are **not** covered by the GPLv3 and
+  may not be reproduced or modified without permission (see [assets/LICENSE](assets/LICENSE)).
 
 Disclaimers:
 **Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
