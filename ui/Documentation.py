@@ -32,8 +32,8 @@ with col1:
     st.markdown("### **Owl** - *Optimal wealth lab*")
     kz.divider("orange")
     st.markdown(f"**Version {owb.version()}**")
-    st.markdown("<div style='height: 3.5em;'></div>", unsafe_allow_html=True)
-    sub_toc, sub_toggle = st.columns([5, 1], vertical_alignment="bottom")
+    # st.markdown("<div style='height: 3.5em;'></div>", unsafe_allow_html=True)
+    sub_toc, sub_toggle = st.columns([4, 1], vertical_alignment="bottom")
     with sub_toc:
         st.markdown("## :orange[Table of Contents]")
         _help = "Expand all sections across all tabs. Tip: expand before using Ctrl+F (or ⌘F) to search within the active tab."
@@ -44,7 +44,7 @@ with col2:
     st.image(logofile)
     st.caption("Retirement planner with great wisdom")
 
-st.markdown("<style>div[data-testid='stTabs'] { margin-top: -50px; }</style>", unsafe_allow_html=True)
+st.markdown("<style>div[data-testid='stTabs'] { margin-top: -20px; }</style>", unsafe_allow_html=True)
 
 # Tabs for bite-sized navigation
 tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
