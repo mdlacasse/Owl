@@ -131,7 +131,8 @@ This project is distributed under three separate licenses depending on the type 
   not be reproduced or modified without permission
   ([details](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
 
-Copyright &copy; 2024-2026 Martin-D. Lacasse and The **Owl** [Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
+Copyright &copy; 2024-2026 Martin-D. Lacasse and The **Owl**
+[Authors](https://github.com/mdlacasse/Owl/blob/main/AUTHORS)
 """
 )
 
