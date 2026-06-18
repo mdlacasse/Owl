@@ -72,17 +72,17 @@ There are four ways to run Owl (from easiest to more complex):
 [owlplanner.streamlit.app](https://owlplanner.streamlit.app).
 
 1) **Docker Container:** Run Owl locally on your computer using a Docker image.
-Follow these <a href="docker/README.md" target="_blank" rel="noopener noreferrer">instructions</a> for using this option.
+Follow these <a href="https://github.com/mdlacasse/Owl/blob/main/docker/README.md" target="_blank" rel="noopener noreferrer">instructions</a> for using this option.
 
 1) **Self-hosting:** Run Owl locally on your computer using Python code and libraries.
-Follow these <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">instructions</a> to install from the source code and self-host on your own computer.
+Follow these <a href="https://github.com/mdlacasse/Owl/blob/main/INSTALL.md" target="_blank" rel="noopener noreferrer">instructions</a> to install from the source code and self-host on your own computer.
 
 1) **AI assistant (MCP):** Connect Owl as a tool to an AI assistant — Claude Desktop,
 Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot or Cline), or any
 [MCP-compatible client](https://modelcontextprotocol.io).
 The AI can discover cases, run optimizations, compute probability-of-success frontiers,
 and compare scenarios through natural conversation — no TOML files required.
-Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> for setup.
+Requires a local installation; see <a href="https://github.com/mdlacasse/Owl/blob/main/info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> for setup.
 
 
 ---------------------------------------------------------------
@@ -104,7 +104,7 @@ Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="no
 ---------------------------------------------------------------------
 
 ## Credits and Acknowledgements
-See <a href="CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
+See <a href="https://github.com/mdlacasse/Owl/blob/main/CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
 
 ## Bugs and Feature Requests
 Please submit bugs and feature requests through
@@ -127,14 +127,14 @@ Copyright &copy; 2024-2026 Martin-D. Lacasse and The Owl Authors.
 This project is distributed under three separate licenses depending on the type of file:
 
 - **Source code** (`.py`, `.sh`) is licensed under the
-  **GNU General Public License v3** (see [LICENSE](LICENSE)).
+  **GNU General Public License v3** (see [LICENSE](https://github.com/mdlacasse/Owl/blob/main/LICENSE)).
 - **Documentation** (`.md`, `.qmd`, `.ipynb`, `.tex`) is licensed under the
   **Creative Commons Attribution-ShareAlike 4.0** license, CC-BY-SA-4.0
-  (see [LICENSE-docs](LICENSE-docs)).
+  (see [LICENSE-docs](https://github.com/mdlacasse/Owl/blob/main/LICENSE-docs)).
 - **Name, logo, and image assets** — the **Owl - Optimal wealth lab** name and the
   logo/icon image files in the `assets/` directory — are **all rights reserved**,
   Copyright &copy; 2024-2026 Martin-D. Lacasse. They are **not** covered by the GPLv3 and
-  may not be reproduced or modified without permission (see [assets/LICENSE](assets/LICENSE)).
+  may not be reproduced or modified without permission (see [assets/LICENSE](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
 
 Disclaimers:
 **Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
