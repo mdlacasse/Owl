@@ -78,6 +78,7 @@ with col2:
 st.divider()
 
 credits_text = (Path(__file__).parent.parent / "CREDITS.md").read_text(encoding="utf-8")
+credits_text = kz.stripLicenseHeader(credits_text)
 credits_text = credits_text.replace("## Owl — Optimal wealth lab: Credits and Acknowledgements\n", "", 1)
 split_marker = "- [MOSEK]"
 if split_marker in credits_text:
@@ -95,7 +96,7 @@ with col2:
 
 rn_path = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 try:
-    rn_text = rn_path.read_text(encoding="utf-8")
+    rn_text = kz.stripLicenseHeader(rn_path.read_text(encoding="utf-8"))
 except OSError:
     rn_text = None
 

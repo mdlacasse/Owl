@@ -50,6 +50,17 @@ _ASSETS_URL = "https://raw.githubusercontent.com/mdlacasse/Owl/main/assets"
 LOGOFILE = f"{_ASSETS_URL}/owl.png"
 FAVICONFILE = f"{_ASSETS_URL}/owl_favicon.png"
 
+_LICENSE_HEADER_RE = re.compile(r"^\s*<!--.*?-->\s*", re.DOTALL)
+
+
+def stripLicenseHeader(text: str) -> str:
+    """Remove a leading HTML-comment license header so it is not rendered in the UI.
+
+    Documentation files carry an invisible ``<!-- ... -->`` SPDX/copyright header
+    (see LICENSE-docs); Streamlit's markdown renderer would otherwise display it.
+    """
+    return _LICENSE_HEADER_RE.sub("", text, count=1)
+
 
 def initGlobalKey(key, val):
     if key not in ss:

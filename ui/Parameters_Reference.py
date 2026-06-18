@@ -30,7 +30,7 @@ logofile = kz.LOGOFILE
 
 parameters_path = Path(__file__).resolve().parents[1] / "info" / "PARAMETERS.md"
 try:
-    content = parameters_path.read_text(encoding="utf-8")
+    content = kz.stripLicenseHeader(parameters_path.read_text(encoding="utf-8"))
 except FileNotFoundError:
     st.error(f"Unable to locate `{parameters_path.name}` in the project root.", icon=":material/error:")
     st.stop()
