@@ -125,8 +125,8 @@ This project is distributed under three separate licenses depending on the type 
 - **Source code** is licensed under the
   [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html#license-text).
 - **Documentation** is licensed under the
-  [Creative Commons Attribution-ShareAlike 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
-  license (CC-BY-SA-4.0).
+  [Creative Commons Attribution-NonCommercial-ShareAlike 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+  license (CC-BY-NC-SA-4.0).
 - The **Owl - Optimal wealth lab** name and the logo/icon images are **all rights reserved**,
   Copyright &copy; 2024-2026 Martin-D. Lacasse. They are **not** covered by the GPLv3 and may
   not be reproduced or modified without permission
