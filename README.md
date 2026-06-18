@@ -90,14 +90,14 @@ Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="no
 
 | Document | Description |
 |---------|-------------|
-| 📥 <a href="INSTALL.md" target="_blank" rel="noopener noreferrer">Installation Guide</a> | Installation, Python environment setup, and developer build steps |
-| 📋 <a href="CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a> | Version history and changelog |
-| 🤝 <a href="CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a> | Guidelines for contributing code, issues, and pull requests |
-| 📊 <a href="info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">Modeling Capabilities</a> | Summary of modeled components, assumptions, and limitations |
-| 📖 <a href="info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a> | Python API usage with examples for Jupyter notebooks and scripts |
-| ⚙️ <a href="info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">Parameter Reference</a> | Complete reference for TOML case file parameters |
-| 📈 <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">Rate Models</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
-| 🤖 <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">MCP Server</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
+| 📥 <a href="https://github.com/mdlacasse/Owl/blob/main/INSTALL.md" target="_blank" rel="noopener noreferrer">Installation Guide</a> | Installation, Python environment setup, and developer build steps |
+| 📋 <a href="https://github.com/mdlacasse/Owl/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a> | Version history and changelog |
+| 🤝 <a href="https://github.com/mdlacasse/Owl/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing</a> | Guidelines for contributing code, issues, and pull requests |
+| 📊 <a href="https://github.com/mdlacasse/Owl/blob/main/info/modeling-capabilities.md" target="_blank" rel="noopener noreferrer">Modeling Capabilities</a> | Summary of modeled components, assumptions, and limitations |
+| 📖 <a href="https://github.com/mdlacasse/Owl/blob/main/info/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a> | Python API usage with examples for Jupyter notebooks and scripts |
+| ⚙️ <a href="https://github.com/mdlacasse/Owl/blob/main/info/PARAMETERS.md" target="_blank" rel="noopener noreferrer">Parameter Reference</a> | Complete reference for TOML case file parameters |
+| 📈 <a href="https://github.com/mdlacasse/Owl/blob/main/info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">Rate Models</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
+| 🤖 <a href="https://github.com/mdlacasse/Owl/blob/main/info/mcp.md" target="_blank" rel="noopener noreferrer">MCP Server</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
 | 🖥️ <a href="https://owlplanner.streamlit.app/Documentation" target="_blank" rel="noopener noreferrer">Web App Guide</a> | Guide to the Streamlit web app user interface |
 | 📐 <a href="https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf" target="_blank" rel="noopener noreferrer">Mathematical Foundations</a> | The LP formulation paper (owl.pdf) |
 
