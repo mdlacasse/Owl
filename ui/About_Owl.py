@@ -96,7 +96,7 @@ with col2:
 
 rn_path = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
 try:
-    rn_text = kz.stripLicenseHeader(rn_path.read_text(encoding="utf-8"))
+    rn_text = rn_path.read_text(encoding="utf-8")
 except OSError:
     rn_text = None
 
