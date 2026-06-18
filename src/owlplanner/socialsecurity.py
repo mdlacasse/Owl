@@ -27,7 +27,7 @@ Limitations and known omissions:
   their own growing benefit to age 70 then switch). This deferral strategy is not
   modeled.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

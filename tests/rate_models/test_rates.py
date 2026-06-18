@@ -5,7 +5,7 @@ Tests verify that built-in rate methods correctly generate rate series
 via Plan.setRates and BuiltinRateModel. The legacy Rates class has been
 deprecated; use Plan.setRates() as the single API.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

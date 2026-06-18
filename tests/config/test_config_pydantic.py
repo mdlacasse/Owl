@@ -3,7 +3,7 @@ Tests for the Pydantic-based configuration system.
 
 Covers round-trip, unknown key preservation, and schema validation.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 from io import StringIO

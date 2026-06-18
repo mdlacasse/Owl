@@ -5,7 +5,7 @@ This module provides functions for handling fixed assets (such as real estate)
 and calculating tax implications when they are sold or disposed of, including
 primary residence exclusion rules.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

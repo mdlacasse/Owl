@@ -1,7 +1,7 @@
 """
 Tests for plan_metrics(), plan_to_dict(), and BaseRateModel abstract enforcement.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json

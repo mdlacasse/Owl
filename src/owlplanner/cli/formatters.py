@@ -5,7 +5,7 @@ Converts a solved Plan to a structured dict suitable for JSON serialization.
 All monetary values are in nominal dollars unless the key ends with ``_today``
 or ``_today_dollars``.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json

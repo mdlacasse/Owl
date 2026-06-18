@@ -8,7 +8,7 @@ Medicare Part B and Part D premiums (including IRMAA surcharges) are modeled.
 Part B and Part D use the same MAGI brackets and two-year lookback. Part D
 base premium is configurable (default 0); Part D IRMAA amounts follow CMS 2026.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

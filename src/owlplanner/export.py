@@ -4,7 +4,7 @@ Excel and summary export utilities for Plan.
 This module provides plan_to_excel, plan_to_csv, and summary construction
 functions. Formatting helpers are also exported for use by saveContributions.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

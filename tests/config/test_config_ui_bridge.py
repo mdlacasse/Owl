@@ -1,7 +1,7 @@
 """
 Tests for config <-> UI flat dict conversion (owlplanner.config.ui_bridge).
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 from io import StringIO

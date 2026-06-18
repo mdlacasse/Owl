@@ -7,7 +7,7 @@ Coverage targets:
   - rho_in() — Table II (Joint Life) for >10 year age gap, Table III otherwise,
     and RuntimeError guard for longevity > 120
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

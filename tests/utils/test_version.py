@@ -5,7 +5,7 @@ Test that the package version stays in sync across its two locations.
 in `src/owlplanner/version.py` is a generated mirror (run `make sync-version`).
 This test fails the build whenever the two drift apart.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -7,7 +7,7 @@ Coverage:
   - run_from_params: single and couple end-to-end solve (marked toml)
   - save_case: TOML + HFP round-trip (file reload via config_to_plan)
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio

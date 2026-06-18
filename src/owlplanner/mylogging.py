@@ -4,7 +4,7 @@ Logging utility module with support for multiple backends.
 This module provides a flexible logging system that supports both standard
 Python logging and loguru backends, with verbose mode control and stream management.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

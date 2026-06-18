@@ -30,7 +30,7 @@ advanced ages where data is sparse).  Age 119 is set to 1.0 (certain death by ag
 Values at intermediate ages are linearly interpolated from the 5-year anchor points published
 in each SOA study.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or

@@ -24,7 +24,7 @@ Tools exposed:
 All tool output is JSON.  Plan solver output goes to stderr so it never
 pollutes the MCP stdio transport.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio

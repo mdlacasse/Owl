@@ -4,7 +4,7 @@ Tests for hfp_io.py to improve coverage.
 This module tests HFP reading, error handling, and edge cases
 that are not covered by existing tests.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import pytest

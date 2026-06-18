@@ -4,7 +4,7 @@ Shared default values and default_config() factory for Owl case configuration.
 Provides a single source of truth for defaults used when building cases from
 scratch (e.g. in the UI) so they align with TOML-loaded cases.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import copy

@@ -5,7 +5,7 @@ Loads and validates the TOML case file, applies any --set overrides, and
 prints a structured JSON document describing the scenario — individuals,
 time horizon, account balances, income streams, and solver options.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json

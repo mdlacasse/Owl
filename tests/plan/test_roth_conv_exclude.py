@@ -7,7 +7,7 @@ The UI always writes `swapRothConverters = 0` when the "Swap Roth converters
 mid-plan" toggle is off (see config/ui_bridge.py), so the exclusion was
 effectively a no-op for every case that went through the UI.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

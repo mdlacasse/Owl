@@ -4,7 +4,7 @@ Plotting backends package for Owl retirement planner.
 This package provides a factory pattern for creating plot backends (matplotlib,
 plotly) for visualizing retirement planning results.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

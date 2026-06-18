@@ -4,6 +4,21 @@ IRS Publication 590-B RMD lookup tables.
 JOINT_LIFE_TABLE: Table II — Joint and Last Survivor Life Expectancy.
 Used when spouse is sole designated beneficiary and more than 10 years
 younger than the account owner. Indexed as JOINT_LIFE_TABLE[owner_age][spouse_age].
+
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # IRS Publication 590-B, Appendix B, Table II — Joint and Last Survivor Life Expectancy
 # For use when spouse is sole designated beneficiary and more than 10 years younger than owner.

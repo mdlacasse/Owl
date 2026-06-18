@@ -4,7 +4,7 @@ Implementation helpers for built-in rate models.
 Extracted from the legacy Rates class. Used by BuiltinRateModel to generate
 rate series without depending on Rates.setMethod.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import functools

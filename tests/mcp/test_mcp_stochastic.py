@@ -9,7 +9,7 @@ Coverage:
 Historical scenarios use a short year range (1990–2005, ~14 scenarios) for speed.
 MC tests use n_scenarios=20 with a fast stochastic method.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio

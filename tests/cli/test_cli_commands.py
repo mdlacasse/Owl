@@ -4,7 +4,7 @@ Tests for owlcli commands and MCP tool functions.
 CLI commands are tested via Click's CliRunner (no subprocess).
 MCP tool functions are called directly (no stdio transport needed).
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json

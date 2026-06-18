@@ -4,7 +4,7 @@ CLI command for comparing two scenarios of the same case.
 Runs the base case and a variant (defined by --set overrides), then diffs
 their key metrics and prints structured JSON to stdout.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json

@@ -7,7 +7,7 @@ Covers:
 - fit_inflation_transform: kink = median, skewness reduced, slopes positive,
   adapts to different data windows, right-skewed data gets slope_lo > slope_hi
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

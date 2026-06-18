@@ -44,7 +44,7 @@ costs are computed for the pre-Medicare year and other SC-loop interactions add
 constraints.  The test below uses stripped-down options to isolate the pure
 annuity math.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

@@ -4,7 +4,7 @@ Tests for HSA (Health Savings Account) support in Owl.
 HSA is account type j=3: triple tax-advantaged (pre-tax contributions,
 tax-free growth, tax-free qualified medical withdrawals).
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import numpy as np

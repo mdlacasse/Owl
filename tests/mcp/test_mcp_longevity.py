@@ -1,7 +1,7 @@
 """
 Tests for run_longevity_stochastic and list_mortality_tables MCP tools.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio

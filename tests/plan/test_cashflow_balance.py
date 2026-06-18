@@ -12,7 +12,7 @@ This is the equality constraint built in _add_net_cash_flow(), verified here
 against the aggregated arrays produced by _aggregateResults(). A failure
 would indicate a term is missing or double-counted in the post-solve output.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

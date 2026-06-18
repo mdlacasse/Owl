@@ -11,7 +11,7 @@ True:
   - > 0: x[i,n] is pinned to that exact value, bypassing the cap.
   - < 0 (any magnitude): x[i,n] is forced to 0.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

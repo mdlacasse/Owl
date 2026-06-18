@@ -4,7 +4,7 @@ Matplotlib backend implementation for plotting retirement planning results.
 This module provides the Matplotlib-based implementation of the plot backend
 interface for creating static visualizations of retirement planning data.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

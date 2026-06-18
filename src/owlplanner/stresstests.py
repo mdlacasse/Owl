@@ -5,7 +5,7 @@ Provides ``run_historical_range``, ``run_mc``, and ``run_stochastic_spending``, 
 :class:`~owlplanner.plan.Plan` instance as the first argument (``Plan`` exposes them as methods
 that delegate here). Also includes standalone LP helpers for the efficient frontier.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

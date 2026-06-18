@@ -3,7 +3,7 @@ Parameters reference page for Owl retirement planner Streamlit UI.
 
 This module renders the PARAMETERS.md documentation as markdown.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

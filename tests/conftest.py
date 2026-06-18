@@ -8,7 +8,7 @@ increment birth years in examples/*.toml, and refresh the expected values in
 test_toml_cases.py. If HFP structure changes, run scripts/update_hfp_coverage.py
 to sync HSA contributions, Debts, and Fixed Assets in example HFPs.
 
-Copyright (C) 2025-2026 The Owl Authors
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
