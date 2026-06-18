@@ -99,7 +99,7 @@ Requires a local installation; see <a href="info/mcp.md" target="_blank" rel="no
 | 📈 <a href="info/RATE_MODELS.md" target="_blank" rel="noopener noreferrer">Rate Models</a> | Available rate models (historical, stochastic, bootstrap, etc.) |
 | 🤖 <a href="info/mcp.md" target="_blank" rel="noopener noreferrer">MCP Server</a> | MCP server setup for AI-native access via Claude, Gemini, Cursor, Zed, VS Code, and other clients |
 | 🖥️ <a href="https://owlplanner.streamlit.app/Documentation" target="_blank" rel="noopener noreferrer">Web App Guide</a> | Guide to the Streamlit web app user interface |
-| 📐 <a href="papers/" target="_blank" rel="noopener noreferrer">Mathematical Foundations</a> | The LP formulation paper (owl.pdf) |
+| 📐 <a href="papers/iowl.pdf" target="_blank" rel="noopener noreferrer">Mathematical Foundations</a> | The LP formulation paper (owl.pdf) |
 
 ---------------------------------------------------------------------
 
