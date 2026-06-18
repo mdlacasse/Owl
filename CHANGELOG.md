@@ -22,6 +22,9 @@ this issue with a fallback approach.
 
 #### Add UI doc to table in README.md.
 
+#### Licensing audit
+Consistent copyright headers across all source files (GPLv3) and documentation (CC-BY-SA-4.0, see `LICENSE-docs`).
+
 ---
 
 ### Version 2026.6.17
