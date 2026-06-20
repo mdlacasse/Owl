@@ -48,7 +48,8 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 
 -------------------------------------------------------------------------------------
 
-**Key capabilities:**
+## Key capabilities
+
 - **Tax optimization** — federal + state income tax (all 50 states + DC), LTCG brackets, NIIT, Medicare IRMAA, and ACA premiums all embedded in the optimizer
 - **Account types** — taxable, tax-deferred (401k/IRA), Roth, and HSA accounts with full contribution and withdrawal rules
 - **Roth conversions** — amounts and timing co-optimized with spending and bequest goals
@@ -64,7 +65,8 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
 
---------------------------------------------------------
+
+## How to run Owl
 
 There are four ways to run Owl (from easiest to more complex):
 
@@ -85,7 +87,6 @@ and compare scenarios through natural conversation — no TOML files required.
 Requires a local installation; see <a href="https://github.com/mdlacasse/Owl/blob/main/info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> for setup.
 
 
----------------------------------------------------------------
 ## Documentation
 
 | Document | Description |
@@ -101,7 +102,6 @@ Requires a local installation; see <a href="https://github.com/mdlacasse/Owl/blo
 | 🖥️ <a href="https://owlplanner.streamlit.app/Documentation" target="_blank" rel="noopener noreferrer">Web App Guide</a> | Guide to the Streamlit web app user interface |
 | 📐 <a href="https://github.com/mdlacasse/Owl/blob/main/papers/owl.pdf" target="_blank" rel="noopener noreferrer">Mathematical Foundations</a> | The LP formulation paper (owl.pdf) |
 
----------------------------------------------------------------------
 
 ## Credits and Acknowledgements
 See <a href="https://github.com/mdlacasse/Owl/blob/main/CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
@@ -118,7 +118,6 @@ after a session is closed. However, you can choose to download selected parts of
 own data to your computer before closing the session. These data will be stored strictly on
 your computer and can be used to reproduce a case at a later time.
 
----------------------------------------------------------------------
 
 ## Licensing
 
@@ -136,12 +135,12 @@ This project is distributed under three separate licenses depending on the type 
   Copyright &copy; 2024-2026 Martin-D. Lacasse. They are **not** covered by the GPLv3 and
   may not be reproduced or modified without permission (see [assets/LICENSE](https://github.com/mdlacasse/Owl/blob/main/assets/LICENSE)).
 
-Disclaimers:
+
+## Disclaimers
+
 **Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
 investment advice**—consult a qualified professional for decisions specific to your situation.
 
 Code output has been verified with analytical solutions when applicable, and comparative approaches otherwise.
 Nevertheless, accuracy of results is not guaranteed.
-
---------------------------------------------------------
 
