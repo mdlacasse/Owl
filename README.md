@@ -11,7 +11,7 @@ This documentation is licensed under Creative Commons Attribution-NonCommercial-
 [![PyPI](https://img.shields.io/pypi/v/owlplanner)](https://pypi.org/project/owlplanner/)
 [![Python](https://img.shields.io/pypi/pyversions/owlplanner)](https://pypi.org/project/owlplanner/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker)](https://hub.docker.com/r/owlplanner/owldocker)
+[![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker&cacheSeconds=86400)](https://hub.docker.com/r/owlplanner/owldocker)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
 ## Open-source retirement planning optimizer powered by Actual Intelligence — connect it to your AI assistant
