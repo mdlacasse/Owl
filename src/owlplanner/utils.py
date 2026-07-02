@@ -237,7 +237,7 @@ def roundCents(values, decimals=2):
 
     newvalues = values * multiplier + 0.5 * np.sign(values)
 
-    arr = np.fix(newvalues) / multiplier
+    arr = np.trunc(newvalues) / multiplier
     # Remove negative zero-like values.
     arr = np.where((-0.009 < arr) & (arr <= 0), 0, arr)
 

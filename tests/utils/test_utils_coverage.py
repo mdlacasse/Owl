@@ -212,8 +212,8 @@ def test_round_cents_default():
     assert abs(result[1] - 1.24) < 0.01  # Rounds up
     assert abs(result[2] - 1.24) < 0.01
     assert abs(result[3] - (-1.23)) < 0.01
-    # Note: roundCents uses np.fix which rounds towards zero, so -1.235 becomes -1.24
-    # (because fix rounds down for negative numbers: -1.235 * 100 + 0.5 * -1 = -123.5, fix = -123, /100 = -1.23)
+    # Note: roundCents uses np.trunc which rounds towards zero, so -1.235 becomes -1.24
+    # (because trunc rounds down for negative numbers: -1.235 * 100 + 0.5 * -1 = -123.5, trunc = -123, /100 = -1.23)
     # Actually, let's check the actual behavior
     assert abs(result[4] - (-1.24)) < 0.02  # Allow some tolerance
     assert abs(result[5] - (-1.24)) < 0.01

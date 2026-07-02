@@ -1,3 +1,8 @@
+### Version 2026.7.2
+
+- Update dependencies due to vulnerabilities identified by GitHub's dependabot.
+- Improve documentation on how to build HFP file.
+
 ### Version 2026.6.18
 
 #### References to images

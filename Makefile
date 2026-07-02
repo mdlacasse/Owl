@@ -39,3 +39,11 @@ lock: ## Upgrade uv.lock (owlplanner version is recorded natively)
 	@echo "uv.lock updated."
 
 update: sync-version lock requirements ## Sync version, upgrade uv.lock, and regenerate requirements.txt
+
+test-mosek:
+	OWL_TEST_SOLVER=mosek uv run pytest -n auto
+
+test-highs:
+	OWL_TEST_SOLVER=highs uv run pytest -n auto
+
+tests: test-mosek test-highs

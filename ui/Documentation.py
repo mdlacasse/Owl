@@ -350,7 +350,6 @@ The **Wages and Contributions** table contains 12 columns titled as follows:
 
 All twelve columns **must be present** on each person's sheet; fill a column with 0 or leave it blank where it does not apply.
 Any other column on that sheet is dropped on read (see *Input and Output Files*).
-The *HSA ctrb* column holds HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
 Note that column names are case sensitive and headers use lower case (the legacy header *other inc.* is read as *other inc*).
 The easiest way to complete the process of filling this file is either to start from the template
 file provided [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true) or
@@ -387,19 +386,47 @@ each person's plan span (plus the five-year lookback) are ignored.
 After loading, each person's table always runs through that individual's final plan year—even if you omitted
 those rows in the file.
 
-The column *anticipated wages* is the annual amount
-(gross minus tax-deferred contributions) that you anticipate to receive from employment.
-This column is not meant to include all your ordinary income. For
-example, interests from your taxable investment accounts
-will be automatically calculated based on the assumptions you made for future return rates.
+The twelve columns are described below, in the order they appear in the table (fill a column with 0 or
+leave it blank where it does not apply), where:
+- *year* is the plan year for that row (see the five-year lookback note above).
+- *anticipated wages* is the annual amount (gross minus tax-deferred contributions) that you
+  anticipate to receive from employment. This column is not meant to include all your ordinary
+  income; for example, interest from your taxable investment accounts is calculated automatically
+  based on the assumptions you made for future return rates.
+- *other inc* is other **ordinary** income that is not wages, pension, or Social Security—e.g.
+  part-time or consulting income, alimony, or rental flows you treat as ordinary. It is included in
+  cash flow and ordinary-income tax logic like wages.
+- *net inv* is net investment income such as rent or trust distributions that the model counts as
+  ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
+  (NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
+- *taxable ctrb*, *401k ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* are contributions to
+  your savings accounts (marked *ctrb*). We use "401k" as a term that includes contributions to 403b
+  as well as any other tax-deferred account, with the exception of IRA accounts, which are treated
+  separately to facilitate data entry. Contributions to your 401k/403b **must** also include your
+  employer's contributions, if any. As these data can be entered in Excel, you can use the native
+  calculator to enter a percentage of the anticipated wages as an easier way to enter the data.
+- *HSA ctrb* is HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are
+  automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
+- *Roth conv* lets you override **Owl**'s Roth conversion optimization on a year-by-year,
+  individual-by-individual basis, when the toggle `Use Roth conversion overrides from Wages and
+  Contributions tables` is enabled on the **Run Options** page. Each cell can take one of three kinds
+  of values: `0` (the default) lets **Owl** optimize that year's conversion as usual, subject to the
+  other Roth conversion settings on the **Run Options** page; a positive value pins that year's
+  conversion to exactly this amount (e.g., a conversion you've already made, or a value computed with
+  another tool), bypassing the maximum annual conversion cap; a negative value forces *no* conversion
+  that year (the magnitude is ignored, so you can flip the sign of a value you are considering without
+  losing it -- handy for comparing an optimized run against "what if I skip this year?"). This column
+  is provided for flexibility, e.g. to compare an optimized solution against your own guesses or a
+  previously executed conversion.
+- *big-ticket items* are used for accounting for the sale or purchase of a house, or any other major
+  expense or money that you would give or receive (e.g., inheritance, or large gifts to or from you).
+  Therefore, the **sign (+/-) of entries in this column is important**: positive numbers are considered
+  in the cash flow for that year and the surplus, if any, is deposited in the taxable savings accounts;
+  negative numbers will potentially generate additional withdrawals and distributions from retirement
+  accounts.
 
-The *other inc* column is next in the table (after *anticipated wages*):
-use it for other **ordinary** income that is not wages, pension, or Social Security—e.g. part-time or consulting income,
-alimony, or rental flows you treat as ordinary. It is included in cash flow and ordinary-income tax logic like wages.
-
-The *net inv* column follows *other inc*: use it for net investment income such as rent or trust distributions that the
-model counts as ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
-(NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
+Along with *Roth conv*, *big-ticket items* is one of the only two columns that can contain negative
+numbers; all other column entries must be positive.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
@@ -408,41 +435,10 @@ and contributions tables. The only *hard* dates are the years when you intend to
 a pension or collect Social Security, and these years are entered elsewhere on the
 **Fixed Income** page.
 
-Contributions to your savings accounts are marked as *ctrb*. We use 401k as a term that includes
-contributions to 403b as well or any other tax-deferred account, with the exception
-of IRA accounts which are treated separately to facilitate data entry.
-Contributions to your 401k/403b **must** also include your employer's
-contributions, if any. As these data can be entered in Excel,
-one can use the native calculator to enter a percentage
-of the anticipated wages for contributions to savings accounts as an easier way to enter the data.
-For scratch space or Excel formulas, you can use **separate worksheets** or extra columns on a person sheet:
-the reader **drops** every column on a person sheet whose header is not in the canonical list above
-(blank and `Unnamed` columns are removed as well). Only columns with the headers described above
+For scratch space or Excel formulas, you can use **separate worksheets** or extra columns on a person
+sheet: the reader **drops** every column on a person sheet whose header is not in the canonical list
+above (blank and `Unnamed` columns are removed as well). Only columns with the headers described above
 are loaded into the planner.
-
-The column marked *Roth conv* lets you override **Owl**'s Roth conversion optimization on a
-year-by-year, individual-by-individual basis, when the toggle `Use Roth conversion overrides
-from Wages and Contributions tables` is enabled on the **Run Options** page. Each cell can take
-one of three kinds of values:
-- `0` (the default): let **Owl** optimize that year's conversion as usual, subject to the other
-  Roth conversion settings on the **Run Options** page.
-- A positive value: pin that year's conversion to exactly this amount (e.g., a conversion you've
-  already made, or a value computed with another tool), bypassing the maximum annual conversion
-  cap.
-- A negative value: force *no* conversion that year. The magnitude is ignored, so you can flip
-  the sign of a value you are considering without losing it -- handy for comparing an optimized
-  run against "what if I skip this year?"
-
-This column is provided for flexibility, e.g. to compare an optimized solution against your own
-guesses or a previously executed conversion.
-
-Finally, *big-ticket items* are used for accounting for the sale or purchase of a house, or any
-other major expense or money that you would give or receive (e.g., inheritance, or large gifts
-to or from you). Therefore, the sign (+/-) of entries in this column is important.
-Positive numbers will be considered in the cash flow for that year and the surplus, if any, will be
-deposited in the taxable savings accounts. Negative numbers will potentially generate additional
-withdrawals and distributions from retirement accounts. Along with *Roth conv*, this is one of
-the only two columns that can contain negative numbers: all other column entries must be positive.
 
 When loading an Excel workbook, each individual in the *case* must have an associated sheet
 for reporting yearly transactions affecting the *case*. The association is made by having
@@ -525,7 +521,7 @@ where:
   the asset is included in calculations.
 - *name* is a unique identifier for the fixed asset (e.g., "Primary Residence", "Rental Property").
 - *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
-  The asset type determines the tax treatment upon disposition (see Asset Lifecycle section below).
+  The asset type determines the tax treatment upon disposition (see *Tax Treatment at Disposition* below).
 - *year* is the **reference year** (this year or after). If the year is in the past, it will be
   automatically reset to the current year when reading from the HFP file. Assets acquired in
   the future have a future reference year. The asset is considered assessed (current) or acquired (future)
@@ -569,6 +565,21 @@ where:
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
 - Assets disposed during the plan (yod within plan duration) generate taxable proceeds in the year of disposition.
+
+**Tax Treatment at Disposition:**
+When an asset is disposed of during the plan, its proceeds (the future value net of commission) are split
+into tax-free, ordinary-income, and capital-gains portions according to the asset *type*:
+- *fixed annuity* — any gain over basis is taxed as **ordinary income**; the basis itself is returned tax-free.
+- *residence* — treated as a primary residence: a capital-gains **exclusion of \\$250,000 (single) or
+  \\$500,000 (married)** is applied to the gain. Only the gain above the exclusion is taxed as capital gains,
+  while the basis plus the excluded portion of the gain is tax-free. If the sale is at a loss, the proceeds
+  are entirely tax-free.
+- *real estate*, *collectibles*, *precious metals*, and *stocks* — the gain over basis is taxed as **capital
+  gains** and the basis is returned tax-free. If the sale is at a loss, the proceeds are entirely tax-free.
+
+In all cases the **gain is measured against the cost basis using proceeds net of commission**, so the sale
+commission reduces the taxable gain. Assets instead liquidated at the end of the plan (a *yod* beyond the plan
+duration) pass to heirs with a step-up in basis and are not taxed, as noted above.
 """)
 
     with st.expander(":orange[**Fixed Income**]", expanded=expand_all, type="compact"):
