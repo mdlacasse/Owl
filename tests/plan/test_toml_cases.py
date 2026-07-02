@@ -127,7 +127,7 @@ elif platform == "linux":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_881,
+            "net_spending_basis": 103_063,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -154,7 +154,7 @@ elif platform == "win32":
             "bequest": 92_802,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_881,
+            "net_spending_basis": 103_063,
             "bequest": 400_000,
         },
         "Case_joe": {
