@@ -391,10 +391,16 @@ those rows in the file.
 The twelve columns are described below, in the order they appear in the table (fill a column with 0 or
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
-- *anticipated wages* is the annual amount (gross minus tax-deferred contributions) that you
-  anticipate to receive from employment. This column is not meant to include all your ordinary
-  income; for example, interest from your taxable investment accounts is calculated automatically
-  based on the assumptions you made for future return rates.
+- *anticipated wages* is the annual employment income you anticipate, entered **net of all
+  contributions** listed in the *ctrb* columns, with one exception: do **not** subtract *HSA ctrb*,
+  which **Owl** deducts from taxable income automatically. In other words, enter gross earned income
+  minus *taxable ctrb*, *401k ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* (the employer
+  portion included in *401k ctrb* was never part of your wages and is therefore not subtracted).
+  **Owl** uses this single amount both as cash available to the plan and as taxable employment
+  income. As a known simplification, income tax on the dollars contributed to Roth and taxable
+  accounts is therefore not modeled during the working years. This column is not meant to include
+  all your ordinary income; for example, interest from your taxable investment accounts is
+  calculated automatically based on the assumptions you made for future return rates.
 - *other inc* is other **ordinary** income that is not wages, pension, or Social Security—e.g.
   part-time or consulting income, alimony, or rental flows you treat as ordinary. It is included in
   cash flow and ordinary-income tax logic like wages.
@@ -407,7 +413,14 @@ leave it blank where it does not apply), where:
   separately to facilitate data entry. Contributions to your 401k/403b **must** also include your
   employer's contributions, if any. As these data can be entered in Excel, you can use the native
   calculator to enter a percentage of the anticipated wages as an easier way to enter the data.
-- *HSA ctrb* is HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Values are
+  Contributions are deposited into their respective accounts but are **not** subtracted from the
+  annual cash flow: **Owl** assumes you already netted them out of *anticipated wages* as described
+  above. Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
+  supported: amounts entered in *401k ctrb* or *IRA ctrb* are treated as pre-tax, and no cost basis
+  is tracked (every dollar later withdrawn or converted is fully taxable).
+- *HSA ctrb* is HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Unlike the
+  other *ctrb* columns, do **not** subtract HSA contributions from *anticipated wages*: **Owl**
+  performs this deduction itself. Values are
   automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
 - *Roth conv* lets you override **Owl**'s Roth conversion optimization on a year-by-year,
   individual-by-individual basis, when the toggle `Use Roth conversion overrides from Wages and

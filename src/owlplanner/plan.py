@@ -1522,6 +1522,11 @@ class Plan:
         A template is provided as an example.
         Missing rows (years) are populated with zero values.
 
+        Convention: 'anticipated wages' must be entered net of all
+        contribution columns except 'HSA ctrb', which Owl deducts from
+        taxable income itself. Contributions are deposited into their
+        accounts and are not subtracted from the annual cash flow.
+
         Parameters
         ----------
         filename : file-like object, str, or dict

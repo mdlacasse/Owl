@@ -106,6 +106,8 @@ that has not yet been uploaded.""")
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual.
+Enter *anticipated wages* net of all contribution columns, except *HSA ctrb*, which Owl deducts
+from taxable income automatically (see the Documentation page for details).
 Current year is highlighted in blue. The cells before are for the previous five years, used exclusively to track past
 Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
 For these initial five years, only Roth-related entries are read; all other columns are ignored.""")

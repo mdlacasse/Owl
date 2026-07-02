@@ -257,8 +257,14 @@ The HFP consists of three tables: the \emph{Wages and Contributions} table
 Each individual has their own sheet with the following year-indexed columns:
 \begin{itemize}[nosep]
   \item \textit{year} --- calendar year;
-  \item \textit{anticipated wages} --- gross earned income expected for that
-    year;
+  \item \textit{anticipated wages} --- earned income expected for that year,
+    entered net of all amounts listed in the \textit{ctrb} columns, with the
+    exception of \textit{HSA ctrb}, which Owl deducts from taxable income
+    itself (the employer portion included in \textit{401k ctrb} is likewise
+    not subtracted, as it was never part of wages). This single amount serves
+    both as cash available to the plan and as taxable employment income; as a
+    known simplification, income tax on the dollars contributed to Roth and
+    taxable accounts is therefore not modeled during the working years;
   \item \textit{other inc} --- other ordinary income not captured elsewhere
     (enter 0 if not applicable);
   \item \textit{net inv} --- rent and trust distributions that count as net
@@ -301,9 +307,13 @@ outflows.
 \subsection*{Cash-flow balance}
 
 In every plan year, Owl enforces an annual cash-flow balance.
-Spending plus all taxes, Medicare premiums, debt payments, and account
-contributions must equal income from wages, Social Security benefits,
+Spending plus all taxes, Medicare premiums, and debt payments
+must equal income from wages, Social Security benefits,
 account withdrawals, fixed-asset sale proceeds, and other income.
+Account contributions do not appear in this balance: anticipated wages are
+entered net of contributions (see the Wages and Contributions table above),
+and the contributed amounts are deposited directly into their accounts
+through the account-evolution equations.
 Big-ticket expenses shift additional spending into specific years.
 The optimizer determines the combination of account withdrawals and Roth
 conversions---across all account types and both spouses---that satisfies
@@ -1749,7 +1759,8 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	HSA contributions are zeroed for $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, when
 	individual $i$ enrolls in Medicare (typically at age~65).
 \item [$\omega_{in}$]
-	Sum of wages earned by individual $i$ during year $n$.
+	Sum of wages earned by individual $i$ during year $n$, net of account
+	contributions other than HSA (see Section~\ref{sec:cfhfp}).
 	Do not confuse wages $\omega$ with withdrawals $w$.
 \item [$\upsilon_{in}$]
 	Other ordinary income for individual $i$ in year $n$, beyond wages, pension, and Social Security.

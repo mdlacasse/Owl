@@ -107,6 +107,8 @@ def read(finput, inames, horizons, mylog, filename=None):
     Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv,
     big-ticket items. Column order may vary; omitting a column is an error
     (use 0 for unused rows). Legacy header "other inc." is accepted as "other inc".
+    "anticipated wages" is expected net of all contribution columns except
+    "HSA ctrb" (see Plan.readHFP).
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return a dictionary of dataframes by individual's names.
 
