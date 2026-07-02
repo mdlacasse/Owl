@@ -65,7 +65,7 @@ def calculate_monthly_payment(principal, annual_rate, term_years):
 
     monthly_rate = annual_rate / 100.0 / 12.0
     num_payments = term_years * 12
-    fac = (1 + monthly_rate)**num_payments
+    fac = (1 + monthly_rate) ** num_payments
 
     if monthly_rate == 0:
         return principal / num_payments

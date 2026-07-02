@@ -35,14 +35,14 @@ def test_FRA():
     years = range(1954, 1960)
     for i, y in enumerate(years):
         yfra = ss.getFRAs([y], _M, _T)
-        assert yfra[0] % 1 == pytest.approx(2*i/12)
+        assert yfra[0] % 1 == pytest.approx(2 * i / 12)
 
     yfra = ss.getFRAs([1940], _M, _T)
     assert yfra[0] == pytest.approx(65.5)
     yfra = ss.getFRAs([1938], _M, _T)
-    assert yfra[0] == pytest.approx(65 + 2/12)
+    assert yfra[0] == pytest.approx(65 + 2 / 12)
     yfra = ss.getFRAs([1942], _M, _T)
-    assert yfra[0] == pytest.approx(65 + 10/12)
+    assert yfra[0] == pytest.approx(65 + 10 / 12)
     yfra = ss.getFRAs([1943], _M, _T)
     assert yfra[0] == pytest.approx(66)
     yfra = ss.getFRAs([1937], _M, _T)
@@ -58,11 +58,11 @@ def test_FRA():
 
     # Jan 1 special case (POMS: born 1/1 gets prior year's FRA)
     yfra = ss.getFRAs([1960], [1], [1])
-    assert yfra[0] == pytest.approx(66 + 10/12)
+    assert yfra[0] == pytest.approx(66 + 10 / 12)
     yfra = ss.getFRAs([1960], [6], [15])
     assert yfra[0] == 67
     yfra = ss.getSurvivorFRAs([1962], [1], [1])
-    assert yfra[0] == pytest.approx(66 + 10/12)
+    assert yfra[0] == pytest.approx(66 + 10 / 12)
     yfra = ss.getSurvivorFRAs([1962], [7], [4])
     assert yfra[0] == 67
 
@@ -75,16 +75,16 @@ def test_selfFactor():
         assert ss.getSelfFactor(66, a, False) == pytest.approx(factors66[i], 0.001)
         assert ss.getSelfFactor(67, a, False) == pytest.approx(factors67[i], 0.001)
         if a > 62:
-            assert ss.getSelfFactor(66, a - 1/12, True) == pytest.approx(factors66[i], 0.001)
-            assert ss.getSelfFactor(67, a - 1/12, True) == pytest.approx(factors67[i], 0.001)
+            assert ss.getSelfFactor(66, a - 1 / 12, True) == pytest.approx(factors66[i], 0.001)
+            assert ss.getSelfFactor(67, a - 1 / 12, True) == pytest.approx(factors67[i], 0.001)
 
     # Example from SSA: https://www.ssa.gov/benefits/retirement/planner/1955-delay.html
-    assert ss.getSelfFactor(66 + 2/12, 66 + 2/12, False) == pytest.approx(1.00, 0.001)
-    assert ss.getSelfFactor(66 + 2/12, 67, False) == pytest.approx(1.06667, 0.001)
-    assert ss.getSelfFactor(66 + 2/12, 68, False) == pytest.approx(1.14667, 0.001)
-    assert ss.getSelfFactor(66 + 2/12, 69, False) == pytest.approx(1.22667, 0.001)
-    assert ss.getSelfFactor(66 + 3/12, 69 + 1/12, False) == pytest.approx(1.22667, 0.001)
-    assert ss.getSelfFactor(66 + 2/12, 70, False) == pytest.approx(1.30667, 0.001)
+    assert ss.getSelfFactor(66 + 2 / 12, 66 + 2 / 12, False) == pytest.approx(1.00, 0.001)
+    assert ss.getSelfFactor(66 + 2 / 12, 67, False) == pytest.approx(1.06667, 0.001)
+    assert ss.getSelfFactor(66 + 2 / 12, 68, False) == pytest.approx(1.14667, 0.001)
+    assert ss.getSelfFactor(66 + 2 / 12, 69, False) == pytest.approx(1.22667, 0.001)
+    assert ss.getSelfFactor(66 + 3 / 12, 69 + 1 / 12, False) == pytest.approx(1.22667, 0.001)
+    assert ss.getSelfFactor(66 + 2 / 12, 70, False) == pytest.approx(1.30667, 0.001)
 
 
 def test_spousalFactor():
@@ -95,16 +95,16 @@ def test_spousalFactor():
         assert ss.getSpousalFactor(66, a, False) == pytest.approx(factors66[i], 0.001)
         assert ss.getSpousalFactor(67, a, False) == pytest.approx(factors67[i], 0.001)
         if a > 62:
-            assert ss.getSpousalFactor(66, a - 1/12, True) == pytest.approx(factors66[i], 0.001)
-            assert ss.getSpousalFactor(67, a - 1/12, True) == pytest.approx(factors67[i], 0.001)
+            assert ss.getSpousalFactor(66, a - 1 / 12, True) == pytest.approx(factors66[i], 0.001)
+            assert ss.getSpousalFactor(67, a - 1 / 12, True) == pytest.approx(factors67[i], 0.001)
 
     # Individual born in 1955.
-    assert ss.getSpousalFactor(66 + 2/12, 66 + 2/12, False) == pytest.approx(1.00, 0.001)
-    assert ss.getSpousalFactor(66 + 2/12, 66, False) == pytest.approx(2*0.4931, 0.001)
-    assert ss.getSpousalFactor(66 + 2/12, 65, False) == pytest.approx(2*0.4514, 0.001)
-    assert ss.getSpousalFactor(66 + 2/12, 64, False) == pytest.approx(2*0.4097, 0.001)
-    assert ss.getSpousalFactor(66 + 2/12, 63, False) == pytest.approx(2*0.3708, 0.001)
-    assert ss.getSpousalFactor(66 + 2/12, 62, False) == pytest.approx(2*0.3458, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 66 + 2 / 12, False) == pytest.approx(1.00, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 66, False) == pytest.approx(2 * 0.4931, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 65, False) == pytest.approx(2 * 0.4514, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 64, False) == pytest.approx(2 * 0.4097, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 63, False) == pytest.approx(2 * 0.3708, 0.001)
+    assert ss.getSpousalFactor(66 + 2 / 12, 62, False) == pytest.approx(2 * 0.3458, 0.001)
 
 
 def test_SpousalBenefits():
@@ -128,6 +128,7 @@ def test_SpousalBenefits():
 def test_compute_social_security_benefits_single():
     """Single individual: zeta_in has correct shape and non-zero where expected."""
     from datetime import date
+
     thisyear = date.today().year
     yob = thisyear - 67  # 67 years old now
     pias = np.array([2000])
@@ -138,9 +139,7 @@ def test_compute_social_security_benefits_single():
     horizons = np.array([20])
     N_i, N_n = 1, 20
 
-    zeta_in, ages_out = ss.compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
-    )
+    zeta_in, ages_out = ss.compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n)
     assert zeta_in.shape == (1, 20)
     # SS starts at 67, paid in arrears; year 0 should have partial, years 1-19 full
     assert np.sum(zeta_in) > 0
@@ -150,6 +149,7 @@ def test_compute_social_security_benefits_single():
 def test_compute_social_security_benefits_couple():
     """Two individuals: zeta_in has correct shape."""
     from datetime import date
+
     thisyear = date.today().year
     yobs = np.array([thisyear - 66, thisyear - 63])
     pias = np.array([2333, 2083])
@@ -159,9 +159,7 @@ def test_compute_social_security_benefits_couple():
     horizons = np.array([20, 20])
     N_i, N_n = 2, 20
 
-    zeta_in, ages_out = ss.compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
-    )
+    zeta_in, ages_out = ss.compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n)
     assert zeta_in.shape == (2, 20)
     assert np.sum(zeta_in) > 0
 
@@ -169,6 +167,7 @@ def test_compute_social_security_benefits_couple():
 def test_compute_social_security_benefits_age_reset():
     """Claiming age below 62 is reset to 62."""
     from datetime import date
+
     thisyear = date.today().year
     yob = thisyear - 60  # 60 years old
     pias = np.array([2000])
@@ -179,9 +178,7 @@ def test_compute_social_security_benefits_age_reset():
     horizons = np.array([20])
     N_i, N_n = 1, 20
 
-    zeta_in, ages_out = ss.compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n
-    )
+    zeta_in, ages_out = ss.compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n)
     assert ages_out[0] == pytest.approx(62.0)
     assert ages[0] == pytest.approx(60.0)  # Original unchanged (we copy)
 
@@ -190,12 +187,12 @@ def test_survivor_FRA():
     """Verify survivor FRA schedule matches SSA table (distinct from retirement FRA)."""
     assert ss.getSurvivorFRAs([1939], _M, _T)[0] == pytest.approx(65)
     assert ss.getSurvivorFRAs([1900], _M, _T)[0] == pytest.approx(65)
-    assert ss.getSurvivorFRAs([1940], _M, _T)[0] == pytest.approx(65 + 2/12)
-    assert ss.getSurvivorFRAs([1944], _M, _T)[0] == pytest.approx(65 + 10/12)
+    assert ss.getSurvivorFRAs([1940], _M, _T)[0] == pytest.approx(65 + 2 / 12)
+    assert ss.getSurvivorFRAs([1944], _M, _T)[0] == pytest.approx(65 + 10 / 12)
     assert ss.getSurvivorFRAs([1945], _M, _T)[0] == pytest.approx(66)
     assert ss.getSurvivorFRAs([1956], _M, _T)[0] == pytest.approx(66)
-    assert ss.getSurvivorFRAs([1957], _M, _T)[0] == pytest.approx(66 + 2/12)
-    assert ss.getSurvivorFRAs([1961], _M, _T)[0] == pytest.approx(66 + 10/12)
+    assert ss.getSurvivorFRAs([1957], _M, _T)[0] == pytest.approx(66 + 2 / 12)
+    assert ss.getSurvivorFRAs([1961], _M, _T)[0] == pytest.approx(66 + 10 / 12)
     assert ss.getSurvivorFRAs([1962], _M, _T)[0] == pytest.approx(67)
     assert ss.getSurvivorFRAs([2000], _M, _T)[0] == pytest.approx(67)
     # Two-month-per-year increments in each transitional band.
@@ -222,12 +219,12 @@ def test_survivor_factor():
 def test_compute_ss_survivor_age_reduction():
     """Survivor below survivor FRA: benefit reduced by survivor claiming-age factor."""
     thisyear = 2026  # fixed for a deterministic calculation
-    yobs = np.array([1958, 1966])   # person 0 age 68, person 1 age 60
+    yobs = np.array([1958, 1966])  # person 0 age 68, person 1 age 60
     pias = np.array([2000, 400])
     ages = np.array([68.0, 62.0])
     mobs = np.array([1, 1])
     tobs = np.array([15, 15])
-    horizons = np.array([2, 20])    # person 0 dies at year 2
+    horizons = np.array([2, 20])  # person 0 dies at year 2
     N_i, N_n = 2, 20
 
     zeta_in, _ = ss.compute_social_security_benefits(
@@ -241,8 +238,8 @@ def test_compute_ss_survivor_age_reduction():
     assert deceased_monthly > 0.825 * pias[0]
 
     # Survivor (person 1): age 62 at death_year_n=2, survivor FRA=67.
-    survivor_fra = ss.getSurvivorFRAs(yobs[1:2], mobs[1:2], tobs[1:2])[0]   # 67
-    survivor_age = (thisyear + 2) - yobs[1]            # 62
+    survivor_fra = ss.getSurvivorFRAs(yobs[1:2], mobs[1:2], tobs[1:2])[0]  # 67
+    survivor_age = (thisyear + 2) - yobs[1]  # 62
     factor = ss._survivor_factor(survivor_fra, survivor_age)
     expected_annual = deceased_monthly * factor * 12
 
@@ -273,6 +270,7 @@ def test_getSpousalFactor_raises():
 def test_compute_ss_survivor():
     """Couple with different horizons: survivor receives the higher-earning spouse's benefit."""
     from datetime import date
+
     thisyear = date.today().year
     # Person 0 dies at year 10, person 1 lives to year 20.
     yobs = np.array([thisyear - 70, thisyear - 67])
@@ -297,6 +295,7 @@ def test_compute_ss_survivor():
 def test_compute_ss_spousal_benefit():
     """Lower-earning spouse receives a spousal benefit on top of their own benefit."""
     from datetime import date
+
     thisyear = date.today().year
     yob = thisyear - 67
     yobs = np.array([yob, yob])
@@ -322,11 +321,12 @@ def test_compute_ss_spousal_benefit():
 def test_compute_ss_born_on_2nd():
     """Born-on-2nd: eligible at conventional 62 (same as born-on-1st) but factor has no +1/12 shift."""
     from datetime import date
+
     thisyear = date.today().year
     yob = 1954  # FRA = 66 exactly; claiming in the past is fine for a steady-state check
     pias = np.array([2000])
     yobs = np.array([yob])
-    mobs = np.array([6])   # born June
+    mobs = np.array([6])  # born June
     horizons = np.array([30])
     N_i, N_n = 1, 30
 
@@ -334,7 +334,7 @@ def test_compute_ss_born_on_2nd():
     _, ages_mid = ss.compute_social_security_benefits(
         pias, np.array([60.0]), yobs, mobs, np.array([15]), horizons, N_i, N_n, thisyear=thisyear
     )
-    assert ages_mid[0] == pytest.approx(62 + 1/12)
+    assert ages_mid[0] == pytest.approx(62 + 1 / 12)
 
     # Born on 2nd: minimum eligible age is 62 (same as born on 1st), no factor shift.
     zeta_2nd, ages_2nd = ss.compute_social_security_benefits(
@@ -352,14 +352,15 @@ def test_compute_ss_born_on_2nd():
 def test_compute_ss_survivor_pia_floor():
     """Survivor receives max(deceased actual, 82.5%×PIA) when deceased claimed early."""
     from datetime import date
+
     thisyear = date.today().year
     # Person 0 (born 1960+, FRA=67) claims at 62 → factor 0.70, below the 82.5% floor.
     yobs = np.array([thisyear - 62, thisyear - 67])
-    pias = np.array([2000, 400])   # person 1's own benefit is well below the floor
+    pias = np.array([2000, 400])  # person 1's own benefit is well below the floor
     ages = np.array([62.0, 67.0])
     mobs = np.array([1, 1])
     tobs = np.array([15, 15])
-    horizons = np.array([5, 20])   # person 0 dies at year 5, person 1 lives to year 20
+    horizons = np.array([5, 20])  # person 0 dies at year 5, person 1 lives to year 20
     N_i, N_n = 2, 20
 
     zeta_in, _ = ss.compute_social_security_benefits(
@@ -367,7 +368,7 @@ def test_compute_ss_survivor_pia_floor():
     )
     # Deceased actual (0.70 × 2000 = 1400/month) < floor (0.825 × 2000 = 1650/month).
     # Survivor (person 1) should receive the floor amount from year 5 onward.
-    expected_annual = 0.825 * pias[0] * 12   # = 19800
+    expected_annual = 0.825 * pias[0] * 12  # = 19800
     assert zeta_in[1, 5] == pytest.approx(expected_annual, rel=0.01)
     assert zeta_in[1, 15] == pytest.approx(expected_annual, rel=0.01)
 
@@ -389,6 +390,7 @@ def test_survivor_min_age_60():
 def test_compute_ss_trim():
     """Trim reduces benefits from trim_year onward by trim_pct percent."""
     from datetime import date
+
     thisyear = date.today().year
     yob = thisyear - 67
     pias = np.array([2000])
@@ -403,8 +405,7 @@ def test_compute_ss_trim():
         pias, ages, yobs, mobs, tobs, horizons, N_i, N_n, thisyear=thisyear
     )
     zeta_trim, _ = ss.compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n,
-        trim_pct=20, trim_year=thisyear + 10, thisyear=thisyear
+        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n, trim_pct=20, trim_year=thisyear + 10, thisyear=thisyear
     )
     # Benefits before the trim year are unchanged.
     assert np.allclose(zeta_trim[0, :10], zeta_base[0, :10])

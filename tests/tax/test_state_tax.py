@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 import numpy as np
 import pytest
 
@@ -26,6 +27,7 @@ from owlplanner import tax_state
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_plan(state=None):
     """Single-person plan with a basic configuration."""
@@ -44,6 +46,7 @@ def _make_plan(state=None):
 # Task 1: TOML completeness
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("state", tax_state.valid_states())
 def test_toml_all_states_load(state):
     """All 51 entries parse without error and have valid bracket structure."""
@@ -61,6 +64,7 @@ def test_toml_all_states_load(state):
 # ---------------------------------------------------------------------------
 # Task 2: st_taxParams unit tests
 # ---------------------------------------------------------------------------
+
 
 def test_st_taxparams_shape():
     """st_taxParams returns arrays with correct shapes."""
@@ -82,12 +86,8 @@ def test_st_taxparams_inflation_scaling():
     gamma_flat = np.ones(31)
     gamma_inflated = np.array([1.02**n for n in range(31)])
     for state in ("MN", "CA"):
-        _, _, delta_flat, sigma_flat, _, _, _, _ = tax_state.st_taxParams(
-            state, 1, 30, 30, gamma_flat, [1960]
-        )
-        _, _, delta_inf, sigma_inf, _, _, _, _ = tax_state.st_taxParams(
-            state, 1, 30, 30, gamma_inflated, [1960]
-        )
+        _, _, delta_flat, sigma_flat, _, _, _, _ = tax_state.st_taxParams(state, 1, 30, 30, gamma_flat, [1960])
+        _, _, delta_inf, sigma_inf, _, _, _, _ = tax_state.st_taxParams(state, 1, 30, 30, gamma_inflated, [1960])
         # Year 10 should be inflated relative to year 0
         assert delta_inf[0, 10] > delta_flat[0, 10]
         assert sigma_inf[10] > sigma_flat[10]
@@ -97,14 +97,10 @@ def test_st_taxparams_filing_status_transition():
     """Bracket widths switch from MFJ to Single at n_d."""
     gamma = np.ones(31)
     n_d = 10
-    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _ = tax_state.st_taxParams(
-        "MN", 2, n_d, 30, gamma, [1955, 1958]
-    )
+    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _ = tax_state.st_taxParams("MN", 2, n_d, 30, gamma, [1955, 1958])
     # Before n_d: MFJ brackets
     # After n_d: Single brackets
-    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _ = tax_state.st_taxParams(
-        "MN", 1, 30, 30, gamma, [1958]
-    )
+    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958])
     # Deduction after death should match single
     assert pytest.approx(sigma_mfj[n_d], rel=1e-6) == sigma_s[0]
 
@@ -114,9 +110,7 @@ def test_st_taxparams_exemption_age_gating():
     # CO has exemption_age=65 for re
     gamma = np.ones(31)
     # born 1995 → turns 65 in 2060 → past 30-year plan end (2026+29=2055)
-    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
-        "CO", 1, 30, 30, gamma, [1995]
-    )
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995])
     # All zeros since never reaches 65 during the plan
     assert np.all(re_cap == 0), "CO re_cap should be 0 when never 65+ during plan"
 
@@ -125,7 +119,12 @@ def test_st_taxparams_exemption_age_active():
     """Retirement income exemption applies once age requirement is met."""
     gamma = np.ones(31)
     _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
-        "CO", 1, 30, 30, gamma, [1955]  # born 1955 → already 65+ at plan start
+        "CO",
+        1,
+        30,
+        30,
+        gamma,
+        [1955],  # born 1955 → already 65+ at plan start
     )
     assert np.any(re_cap > 0), "CO re_cap should be nonzero for someone already 65+"
 
@@ -133,6 +132,7 @@ def test_st_taxparams_exemption_age_active():
 # ---------------------------------------------------------------------------
 # Task 3: No-tax states produce zero tax
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("state", ["TX", "FL", "AK", "NV", "WA"])
 def test_zero_tax_states(state):
@@ -145,6 +145,7 @@ def test_zero_tax_states(state):
 # ---------------------------------------------------------------------------
 # Task 4: State tax reduces spending vs federal-only
 # ---------------------------------------------------------------------------
+
 
 def test_state_tax_reduces_spending():
     """Plan with CA/MN state tax has lower spending than federal-only plan."""
@@ -162,6 +163,7 @@ def test_state_tax_reduces_spending():
 # Task 5: Bracket identity
 # ---------------------------------------------------------------------------
 
+
 def test_bracket_identity():
     """sum over brackets of st_T_tn equals st_T_n exactly."""
     p = _make_plan("MN")
@@ -175,18 +177,19 @@ def test_bracket_identity():
 # Task 6: Cash flow balance
 # ---------------------------------------------------------------------------
 
+
 def test_cashflow_balance_with_state_tax(capsys):
     """Plan with state tax passes _check_cashflow_balance (no WARNING logged)."""
     p = _make_plan("MN")
     p.solve("maxSpending", options={"verbose": True})
     captured = capsys.readouterr()
-    assert "WARNING" not in captured.out, \
-        "Cash flow balance check should not warn with state tax enabled"
+    assert "WARNING" not in captured.out, "Cash flow balance check should not warn with state tax enabled"
 
 
 # ---------------------------------------------------------------------------
 # Task 7: Couple — filing status transition
 # ---------------------------------------------------------------------------
+
 
 def test_couple_filing_status_transition():
     """For a couple, MFJ brackets before n_d and single brackets after."""
@@ -208,11 +211,12 @@ def test_couple_filing_status_transition():
 # Task 8: Cash-flow chart state_taxes slice
 # ---------------------------------------------------------------------------
 
+
 def test_cashflow_charts_include_state_taxes():
     """lifetime_allocation and annual_cashflow_mix expose state_taxes separately from federal taxes."""
     p = _make_plan("MN")
     p.solve("maxSpending", options={"verbose": False})
-    inv_g = 1.0 / p.gamma_n[:p.N_n]
+    inv_g = 1.0 / p.gamma_n[: p.N_n]
     expected_state = float(np.sum(p.st_T_n * inv_g))
     expected_federal = float(np.sum((p.T_n + p.U_n + p.J_n) * inv_g))
 
@@ -224,13 +228,16 @@ def test_cashflow_charts_include_state_taxes():
     mix = p.annual_cashflow_mix()
     np.testing.assert_allclose(mix["outflows"]["state_taxes"], p.st_T_n * inv_g, rtol=1e-6)
     np.testing.assert_allclose(
-        mix["outflows"]["taxes"], (p.T_n + p.U_n + p.J_n) * inv_g, rtol=1e-6,
+        mix["outflows"]["taxes"],
+        (p.T_n + p.U_n + p.J_n) * inv_g,
+        rtol=1e-6,
     )
 
 
 # ---------------------------------------------------------------------------
 # Task 9: Retirement income exemption
 # ---------------------------------------------------------------------------
+
 
 def test_retirement_income_exemption():
     """With NY (re=$20k), st_T_n < no-exemption equivalent."""

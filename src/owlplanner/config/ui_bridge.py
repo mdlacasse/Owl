@@ -293,7 +293,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
                 dic[f"j3_init%{k}_{i}"] = int(g[0][k])
                 dic[f"j3_fin%{k}_{i}"] = int(g[1][k])
         else:
-            for j, acc in enumerate(ACC_CONF[:3]):   # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
+            for j, acc in enumerate(ACC_CONF[:3]):  # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
                 arr = aa.get(acc, DEFAULT_GENERIC_ALLOCATION)
                 a = arr[i] if i < len(arr) else DEFAULT_GENERIC_ALLOCATION[0]
                 for k in range(4):
@@ -308,8 +308,9 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
             #   2. fall back to tf_arr[i] if tax-free covers this person
             #      (hsa_arr is already tf_arr when no 'hsa' key exists in the config)
             #   3. fall back to DEFAULT_GENERIC_ALLOCATION[0] if neither array covers this person
-            hsa_a = (hsa_arr[i] if i < len(hsa_arr) else (tf_arr[i] if i < len(tf_arr)
-                     else DEFAULT_GENERIC_ALLOCATION[0]))
+            hsa_a = (
+                hsa_arr[i] if i < len(hsa_arr) else (tf_arr[i] if i < len(tf_arr) else DEFAULT_GENERIC_ALLOCATION[0])
+            )
             for k in range(4):
                 dic[f"jhsa_init%{k}_{i}"] = int(hsa_a[0][k])
                 dic[f"jhsa_fin%{k}_{i}"] = int(hsa_a[1][k])
@@ -348,7 +349,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
         dic["ssTaxabilityMode"] = "value"
         dic["ssTaxabilityValue"] = float(ss_taxability)
     else:
-        dic["ssTaxabilityMode"] = ss_taxability   # "loop" or "optimize"
+        dic["ssTaxabilityMode"] = ss_taxability  # "loop" or "optimize"
         dic["ssTaxabilityValue"] = 0.85
 
     if "previousMAGIs" in so:
@@ -477,9 +478,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", DEFAULT_HEIRS_RATE, float),
             "liquidation_tax_rate": _get_ui(uidic, "liquidationTx", DEFAULT_LIQUIDATION_TAX_RATE, float),
-            "liquidation_capgains_rate": _get_ui(
-                uidic, "liquidationCG", DEFAULT_LIQUIDATION_CAPGAINS_RATE, float
-            ),
+            "liquidation_capgains_rate": _get_ui(uidic, "liquidationCG", DEFAULT_LIQUIDATION_CAPGAINS_RATE, float),
             "dividend_rate": _get_ui(uidic, "divRate", DEFAULT_DIVIDEND_RATE, float),
             "obbba_expiration_year": _get_ui(uidic, "yOBBBA", DEFAULT_OBBBA_YEAR, int),
             "method": _ui_rate_method_to_config(uidic),
@@ -491,8 +490,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "spending_profile": uidic.get("spendingProfile", "smile"),
             "surviving_spouse_spending_percent": _get_ui(uidic, "survivor", 60, int),
             "objective": (
-                "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")).lower()
-                else "maxBequest"
+                "maxSpending" if "spending" in str(uidic.get("objective", "Net spending")).lower() else "maxBequest"
             ),
             "smile_dip": _get_ui(uidic, "smileDip", 15, int),
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
@@ -511,45 +509,31 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     # Savings: UI $k = config $k (per doc: tables dollars, UI thousands except fixed income)
     for j, acc in enumerate(ACC_CONF):
         key = ACCOUNT_KEY_MAP[acc]
-        diconf["savings_assets"][key] = [
-            _get_ui(uidic, ACC_UI[j] + str(i), 0, float) for i in range(ni)
-        ]
+        diconf["savings_assets"][key] = [_get_ui(uidic, ACC_UI[j] + str(i), 0, float) for i in range(ni)]
     # Taxable cost basis: only include when at least one person has a non-zero value.
     # Always write cost basis (zeros mean "legacy for this person" — explicit, not silent default).
     basis_vals = [_get_ui(uidic, f"txblBasis{i}", 0.0, float) for i in range(ni)]
     diconf["savings_assets"]["taxable_cost_basis"] = basis_vals
 
     if ni == 2:
-        diconf["savings_assets"]["beneficiary_fractions"] = [
-            _get_ui(uidic, f"benf{j}", 1, float) for j in range(4)
-        ]
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(
-            uidic, "surplusFraction", 0.5, float
-        )
+        diconf["savings_assets"]["beneficiary_fractions"] = [_get_ui(uidic, f"benf{j}", 1, float) for j in range(4)]
+        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(uidic, "surplusFraction", 0.5, float)
 
     # Fixed income
     for i in range(ni):
         sy = _get_ui(uidic, f"ssAge_y{i}", int(DEFAULT_SS_AGE), int)
         sm = _get_ui(uidic, f"ssAge_m{i}", 0, int)
         diconf["fixed_income"]["social_security_ages"].append(sy + sm / 12.0)
-        diconf["fixed_income"]["social_security_pia_amounts"].append(
-            _get_ui(uidic, f"ssAmt{i}", 0, int)
-        )
+        diconf["fixed_income"]["social_security_pia_amounts"].append(_get_ui(uidic, f"ssAmt{i}", 0, int))
         py = _get_ui(uidic, f"pAge_y{i}", int(DEFAULT_PENSION_AGE), int)
         pm = _get_ui(uidic, f"pAge_m{i}", 0, int)
         diconf["fixed_income"]["pension_ages"].append(py + pm / 12.0)
-        diconf["fixed_income"]["pension_monthly_amounts"].append(
-            _get_ui(uidic, f"pAmt{i}", 0, float)
-        )
-        diconf["fixed_income"]["pension_indexed"].append(
-            bool(uidic.get(f"pIdx{i}", True))
-        )
+        diconf["fixed_income"]["pension_monthly_amounts"].append(_get_ui(uidic, f"pAmt{i}", 0, float))
+        diconf["fixed_income"]["pension_indexed"].append(bool(uidic.get(f"pIdx{i}", True)))
         pct = _get_ui(uidic, f"pSurv{i}", 0, int)
         frac = min(100, max(0, pct)) / 100.0
         diconf["fixed_income"]["pension_survivor_fraction"].append(frac)
-    diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(
-        uidic, "ssTrimPct", 0, int
-    )
+    diconf["fixed_income"]["social_security_trim_pct"] = _get_ui(uidic, "ssTrimPct", 0, int)
     trim_year_val = uidic.get("ssTrimYear", 2033)
     diconf["fixed_income"]["social_security_trim_year"] = int(
         trim_year_val if trim_year_val not in (None, "") else 2033
@@ -593,7 +577,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     # Asset allocation
     alloc_type = uidic.get("allocType", "individual")
     if alloc_type == "account":
-        for j, acc in enumerate(ACC_CONF[:3]):   # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
+        for j, acc in enumerate(ACC_CONF[:3]):  # taxable/tax-deferred/tax-free (j0/j1/j2 keys)
             diconf["asset_allocation"][acc] = []
             for i in range(ni):
                 init = [_get_ui(uidic, f"j{j}_init%{k}_{i}", 0, int) for k in range(4)]
@@ -620,9 +604,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
 
     compute_med = uidic.get("computeMedicare", True)
     optimize_med = uidic.get("optimizeMedicare", False)
-    diconf["solver_options"]["withMedicare"] = (
-        "none" if not compute_med else ("optimize" if optimize_med else "loop")
-    )
+    diconf["solver_options"]["withMedicare"] = "none" if not compute_med else ("optimize" if optimize_med else "loop")
     diconf["solver_options"]["includeMedicarePartD"] = uidic.get("includeMedicarePartD", True)
     part_d_base = uidic.get("medicarePartDBasePremium")
     if part_d_base is not None and part_d_base != "":
@@ -631,9 +613,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         "slcsp_annual": _get_ui(uidic, "slcspAnnual", 0, float),
         "aca_start_year": _get_ui(uidic, "acaStartYear", 0, int),
     }
-    diconf["solver_options"]["withACA"] = (
-        "optimize" if uidic.get("optimizeACA") else "loop"
-    )
+    diconf["solver_options"]["withACA"] = "optimize" if uidic.get("optimizeACA") else "loop"
     optimize_ltcg = bool(uidic.get("optimizeLTCG"))
     optimize_niit = bool(uidic.get("optimizeNIIT"))
     diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"

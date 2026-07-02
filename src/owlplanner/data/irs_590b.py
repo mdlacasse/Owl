@@ -23,7 +23,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from owlplanner.data.irs_590b_table_ii import JOINT_LIFE_TABLE    # noqa: F401
+from owlplanner.data.irs_590b_table_ii import JOINT_LIFE_TABLE  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Table III — Uniform Lifetime (divisors by owner age)
@@ -82,6 +82,4 @@ _UNIFORM_LIFETIME_DIVISORS = (
     2.0,
 )
 
-UNIFORM_LIFETIME_DIVISOR_BY_AGE = {
-    _UNIFORM_LIFETIME_BASE_AGE + i: v for i, v in enumerate(_UNIFORM_LIFETIME_DIVISORS)
-}
+UNIFORM_LIFETIME_DIVISOR_BY_AGE = {_UNIFORM_LIFETIME_BASE_AGE + i: v for i, v in enumerate(_UNIFORM_LIFETIME_DIVISORS)}

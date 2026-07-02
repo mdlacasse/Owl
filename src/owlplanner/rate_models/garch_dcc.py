@@ -27,6 +27,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import numpy as np
 
@@ -48,6 +49,7 @@ from owlplanner.rates import FROM, TO
 # ---------------------------------------------------------------------------
 # Module-level helper: normalise Q → R (correlation matrix)
 # ---------------------------------------------------------------------------
+
 
 def _normalize_Q(Q):
     """Convert a quasi-correlation matrix Q to a proper correlation matrix R."""
@@ -78,7 +80,6 @@ def _pd_cholesky(M):
 
 
 class GARCHDCCRateModel(BaseRateModel):
-
     model_name = "garch_dcc"
 
     description = (
@@ -175,7 +176,7 @@ class GARCHDCCRateModel(BaseRateModel):
         Step 1: per-asset GARCH(1,1) → omega, alpha, beta, sigma2_path per asset.
         Step 2: DCC on standardised residuals z[t,i] = eps[t,i] / sqrt(sigma2[t,i]).
         """
-        eps = data - self._mu          # (T, 4) demeaned returns
+        eps = data - self._mu  # (T, 4) demeaned returns
 
         self._fit_garch(eps)
 
@@ -222,7 +223,7 @@ class GARCHDCCRateModel(BaseRateModel):
             e = eps[:, i]
             var_i = float(np.var(e))
 
-            def nll(params):
+            def nll(params, var_i=var_i, e=e, T=T):
                 w, a, b = params
                 if w <= 0 or a <= 0 or b <= 0 or a + b >= 1.0:
                     return 1e10
@@ -369,7 +370,7 @@ class GARCHDCCRateModel(BaseRateModel):
             out[t] = self._mu + eps
 
             # GARCH update
-            sigma2 = omega + alpha * eps ** 2 + beta * sigma2
+            sigma2 = omega + alpha * eps**2 + beta * sigma2
             sigma2 = np.maximum(sigma2, 1e-10)
 
             # DCC update

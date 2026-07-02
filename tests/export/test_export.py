@@ -51,12 +51,13 @@ from owlplanner.export import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_ws(headers, data_rows=None):
     """Return a minimal openpyxl worksheet with a header row and optional data."""
     wb = Workbook()
     ws = wb.active
     ws.append(headers)
-    for row in (data_rows or []):
+    for row in data_rows or []:
         ws.append(row)
     return ws
 
@@ -73,6 +74,7 @@ def cell_fmt(ws, col_letter, row=2):
 # ---------------------------------------------------------------------------
 # Plan fixtures — module-scoped to avoid re-solving in every test
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def joe_plan():
@@ -100,6 +102,7 @@ def alex_jamie_plan():
 # _FORMAT_STRINGS
 # ---------------------------------------------------------------------------
 
+
 def test_format_strings_has_expected_keys():
     assert set(_FORMAT_STRINGS.keys()) == {"currency", "percent2", "percent1", "percent0", "pct_value"}
 
@@ -115,6 +118,7 @@ def test_format_strings_all_values_are_strings():
 # ---------------------------------------------------------------------------
 # _format_spreadsheet
 # ---------------------------------------------------------------------------
+
 
 def test_format_spreadsheet_unknown_type_raises():
     ws = make_ws(["year", "value"], [[2026, 100]])
@@ -167,6 +171,7 @@ def test_format_spreadsheet_styles_header_and_year_column():
 # ---------------------------------------------------------------------------
 # _format_col_sheet
 # ---------------------------------------------------------------------------
+
 
 def test_format_col_sheet_maps_known_columns():
     ws = make_ws(["year", "rate", "amount"], [[2026, 3.5, 50000]])
@@ -232,6 +237,7 @@ def test_format_col_sheet_styles_header_row():
 # _format_debts_sheet
 # ---------------------------------------------------------------------------
 
+
 def test_format_debts_sheet_year_and_term_are_integers():
     ws = make_ws(["year", "term", "rate", "amount", "description"], [[2026, 30, 3.5, 250000, "mortgage"]])
     _format_debts_sheet(ws)
@@ -260,6 +266,7 @@ def test_format_debts_sheet_unlisted_column_unchanged():
 # ---------------------------------------------------------------------------
 # _format_fixed_assets_sheet
 # ---------------------------------------------------------------------------
+
 
 def test_format_fixed_assets_sheet_yod_is_integer():
     ws = make_ws(["yod", "rate", "commission", "basis", "value"], [[2030, 5.0, 1.0, 100000, 150000]])
@@ -290,6 +297,7 @@ def test_format_fixed_assets_sheet_unlisted_column_unchanged():
 # ---------------------------------------------------------------------------
 # _format_income_tax_sheet
 # ---------------------------------------------------------------------------
+
 
 def test_format_income_tax_year_is_integer():
     ws = make_ws(["year", "SS % taxed", "total tax"], [[2026, 0.85, 12000]])
@@ -322,6 +330,7 @@ def test_format_income_tax_case_sensitive_ss_col():
 # ---------------------------------------------------------------------------
 # plan_to_excel / saveWorkbook
 # ---------------------------------------------------------------------------
+
 
 def test_save_workbook_returns_workbook_object(joe_plan):
     wb = joe_plan.saveWorkbook(saveToFile=False)
@@ -396,6 +405,7 @@ def test_save_workbook_income_tax_currency_col_format(alex_jamie_plan):
 # via plan.py on a plan that has actual debt and fixed-asset data
 # ---------------------------------------------------------------------------
 
+
 def test_save_contributions_has_debts_sheet(alex_jamie_plan):
     wb = alex_jamie_plan.saveContributions()
     assert wb is not None
@@ -412,6 +422,7 @@ def test_save_contributions_has_fixed_assets_sheet(alex_jamie_plan):
 # ---------------------------------------------------------------------------
 # build_summary_dic — bequest and debt branches
 # ---------------------------------------------------------------------------
+
 
 def test_build_summary_dic_includes_partial_bequest_keys(alex_jamie_plan):
     """Two-person plan where one dies early: partial bequest block is populated."""
@@ -467,6 +478,7 @@ def test_build_summary_dic_partial_n_omits_bequest_sections(alex_jamie_plan):
 # plan_to_csv
 # ---------------------------------------------------------------------------
 
+
 def test_plan_to_csv_creates_file(joe_plan, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     plan_to_csv(joe_plan, joe_plan._name, joe_plan.mylog)
@@ -501,6 +513,7 @@ def test_plan_to_csv_has_all_net_inv_column(joe_plan, tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 # Cash Flow balance
 # ---------------------------------------------------------------------------
+
 
 def test_cash_flow_sheet_has_all_net_inv_column(joe_plan):
     """'all net inv' column is present in the Cash Flow worksheet."""
@@ -539,30 +552,33 @@ def test_cash_flow_sheet_balances_to_zero(joe_plan):
     p = joe_plan
     # Reconstruct the cash-flow dict the same way export.py does, then check balance.
     inflows = (
-        np.sum(p.omega_in, axis=0)        # all wages
+        np.sum(p.omega_in, axis=0)  # all wages
         + np.sum(p.other_inc_in, axis=0)  # all other inc
-        + np.sum(p.netinv_in, axis=0)     # all net inv
-        + np.sum(p.piBar_in, axis=0)      # all pensions
-        + np.sum(p.zetaBar_in, axis=0)    # all soc sec
-        + np.sum(p.Lambda_in, axis=0)     # all BTI's
+        + np.sum(p.netinv_in, axis=0)  # all net inv
+        + np.sum(p.piBar_in, axis=0)  # all pensions
+        + np.sum(p.zetaBar_in, axis=0)  # all soc sec
+        + np.sum(p.Lambda_in, axis=0)  # all BTI's
         + p.fixed_assets_ordinary_income_n
         + p.fixed_assets_capital_gains_n
         + p.fixed_assets_tax_free_n
-        - p.debt_payments_n               # debt pmts (negative flow)
-        + np.sum(p.w_ijn, axis=(0, 1))    # all wdrwls
-        - np.sum(p.d_in, axis=0)          # all deposits (negative flow)
-        - p.T_n                           # ord taxes (negative flow)
-        - p.J_n                           # NIIT (negative flow)
-        - p.U_n                           # div taxes (negative flow)
-        - p.m_n - p.M_n                   # Medicare (negative flow)
+        - p.debt_payments_n  # debt pmts (negative flow)
+        + np.sum(p.w_ijn, axis=(0, 1))  # all wdrwls
+        - np.sum(p.d_in, axis=0)  # all deposits (negative flow)
+        - p.T_n  # ord taxes (negative flow)
+        - p.J_n  # NIIT (negative flow)
+        - p.U_n  # div taxes (negative flow)
+        - p.m_n
+        - p.M_n  # Medicare (negative flow)
     )
-    np.testing.assert_allclose(inflows, p.g_n, atol=1.0,
-                               err_msg="Cash Flow sheet does not balance: sum of columns != net spending")
+    np.testing.assert_allclose(
+        inflows, p.g_n, atol=1.0, err_msg="Cash Flow sheet does not balance: sum of columns != net spending"
+    )
 
 
 # ---------------------------------------------------------------------------
 # worksheetShowAges — age columns in saved Excel
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def joe_plan_with_ages(joe_plan):
@@ -613,6 +629,7 @@ def test_save_workbook_accounts_sheet_includes_age_column(joe_plan_with_ages):
 # worksheetRealDollars — inflation-adjusted values
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def joe_plan_real(joe_plan):
     """Joe's plan with worksheetRealDollars enabled; restored afterward."""
@@ -632,7 +649,7 @@ def test_save_workbook_real_dollars_scales_income(joe_plan_real):
 
     nom_rows = list(wb_nom["Income"].iter_rows(min_row=2, values_only=True))
     real_rows = list(wb_real["Income"].iter_rows(min_row=2, values_only=True))
-    nom_val = nom_rows[0][1]   # column B = net spending (no age col in nominal)
+    nom_val = nom_rows[0][1]  # column B = net spending (no age col in nominal)
     real_val = real_rows[0][1]
     gamma0 = p.gamma_n[0]
     assert abs(real_val - nom_val / gamma0) <= 1.0
@@ -643,12 +660,7 @@ def test_save_workbook_real_dollars_does_not_scale_rates(joe_plan_real):
     wb = joe_plan_real.saveWorkbook(saveToFile=False)
     ws = wb["Rates"]
     rows = list(ws.iter_rows(min_row=2, values_only=True))
-    assert all(
-        0 <= float(v) <= 100
-        for row in rows
-        for v in row[1:]
-        if v is not None
-    )
+    assert all(0 <= float(v) <= 100 for row in rows for v in row[1:] if v is not None)
 
 
 def test_save_workbook_real_appends_real_suffix(tmp_path, joe_plan_real, monkeypatch):
@@ -671,6 +683,7 @@ def test_save_workbook_nominal_no_real_suffix(tmp_path, joe_plan, monkeypatch):
 # ---------------------------------------------------------------------------
 # worksheetHideZeroColumns — zero-column filtering is display-only (not saved)
 # ---------------------------------------------------------------------------
+
 
 def test_save_workbook_preserves_zero_columns_when_hide_enabled(joe_plan):
     """HSA columns are present in saved Excel even when worksheetHideZeroColumns=True."""

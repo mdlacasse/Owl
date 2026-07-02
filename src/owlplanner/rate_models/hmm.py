@@ -23,6 +23,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -37,7 +38,6 @@ _REG_COVAR = 1e-6  # diagonal regularization for emission covariances
 
 
 class HMMRateModel(BaseRateModel):
-
     model_name = "hmm"
 
     description = (
@@ -80,7 +80,7 @@ class HMMRateModel(BaseRateModel):
         "init_regime": {
             "type": "int",
             "description": "Starting regime index for generation (0 to n_components-1). "
-                           "None = draw from stationary distribution.",
+            "None = draw from stationary distribution.",
             "default": None,
             "example": "0",
         },
@@ -220,16 +220,16 @@ class HMMRateModel(BaseRateModel):
             ll = float(np.log(scales).sum())
 
             # Posterior state probabilities (gamma)
-            gamma = alpha * beta                    # (T, K)
+            gamma = alpha * beta  # (T, K)
             gamma_sum = gamma.sum(axis=1, keepdims=True)
             gamma /= np.maximum(gamma_sum, 1e-300)
 
             # Joint transition posteriors (xi), shape (T-1, K, K)
             xi = (
-                alpha[:-1, :, None]                 # (T-1, K, 1)
-                * trans[None, :, :]                  # (1,  K, K)
-                * B[1:, None, :]                     # (T-1, 1, K)
-                * beta[1:, None, :]                  # (T-1, 1, K)
+                alpha[:-1, :, None]  # (T-1, K, 1)
+                * trans[None, :, :]  # (1,  K, K)
+                * B[1:, None, :]  # (T-1, 1, K)
+                * beta[1:, None, :]  # (T-1, 1, K)
             )
             xi_row_sum = xi.reshape(T - 1, -1).sum(axis=1, keepdims=True).reshape(T - 1, 1, 1)
             xi /= np.maximum(xi_row_sum, 1e-300)
@@ -240,19 +240,18 @@ class HMMRateModel(BaseRateModel):
             pi = gamma[0] / gamma[0].sum()
 
             # Transition matrix with Laplace smoothing
-            xi_sum = xi.sum(axis=0)                 # (K, K)
-            gamma_sum_t = gamma[:-1].sum(axis=0)    # (K,)
-            trans = (xi_sum + self.reg_trans) / (
-                gamma_sum_t[:, None] + K * self.reg_trans
-            )
+            xi_sum = xi.sum(axis=0)  # (K, K)
+            gamma_sum_t = gamma[:-1].sum(axis=0)  # (K,)
+            trans = (xi_sum + self.reg_trans) / (gamma_sum_t[:, None] + K * self.reg_trans)
 
-            Nk = gamma.sum(axis=0) + 1e-300         # (K,)
-            means = (gamma.T @ X) / Nk[:, None]     # (K, D)
-            covs = np.array([
-                ((gamma[:, k:k + 1] * (X - means[k])).T @ (X - means[k])) / Nk[k]
-                + _REG_COVAR * np.eye(D)
-                for k in range(K)
-            ])
+            Nk = gamma.sum(axis=0) + 1e-300  # (K,)
+            means = (gamma.T @ X) / Nk[:, None]  # (K, D)
+            covs = np.array(
+                [
+                    ((gamma[:, k : k + 1] * (X - means[k])).T @ (X - means[k])) / Nk[k] + _REG_COVAR * np.eye(D)
+                    for k in range(K)
+                ]
+            )
 
             if ll - prev_ll < _TOL:
                 break

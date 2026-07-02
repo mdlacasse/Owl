@@ -164,64 +164,37 @@ class TestGetDebtPaymentsForYear:
 
     def test_single_active_loan(self):
         """Test with single active loan."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2020,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         payment = debts.get_debt_payments_for_year(df, 2025)
         # Should be positive annual payment
         assert payment > 0
 
     def test_loan_not_active(self):
         """Test with loan that hasn't started yet."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2030,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2030, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         payment = debts.get_debt_payments_for_year(df, 2025)
         assert payment == 0.0
 
     def test_loan_already_paid_off(self):
         """Test with loan that's already paid off."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 1990,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 1990, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         payment = debts.get_debt_payments_for_year(df, 2025)
         assert payment == 0.0
 
     def test_multiple_loans(self):
         """Test with multiple active loans."""
-        df = pd.DataFrame([
-            {
-                "name": "mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 200_000,
-                "rate": 4.5
-            },
-            {
-                "name": "car_loan",
-                "type": "loan",
-                "year": 2023,
-                "term": 5,
-                "amount": 30_000,
-                "rate": 6.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5},
+                {"name": "car_loan", "type": "loan", "year": 2023, "term": 5, "amount": 30_000, "rate": 6.0},
+            ]
+        )
         payment = debts.get_debt_payments_for_year(df, 2025)
         # Should be sum of both loans
         assert payment > 0
@@ -238,41 +211,26 @@ class TestGetDebtBalancesForYear:
 
     def test_single_active_loan(self):
         """Test with single active loan."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2020,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         balance = debts.get_debt_balances_for_year(df, 2025)
         # Should be positive but less than original principal
         assert 0 < balance < 200_000
 
     def test_loan_not_started(self):
         """Test with loan that hasn't started."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2030,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2030, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         balance = debts.get_debt_balances_for_year(df, 2025)
         assert balance == 0.0
 
     def test_loan_paid_off(self):
         """Test with loan that's paid off."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 1990,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 1990, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         balance = debts.get_debt_balances_for_year(df, 2025)
         assert balance == 0.0
 
@@ -289,14 +247,9 @@ class TestGetDebtPaymentsArray:
 
     def test_single_loan_full_horizon(self):
         """Test with single loan covering full horizon."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2020,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_payments_array(df, N_n, thisyear)
@@ -306,14 +259,9 @@ class TestGetDebtPaymentsArray:
 
     def test_loan_starting_mid_horizon(self):
         """Test with loan starting in middle of horizon."""
-        df = pd.DataFrame([{
-            "name": "car_loan",
-            "type": "loan",
-            "year": 2028,
-            "term": 5,
-            "amount": 30_000,
-            "rate": 6.0
-        }])
+        df = pd.DataFrame(
+            [{"name": "car_loan", "type": "loan", "year": 2028, "term": 5, "amount": 30_000, "rate": 6.0}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_payments_array(df, N_n, thisyear)
@@ -325,14 +273,9 @@ class TestGetDebtPaymentsArray:
 
     def test_loan_ending_mid_horizon(self):
         """Test with loan ending in middle of horizon."""
-        df = pd.DataFrame([{
-            "name": "car_loan",
-            "type": "loan",
-            "year": 2020,
-            "term": 5,
-            "amount": 30_000,
-            "rate": 6.0
-        }])
+        df = pd.DataFrame(
+            [{"name": "car_loan", "type": "loan", "year": 2020, "term": 5, "amount": 30_000, "rate": 6.0}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_payments_array(df, N_n, thisyear)
@@ -344,24 +287,12 @@ class TestGetDebtPaymentsArray:
 
     def test_multiple_loans(self):
         """Test with multiple loans."""
-        df = pd.DataFrame([
-            {
-                "name": "mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 200_000,
-                "rate": 4.5
-            },
-            {
-                "name": "car_loan",
-                "type": "loan",
-                "year": 2026,
-                "term": 5,
-                "amount": 30_000,
-                "rate": 6.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5},
+                {"name": "car_loan", "type": "loan", "year": 2026, "term": 5, "amount": 30_000, "rate": 6.0},
+            ]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_payments_array(df, N_n, thisyear)
@@ -390,14 +321,9 @@ class TestGetDebtBalancesArray:
 
     def test_loan_starting_this_year(self):
         """Test that balance at start of origination year equals the principal."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2025,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2025, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_balances_array(df, N_n, thisyear)
@@ -409,14 +335,9 @@ class TestGetDebtBalancesArray:
 
     def test_loan_starting_mid_horizon(self):
         """Test with loan starting in the middle of the horizon."""
-        df = pd.DataFrame([{
-            "name": "car_loan",
-            "type": "loan",
-            "year": 2028,
-            "term": 5,
-            "amount": 30_000,
-            "rate": 6.0
-        }])
+        df = pd.DataFrame(
+            [{"name": "car_loan", "type": "loan", "year": 2028, "term": 5, "amount": 30_000, "rate": 6.0}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_balances_array(df, N_n, thisyear)
@@ -430,14 +351,9 @@ class TestGetDebtBalancesArray:
 
     def test_loan_paid_off_before_horizon(self):
         """Test with loan fully paid off before the plan starts."""
-        df = pd.DataFrame([{
-            "name": "car_loan",
-            "type": "loan",
-            "year": 1990,
-            "term": 5,
-            "amount": 30_000,
-            "rate": 6.0
-        }])
+        df = pd.DataFrame(
+            [{"name": "car_loan", "type": "loan", "year": 1990, "term": 5, "amount": 30_000, "rate": 6.0}]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_balances_array(df, N_n, thisyear)
@@ -445,24 +361,12 @@ class TestGetDebtBalancesArray:
 
     def test_multiple_loans(self):
         """Test with multiple loans, balances should sum."""
-        df = pd.DataFrame([
-            {
-                "name": "mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 200_000,
-                "rate": 4.5
-            },
-            {
-                "name": "car_loan",
-                "type": "loan",
-                "year": 2025,
-                "term": 5,
-                "amount": 30_000,
-                "rate": 6.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5},
+                {"name": "car_loan", "type": "loan", "year": 2025, "term": 5, "amount": 30_000, "rate": 6.0},
+            ]
+        )
         thisyear = 2025
         N_n = 10
         result = debts.get_debt_balances_array(df, N_n, thisyear)
@@ -482,14 +386,9 @@ class TestGetRemainingDebtBalance:
 
     def test_all_loans_paid_off(self):
         """Test when all loans are paid off by end of plan."""
-        df = pd.DataFrame([{
-            "name": "car_loan",
-            "type": "loan",
-            "year": 2020,
-            "term": 5,
-            "amount": 30_000,
-            "rate": 6.0
-        }])
+        df = pd.DataFrame(
+            [{"name": "car_loan", "type": "loan", "year": 2020, "term": 5, "amount": 30_000, "rate": 6.0}]
+        )
         thisyear = 2025
         N_n = 10
         # Loan ends in 2025, plan ends in 2034, so loan is paid off
@@ -498,14 +397,9 @@ class TestGetRemainingDebtBalance:
 
     def test_loan_still_active(self):
         """Test when loan is still active at end of plan."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2020,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         thisyear = 2025
         N_n = 10
         # Loan ends in 2050, plan ends in 2034, so loan is still active
@@ -514,14 +408,9 @@ class TestGetRemainingDebtBalance:
 
     def test_loan_starting_after_plan(self):
         """Test when loan starts after plan ends."""
-        df = pd.DataFrame([{
-            "name": "mortgage",
-            "type": "mortgage",
-            "year": 2040,
-            "term": 30,
-            "amount": 200_000,
-            "rate": 4.5
-        }])
+        df = pd.DataFrame(
+            [{"name": "mortgage", "type": "mortgage", "year": 2040, "term": 30, "amount": 200_000, "rate": 4.5}]
+        )
         thisyear = 2025
         N_n = 10
         # Loan starts in 2040, plan ends in 2034, so loan hasn't started
@@ -530,24 +419,12 @@ class TestGetRemainingDebtBalance:
 
     def test_multiple_loans_mixed(self):
         """Test with multiple loans, some paid off, some active."""
-        df = pd.DataFrame([
-            {
-                "name": "car_loan",
-                "type": "loan",
-                "year": 2020,
-                "term": 5,
-                "amount": 30_000,
-                "rate": 6.0
-            },
-            {
-                "name": "mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 200_000,
-                "rate": 4.5
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {"name": "car_loan", "type": "loan", "year": 2020, "term": 5, "amount": 30_000, "rate": 6.0},
+                {"name": "mortgage", "type": "mortgage", "year": 2020, "term": 30, "amount": 200_000, "rate": 4.5},
+            ]
+        )
         thisyear = 2025
         N_n = 10
         balance = debts.get_remaining_debt_balance(df, N_n, thisyear)

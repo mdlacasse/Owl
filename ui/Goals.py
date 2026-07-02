@@ -57,63 +57,78 @@ else:
     with col2:
         if kz.getCaseKey("objective") == "Net spending":
             kz.initCaseKey("bequest", 0)
-            helpmsg_bequest = (f"Desired bequest from savings accounts only (in today's \\$k, i.e. constant "
-                               f"{owb.baseYear()} dollars). "
-                               "Fixed assets liquidated at the end of the plan are added separately.")
-            bequest = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest",
-                                help=helpmsg_bequest)
+            helpmsg_bequest = (
+                f"Desired bequest from savings accounts only (in today's \\$k, i.e. constant "
+                f"{owb.baseYear()} dollars). "
+                "Fixed assets liquidated at the end of the plan are added separately."
+            )
+            bequest = kz.getNum("Desired bequest from savings accounts (\\$k)", "bequest", help=helpmsg_bequest)
 
             # Get fixed assets bequest value in today's dollars to inform the user
             fixed_assets_bequest = owb.getFixedAssetsBequestValue(in_todays_dollars=True)
             fixed_assets_bequest_k = fixed_assets_bequest / 1000.0
 
             if fixed_assets_bequest_k > 0:
-                st.info(f"Fixed assets contribute an additional"
-                        f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$, i.e. constant"
-                        f" {owb.baseYear()} dollars).")
+                st.info(
+                    f"Fixed assets contribute an additional"
+                    f" \\${fixed_assets_bequest_k:,.0f}k to bequest (in today's \\$, i.e. constant"
+                    f" {owb.baseYear()} dollars)."
+                )
 
         else:  # Bequest
             kz.initCaseKey("netSpending", 0)
-            helpmsg_spending = (f"Desired annual net spending in today's \\$k, i.e. constant {owb.baseYear()} "
-                                "dollars (the constraint when maximizing bequest).")
+            helpmsg_spending = (
+                f"Desired annual net spending in today's \\$k, i.e. constant {owb.baseYear()} "
+                "dollars (the constraint when maximizing bequest)."
+            )
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
 
     st.divider()
     st.markdown("#### :orange[Safety Net]")
-    helpmsg = (f"Maintain a minimum inflation-adjusted taxable balance (today's \\$k, i.e. constant "
-               f"{owb.baseYear()} dollars)"
-               " from year 2 through life expectancy. This should ideally be less than the initial balance.")
+    helpmsg = (
+        f"Maintain a minimum inflation-adjusted taxable balance (today's \\$k, i.e. constant "
+        f"{owb.baseYear()} dollars)"
+        " from year 2 through life expectancy. This should ideally be less than the initial balance."
+    )
     ni = 2 if kz.getCaseKey("status") == "married" else 1
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("minTaxableBalance0", 0)
         iname0 = kz.getCaseKey("iname0")
-        net0 = kz.getNum(f"Minimum taxable balance for {iname0} (\\$k)", "minTaxableBalance0",
-                         min_value=0., help=helpmsg)
+        net0 = kz.getNum(
+            f"Minimum taxable balance for {iname0} (\\$k)", "minTaxableBalance0", min_value=0.0, help=helpmsg
+        )
     with col2:
         net1 = 0
         if ni == 2:
             kz.initCaseKey("minTaxableBalance1", 0)
             iname1 = kz.getCaseKey("iname1")
-            net1 = kz.getNum(f"Minimum taxable balance for {iname1} (\\$k)", "minTaxableBalance1",
-                             min_value=0., help=helpmsg)
+            net1 = kz.getNum(
+                f"Minimum taxable balance for {iname1} (\\$k)", "minTaxableBalance1", min_value=0.0, help=helpmsg
+            )
 
     if kz.getCaseKey("objective") == "Net spending" and (net0 + net1) > bequest:
-        st.caption(":warning: When maximizing spending with a bequest target, the desired bequest should be at least "
-                   "as large as the survivor's safety net (in today's \\$, i.e. constant "
-                   f"{owb.baseYear()} dollars), otherwise optimization may be infeasible.")
+        st.caption(
+            ":warning: When maximizing spending with a bequest target, the desired bequest should be at least "
+            "as large as the survivor's safety net (in today's \\$, i.e. constant "
+            f"{owb.baseYear()} dollars), otherwise optimization may be infeasible."
+        )
 
     txbl0 = kz.getCaseKey("txbl0") or 0
     if txbl0 > 0 and net0 > 0.60 * txbl0:
-        st.caption(f":warning: {iname0}'s minimum taxable balance (\\${net0:.0f}k) exceeds 60% of their"
-                   f" initial taxable balance (\\${txbl0:.0f}k)."
-                   f" The problem may become infeasible during market downturns.")
+        st.caption(
+            f":warning: {iname0}'s minimum taxable balance (\\${net0:.0f}k) exceeds 60% of their"
+            f" initial taxable balance (\\${txbl0:.0f}k)."
+            f" The problem may become infeasible during market downturns."
+        )
     if ni == 2:
         txbl1 = kz.getCaseKey("txbl1") or 0
         if txbl1 > 0 and net1 > 0.60 * txbl1:
-            st.caption(f":warning: {iname1}'s minimum taxable balance (\\${net1:.0f}k) exceeds 60% of their"
-                       f" initial taxable balance (\\${txbl1:.0f}k)."
-                       f" The problem may become infeasible during market downturns.")
+            st.caption(
+                f":warning: {iname1}'s minimum taxable balance (\\${net1:.0f}k) exceeds 60% of their"
+                f" initial taxable balance (\\${txbl1:.0f}k)."
+                f" The problem may become infeasible during market downturns."
+            )
 
     st.divider()
     st.markdown("#### :orange[Spending Profile]")
@@ -123,31 +138,43 @@ else:
         ret = kz.getRadio("Type of profile", profileChoices, "spendingProfile", help=helpmsg, callback=owb.setProfile)
         if kz.getCaseKey("status") == "married":
             helpmsg = "Percentage of spending required for the surviving spouse."
-            ret = kz.getIntNum("Survivor's spending (%)", "survivor", max_value=100,
-                               help=helpmsg, callback=owb.setProfile)
+            ret = kz.getIntNum(
+                "Survivor's spending (%)", "survivor", max_value=100, help=helpmsg, callback=owb.setProfile
+            )
     with col2:
         kz.initCaseKey("spendingSlack", 0)
-        helpmsg = ("Percentage allowed to deviate from the spending profile. "
-                   "Spending stays within ±slack% of the profile shape. "
-                   "Set to 0 to pin spending exactly to the profile shape.")
+        helpmsg = (
+            "Percentage allowed to deviate from the spending profile. "
+            "Spending stays within ±slack% of the profile shape. "
+            "Set to 0 to pin spending exactly to the profile shape."
+        )
         ret = kz.getIntNum("Profile slack (%)", "spendingSlack", max_value=100, help=helpmsg)
         kz.initCaseKey("timePreference", 0.0)
-        helpmsg = ("Subjective time preference rate (%/year). Values above 0 increase the "
-                   "relative value of near-term spending, discouraging end-of-life back-loading. "
-                   "Has no effect on the Bequest objective.")
-        kz.getSlider("Time preference (%/year)", "timePreference",
-                     min_value=0.0, max_value=10.0, step=0.5, help=helpmsg)
+        helpmsg = (
+            "Subjective time preference rate (%/year). Values above 0 increase the "
+            "relative value of near-term spending, discouraging end-of-life back-loading. "
+            "Has no effect on the Bequest objective."
+        )
+        kz.getSlider(
+            "Time preference (%/year)", "timePreference", min_value=0.0, max_value=10.0, step=0.5, help=helpmsg
+        )
     with col3:
         if kz.getCaseKey("spendingProfile") == "smile":
             helpmsg = "Time in year before spending starts decreasing."
-            ret = kz.getIntNum("Smile delay (in years from now)", "smileDelay", max_value=30,
-                               help=helpmsg, callback=owb.setProfile)
+            ret = kz.getIntNum(
+                "Smile delay (in years from now)", "smileDelay", max_value=30, help=helpmsg, callback=owb.setProfile
+            )
             helpmsg = "Percentage to increase (or decrease) over time period."
-            ret = kz.getIntNum("Smile increase (%)", "smileIncrease",
-                               min_value=-100, max_value=100, help=helpmsg, callback=owb.setProfile)
+            ret = kz.getIntNum(
+                "Smile increase (%)",
+                "smileIncrease",
+                min_value=-100,
+                max_value=100,
+                help=helpmsg,
+                callback=owb.setProfile,
+            )
             helpmsg = "Percentage to decrease for the slow-go years."
-            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg,
-                               callback=owb.setProfile)
+            ret = kz.getIntNum("Smile dip (%)", "smileDip", max_value=100, help=helpmsg, callback=owb.setProfile)
 
     st.divider()
     col1, col2 = st.columns([0.6, 0.4], gap="small")

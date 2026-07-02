@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from typing import Optional, TYPE_CHECKING
 from owlplanner import utils as u
+
 if TYPE_CHECKING:
     from owlplanner.mylogging import Logger
 

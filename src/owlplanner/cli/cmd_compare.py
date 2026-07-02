@@ -114,8 +114,12 @@ def cmd_compare(filename, set_overrides, solver, max_time, gap, verbose, solver_
     diconf_variant = apply_overrides(diconf_base, set_overrides)
 
     solver_kwargs = dict(
-        solver=solver, max_time=max_time, gap=gap,
-        verbose=verbose, solver_opts=solver_opts, seed=seed,
+        solver=solver,
+        max_time=max_time,
+        gap=gap,
+        verbose=verbose,
+        solver_opts=solver_opts,
+        seed=seed,
     )
 
     plan_base = _solve_case(diconf_base, dirname, label="base", **solver_kwargs)
@@ -135,11 +139,7 @@ def cmd_compare(filename, set_overrides, solver, max_time, gap, verbose, solver_
     m_variant = plan_metrics(plan_variant)
     delta = _diff(m_base, m_variant)
 
-    pct_change = {
-        k: _pct(delta[k], m_base[k])
-        for k in KEY_METRICS
-        if k in delta and delta[k] is not None
-    }
+    pct_change = {k: _pct(delta[k], m_base[k]) for k in KEY_METRICS if k in delta and delta[k] is not None}
 
     result = {
         "filename": str(filename),

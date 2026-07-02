@@ -29,6 +29,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import numpy as np
 
@@ -44,7 +45,6 @@ from owlplanner.rates import FROM, TO
 
 
 class VARRateModel(BaseRateModel):
-
     model_name = "vector_ar"
 
     description = (
@@ -77,8 +77,7 @@ class VARRateModel(BaseRateModel):
             "default": True,
             "ui_excluded": True,  # numerical-stability knob; not surfaced in the UI (TOML/API only)
             "description": (
-                "If True, apply spectral shrinkage to A when its spectral radius >= 0.95, "
-                "ensuring stationarity."
+                "If True, apply spectral shrinkage to A when its spectral radius >= 0.95, ensuring stationarity."
             ),
             "example": "true",
         },
@@ -118,8 +117,7 @@ class VARRateModel(BaseRateModel):
 
         if len(data) < 10:
             raise ValueError(
-                f"VAR(1) requires at least 10 observations; "
-                f"frm={self.frm}, to={self.to} yields only {len(data)}."
+                f"VAR(1) requires at least 10 observations; frm={self.frm}, to={self.to} yields only {len(data)}."
             )
 
         # PWL transform on inflation (dim 3) to correct right-skew before OLS fit
@@ -161,21 +159,21 @@ class VARRateModel(BaseRateModel):
         """
         T = len(data)
 
-        Y = data[1:]          # (T-1, 4)
+        Y = data[1:]  # (T-1, 4)
         ones = np.ones((T - 1, 1))
-        X = np.hstack([ones, data[:-1]])   # (T-1, 5)
+        X = np.hstack([ones, data[:-1]])  # (T-1, 5)
 
-        B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)   # (5, 4)
+        B, _, _, _ = np.linalg.lstsq(X, Y, rcond=None)  # (5, 4)
 
-        self._c = B[0, :]          # (4,)
-        self._A = B[1:, :].T       # (4, 4)
+        self._c = B[0, :]  # (4,)
+        self._A = B[1:, :].T  # (4, 4)
 
         # Residuals and covariance
-        E = Y - X @ B              # (T-1, 4)
-        dof = T - 1 - 5            # degrees of freedom
+        E = Y - X @ B  # (T-1, 4)
+        dof = T - 1 - 5  # degrees of freedom
         if dof <= 0:
-            dof = T - 1            # fallback for very short windows
-        Sigma = E.T @ E / dof      # (4, 4)
+            dof = T - 1  # fallback for very short windows
+        Sigma = E.T @ E / dof  # (4, 4)
 
         # Stationarity check
         eigenvalues = np.linalg.eigvals(self._A)
@@ -187,8 +185,7 @@ class VARRateModel(BaseRateModel):
                 self._A = self._A * scale
                 if self.logger:
                     self.logger.warning(
-                        f"VAR(1): spectral radius {rho:.4f} >= 0.95; "
-                        f"shrinking A by {scale:.4f} to ensure stationarity."
+                        f"VAR(1): spectral radius {rho:.4f} >= 0.95; shrinking A by {scale:.4f} to ensure stationarity."
                     )
             else:
                 if self.logger:

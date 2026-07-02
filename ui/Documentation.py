@@ -47,15 +47,17 @@ with col2:
 st.markdown("<style>div[data-testid='stTabs'] { margin-top: -20px; }</style>", unsafe_allow_html=True)
 
 # Tabs for bite-sized navigation
-tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs([
-    "Overview",
-    "Case Setup",
-    "Results",
-    "Stress Tests",
-    "Tools",
-    "Help",
-    "Tips",
-])
+tab_overview, tab_plan, tab_results, tab_sim, tab_tools, tab_help, tab_tips = st.tabs(
+    [
+        "Overview",
+        "Case Setup",
+        "Results",
+        "Stress Tests",
+        "Tools",
+        "Help",
+        "Tips",
+    ]
+)
 
 # --- Overview tab ---
 with tab_overview:
@@ -1879,7 +1881,9 @@ Credits, changelog, and legal information.
 # --- Tips tab ---
 with tab_tips:
     st.markdown("Here are a few tips that can help while using **Owl**.")
-    with st.expander(":orange[**Recommendations on Optimization and Roth Conversions**]", expanded=True, type="compact"):
+    with st.expander(
+        ":orange[**Recommendations on Optimization and Roth Conversions**]", expanded=True, type="compact"
+    ):
         st.markdown("""
 **Owl** can optimize explicitly for Medicare costs but these can sometimes be
 costly computations. This approach is included in the current version but

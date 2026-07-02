@@ -11,6 +11,7 @@ All rate models must subclass this.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
+
 ###########################################################################
 from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Optional
@@ -91,10 +92,7 @@ class BaseRateModel(ABC):
         # --------------------------------------------------
         for param in required:
             if config.get(param) is None:
-                raise ValueError(
-                    f"Rate model '{self.model_name}' "
-                    f"requires parameter '{param}'."
-                )
+                raise ValueError(f"Rate model '{self.model_name}' requires parameter '{param}'.")
             normalized[param] = config[param]
 
         # --------------------------------------------------
@@ -114,10 +112,7 @@ class BaseRateModel(ABC):
 
         for key in config:
             if key not in allowed:
-                raise ValueError(
-                    f"Unknown parameter '{key}' for rate model "
-                    f"'{self.model_name}'."
-                )
+                raise ValueError(f"Unknown parameter '{key}' for rate model '{self.model_name}'.")
 
         return normalized
 

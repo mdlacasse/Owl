@@ -55,9 +55,15 @@ def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, pro
     else:
         own = ""
     return st.number_input(
-        f"{own}{thing}", min_value=min_val, value=stored_value,
-        on_change=kz.setpull, help=help, args=[nkey], key=kz.genCaseKey(nkey),
-        max_value=max_val, disabled=disabled,
+        f"{own}{thing}",
+        min_value=min_val,
+        value=stored_value,
+        on_change=kz.setpull,
+        help=help,
+        args=[nkey],
+        key=kz.genCaseKey(nkey),
+        max_value=max_val,
+        disabled=disabled,
     )
 
 
@@ -107,8 +113,10 @@ else:
         specialcase0 = dob0.endswith("01") or dob0.endswith("02")
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
         if specialcase0:
-            msg2 = ("Claiming age in years and months. "
-                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70.")
+            msg2 = (
+                "Claiming age in years and months. "
+                "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70."
+            )
         else:
             msg2 = "Claiming age in years and months. Minimum: 62, maximum: 70."
         if ss_age0_disabled:
@@ -121,13 +129,30 @@ else:
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
             minyear = 61 if specialcase0 else 62
-            ret = getIntInput(0, "ssAge_y", "claiming at age...", 67, msg2,
-                              min_val=minyear, max_val=maxyear, disabled=ss_age0_disabled)
+            ret = getIntInput(
+                0,
+                "ssAge_y",
+                "claiming at age...",
+                67,
+                msg2,
+                min_val=minyear,
+                max_val=maxyear,
+                disabled=ss_age0_disabled,
+            )
         with incol2:
             maxmonth = 0 if ret == 70 else 11
             minmonth = 11 if (ret == 61 and specialcase0) else 0
-            getIntInput(0, "ssAge_m", "...and month(s)", 0, msg2,
-                        min_val=minmonth, max_val=maxmonth, prompt=False, disabled=ss_age0_disabled)
+            getIntInput(
+                0,
+                "ssAge_m",
+                "...and month(s)",
+                0,
+                msg2,
+                min_val=minmonth,
+                max_val=maxmonth,
+                prompt=False,
+                disabled=ss_age0_disabled,
+            )
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -135,8 +160,10 @@ else:
             specialcase1 = dob1.endswith("01") or dob1.endswith("02")
             getIntInput(1, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
             if specialcase1:
-                msg2_spouse = ("Claiming age in years and months. "
-                               "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd).")
+                msg2_spouse = (
+                    "Claiming age in years and months. "
+                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd)."
+                )
             else:
                 msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
             if ss_age1_disabled:
@@ -148,17 +175,32 @@ else:
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
                 minyear = 61 if specialcase1 else 62
-                ret = getIntInput(1, "ssAge_y", "claiming at age...", 67, msg2_spouse,
-                                  min_val=minyear, max_val=maxyear, disabled=ss_age1_disabled)
+                ret = getIntInput(
+                    1,
+                    "ssAge_y",
+                    "claiming at age...",
+                    67,
+                    msg2_spouse,
+                    min_val=minyear,
+                    max_val=maxyear,
+                    disabled=ss_age1_disabled,
+                )
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
                 minmonth = 11 if (ret == 61 and specialcase1) else 0
                 getIntInput(
-                    1, "ssAge_m", "...and month(s)", 0, msg2_spouse,
-                    min_val=minmonth, max_val=maxmonth, prompt=False, disabled=ss_age1_disabled
+                    1,
+                    "ssAge_m",
+                    "...and month(s)",
+                    0,
+                    msg2_spouse,
+                    min_val=minmonth,
+                    max_val=maxmonth,
+                    prompt=False,
+                    disabled=ss_age1_disabled,
                 )
 
-    col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
+    col1, col2 = st.columns([0.67, 0.33], gap="large", vertical_alignment="top")
     with col1:
         with st.expander("*Instructions for determining your monthly Primary Insurance Amount (PIA)*"):
             st.markdown("""
@@ -199,7 +241,7 @@ to estimate {iname0}'s PIA.""")
 [here](https://ssa.tools/calculator#integration=owlplanner.streamlit.app&dob={dob1}&name={iname1})
 to estimate {iname1}'s PIA.""")
 
-    col1, col2 = st.columns([.67, .33], gap="large", vertical_alignment="top")
+    col1, col2 = st.columns([0.67, 0.33], gap="large", vertical_alignment="top")
     with col1:
         st.markdown("")
         with st.expander("*Advanced options*"):
@@ -238,8 +280,10 @@ to estimate {iname1}'s PIA.""")
     st.markdown("#### :orange[Pension]")
     msg_pension1 = "Monthly benefit received from pension."
     msg_pension2 = "Age at which pension benefits start. In years and months."
-    msg_surv = ("If you elected a joint-and-survivor (J&S) option, the surviving spouse receives "
-                "this percentage of your pension after your death. 0 = single-life annuity.")
+    msg_surv = (
+        "If you elected a joint-and-survivor (J&S) option, the surviving spouse receives "
+        "this percentage of your pension after your death. 0 = single-life annuity."
+    )
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("pAge_y0", 65)
@@ -296,18 +340,33 @@ to estimate {iname1}'s PIA.""")
     annuitant_options = [iname0, iname1] if is_married else [iname0]
     col_config = {
         "Annuitant": st.column_config.SelectboxColumn(
-            "Annuitant", options=annuitant_options, required=True,
+            "Annuitant",
+            options=annuitant_options,
+            required=True,
         ),
         "Buy year": st.column_config.NumberColumn(
-            "Buy year", min_value=thisyear - 50, max_value=plan_end, step=1, format="%d", required=True,
+            "Buy year",
+            min_value=thisyear - 50,
+            max_value=plan_end,
+            step=1,
+            format="%d",
+            required=True,
             help="Calendar year of purchase. May be in the past for an already-purchased SPIA.",
         ),
         "Premium ($k)": st.column_config.NumberColumn(
-            "Premium ($k)", min_value=0.0, step=10.0, format="%.1f", required=True,
+            "Premium ($k)",
+            min_value=0.0,
+            step=10.0,
+            format="%.1f",
+            required=True,
             help="Lump-sum IRA rollover amount in thousands of dollars.",
         ),
         "Monthly ($)": st.column_config.NumberColumn(
-            "Monthly ($)", min_value=0, step=50, format="%d", required=True,
+            "Monthly ($)",
+            min_value=0,
+            step=50,
+            format="%d",
+            required=True,
             help="Monthly benefit in nominal dollars at the time of purchase.",
         ),
         "CPI-linked": st.column_config.CheckboxColumn(
@@ -317,7 +376,11 @@ to estimate {iname1}'s PIA.""")
     }
     if is_married:
         col_config["Survivor (%)"] = st.column_config.NumberColumn(
-            "Survivor (%)", min_value=0, max_value=100, step=1, format="%d",
+            "Survivor (%)",
+            min_value=0,
+            max_value=100,
+            step=1,
+            format="%d",
             help="Percentage of benefit paid to surviving spouse. 0 = single-life annuity.",
         )
 

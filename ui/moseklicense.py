@@ -38,7 +38,7 @@ def _streamlit_dir():
 def hasMOSEK():
     spec = importlib.util.find_spec("mosek")
     mosekenv = os.environ.get(MOSEKLM_LICENSE_FILE, None)
-    return (spec is not None and mosekenv is not None)
+    return spec is not None and mosekenv is not None
 
 
 desired_permissions = 0o600
@@ -64,6 +64,7 @@ def createLicense():
 
     # print(f"Created MOSEK license file {license_path}")
     os.environ[MOSEKLM_LICENSE_FILE] = os.path.abspath(license_path)
+
 
 # NOTE: createLicense() must be invoked explicitly at app startup (see ui/main.py),
 # NOT as an import-time side effect. Setting os.environ here on import would flip

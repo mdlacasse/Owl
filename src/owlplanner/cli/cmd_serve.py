@@ -96,11 +96,11 @@ def _norm_overrides(overrides: list[str] | None) -> list[str]:
 
 def _ss_ages_opt(v) -> str | list | None:
     """Map optimize_ss_ages value to a withSSAges option string/list, or None to skip."""
-    if not v:          # None, False, empty string/list
+    if not v:  # None, False, empty string/list
         return None
     if v is True or v == "all":
         return "optimize"
-    return v           # single name string or list of names — pass through directly
+    return v  # single name string or list of names — pass through directly
 
 
 def _check_person_index(person: int, n_individuals: int, context: str) -> None:
@@ -140,12 +140,22 @@ def _swap_roth_converters_value(inames, first_name, year):
 
 
 def _build_mcp_opts(
-    solver=None, max_time=None, net_spending=None, min_taxable_balance=None,
-    start_roth_year=None, no_roth_person=None, max_roth_conversion=None,
-    bequest=None, optimize_ss_ages=None, previous_magis=None,
-    with_medicare=None, with_aca=None,
-    use_roth_conv_overrides=None, swap_roth_converters_first=None,
-    swap_roth_converters_year=None, inames=None,
+    solver=None,
+    max_time=None,
+    net_spending=None,
+    min_taxable_balance=None,
+    start_roth_year=None,
+    no_roth_person=None,
+    max_roth_conversion=None,
+    bequest=None,
+    optimize_ss_ages=None,
+    previous_magis=None,
+    with_medicare=None,
+    with_aca=None,
+    use_roth_conv_overrides=None,
+    swap_roth_converters_first=None,
+    swap_roth_converters_year=None,
+    inames=None,
 ):
     """Build solver opts dict for MCP tools (always full-dollar units)."""
     opts = {"units": "1"}
@@ -186,11 +196,15 @@ def _build_mcp_opts(
 # Tool: list_cases
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def list_cases(
-    directory: Annotated[str, Field(
-        description="Directory to scan for .toml case files (prefer absolute path).",
-    )] = ".",
+    directory: Annotated[
+        str,
+        Field(
+            description="Directory to scan for .toml case files (prefer absolute path).",
+        ),
+    ] = ".",
 ) -> str:
     """List Owl case files (.toml) in a directory.
 
@@ -215,13 +229,15 @@ def list_cases(
             case_name = diconf.get("case_name", f.stem)
             raw_hfp = diconf.get("household_financial_profile", {}).get("HFP_file_name", "None")
             hfp = None if (not raw_hfp or raw_hfp.lower() in ("none", "dictionary of dataframes")) else raw_hfp
-            cases.append({
-                "stem": f.stem,
-                "filename": str(f),
-                "case_name": case_name,
-                "has_hfp": bool(hfp and (path / hfp).exists()),
-                "hfp_file": hfp,
-            })
+            cases.append(
+                {
+                    "stem": f.stem,
+                    "filename": str(f),
+                    "case_name": case_name,
+                    "has_hfp": bool(hfp and (path / hfp).exists()),
+                    "hfp_file": hfp,
+                }
+            )
         except Exception as e:
             cases.append({"stem": f.stem, "filename": str(f), "error": str(e)})
 
@@ -231,6 +247,7 @@ def list_cases(
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: explain_case
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @mcp.tool()
 def explain_case(
@@ -281,6 +298,7 @@ def explain_case(
 # Tool: list_rate_models
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def list_rate_models(
     category: Annotated[
@@ -325,6 +343,7 @@ def list_rate_models(
 # Tool: list_mortality_tables
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def list_mortality_tables() -> str:
     """List available actuarial mortality tables for longevity risk sampling.
@@ -356,8 +375,11 @@ def list_mortality_tables() -> str:
     twice with different tables to bracket the range.
     """
     tables = [
-        {"key": key, "le_at_65": MORTALITY_TABLE_INFO[key]["le_at_65"],
-         "description": MORTALITY_TABLE_INFO[key]["description"]}
+        {
+            "key": key,
+            "le_at_65": MORTALITY_TABLE_INFO[key]["le_at_65"],
+            "description": MORTALITY_TABLE_INFO[key]["description"],
+        }
         for key in MORTALITY_TABLE_KEYS
         if key in MORTALITY_TABLE_INFO
     ]
@@ -369,6 +391,7 @@ def list_mortality_tables() -> str:
 # Tool: convert_ss_benefit
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def convert_ss_benefit(
     birth_year: Annotated[int, Field(description="Birth year, e.g. 1961.")],
@@ -378,14 +401,18 @@ def convert_ss_benefit(
     ],
     pia: Annotated[
         float | None,
-        Field(description="Monthly PIA (Primary Insurance Amount, the benefit at Full "
-              "Retirement Age) in $/month. Provide this OR actual_benefit, not both."),
+        Field(
+            description="Monthly PIA (Primary Insurance Amount, the benefit at Full "
+            "Retirement Age) in $/month. Provide this OR actual_benefit, not both."
+        ),
     ] = None,
     actual_benefit: Annotated[
         float | None,
-        Field(description="Actual (or projected) monthly benefit at claiming_age, in "
-              "$/month — e.g. the check amount someone says they 'get'. "
-              "Provide this OR pia, not both."),
+        Field(
+            description="Actual (or projected) monthly benefit at claiming_age, in "
+            "$/month — e.g. the check amount someone says they 'get'. "
+            "Provide this OR pia, not both."
+        ),
     ] = None,
     birth_month: Annotated[int, Field(description="Birth month (1-12). Default 7.")] = 7,
     birth_day: Annotated[int, Field(description="Birth day of month (1-31). Default 1.")] = 1,
@@ -430,6 +457,7 @@ def convert_ss_benefit(
 # Tool: list_contribution_limits
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @mcp.tool()
 def list_contribution_limits(
     birth_years: Annotated[list[int], Field(description="Birth years, e.g. [1963, 1961].")],
@@ -464,16 +492,14 @@ def list_contribution_limits(
     Flag these to the user if their income or coverage situation suggests they
     may not qualify for the full amount.
     """
-    persons = [
-        {"birth_year": by, **contributionLimits(by, tax_year=tax_year)}
-        for by in birth_years
-    ]
+    persons = [{"birth_year": by, **contributionLimits(by, tax_year=tax_year)} for by in birth_years]
     return json.dumps({"persons": persons}, indent=2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_case
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _build_opts(plan, solver, max_time, verbose_flag, solver_opts_raw):
     """Merge CLI flags into the plan's solver options dict and validate."""
@@ -508,7 +534,7 @@ async def run_case(
     ] = None,
     solver: Annotated[
         str | None,
-        Field(description='Solver: HiGHS, MOSEK, or omit for auto-select.'),
+        Field(description="Solver: HiGHS, MOSEK, or omit for auto-select."),
     ] = None,
     max_time: Annotated[float | None, Field(description="Solver time limit in seconds.")] = None,
     seed: Annotated[
@@ -544,14 +570,20 @@ async def run_case(
         plan = await asyncio.get_running_loop().run_in_executor(
             None,
             _solve_blocking,
-            diconf, dirname, solver, max_time, seed, [],
+            diconf,
+            dirname,
+            solver,
+            max_time,
+            seed,
+            [],
         )
     except Exception as e:
         return json.dumps({"error": f"Solver error: {e}"})
 
     if plan.caseStatus != "solved":
-        return json.dumps({"status": plan.caseStatus, "case_name": plan._name,
-                           "error": "Case did not solve to optimality."})
+        return json.dumps(
+            {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+        )
 
     result = plan_to_dict(plan)
     return json.dumps(result, indent=2, cls=_NumpyEncoder)
@@ -560,6 +592,7 @@ async def run_case(
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: compare_cases
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _compare_blocking(diconf_base, diconf_variant, dirname, solver, max_time, seed):
     plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, seed, [])
@@ -610,27 +643,30 @@ async def compare_cases(
         plan_base, plan_variant = await asyncio.get_running_loop().run_in_executor(
             None,
             _compare_blocking,
-            diconf_base, diconf_variant, dirname, solver, max_time, seed,
+            diconf_base,
+            diconf_variant,
+            dirname,
+            solver,
+            max_time,
+            seed,
         )
     except Exception as e:
         return json.dumps({"error": f"Solver error: {e}"})
 
     if plan_base.caseStatus != "solved" or plan_variant.caseStatus != "solved":
-        return json.dumps({
-            "error": "One or both cases did not solve.",
-            "base_status": plan_base.caseStatus,
-            "variant_status": plan_variant.caseStatus,
-        })
+        return json.dumps(
+            {
+                "error": "One or both cases did not solve.",
+                "base_status": plan_base.caseStatus,
+                "variant_status": plan_variant.caseStatus,
+            }
+        )
 
     m_base = plan_metrics(plan_base)
     m_variant = plan_metrics(plan_variant)
     delta = _diff(m_base, m_variant)
 
-    pct_change = {
-        k: _pct(delta[k], m_base[k])
-        for k in KEY_METRICS
-        if k in delta and delta[k] is not None
-    }
+    pct_change = {k: _pct(delta[k], m_base[k]) for k in KEY_METRICS if k in delta and delta[k] is not None}
 
     result = {
         "filename": filename,
@@ -652,13 +688,13 @@ _ACCOUNT_J = {"taxable": 0, "tax_deferred": 1, "roth": 2, "hsa": 3}
 # Aliases accepted for dict fields in wages / contributions / big_ticket_items / debts / spias.
 # Each list is [canonical, *accepted_aliases] — canonical first so error messages are clear.
 _FIELD_ALIASES = {
-    "annual_amount":   ["annual_amount", "amount", "value"],
-    "start_year":      ["start_year", "year", "from_year", "start"],
-    "end_year":        ["end_year", "to_year", "end", "thru_year"],
-    "balance":         ["balance", "principal", "amount"],
+    "annual_amount": ["annual_amount", "amount", "value"],
+    "start_year": ["start_year", "year", "from_year", "start"],
+    "end_year": ["end_year", "to_year", "end", "thru_year"],
+    "balance": ["balance", "principal", "amount"],
     "years_remaining": ["years_remaining", "term", "years"],
-    "buy_year":        ["buy_year", "year", "purchase_year"],
-    "monthly_income":  ["monthly_income", "income", "monthly_amount", "amount"],
+    "buy_year": ["buy_year", "year", "purchase_year"],
+    "monthly_income": ["monthly_income", "income", "monthly_amount", "amount"],
 }
 
 
@@ -670,27 +706,48 @@ def _get_field(d: dict, canonical: str, default=None):
     if default is not None:
         return default
     known = _FIELD_ALIASES.get(canonical, [canonical])
-    raise KeyError(
-        f"Missing required field '{canonical}' (also accepted: {known[1:]}). "
-        f"Got keys: {list(d.keys())}"
-    )
+    raise KeyError(f"Missing required field '{canonical}' (also accepted: {known[1:]}). Got keys: {list(d.keys())}")
 
 
 def _build_plan_from_params(
-    names, birth_years, life_expectancy, state,
-    taxable, tax_deferred, roth, hsa, cost_basis,
-    ss_monthly_pias, ss_ages,
-    pension_monthly_amounts, pension_ages,
-    pension_indexed=None, pension_survivor_fractions=None,
-    wages=None, contributions=None, big_ticket_items=None, roth_conversions=None,
-    debts=None, fixed_assets=None, spias=None,
-    objective="maxSpending", rate_method="conservative", rate_values=None,
-    rate_frm=None, rate_to=None,
+    names,
+    birth_years,
+    life_expectancy,
+    state,
+    taxable,
+    tax_deferred,
+    roth,
+    hsa,
+    cost_basis,
+    ss_monthly_pias,
+    ss_ages,
+    pension_monthly_amounts,
+    pension_ages,
+    pension_indexed=None,
+    pension_survivor_fractions=None,
+    wages=None,
+    contributions=None,
+    big_ticket_items=None,
+    roth_conversions=None,
+    debts=None,
+    fixed_assets=None,
+    spias=None,
+    objective="maxSpending",
+    rate_method="conservative",
+    rate_values=None,
+    rate_frm=None,
+    rate_to=None,
     survivor_fraction=60.0,
-    initial_allocation=None, final_allocation=None,
-    spending_profile="smile", smile_dip=15, smile_increase=12, smile_delay=0,
+    initial_allocation=None,
+    final_allocation=None,
+    spending_profile="smile",
+    smile_dip=15,
+    smile_increase=12,
+    smile_delay=0,
     constrain_mean=False,
-    interpolation_method="linear", interpolation_center=None, interpolation_width=None,
+    interpolation_method="linear",
+    interpolation_center=None,
+    interpolation_width=None,
     balance_date=None,
     heirs_tax_rate=None,
     slcsp=None,
@@ -709,8 +766,7 @@ def _build_plan_from_params(
     dobs = [f"{by}-07-01" for by in birth_years]
     case_name = "+".join(n.lower() for n in names)
 
-    plan = Plan(names, dobs, list(life_expectancy), case_name,
-                verbose=False, logstreams=[sys.stderr])
+    plan = Plan(names, dobs, list(life_expectancy), case_name, verbose=False, logstreams=[sys.stderr])
 
     # Account balances: MCP uses full dollars; override Plan API default of $k
     plan.setAccountBalances(
@@ -728,7 +784,8 @@ def _build_plan_from_params(
     ss_pias = list(ss_monthly_pias or [0] * N_i)
     ss_claim_ages = list(ss_ages or [67] * N_i)
     plan.setSocialSecurity(
-        ss_pias, ss_claim_ages,
+        ss_pias,
+        ss_claim_ages,
         trim_pct=int(ss_trim_pct) if ss_trim_pct is not None else 0,
         trim_year=int(ss_trim_year) if ss_trim_year is not None else None,
     )
@@ -748,18 +805,22 @@ def _build_plan_from_params(
             f"constrain_mean=True has no effect for rate_method='{rate_method}'. "
             f"Supported methods: {', '.join(sorted(CONSTRAIN_MEAN_METHODS))}."
         )
-    plan.setRates(rate_method, frm=rate_frm, to=rate_to, values=rate_values,
-                  constrain_mean=constrain_mean, **(rate_params or {}))
+    plan.setRates(
+        rate_method, frm=rate_frm, to=rate_to, values=rate_values, constrain_mean=constrain_mean, **(rate_params or {})
+    )
     if state:
         plan.setStateTax(state)
-    plan.setSpendingProfile(spending_profile, percent=int(survivor_fraction),
-                            dip=int(smile_dip), increase=int(smile_increase), delay=int(smile_delay))
+    plan.setSpendingProfile(
+        spending_profile,
+        percent=int(survivor_fraction),
+        dip=int(smile_dip),
+        increase=int(smile_increase),
+        delay=int(smile_delay),
+    )
 
     # Asset allocation glide path
     if interpolation_method == "s-curve":
-        plan.setInterpolationMethod("s-curve",
-                                    float(interpolation_center or 15),
-                                    float(interpolation_width or 5))
+        plan.setInterpolationMethod("s-curve", float(interpolation_center or 15), float(interpolation_width or 5))
     elif interpolation_method != "linear":
         raise ValueError(f"interpolation_method must be 'linear' or 's-curve', got '{interpolation_method}'")
     alloc_init = list(initial_allocation) if initial_allocation is not None else [60, 40, 0, 0]
@@ -825,9 +886,7 @@ def _build_plan_from_params(
             }
             for d in debts
         ]
-        plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(
-            pd.DataFrame(rows), "Debts"
-        )
+        plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(pd.DataFrame(rows), "Debts")
 
     # Fixed assets → houseLists["Fixed Assets"]
     # value/basis in $; rate = real above-inflation growth for residence/real estate,
@@ -847,9 +906,7 @@ def _build_plan_from_params(
             }
             for fa in fixed_assets
         ]
-        plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(
-            pd.DataFrame(rows), "Fixed Assets"
-        )
+        plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(pd.DataFrame(rows), "Fixed Assets")
 
     # SPIAs
     if spias:
@@ -890,11 +947,10 @@ def _build_plan_from_params(
 def _build_hfp_dataframes(plan):
     """Reconstruct timeLists and houseLists DataFrames from plan arrays for HFP export."""
     from owlplanner.hfp_io import _timeHorizonItems  # noqa: PLC2701
+
     # Row 0..4 are the 5 lead-in years before thisyear; row 5+n = plan year n.
     # This mirrors the layout written by hfp_io and read by setContributions.
-    assert _timeHorizonItems[0] == "year", (
-        "HFP column layout has changed; update the row-offset logic here to match."
-    )
+    assert _timeHorizonItems[0] == "year", "HFP column layout has changed; update the row-offset logic here to match."
     _LEAD_IN = 5
     thisyear = datetime.date.today().year
     tl = {}
@@ -917,6 +973,7 @@ def _build_hfp_dataframes(plan):
 
     hl = {}
     from owlplanner.hfp_io import _debtItems, _fixedAssetItems  # noqa: PLC2701
+
     debts_df = plan.houseLists.get("Debts", pd.DataFrame(columns=_debtItems))
     fa_df = plan.houseLists.get("Fixed Assets", pd.DataFrame(columns=_fixedAssetItems))
     hl["Debts"] = debts_df
@@ -928,42 +985,111 @@ def _build_hfp_dataframes(plan):
 # Tool: run_from_params
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _run_from_params_blocking(
-    names, birth_years, life_expectancy, state,
-    taxable, tax_deferred, roth, hsa, cost_basis,
-    ss_monthly_pias, ss_ages,
-    pension_monthly_amounts, pension_ages,
-    pension_indexed=None, pension_survivor_fractions=None,
-    wages=None, contributions=None, big_ticket_items=None, roth_conversions=None,
-    debts=None, fixed_assets=None, spias=None,
-    objective="maxSpending", rate_method="conservative", rate_values=None,
-    rate_frm=None, rate_to=None, survivor_fraction=60.0,
-    initial_allocation=None, final_allocation=None,
-    solver=None, max_time=None, net_spending=None, min_taxable_balance=None,
-    spending_profile="smile", smile_dip=15, smile_increase=12, smile_delay=0,
-    start_roth_year=None, no_roth_person=None, max_roth_conversion=None,
-    use_roth_conv_overrides=None, swap_roth_converters_first=None, swap_roth_converters_year=None,
-    bequest=None, optimize_ss_ages=None, constrain_mean=False,
-    interpolation_method="linear", interpolation_center=None, interpolation_width=None,
-    balance_date=None, heirs_tax_rate=None, previous_magis=None, with_medicare=None,
-    with_aca=None, aca_start_year=None,
+    names,
+    birth_years,
+    life_expectancy,
+    state,
+    taxable,
+    tax_deferred,
+    roth,
+    hsa,
+    cost_basis,
+    ss_monthly_pias,
+    ss_ages,
+    pension_monthly_amounts,
+    pension_ages,
+    pension_indexed=None,
+    pension_survivor_fractions=None,
+    wages=None,
+    contributions=None,
+    big_ticket_items=None,
+    roth_conversions=None,
+    debts=None,
+    fixed_assets=None,
+    spias=None,
+    objective="maxSpending",
+    rate_method="conservative",
+    rate_values=None,
+    rate_frm=None,
+    rate_to=None,
+    survivor_fraction=60.0,
+    initial_allocation=None,
+    final_allocation=None,
+    solver=None,
+    max_time=None,
+    net_spending=None,
+    min_taxable_balance=None,
+    spending_profile="smile",
+    smile_dip=15,
+    smile_increase=12,
+    smile_delay=0,
+    start_roth_year=None,
+    no_roth_person=None,
+    max_roth_conversion=None,
+    use_roth_conv_overrides=None,
+    swap_roth_converters_first=None,
+    swap_roth_converters_year=None,
+    bequest=None,
+    optimize_ss_ages=None,
+    constrain_mean=False,
+    interpolation_method="linear",
+    interpolation_center=None,
+    interpolation_width=None,
+    balance_date=None,
+    heirs_tax_rate=None,
+    previous_magis=None,
+    with_medicare=None,
+    with_aca=None,
+    aca_start_year=None,
     slcsp=None,
-    ss_trim_pct=None, ss_trim_year=None, obbba_expiration_year=None, dividend_rate=None,
-    liquidation_tax_rate=None, liquidation_capgains_rate=None,
+    ss_trim_pct=None,
+    ss_trim_year=None,
+    obbba_expiration_year=None,
+    dividend_rate=None,
+    liquidation_tax_rate=None,
+    liquidation_capgains_rate=None,
 ):
     plan = _build_plan_from_params(
-        names, birth_years, life_expectancy, state,
-        taxable, tax_deferred, roth, hsa, cost_basis,
-        ss_monthly_pias, ss_ages,
-        pension_monthly_amounts, pension_ages,
-        pension_indexed, pension_survivor_fractions,
-        wages, contributions, big_ticket_items, roth_conversions,
-        debts, fixed_assets, spias,
-        objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-        initial_allocation, final_allocation,
-        spending_profile, smile_dip, smile_increase, smile_delay,
+        names,
+        birth_years,
+        life_expectancy,
+        state,
+        taxable,
+        tax_deferred,
+        roth,
+        hsa,
+        cost_basis,
+        ss_monthly_pias,
+        ss_ages,
+        pension_monthly_amounts,
+        pension_ages,
+        pension_indexed,
+        pension_survivor_fractions,
+        wages,
+        contributions,
+        big_ticket_items,
+        roth_conversions,
+        debts,
+        fixed_assets,
+        spias,
+        objective,
+        rate_method,
+        rate_values,
+        rate_frm,
+        rate_to,
+        survivor_fraction,
+        initial_allocation,
+        final_allocation,
+        spending_profile,
+        smile_dip,
+        smile_increase,
+        smile_delay,
         constrain_mean,
-        interpolation_method, interpolation_center, interpolation_width,
+        interpolation_method,
+        interpolation_center,
+        interpolation_width,
         balance_date,
         heirs_tax_rate=heirs_tax_rate,
         slcsp=slcsp,
@@ -976,11 +1102,18 @@ def _run_from_params_blocking(
         liquidation_capgains_rate=liquidation_capgains_rate,
     )
     opts = _build_mcp_opts(
-        solver=solver, max_time=max_time, net_spending=net_spending,
-        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
-        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
-        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
-        with_medicare=with_medicare, with_aca=with_aca,
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
         use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
@@ -1015,7 +1148,7 @@ async def run_from_params(
     spias: list[dict] | None = None,
     state: Annotated[str, Field(description='Two-letter US state for income tax (default "TX").')] = "TX",
     objective: Annotated[str, Field(description="maxSpending (default) or maxBequest.")] = "maxSpending",
-    rate_method: Annotated[str, Field(description='Return model name (use list_rate_models).')] = "conservative",
+    rate_method: Annotated[str, Field(description="Return model name (use list_rate_models).")] = "conservative",
     rate_values: Annotated[
         list[float] | None,
         Field(description='Fixed rates in % [equities, corporate_bonds, t_notes, inflation] for rate_method="user".'),
@@ -1023,8 +1156,8 @@ async def run_from_params(
     rate_frm: Annotated[int | None, Field(description="First year of historical rate window (e.g. 1966).")] = None,
     rate_to: Annotated[int | None, Field(description="Last year of historical rate window (e.g. 1996).")] = None,
     survivor_fraction: float = 60.0,
-    initial_allocation: list[float] = [60, 40, 0, 0],
-    final_allocation: list[float] = [40, 60, 0, 0],
+    initial_allocation: list[float] = (60, 40, 0, 0),
+    final_allocation: list[float] = (40, 60, 0, 0),
     interpolation_method: str = "linear",
     interpolation_center: float | None = None,
     interpolation_width: float | None = None,
@@ -1061,13 +1194,17 @@ async def run_from_params(
     dividend_rate: float | None = None,
     liquidation_tax_rate: Annotated[
         float | None,
-        Field(description="Assumed ordinary tax rate (%) on tax-deferred/HSA if liquidated, for the "
-                          "liquid balance sheet (default 24)."),
+        Field(
+            description="Assumed ordinary tax rate (%) on tax-deferred/HSA if liquidated, for the "
+            "liquid balance sheet (default 24)."
+        ),
     ] = None,
     liquidation_capgains_rate: Annotated[
         float | None,
-        Field(description="Assumed capital-gains tax rate (%) on fixed-asset disposition, for the "
-                          "liquid balance sheet (default 15)."),
+        Field(
+            description="Assumed capital-gains tax rate (%) on fixed-asset disposition, for the "
+            "liquid balance sheet (default 15)."
+        ),
     ] = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
@@ -1315,33 +1452,77 @@ async def run_from_params(
         plan = await asyncio.get_running_loop().run_in_executor(
             None,
             _run_from_params_blocking,
-            names, birth_years, life_expectancy, state,
-            taxable, tax_deferred, roth, hsa, cost_basis,
-            ss_monthly_pias, ss_ages,
-            pension_monthly_amounts, pension_ages,
-            pension_indexed, pension_survivor_fractions,
-            wages, contributions, big_ticket_items, roth_conversions,
-            debts, fixed_assets, spias,
-            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-            initial_allocation, final_allocation,
-            solver, max_time, net_spending, min_taxable_balance,
-            spending_profile, smile_dip, smile_increase, smile_delay,
-            start_roth_year, no_roth_person, max_roth_conversion,
-            use_roth_conv_overrides, swap_roth_converters_first, swap_roth_converters_year,
-            bequest, optimize_ss_ages, constrain_mean,
-            interpolation_method, interpolation_center, interpolation_width,
-            balance_date, heirs_tax_rate, previous_magis, with_medicare,
-            with_aca, aca_start_year,
+            names,
+            birth_years,
+            life_expectancy,
+            state,
+            taxable,
+            tax_deferred,
+            roth,
+            hsa,
+            cost_basis,
+            ss_monthly_pias,
+            ss_ages,
+            pension_monthly_amounts,
+            pension_ages,
+            pension_indexed,
+            pension_survivor_fractions,
+            wages,
+            contributions,
+            big_ticket_items,
+            roth_conversions,
+            debts,
+            fixed_assets,
+            spias,
+            objective,
+            rate_method,
+            rate_values,
+            rate_frm,
+            rate_to,
+            survivor_fraction,
+            initial_allocation,
+            final_allocation,
+            solver,
+            max_time,
+            net_spending,
+            min_taxable_balance,
+            spending_profile,
+            smile_dip,
+            smile_increase,
+            smile_delay,
+            start_roth_year,
+            no_roth_person,
+            max_roth_conversion,
+            use_roth_conv_overrides,
+            swap_roth_converters_first,
+            swap_roth_converters_year,
+            bequest,
+            optimize_ss_ages,
+            constrain_mean,
+            interpolation_method,
+            interpolation_center,
+            interpolation_width,
+            balance_date,
+            heirs_tax_rate,
+            previous_magis,
+            with_medicare,
+            with_aca,
+            aca_start_year,
             slcsp,
-            ss_trim_pct, ss_trim_year, obbba_expiration_year, dividend_rate,
-            liquidation_tax_rate, liquidation_capgains_rate,
+            ss_trim_pct,
+            ss_trim_year,
+            obbba_expiration_year,
+            dividend_rate,
+            liquidation_tax_rate,
+            liquidation_capgains_rate,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
 
     if plan.caseStatus != "solved":
-        return json.dumps({"status": plan.caseStatus, "case_name": plan._name,
-                           "error": "Case did not solve to optimality."})
+        return json.dumps(
+            {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+        )
 
     return json.dumps(plan_to_dict(plan), indent=2, cls=_NumpyEncoder)
 
@@ -1349,6 +1530,7 @@ async def run_from_params(
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: save_case
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @mcp.tool()
 def save_case(
@@ -1380,8 +1562,8 @@ def save_case(
     rate_frm: int | None = None,
     rate_to: int | None = None,
     survivor_fraction: float = 60.0,
-    initial_allocation: list[float] = [60, 40, 0, 0],
-    final_allocation: list[float] = [40, 60, 0, 0],
+    initial_allocation: list[float] = (60, 40, 0, 0),
+    final_allocation: list[float] = (40, 60, 0, 0),
     interpolation_method: str = "linear",
     interpolation_center: float | None = None,
     interpolation_width: float | None = None,
@@ -1432,18 +1614,44 @@ def save_case(
     """
     try:
         plan = _build_plan_from_params(
-            names, birth_years, life_expectancy, state,
-            taxable, tax_deferred, roth, hsa, cost_basis,
-            ss_monthly_pias, ss_ages,
-            pension_monthly_amounts, pension_ages,
-            pension_indexed, pension_survivor_fractions,
-            wages, contributions, big_ticket_items, roth_conversions,
-            debts, fixed_assets, spias,
-            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-            initial_allocation, final_allocation,
-            spending_profile, smile_dip, smile_increase, smile_delay,
+            names,
+            birth_years,
+            life_expectancy,
+            state,
+            taxable,
+            tax_deferred,
+            roth,
+            hsa,
+            cost_basis,
+            ss_monthly_pias,
+            ss_ages,
+            pension_monthly_amounts,
+            pension_ages,
+            pension_indexed,
+            pension_survivor_fractions,
+            wages,
+            contributions,
+            big_ticket_items,
+            roth_conversions,
+            debts,
+            fixed_assets,
+            spias,
+            objective,
+            rate_method,
+            rate_values,
+            rate_frm,
+            rate_to,
+            survivor_fraction,
+            initial_allocation,
+            final_allocation,
+            spending_profile,
+            smile_dip,
+            smile_increase,
+            smile_delay,
             constrain_mean,
-            interpolation_method, interpolation_center, interpolation_width,
+            interpolation_method,
+            interpolation_center,
+            interpolation_width,
             balance_date,
             heirs_tax_rate=heirs_tax_rate,
             slcsp=slcsp,
@@ -1513,17 +1721,21 @@ def save_case(
     except Exception as e:
         return json.dumps({"error": f"Failed to write HFP Excel: {e}"})
 
-    return json.dumps({
-        "toml_file": str(toml_path),
-        "hfp_file": str(hfp_path),
-        "case_name": stem,
-        "individuals": names,
-    }, indent=2)
+    return json.dumps(
+        {
+            "toml_file": str(toml_path),
+            "hfp_file": str(hfp_path),
+            "case_name": stem,
+            "individuals": names,
+        },
+        indent=2,
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_stochastic
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
     """Solve base plan then run multi-scenario efficient frontier. Runs in a thread."""
@@ -1626,14 +1838,14 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
         return int(round(float(np.percentile(arr, q))))
 
     dist = {
-        "min":    int(round(float(np.min(values)))),
-        "p10":    _pct(values, 10),
-        "p25":    _pct(values, 25),
+        "min": int(round(float(np.min(values)))),
+        "p10": _pct(values, 10),
+        "p25": _pct(values, 25),
         "median": int(round(float(np.median(values)))),
-        "mean":   int(round(float(np.mean(values)))),
-        "p75":    _pct(values, 75),
-        "p90":    _pct(values, 90),
-        "max":    int(round(float(np.max(values)))),
+        "mean": int(round(float(np.mean(values)))),
+        "p75": _pct(values, 75),
+        "p90": _pct(values, 90),
+        "max": int(round(float(np.max(values)))),
     }
 
     out = {
@@ -1678,9 +1890,7 @@ def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse
         _yend = TO + 1 - plan.N_n
 
     if _yend < _ystart:
-        raise ValueError(
-            f"ystart={_ystart} too large: a {plan.N_n}-year horizon needs yend ≤ {TO + 1 - plan.N_n}."
-        )
+        raise ValueError(f"ystart={_ystart} too large: a {plan.N_n}-year horizon needs yend ≤ {TO + 1 - plan.N_n}.")
 
     if augmented:
         pairs = list(iproduct([False, True], range(plan.N_n)))
@@ -1770,8 +1980,8 @@ async def run_stochastic(
     rate_frm: int | None = None,
     rate_to: int | None = None,
     survivor_fraction: float = 60.0,
-    initial_allocation: list[float] = [60, 40, 0, 0],
-    final_allocation: list[float] = [40, 60, 0, 0],
+    initial_allocation: list[float] = (60, 40, 0, 0),
+    final_allocation: list[float] = (40, 60, 0, 0),
     interpolation_method: str = "linear",
     interpolation_center: float | None = None,
     interpolation_width: float | None = None,
@@ -1917,6 +2127,7 @@ async def run_stochastic(
         seed:                 Random seed for reproducibility.
     """
     from owlplanner.stresstests import _validate_success_rate_pct
+
     try:
         _validate_success_rate_pct(target_success_rate_pct)
     except ValueError as e:
@@ -1940,32 +2151,67 @@ async def run_stochastic(
         try:
             plan = await asyncio.get_running_loop().run_in_executor(
                 None,
-                lambda: config_to_plan(diconf, dirname, verbose=False,
-                                       logstreams=[sys.stderr], loadHFP=True),
+                lambda: config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True),
             )
         except Exception as e:
             return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
     else:
-        if (names is None or birth_years is None or life_expectancy is None
-                or taxable is None or tax_deferred is None or roth is None):
-            return json.dumps({"error": (
-                "Provide either 'filename' or flat parameters: "
-                "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
-            )})
+        if (
+            names is None
+            or birth_years is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
         try:
             plan = _build_plan_from_params(
-                names, birth_years, life_expectancy, state,
-                taxable, tax_deferred, roth, hsa, cost_basis,
-                ss_monthly_pias, ss_ages,
-                pension_monthly_amounts, pension_ages,
-                pension_indexed, pension_survivor_fractions,
-                wages, contributions, big_ticket_items, roth_conversions,
-                debts, fixed_assets, spias,
-                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-                initial_allocation, final_allocation,
-                spending_profile, smile_dip, smile_increase, smile_delay,
+                names,
+                birth_years,
+                life_expectancy,
+                state,
+                taxable,
+                tax_deferred,
+                roth,
+                hsa,
+                cost_basis,
+                ss_monthly_pias,
+                ss_ages,
+                pension_monthly_amounts,
+                pension_ages,
+                pension_indexed,
+                pension_survivor_fractions,
+                wages,
+                contributions,
+                big_ticket_items,
+                roth_conversions,
+                debts,
+                fixed_assets,
+                spias,
+                objective,
+                rate_method,
+                rate_values,
+                rate_frm,
+                rate_to,
+                survivor_fraction,
+                initial_allocation,
+                final_allocation,
+                spending_profile,
+                smile_dip,
+                smile_increase,
+                smile_delay,
                 constrain_mean,
-                interpolation_method, interpolation_center, interpolation_width,
+                interpolation_method,
+                interpolation_center,
+                interpolation_width,
                 balance_date,
                 heirs_tax_rate=heirs_tax_rate,
                 slcsp=slcsp,
@@ -1980,11 +2226,18 @@ async def run_stochastic(
             return json.dumps({"error": f"Plan build error: {e}"})
 
     opts = _build_mcp_opts(
-        solver=solver, max_time=max_time, net_spending=net_spending,
-        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
-        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
-        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
-        with_medicare=with_medicare, with_aca=with_aca,
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
         use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
@@ -1995,7 +2248,13 @@ async def run_stochastic(
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
             _stochastic_blocking,
-            plan, scenario_method, ystart, yend, n_scenarios, opts, seed,
+            plan,
+            scenario_method,
+            ystart,
+            yend,
+            n_scenarios,
+            opts,
+            seed,
         )
     except Exception as e:
         return json.dumps({"error": f"Stochastic run error: {e}"})
@@ -2020,22 +2279,55 @@ async def run_stochastic(
 # Tool: run_longevity_stochastic
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _longevity_stochastic_blocking(
-    names, birth_years, life_expectancy, state,
-    taxable, tax_deferred, roth, hsa, cost_basis,
-    ss_monthly_pias, ss_ages,
-    pension_monthly_amounts, pension_ages,
-    pension_indexed, pension_survivor_fractions,
-    wages, contributions, big_ticket_items, roth_conversions,
-    debts, fixed_assets, spias,
-    objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-    initial_allocation, final_allocation,
-    spending_profile, smile_dip, smile_increase, smile_delay,
+    names,
+    birth_years,
+    life_expectancy,
+    state,
+    taxable,
+    tax_deferred,
+    roth,
+    hsa,
+    cost_basis,
+    ss_monthly_pias,
+    ss_ages,
+    pension_monthly_amounts,
+    pension_ages,
+    pension_indexed,
+    pension_survivor_fractions,
+    wages,
+    contributions,
+    big_ticket_items,
+    roth_conversions,
+    debts,
+    fixed_assets,
+    spias,
+    objective,
+    rate_method,
+    rate_values,
+    rate_frm,
+    rate_to,
+    survivor_fraction,
+    initial_allocation,
+    final_allocation,
+    spending_profile,
+    smile_dip,
+    smile_increase,
+    smile_delay,
     constrain_mean,
-    interpolation_method, interpolation_center, interpolation_width,
+    interpolation_method,
+    interpolation_center,
+    interpolation_width,
     balance_date,
-    sexes, mortality_table,
-    scenario_method, ystart, yend, n_scenarios, opts, seed,
+    sexes,
+    mortality_table,
+    scenario_method,
+    ystart,
+    yend,
+    n_scenarios,
+    opts,
+    seed,
     heirs_tax_rate=None,
     slcsp=None,
     aca_start_year=None,
@@ -2050,18 +2342,44 @@ def _longevity_stochastic_blocking(
     from owlplanner.rates import FROM, TO
 
     plan = _build_plan_from_params(
-        names, birth_years, life_expectancy, state,
-        taxable, tax_deferred, roth, hsa, cost_basis,
-        ss_monthly_pias, ss_ages,
-        pension_monthly_amounts, pension_ages,
-        pension_indexed, pension_survivor_fractions,
-        wages, contributions, big_ticket_items, roth_conversions,
-        debts, fixed_assets, spias,
-        objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-        initial_allocation, final_allocation,
-        spending_profile, smile_dip, smile_increase, smile_delay,
+        names,
+        birth_years,
+        life_expectancy,
+        state,
+        taxable,
+        tax_deferred,
+        roth,
+        hsa,
+        cost_basis,
+        ss_monthly_pias,
+        ss_ages,
+        pension_monthly_amounts,
+        pension_ages,
+        pension_indexed,
+        pension_survivor_fractions,
+        wages,
+        contributions,
+        big_ticket_items,
+        roth_conversions,
+        debts,
+        fixed_assets,
+        spias,
+        objective,
+        rate_method,
+        rate_values,
+        rate_frm,
+        rate_to,
+        survivor_fraction,
+        initial_allocation,
+        final_allocation,
+        spending_profile,
+        smile_dip,
+        smile_increase,
+        smile_delay,
         constrain_mean,
-        interpolation_method, interpolation_center, interpolation_width,
+        interpolation_method,
+        interpolation_center,
+        interpolation_width,
         balance_date,
         heirs_tax_rate=heirs_tax_rate,
         slcsp=slcsp,
@@ -2089,8 +2407,13 @@ def _longevity_stochastic_blocking(
 
     if scenario_method == "historical":
         result = run_stochastic_spending(
-            plan, opts, "historical", ystart=_ystart, yend=_yend,
-            with_longevity=True, sexes=list(sexes),
+            plan,
+            opts,
+            "historical",
+            ystart=_ystart,
+            yend=_yend,
+            with_longevity=True,
+            sexes=list(sexes),
         )
     elif scenario_method == "mc":
         if getattr(plan, "rateModel", None) is None or getattr(plan.rateModel, "deterministic", True):
@@ -2100,8 +2423,12 @@ def _longevity_stochastic_blocking(
                 "Current rate method is deterministic."
             )
         result = run_stochastic_spending(
-            plan, opts, "mc", N=n_scenarios,
-            with_longevity=True, sexes=list(sexes),
+            plan,
+            opts,
+            "mc",
+            N=n_scenarios,
+            with_longevity=True,
+            sexes=list(sexes),
         )
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
@@ -2140,8 +2467,8 @@ async def run_longevity_stochastic(
     rate_frm: int | None = None,
     rate_to: int | None = None,
     survivor_fraction: float = 60.0,
-    initial_allocation: list[float] = [60, 40, 0, 0],
-    final_allocation: list[float] = [40, 60, 0, 0],
+    initial_allocation: list[float] = (60, 40, 0, 0),
+    final_allocation: list[float] = (40, 60, 0, 0),
     interpolation_method: str = "linear",
     interpolation_center: float | None = None,
     interpolation_width: float | None = None,
@@ -2281,26 +2608,36 @@ async def run_longevity_stochastic(
         seed:             Random seed for reproducibility.
     """
     from owlplanner.stresstests import _validate_success_rate_pct
+
     try:
         _validate_success_rate_pct(target_success_rate_pct)
     except ValueError as e:
         return json.dumps({"error": str(e)})
 
     if scenario_method == "historical":
-        return json.dumps({
-            "error": (
-                "Longevity risk is not supported with historical scenarios "
-                "(drawn lifespans can exceed the available historical data range). "
-                "Use scenario_method='mc' with a stochastic rate_method."
-            ),
-        })
+        return json.dumps(
+            {
+                "error": (
+                    "Longevity risk is not supported with historical scenarios "
+                    "(drawn lifespans can exceed the available historical data range). "
+                    "Use scenario_method='mc' with a stochastic rate_method."
+                ),
+            }
+        )
 
     opts = _build_mcp_opts(
-        solver=solver, max_time=max_time, net_spending=net_spending,
-        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
-        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
-        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
-        with_medicare=with_medicare, with_aca=with_aca,
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
         use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
@@ -2311,21 +2648,53 @@ async def run_longevity_stochastic(
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
             _longevity_stochastic_blocking,
-            names, birth_years, life_expectancy, state,
-            taxable, tax_deferred, roth, hsa, cost_basis,
-            ss_monthly_pias, ss_ages,
-            pension_monthly_amounts, pension_ages,
-            pension_indexed, pension_survivor_fractions,
-            wages, contributions, big_ticket_items, roth_conversions,
-            debts, fixed_assets, spias,
-            objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-            initial_allocation, final_allocation,
-            spending_profile, smile_dip, smile_increase, smile_delay,
+            names,
+            birth_years,
+            life_expectancy,
+            state,
+            taxable,
+            tax_deferred,
+            roth,
+            hsa,
+            cost_basis,
+            ss_monthly_pias,
+            ss_ages,
+            pension_monthly_amounts,
+            pension_ages,
+            pension_indexed,
+            pension_survivor_fractions,
+            wages,
+            contributions,
+            big_ticket_items,
+            roth_conversions,
+            debts,
+            fixed_assets,
+            spias,
+            objective,
+            rate_method,
+            rate_values,
+            rate_frm,
+            rate_to,
+            survivor_fraction,
+            initial_allocation,
+            final_allocation,
+            spending_profile,
+            smile_dip,
+            smile_increase,
+            smile_delay,
             constrain_mean,
-            interpolation_method, interpolation_center, interpolation_width,
+            interpolation_method,
+            interpolation_center,
+            interpolation_width,
             balance_date,
-            sexes, mortality_table,
-            scenario_method, ystart, yend, n_scenarios, opts, seed,
+            sexes,
+            mortality_table,
+            scenario_method,
+            ystart,
+            yend,
+            n_scenarios,
+            opts,
+            seed,
             heirs_tax_rate,
             slcsp,
             aca_start_year,
@@ -2529,32 +2898,67 @@ async def run_historical(
         try:
             plan = await asyncio.get_running_loop().run_in_executor(
                 None,
-                lambda: config_to_plan(diconf, dirname, verbose=False,
-                                       logstreams=[sys.stderr], loadHFP=True),
+                lambda: config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True),
             )
         except Exception as e:
             return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
     else:
-        if (names is None or birth_years is None or life_expectancy is None
-                or taxable is None or tax_deferred is None or roth is None):
-            return json.dumps({"error": (
-                "Provide either 'filename' or flat parameters: "
-                "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
-            )})
+        if (
+            names is None
+            or birth_years is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
         try:
             plan = _build_plan_from_params(
-                names, birth_years, life_expectancy, state,
-                taxable, tax_deferred, roth, hsa, cost_basis,
-                ss_monthly_pias, ss_ages,
-                pension_monthly_amounts, pension_ages,
-                pension_indexed, pension_survivor_fractions,
-                wages, contributions, big_ticket_items, roth_conversions,
-                debts, fixed_assets, spias,
-                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-                initial_allocation, final_allocation,
-                spending_profile, smile_dip, smile_increase, smile_delay,
+                names,
+                birth_years,
+                life_expectancy,
+                state,
+                taxable,
+                tax_deferred,
+                roth,
+                hsa,
+                cost_basis,
+                ss_monthly_pias,
+                ss_ages,
+                pension_monthly_amounts,
+                pension_ages,
+                pension_indexed,
+                pension_survivor_fractions,
+                wages,
+                contributions,
+                big_ticket_items,
+                roth_conversions,
+                debts,
+                fixed_assets,
+                spias,
+                objective,
+                rate_method,
+                rate_values,
+                rate_frm,
+                rate_to,
+                survivor_fraction,
+                initial_allocation,
+                final_allocation,
+                spending_profile,
+                smile_dip,
+                smile_increase,
+                smile_delay,
                 False,  # constrain_mean (N/A for historical)
-                interpolation_method, interpolation_center, interpolation_width,
+                interpolation_method,
+                interpolation_center,
+                interpolation_width,
                 balance_date,
                 heirs_tax_rate=heirs_tax_rate,
                 slcsp=slcsp,
@@ -2568,11 +2972,18 @@ async def run_historical(
             return json.dumps({"error": f"Plan build error: {e}"})
 
     opts = _build_mcp_opts(
-        solver=solver, max_time=max_time, net_spending=net_spending,
-        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
-        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
-        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
-        with_medicare=with_medicare, with_aca=with_aca,
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
         use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
@@ -2583,7 +2994,14 @@ async def run_historical(
         plan, n_attempted, results, ystart_actual, yend_actual = await asyncio.get_running_loop().run_in_executor(
             None,
             _historical_blocking,
-            plan, objective, opts, ystart, yend, augmented, reverse, roll,
+            plan,
+            objective,
+            opts,
+            ystart,
+            yend,
+            augmented,
+            reverse,
+            roll,
         )
     except Exception as e:
         return json.dumps({"error": f"Historical run error: {e}"})
@@ -2787,8 +3205,7 @@ async def run_monte_carlo(
         try:
             plan = await asyncio.get_running_loop().run_in_executor(
                 None,
-                lambda: config_to_plan(diconf, dirname, verbose=False,
-                                       logstreams=[sys.stderr], loadHFP=True),
+                lambda: config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True),
             )
         except Exception as e:
             return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
@@ -2796,30 +3213,61 @@ async def run_monte_carlo(
         # TOML's rate model is deterministic so the tool always works out of the box.
         try:
             if getattr(getattr(plan, "rateModel", None), "deterministic", True):
-                plan.setRates(rate_method, frm=rate_frm, to=rate_to,
-                              constrain_mean=constrain_mean, **(rate_params or {}))
+                plan.setRates(
+                    rate_method, frm=rate_frm, to=rate_to, constrain_mean=constrain_mean, **(rate_params or {})
+                )
         except Exception as e:
             return json.dumps({"error": f"Failed to set rate model '{rate_method}': {e}"})
     else:
         if names is None or birth_years is None or life_expectancy is None:
-            return json.dumps({"error": (
-                "Provide either 'filename' or flat parameters: "
-                "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
-            )})
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
         try:
             plan = _build_plan_from_params(
-                names, birth_years, life_expectancy, state,
-                taxable, tax_deferred, roth, hsa, cost_basis,
-                ss_monthly_pias, ss_ages,
-                pension_monthly_amounts, pension_ages,
-                pension_indexed, pension_survivor_fractions,
-                wages, contributions, big_ticket_items, roth_conversions,
-                debts, fixed_assets, spias,
-                objective, rate_method, rate_values, rate_frm, rate_to, survivor_fraction,
-                initial_allocation, final_allocation,
-                spending_profile, smile_dip, smile_increase, smile_delay,
+                names,
+                birth_years,
+                life_expectancy,
+                state,
+                taxable,
+                tax_deferred,
+                roth,
+                hsa,
+                cost_basis,
+                ss_monthly_pias,
+                ss_ages,
+                pension_monthly_amounts,
+                pension_ages,
+                pension_indexed,
+                pension_survivor_fractions,
+                wages,
+                contributions,
+                big_ticket_items,
+                roth_conversions,
+                debts,
+                fixed_assets,
+                spias,
+                objective,
+                rate_method,
+                rate_values,
+                rate_frm,
+                rate_to,
+                survivor_fraction,
+                initial_allocation,
+                final_allocation,
+                spending_profile,
+                smile_dip,
+                smile_increase,
+                smile_delay,
                 constrain_mean,
-                interpolation_method, interpolation_center, interpolation_width,
+                interpolation_method,
+                interpolation_center,
+                interpolation_width,
                 balance_date,
                 heirs_tax_rate=heirs_tax_rate,
                 slcsp=slcsp,
@@ -2834,11 +3282,18 @@ async def run_monte_carlo(
             return json.dumps({"error": f"Plan build error: {e}"})
 
     opts = _build_mcp_opts(
-        solver=solver, max_time=max_time, net_spending=net_spending,
-        min_taxable_balance=min_taxable_balance, start_roth_year=start_roth_year,
-        no_roth_person=no_roth_person, max_roth_conversion=max_roth_conversion,
-        bequest=bequest, optimize_ss_ages=optimize_ss_ages, previous_magis=previous_magis,
-        with_medicare=with_medicare, with_aca=with_aca,
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
         use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
@@ -2849,7 +3304,11 @@ async def run_monte_carlo(
         plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
             None,
             _monte_carlo_blocking,
-            plan, objective, opts, n_scenarios, seed,
+            plan,
+            objective,
+            opts,
+            n_scenarios,
+            seed,
         )
     except Exception as e:
         return json.dumps({"error": f"Monte Carlo run error: {e}"})
@@ -2865,6 +3324,7 @@ async def run_monte_carlo(
 # ─────────────────────────────────────────────────────────────────────────────
 # Click command
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @click.command(name="serve")
 def cmd_serve():

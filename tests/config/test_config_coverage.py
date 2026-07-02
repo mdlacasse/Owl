@@ -16,12 +16,12 @@ import owlplanner.config as config
 
 def test_save_config_stringio():
     """Test saveConfig with StringIO."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -34,12 +34,12 @@ def test_save_config_stringio():
 
 def test_save_config_bytesio():
     """Test saveConfig with BytesIO - BytesIO is not supported, will raise error."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = BytesIO()
@@ -50,12 +50,12 @@ def test_save_config_bytesio():
 
 def test_save_config_invalid_type():
     """Test saveConfig with invalid file type."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
     with pytest.raises(ValueError, match="unknown type"):
         config.saveConfig(p, 12345, p.mylog)
@@ -169,14 +169,14 @@ objective = "maxSpending"
 [results]
 default_plots = "nominal"
 """
-    f = BytesIO(toml_content.encode('utf-8'))
+    f = BytesIO(toml_content.encode("utf-8"))
     p = config.readConfig(f, verbose=False)
     assert p._name == "test"
 
 
 def test_read_config_bytesio_decode_error():
     """Test readConfig with BytesIO that can't be decoded."""
-    f = BytesIO(b'\xff\xfe\x00\x00')  # Invalid UTF-8
+    f = BytesIO(b"\xff\xfe\x00\x00")  # Invalid UTF-8
     with pytest.raises(RuntimeError, match="Cannot read from BytesIO"):
         config.readConfig(f, verbose=False)
 
@@ -202,13 +202,7 @@ def test_read_config_file_not_found():
 
 def test_translate_old_keys():
     """Test translate_old_keys function."""
-    old_config = {
-        "Plan Name": "test",
-        "Basic Info": {
-            "Status": "single",
-            "Names": ["Joe"]
-        }
-    }
+    old_config = {"Plan Name": "test", "Basic Info": {"Status": "single", "Names": ["Joe"]}}
     translated = config.translate_old_keys(old_config)
     assert "case_name" in translated
     assert "basic_info" in translated
@@ -217,11 +211,7 @@ def test_translate_old_keys():
 
 def test_translate_old_keys_nested():
     """Test translate_old_keys with nested dictionaries."""
-    old_config = {
-        "Assets": {
-            "taxable savings balances": [100.0]
-        }
-    }
+    old_config = {"Assets": {"taxable savings balances": [100.0]}}
     translated = config.translate_old_keys(old_config)
     assert "savings_assets" in translated
     assert "taxable_savings_balances" in translated["savings_assets"]
@@ -238,12 +228,12 @@ def test_translate_old_keys_non_dict():
 
 def test_save_config_with_smile_profile():
     """Test saveConfig with smile spending profile."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("smile", percent=60, dip=15, increase=12, delay=5)
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -256,12 +246,12 @@ def test_save_config_with_smile_profile():
 
 def test_save_config_with_stochastic_rates():
     """Test saveConfig with stochastic rate method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("gaussian", values=[0.05, 0.03, 0.02, 0.01], stdev=[0.15, 0.10, 0.05, 0.02])
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -274,12 +264,12 @@ def test_save_config_with_stochastic_rates():
 
 def test_save_config_with_historical_rates():
     """Test saveConfig with historical rate method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("historical", frm=1950, to=2000)
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -287,18 +277,18 @@ def test_save_config_with_historical_rates():
     f.seek(0)
     content = f.read()
     # Check that "from" field is present (format: "from = 1950" or "from=1950")
-    assert 'from' in content and '1950' in content
+    assert "from" in content and "1950" in content
 
 
 def test_save_config_married_couple():
     """Test saveConfig with married couple."""
-    p = owl.Plan(['Joe', 'Jane'], ["1961-01-15", "1962-01-15"], [80, 82], "test")
+    p = owl.Plan(["Joe", "Jane"], ["1961-01-15", "1962-01-15"], [80, 82], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100, 50], taxDeferred=[200, 100], taxFree=[50, 25])
     p.setBeneficiaryFractions([0.5, 0.3, 0.2])
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -311,15 +301,18 @@ def test_save_config_married_couple():
 
 def test_save_config_account_allocation():
     """Test saveConfig with account-based allocation."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
-    p.setAllocationRatios("account", taxable=[[[70, 30, 0, 0], [70, 30, 0, 0]]],
-                          taxDeferred=[[[60, 40, 0, 0], [60, 40, 0, 0]]],
-                          taxFree=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
+    p.setAllocationRatios(
+        "account",
+        taxable=[[[70, 30, 0, 0], [70, 30, 0, 0]]],
+        taxDeferred=[[[60, 40, 0, 0], [60, 40, 0, 0]]],
+        taxFree=[[[50, 50, 0, 0], [50, 50, 0, 0]]],
+    )
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
     # Need to set solverOptions attribute for saveConfig
-    if not hasattr(p, 'solverOptions'):
+    if not hasattr(p, "solverOptions"):
         p.solverOptions = {}
 
     f = StringIO()
@@ -331,7 +324,7 @@ def test_save_config_account_allocation():
 
 def test_save_config_file_error():
     """Test saveConfig file write error handling."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
@@ -345,7 +338,7 @@ def test_save_config_file_error():
 def test_save_config_no_double_case_prefix(tmp_path):
     """Regression test for issue #96: filenames starting with 'Case_' must not
     get a spurious 'case_' prefix, producing 'case_Case_...' filenames."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "joe")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "joe")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")

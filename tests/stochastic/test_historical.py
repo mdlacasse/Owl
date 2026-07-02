@@ -59,7 +59,7 @@ def test_historical():
     assert os.path.exists(hfp), f"HFP file does not exist: {hfp}"
     p.readHFP(hfp)
     # Verify HFP was loaded
-    assert hasattr(p, 'timeLists') and p.timeLists is not None, f"HFP file {hfp} was not loaded"
+    assert hasattr(p, "timeLists") and p.timeLists is not None, f"HFP file {hfp} was not loaded"
     options = p.solverOptions
     objective = p.objective
     p.runHistoricalRange(objective, options, 1969, 2023)
@@ -77,8 +77,6 @@ def test_historical_range_reverse_roll():
     options = p.solverOptions
     objective = p.objective
     # Short range; with reverse=True and roll=1, each year's sequence is transformed
-    n, df = p.runHistoricalRange(
-        objective, options, 1970, 1972, figure=False, reverse=True, roll=1
-    )
+    n, df = p.runHistoricalRange(objective, options, 1970, 1972, figure=False, reverse=True, roll=1)
     assert n == 3
     assert len(df) == 3

@@ -35,7 +35,6 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 """
 
-
 import pytest
 from datetime import date
 import numpy as np
@@ -45,9 +44,9 @@ import owlplanner as owl
 
 # Shared solver options that eliminate all SC-loop features.
 _BASE = {
-    'maxRothConversion': 0,
-    'withSCLoop': False,
-    'withMedicare': False,
+    "maxRothConversion": 0,
+    "withSCLoop": False,
+    "withMedicare": False,
 }
 
 
@@ -57,17 +56,17 @@ def createPlan(ni, name, ny, topAge):
     thisyear = date.today().year
     ny -= 1
     if ni == 1:
-        inames = ['Joe']
+        inames = ["Joe"]
         expectancy = [topAge]
         yobs = [thisyear - topAge + ny]
         dobs = [f"{yobs[0]}-01-15"]
     else:
-        inames = ['Joe', 'Jane']
+        inames = ["Joe", "Jane"]
         expectancy = [topAge - 2, topAge]
         yobs = [thisyear - topAge + ny, thisyear - topAge + ny]
         dobs = [f"{yobs[0]}-01-15", f"{yobs[1]}-01-16"]
     p = owl.Plan(inames, dobs, expectancy, name)
-    p.setSpendingProfile('flat', 100)
+    p.setSpendingProfile("flat", 100)
     return p
 
 
@@ -104,15 +103,16 @@ def _assert_bequest_matches_aggregate(p):
 # checks that p.bequest matches aggregation from terminal b_ijn.
 # ---------------------------------------------------------------------------
 
+
 def test_taxdeferred_compounding():
     """TD bequest: closed-form if j=1 survives; else relocation to j=0 (aggregate invariant)."""
     n, amount, rate = 12, 120, 4
-    p = createPlan(1, 'td_compound', n, 72)
+    p = createPlan(1, "td_compound", n, 72)
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
     p.setHeirsTaxRate(30)
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     fv_nom = 1000 * amount * (1 + rate / 100) ** n
@@ -127,13 +127,12 @@ def test_taxdeferred_compounding():
 def test_taxdeferred_compounding_couple():
     """Couple TD bequest: same logic as single (phi transfer + aggregation)."""
     n, amount, rate = 12, 120, 4
-    p = createPlan(2, 'td_compound_couple', n, 72)
-    p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount/2, amount/2],
-                         taxFree=[0, 0], startDate="1-1")
-    p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p = createPlan(2, "td_compound_couple", n, 72)
+    p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount / 2, amount / 2], taxFree=[0, 0], startDate="1-1")
+    p.setAllocationRatios("spouses", generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
+    p.setRates("user", values=[0, 0, rate, 0])
     p.setHeirsTaxRate(30)
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     fv_nom = 1000 * amount * (1 + rate / 100) ** n
@@ -155,19 +154,22 @@ def test_taxdeferred_compounding_couple():
 # carryover constraint b[n+1] = Tau1 * b[n] for all years.
 # ---------------------------------------------------------------------------
 
+
 def test_yearly_balance_trajectory():
     """b_ijn[0,2,n] matches b0*(1+r)^n at every year from 0 to N."""
     n, amount, rate = 10, 100, 5
-    p = createPlan(1, 'balance_traj', n, 70)
+    p = createPlan(1, "balance_traj", n, 70)
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
-    expected = 1000 * amount * (1 + rate/100)**np.arange(n + 1)
+    expected = 1000 * amount * (1 + rate / 100) ** np.arange(n + 1)
     np.testing.assert_allclose(
-        p.b_ijn[0, 2, :], expected, rtol=1e-5,
+        p.b_ijn[0, 2, :],
+        expected,
+        rtol=1e-5,
         err_msg="Roth balance does not match compound formula at every year",
     )
 
@@ -182,18 +184,21 @@ def test_yearly_balance_trajectory():
 # the cumulative inflation multiplier for every year in the plan.
 # ---------------------------------------------------------------------------
 
+
 def test_nominal_spending_array_inflation():
     """g_n[n] == basis * gamma_n[n] for all years (flat profile, 2% inflation)."""
     n, amount, rate, pi = 15, 120, 4, 2
-    p = createPlan(1, 'spend_inflation', n, 75)
+    p = createPlan(1, "spend_inflation", n, 75)
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, pi])
-    p.solve('maxSpending', options={**_BASE, 'bequest': 0})
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, pi])
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     N = p.N_n
     np.testing.assert_allclose(
-        p.g_n[:N], p.basis * p.gamma_n[:N], rtol=1e-5,
+        p.g_n[:N],
+        p.basis * p.gamma_n[:N],
+        rtol=1e-5,
         err_msg="Nominal spending does not equal basis * gamma_n at each year",
     )
 
@@ -207,21 +212,22 @@ def test_nominal_spending_array_inflation():
 # untouched, bequest ~= (b1+b2)*(1+r)^N / gamma_N.
 # ---------------------------------------------------------------------------
 
+
 def test_mixed_accounts_bequest():
     """Mixed j=1 + j=2: closed-form if TD at death; else full FV / gamma."""
     n, rate, b1, b2 = 12, 4, 60, 60
-    p = createPlan(1, 'mixed_bequest', n, 72)
+    p = createPlan(1, "mixed_bequest", n, 72)
     p.setAccountBalances(taxable=[0], taxDeferred=[b1], taxFree=[b2], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
     p.setHeirsTaxRate(30)
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     r = rate / 100
     td_terminal = float(np.sum(p.b_ijn[:, 1, p.N_n]))
     if td_terminal > 1.0:
-        expected = 1000 * (b1 * (1 + r)**n * (1 - p.nu) + b2 * (1 + r)**n) / p.gamma_n[-1]
+        expected = 1000 * (b1 * (1 + r) ** n * (1 - p.nu) + b2 * (1 + r) ** n) / p.gamma_n[-1]
         assert p.bequest == pytest.approx(expected, abs=1.0)
     else:
         assert td_terminal < 1.0
@@ -231,19 +237,18 @@ def test_mixed_accounts_bequest():
 def test_mixed_accounts_bequest_couple():
     """Couple mixed accounts: same regime split as single."""
     n, rate, b1, b2 = 12, 4, 60, 60
-    p = createPlan(2, 'mixed_bequest_couple', n, 72)
-    p.setAccountBalances(taxable=[0, 0], taxDeferred=[b1/2, b1/2],
-                         taxFree=[b2/2, b2/2], startDate="1-1")
-    p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p = createPlan(2, "mixed_bequest_couple", n, 72)
+    p.setAccountBalances(taxable=[0, 0], taxDeferred=[b1 / 2, b1 / 2], taxFree=[b2 / 2, b2 / 2], startDate="1-1")
+    p.setAllocationRatios("spouses", generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
+    p.setRates("user", values=[0, 0, rate, 0])
     p.setHeirsTaxRate(30)
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     r = rate / 100
     td_terminal = float(np.sum(p.b_ijn[:, 1, p.N_n]))
     if td_terminal > 1.0:
-        expected = 1000 * (b1 * (1 + r)**n * (1 - p.nu) + b2 * (1 + r)**n) / p.gamma_n[-1]
+        expected = 1000 * (b1 * (1 + r) ** n * (1 - p.nu) + b2 * (1 + r) ** n) / p.gamma_n[-1]
         assert p.bequest == pytest.approx(expected, abs=1.0)
     else:
         assert td_terminal < 1.0
@@ -261,32 +266,32 @@ def test_mixed_accounts_bequest_couple():
 # years, each withdrawal is ~$4,800/year << $15k standard deduction.
 # ---------------------------------------------------------------------------
 
+
 def test_taxdeferred_annuity():
     """Start-of-period annuity-due formula matches j=1 spending (no income tax)."""
     n, amount, rate = 10, 40, 4
-    p = createPlan(1, 'td_annuity', n, 70)
+    p = createPlan(1, "td_annuity", n, 70)
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
-    p.solve('maxSpending', options={**_BASE, 'bequest': 0})
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     r = rate / 100
-    expected = 1000 * amount * r / ((1 - (1 + r)**-n) * (1 + r))
+    expected = 1000 * amount * r / ((1 - (1 + r) ** -n) * (1 + r))
     assert p.basis == pytest.approx(expected, abs=0.5)
 
 
 def test_taxdeferred_annuity_couple():
     """Same annuity formula holds for a couple's combined j=1 balance."""
     n, amount, rate = 10, 40, 4
-    p = createPlan(2, 'td_annuity_couple', n, 70)
-    p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount/2, amount/2],
-                         taxFree=[0, 0], startDate="1-1")
-    p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
-    p.setRates('user', values=[0, 0, rate, 0])
-    p.solve('maxSpending', options={**_BASE, 'bequest': 0})
+    p = createPlan(2, "td_annuity_couple", n, 70)
+    p.setAccountBalances(taxable=[0, 0], taxDeferred=[amount / 2, amount / 2], taxFree=[0, 0], startDate="1-1")
+    p.setAllocationRatios("spouses", generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
+    p.setRates("user", values=[0, 0, rate, 0])
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     r = rate / 100
-    expected = 1000 * amount * r / ((1 - (1 + r)**-n) * (1 + r))
+    expected = 1000 * amount * r / ((1 - (1 + r) ** -n) * (1 + r))
     assert p.basis == pytest.approx(expected, abs=0.5)
 
 
@@ -303,14 +308,15 @@ def test_taxdeferred_annuity_couple():
 # bequest unchanged). This tests the SPENDING side of the same identity.
 # ---------------------------------------------------------------------------
 
+
 def test_zero_real_return_annuity():
     """With rate == inflation, g = B0/N (annuity collapses to uniform withdrawal)."""
     n, amount, rate = 15, 120, 4
-    p = createPlan(1, 'zero_real', n, 75)
+    p = createPlan(1, "zero_real", n, 75)
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, rate])   # pi == r
-    p.solve('maxSpending', options={**_BASE, 'bequest': 0})
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, rate])  # pi == r
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     assert p.basis == pytest.approx(1000 * amount / n, abs=0.5)
 
@@ -325,17 +331,16 @@ def test_zero_real_return_annuity_couple():
     # (instead of createPlan's 2-year) so the formula stays n = topAge horizon.
     yob = thisyear - topAge + (n - 1)
     p = owl.Plan(
-        ['Joe', 'Jane'],
+        ["Joe", "Jane"],
         [f"{yob}-01-15", f"{yob}-01-16"],
         [topAge - 1, topAge],
-        'zero_real_couple',
+        "zero_real_couple",
     )
-    p.setSpendingProfile('flat', 100)
-    p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0],
-                         taxFree=[amount/2, amount/2], startDate="1-1")
-    p.setAllocationRatios('spouses', generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
-    p.setRates('user', values=[0, 0, rate, rate])
-    p.solve('maxSpending', options={**_BASE, 'bequest': 0})
+    p.setSpendingProfile("flat", 100)
+    p.setAccountBalances(taxable=[0, 0], taxDeferred=[0, 0], taxFree=[amount / 2, amount / 2], startDate="1-1")
+    p.setAllocationRatios("spouses", generic=[[0, 0, 100, 0], [0, 0, 100, 0]])
+    p.setRates("user", values=[0, 0, rate, rate])
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     assert p.basis == pytest.approx(1000 * amount / n, abs=0.5)
 
@@ -351,29 +356,26 @@ def test_zero_real_return_annuity_couple():
 # variables w_ijn[0,2,:] remain zero.
 # ---------------------------------------------------------------------------
 
+
 def test_pension_leaves_portfolio_intact():
     """Pension covers spending; Roth balance compounds at exact FV formula."""
     n, amount, rate = 12, 120, 4
     topAge = 72
     # Age at plan start derived from createPlan's formula: age = topAge - (n-1)
     start_age = topAge - (n - 1)
-    p = createPlan(1, 'pension_intact', n, topAge)
+    p = createPlan(1, "pension_intact", n, topAge)
     p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[amount], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
     # $700/month = $8,400/year; non-indexed, starts immediately.
     # Annual amount is well below the standard deduction — no income tax.
     p.setPension([700], [start_age], indexed=[False])
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     # Roth portfolio should compound without any withdrawals.
-    assert np.all(p.w_ijn[0, 2, :] < 0.01), (
-        f"Expected zero Roth withdrawals; got {p.w_ijn[0, 2, :]}"
-    )
-    assert p.b_ijn[0, 2, p.N_n] == pytest.approx(
-        1000 * amount * (1 + rate/100)**n, abs=1.0
-    )
+    assert np.all(p.w_ijn[0, 2, :] < 0.01), f"Expected zero Roth withdrawals; got {p.w_ijn[0, 2, :]}"
+    assert p.b_ijn[0, 2, p.N_n] == pytest.approx(1000 * amount * (1 + rate / 100) ** n, abs=1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -385,15 +387,16 @@ def test_pension_leaves_portfolio_intact():
 # bucket-based reporting (no nu on j=0).
 # ---------------------------------------------------------------------------
 
+
 def test_taxdeferred_relocation_maxBequest_no_other_income():
     """maxBequest + TD-only: optimizer relocates j=1 to j=0; reporting stays consistent."""
     n, amount, rate = 12, 120, 4
-    p = createPlan(1, 'td_reloc', n, 72)
+    p = createPlan(1, "td_reloc", n, 72)
     p.setAccountBalances(taxable=[0], taxDeferred=[amount], taxFree=[0], startDate="1-1")
-    p.setAllocationRatios('individual', generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
-    p.setRates('user', values=[0, 0, rate, 0])
+    p.setAllocationRatios("individual", generic=[[[0, 0, 100, 0], [0, 0, 100, 0]]])
+    p.setRates("user", values=[0, 0, rate, 0])
     p.setHeirsTaxRate(30)
-    p.solve('maxBequest', options={**_BASE, 'netSpending': 0})
+    p.solve("maxBequest", options={**_BASE, "netSpending": 0})
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
     _assert_bequest_matches_aggregate(p)
     td_terminal = float(np.sum(p.b_ijn[:, 1, p.N_n]))

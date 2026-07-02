@@ -64,18 +64,10 @@ class SavingsAssets(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    taxable_savings_balances: List[float] = Field(
-        default=[0.0], description="Taxable account balances ($k)"
-    )
-    tax_deferred_savings_balances: List[float] = Field(
-        default=[0.0], description="Tax-deferred balances ($k)"
-    )
-    tax_free_savings_balances: List[float] = Field(
-        default=[0.0], description="Tax-free balances ($k)"
-    )
-    hsa_savings_balances: List[float] = Field(
-        default=[0.0], description="HSA balances ($k)"
-    )
+    taxable_savings_balances: List[float] = Field(default=[0.0], description="Taxable account balances ($k)")
+    tax_deferred_savings_balances: List[float] = Field(default=[0.0], description="Tax-deferred balances ($k)")
+    tax_free_savings_balances: List[float] = Field(default=[0.0], description="Tax-free balances ($k)")
+    hsa_savings_balances: List[float] = Field(default=[0.0], description="HSA balances ($k)")
     taxable_cost_basis: List[float] = Field(
         default=[], description="Cost basis of taxable account per person ($k); empty = use legacy approximation"
     )
@@ -108,23 +100,25 @@ class FixedIncome(BaseModel):
     social_security_trim_pct: Optional[int] = Field(
         default=0, description="% reduction in SS benefits from trim_year onward"
     )
-    social_security_trim_year: Optional[int] = Field(
-        default=None, description="Year when SS benefit reduction begins"
-    )
+    social_security_trim_year: Optional[int] = Field(default=None, description="Year when SS benefit reduction begins")
     spia_individuals: List[int] = Field(
         default_factory=list,
         description="Individual index (0 = first, 1 = second) for each SPIA entry.",
     )
     spia_buy_years: List[int] = Field(
         default_factory=list,
-        description=("Calendar year of SPIA purchase for each entry."
-                     " Use a year before plan start for already-purchased annuities (no premium deducted)."),
+        description=(
+            "Calendar year of SPIA purchase for each entry."
+            " Use a year before plan start for already-purchased annuities (no premium deducted)."
+        ),
     )
     spia_premiums: List[float] = Field(
         default_factory=list,
-        description=("Lump-sum purchase price in dollars for each SPIA."
-                     " Deducted from the tax-deferred account in the buy year as a non-taxable IRA rollover."
-                     " Set to 0 for annuities purchased before the plan start."),
+        description=(
+            "Lump-sum purchase price in dollars for each SPIA."
+            " Deducted from the tax-deferred account in the buy year as a non-taxable IRA rollover."
+            " Set to 0 for annuities purchased before the plan start."
+        ),
     )
     spia_monthly_incomes: List[float] = Field(
         default_factory=list,
@@ -136,8 +130,10 @@ class FixedIncome(BaseModel):
     )
     spia_survivor_fractions: List[float] = Field(
         default_factory=list,
-        description=("Fraction of income (0–1) continuing to the surviving spouse after the annuitant's death."
-                     " 0 = single-life; 0.5, 0.75, or 1.0 = joint-and-survivor. Ignored for single individuals."),
+        description=(
+            "Fraction of income (0–1) continuing to the surviving spouse after the annuitant's death."
+            " 0 = single-life; 0.5, 0.75, or 1.0 = joint-and-survivor. Ignored for single individuals."
+        ),
     )
 
 
@@ -190,9 +186,7 @@ class AssetAllocation(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    interpolation_method: Literal["linear", "s-curve"] = Field(
-        default="s-curve", description="linear or s-curve"
-    )
+    interpolation_method: Literal["linear", "s-curve"] = Field(default="s-curve", description="linear or s-curve")
     interpolation_center: Optional[float] = Field(
         default=None, description="Interpolation center (years); required for s-curve"
     )
@@ -222,8 +216,7 @@ class AssetAllocation(BaseModel):
         if self.interpolation_method == "s-curve":
             if self.interpolation_center is None or self.interpolation_width is None:
                 raise ValueError(
-                    "interpolation_center and interpolation_width are required when "
-                    "interpolation_method is 's-curve'"
+                    "interpolation_center and interpolation_width are required when interpolation_method is 's-curve'"
                 )
         return self
 
@@ -293,8 +286,9 @@ class SolverOptions(BaseModel):
 
     # Core solver selection and limits
     solver: Optional[Literal["default", "HiGHS", "MOSEK"]] = None
-    maxTime: Optional[float] = Field(default=None, alias="max_time",
-                                     description="Per-iteration solver time limit (seconds). Default 900.")
+    maxTime: Optional[float] = Field(
+        default=None, alias="max_time", description="Per-iteration solver time limit (seconds). Default 900."
+    )
     gap: Optional[float] = None
     verbose: Optional[bool] = None
 
@@ -319,14 +313,15 @@ class SolverOptions(BaseModel):
     bequest: Optional[float] = None
     netSpending: Optional[float] = None
     timePreference: Optional[float] = Field(
-        default=None, ge=0.0,
+        default=None,
+        ge=0.0,
         description="Subjective time discount rate (%/year). Values >0 front-load spending "
-                    "by valuing near-term consumption more than end-of-life spending."
+        "by valuing near-term consumption more than end-of-life spending.",
     )
     minTaxableBalance: Optional[List[float]] = None
     fixedSpending: Optional[float] = Field(
         default=None,
-        description="Pin first-year spending to a fixed value (today's dollars, in units) for maxSpending objective."
+        description="Pin first-year spending to a fixed value (today's dollars, in units) for maxSpending objective.",
     )
     spendingSlack: Optional[int] = None
     noLateSurplus: Optional[bool] = None
@@ -423,7 +418,9 @@ class CaseConfig(BaseModel):
         new_bi = bi.model_copy(
             update={
                 "life_expectancy": _pad_int_list(
-                    list(bi.life_expectancy), ni, field="life_expectancy",
+                    list(bi.life_expectancy),
+                    ni,
+                    field="life_expectancy",
                     fill_from_tail=True,
                 ),
                 "date_of_birth": _pad_optional_str_list(bi.date_of_birth, ni, field="date_of_birth"),
@@ -435,16 +432,28 @@ class CaseConfig(BaseModel):
         new_sa = sa.model_copy(
             update={
                 "taxable_savings_balances": _pad_float_list(
-                    sa.taxable_savings_balances, ni, field="taxable_savings_balances", fill=0.0,
+                    sa.taxable_savings_balances,
+                    ni,
+                    field="taxable_savings_balances",
+                    fill=0.0,
                 ),
                 "tax_deferred_savings_balances": _pad_float_list(
-                    sa.tax_deferred_savings_balances, ni, field="tax_deferred_savings_balances", fill=0.0,
+                    sa.tax_deferred_savings_balances,
+                    ni,
+                    field="tax_deferred_savings_balances",
+                    fill=0.0,
                 ),
                 "tax_free_savings_balances": _pad_float_list(
-                    sa.tax_free_savings_balances, ni, field="tax_free_savings_balances", fill=0.0,
+                    sa.tax_free_savings_balances,
+                    ni,
+                    field="tax_free_savings_balances",
+                    fill=0.0,
                 ),
                 "hsa_savings_balances": _pad_float_list(
-                    sa.hsa_savings_balances, ni, field="hsa_savings_balances", fill=0.0,
+                    sa.hsa_savings_balances,
+                    ni,
+                    field="hsa_savings_balances",
+                    fill=0.0,
                 ),
             }
         )
@@ -467,20 +476,24 @@ class CaseConfig(BaseModel):
             update={
                 "pension_monthly_amounts": p_monthly,
                 "pension_ages": _pad_float_list(
-                    list(fi.pension_ages), ni, field="pension_ages", fill=DEFAULT_PENSION_AGE,
+                    list(fi.pension_ages),
+                    ni,
+                    field="pension_ages",
+                    fill=DEFAULT_PENSION_AGE,
                 ),
                 "pension_indexed": _pad_bool_list(list(fi.pension_indexed), ni, field="pension_indexed"),
                 "pension_survivor_fraction": p_surv,
                 "social_security_pia_amounts": ss_pia,
                 "social_security_ages": _pad_float_list(
-                    list(fi.social_security_ages), ni, field="social_security_ages", fill=DEFAULT_SS_AGE,
+                    list(fi.social_security_ages),
+                    ni,
+                    field="social_security_ages",
+                    fill=DEFAULT_SS_AGE,
                 ),
             }
         )
 
-        return self.model_copy(
-            update={"basic_info": new_bi, "savings_assets": new_sa, "fixed_income": new_fi}
-        )
+        return self.model_copy(update={"basic_info": new_bi, "savings_assets": new_sa, "fixed_income": new_fi})
 
 
 def _list_too_long(field: str, ni: int, n: int) -> None:
@@ -496,7 +509,12 @@ def _pad_float_list(vals: List[float], ni: int, *, field: str, fill: float) -> L
 
 
 def _pad_int_list(
-    vals: List[int], ni: int, *, field: str, fill: int | None = None, fill_from_tail: bool = False,
+    vals: List[int],
+    ni: int,
+    *,
+    field: str,
+    fill: int | None = None,
+    fill_from_tail: bool = False,
 ) -> List[int]:
     _list_too_long(field, ni, len(vals))
     if len(vals) < ni:

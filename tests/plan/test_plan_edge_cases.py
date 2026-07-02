@@ -7,7 +7,6 @@ in the Plan class that are not covered by existing regression tests.
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
-
 import pytest
 from datetime import date
 from io import StringIO
@@ -23,34 +22,34 @@ import owlplanner.spending as spending
 def test_plan_constructor_empty_name():
     """Test that Plan constructor raises error for empty name."""
     with pytest.raises(ValueError, match="Plan must have a name"):
-        owl.Plan(['Joe'], ["1961-01-15"], [80], "")
+        owl.Plan(["Joe"], ["1961-01-15"], [80], "")
 
 
 def test_plan_constructor_invalid_individual_count():
     """Test that Plan constructor raises error for invalid individual count."""
     with pytest.raises(ValueError, match="Cannot support"):
-        owl.Plan(['Joe', 'Jane', 'Bob'], ["1961-01-15", "1962-01-15", "1963-01-15"], [80, 82, 85], "test")
+        owl.Plan(["Joe", "Jane", "Bob"], ["1961-01-15", "1962-01-15", "1963-01-15"], [80, 82, 85], "test")
 
 
 def test_plan_constructor_mismatched_expectancy():
     """Test that Plan constructor raises error for mismatched expectancy."""
     with pytest.raises(ValueError, match="'expectancy' must have"):
-        owl.Plan(['Joe', 'Jane'], ["1961-01-15", "1962-01-15"], [80], "test")
+        owl.Plan(["Joe", "Jane"], ["1961-01-15", "1962-01-15"], [80], "test")
 
 
 def test_plan_constructor_mismatched_names():
     """Test that Plan constructor raises error for mismatched names."""
     with pytest.raises(ValueError, match="'inames' must have"):
-        owl.Plan(['Joe'], ["1961-01-15", "1962-01-15"], [80, 82], "test")
+        owl.Plan(["Joe"], ["1961-01-15", "1962-01-15"], [80, 82], "test")
 
 
 def test_plan_constructor_empty_individual_name():
     """Test that Plan constructor raises error for empty individual name."""
     with pytest.raises(ValueError, match="Name for each individual must be provided"):
-        owl.Plan([''], ["1961-01-15"], [80], "test")
+        owl.Plan([""], ["1961-01-15"], [80], "test")
 
     with pytest.raises(ValueError, match="Name for each individual must be provided"):
-        owl.Plan(['Joe', ''], ["1961-01-15", "1962-01-15"], [80, 82], "test")
+        owl.Plan(["Joe", ""], ["1961-01-15", "1962-01-15"], [80, 82], "test")
 
 
 def test_gen_spending_profile_unknown_profile():
@@ -68,56 +67,56 @@ def test_gen_spending_profile_smile():
 
 def test_set_starting_date_today():
     """Test _setStartingDate with 'today'."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p._setStartingDate("today")
     assert p.startDate is not None
 
 
 def test_set_starting_date_mmddyyyy():
     """Test _setStartingDate with YYYY-MM-DD format."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p._setStartingDate("2024-03-15")
     assert p.startDate == "2024-03-15"
 
 
 def test_set_starting_date_mmdd():
     """Test _setStartingDate with MM-DD format."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p._setStartingDate("03-15")
     assert p.startDate == "03-15"
 
 
 def test_set_starting_date_date_object():
     """Test _setStartingDate with date object."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p._setStartingDate(date(2024, 3, 15))
     assert p.startDate == "2024-03-15"
 
 
 def test_set_starting_date_invalid_format():
     """Test _setStartingDate with invalid format."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError):
         p._setStartingDate("invalid-date-format")
 
 
 def test_check_value_type_invalid():
     """Test _checkValueType with invalid value."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="Value type must be one of"):
         p._checkValueType("invalid")
 
 
 def test_check_value_type_none():
     """Test _checkValueType with None returns default."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     result = p._checkValueType(None)
     assert result == p.defaultPlots
 
 
 def test_set_spousal_deposit_fraction_invalid_range():
     """Test setSpousalDepositFraction with invalid range."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="Fraction must be between"):
         p.setSpousalDepositFraction(1.5)
 
@@ -127,69 +126,69 @@ def test_set_spousal_deposit_fraction_invalid_range():
 
 def test_set_spousal_deposit_fraction_single():
     """Test setSpousalDepositFraction for single individual."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpousalDepositFraction(0.5)  # Should be ignored for single
 
 
 def test_set_default_plots():
     """Test setDefaultPlots."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setDefaultPlots("today")
     assert p.defaultPlots == "today"
 
 
 def test_set_plot_backend():
     """Test setPlotBackend."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setPlotBackend("plotly")
     assert p._plotterName == "plotly"
 
 
 def test_set_plot_backend_invalid():
     """Test setPlotBackend with invalid backend."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="not a valid option"):
         p.setPlotBackend("invalid_backend")
 
 
 def test_set_dividend_rate():
     """Test setDividendRate."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setDividendRate(2.0)  # Rate is in percent
     assert abs(p.mu - 0.02) < 1e-6  # Converted to decimal
 
 
 def test_set_expiration_year_obbba():
     """Test setExpirationYearOBBBA."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setExpirationYearOBBBA(2035)
     assert p.yOBBBA == 2035
 
 
 def test_set_beneficiary_fractions_single():
     """Test setBeneficiaryFractions for single individual."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     # Should not raise error but may be ignored
     p.setBeneficiaryFractions([0.5, 0.3, 0.2])
 
 
 def test_set_beneficiary_fractions_invalid_length():
     """Test setBeneficiaryFractions with invalid length."""
-    p = owl.Plan(['Joe', 'Jane'], ["1961-01-15", "1962-01-15"], [80, 82], "test")
+    p = owl.Plan(["Joe", "Jane"], ["1961-01-15", "1962-01-15"], [80, 82], "test")
     with pytest.raises(ValueError, match="Fractions must have"):
         p.setBeneficiaryFractions([0.5, 0.3])  # Wrong length, should be 3
 
 
 def test_set_heirs_tax_rate():
     """Test setHeirsTaxRate."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setHeirsTaxRate(35.0)  # Rate is in percent
     assert abs(p.nu - 0.35) < 1e-6  # Converted to decimal
 
 
 def test_set_heirs_tax_rate_invalid_range():
     """Test setHeirsTaxRate with invalid range."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="Rate must be between"):
         p.setHeirsTaxRate(150.0)  # > 100
 
@@ -199,34 +198,34 @@ def test_set_heirs_tax_rate_invalid_range():
 
 def test_set_pension_invalid_lengths():
     """Test setPension with mismatched lengths."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="'amounts' must have"):
         p.setPension([1000, 2000], [65])  # Wrong length for amounts
 
 
 def test_set_pension_survivor_fraction():
     """Test setPension with survivor_fraction stores correctly."""
-    p = owl.Plan(['Jack', 'Jill'], ["1962-01-15", "1965-01-15"], [89, 92], "test")
+    p = owl.Plan(["Jack", "Jill"], ["1962-01-15", "1965-01-15"], [89, 92], "test")
     p.setPension([0, 1000], [65, 65], survivor_fraction=[0, 0.5])
     assert hasattr(p, "pensionSurvivorFraction")
     assert p.pensionSurvivorFraction[0] == 0.0
     assert p.pensionSurvivorFraction[1] == 0.5
     # Single individual: survivor_fraction defaults to [0]
-    p2 = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p2 = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p2.setPension([500], [65])
     assert p2.pensionSurvivorFraction[0] == 0.0
 
 
 def test_set_social_security_invalid_lengths():
     """Test setSocialSecurity with mismatched lengths."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="'pias' must have"):
         p.setSocialSecurity([2000, 3000], [67])  # Wrong length for PIAs
 
 
 def test_set_social_security_trim_pct_outside_range():
     """Test setSocialSecurity raises for trim_pct outside [0, 100]."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="trim_pct.*outside range"):
         p.setSocialSecurity([2000], [67], trim_pct=-5, trim_year=2030)
     with pytest.raises(ValueError, match="trim_pct.*outside range"):
@@ -235,14 +234,14 @@ def test_set_social_security_trim_pct_outside_range():
 
 def test_set_social_security_trim_year_required():
     """Test setSocialSecurity requires trim_year when trim_pct > 0."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="trim_year required"):
         p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=None)
 
 
 def test_set_social_security_trim_year_must_be_int():
     """Test setSocialSecurity requires trim_year to be an integer."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="trim_year must be an integer"):
         p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=2030.5)
 
@@ -251,7 +250,7 @@ def test_set_social_security_trim_log_message():
     """Test setSocialSecurity logs when trim_pct > 0."""
     strio = StringIO()
     mylogger = log.Logger(verbose=False, logstreams=[strio])
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setLogger(mylogger)
     p.setSocialSecurity([2000], [67], trim_pct=25, trim_year=2035)
     captured = strio.getvalue()
@@ -262,7 +261,7 @@ def test_set_social_security_trim_log_message():
 
 def test_set_social_security_trim_applies_reduction():
     """Test setSocialSecurity reduces benefits by trim_pct from trim_year onward."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [85], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [85], "test")
     p.setSocialSecurity([2000], [67], trim_pct=0)  # No trim baseline
     zeta_baseline = p.zeta_in.copy()
 
@@ -270,14 +269,12 @@ def test_set_social_security_trim_applies_reduction():
     trim_n = 5
     if trim_n < p.N_n:
         # From trim year onward, values should be 0.8 of baseline
-        np.testing.assert_allclose(
-            p.zeta_in[:, trim_n:], zeta_baseline[:, trim_n:] * 0.8
-        )
+        np.testing.assert_allclose(p.zeta_in[:, trim_n:], zeta_baseline[:, trim_n:] * 0.8)
 
 
 def test_set_social_security_trim_zero_no_effect():
     """Test setSocialSecurity with trim_pct=0 has no trimming (default behavior)."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSocialSecurity([2000], [67])  # Default trim_pct=0, trim_year=None
     zeta_no_trim = p.zeta_in.copy()
     p.setSocialSecurity([2000], [67], trim_pct=0, trim_year=2030)
@@ -286,7 +283,7 @@ def test_set_social_security_trim_zero_no_effect():
 
 def test_set_spending_profile_invalid_percent():
     """Test setSpendingProfile with invalid percent."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="Survivor value.*outside range"):
         p.setSpendingProfile("flat", percent=150)
 
@@ -299,7 +296,7 @@ def test_set_spending_profile_invalid_percent():
 
 def test_set_reproducible():
     """Test setReproducible."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setReproducible(True, seed=42)
     assert p.reproducibleRates is True
     assert p.rateSeed == 42
@@ -307,7 +304,7 @@ def test_set_reproducible():
 
 def test_set_rates_invalid_method():
     """Test setRates with invalid method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     # The error comes from the rate model loader or BuiltinRateModel
     with pytest.raises((ValueError, RuntimeError)):
         p.setRates("invalid_method")
@@ -315,14 +312,14 @@ def test_set_rates_invalid_method():
 
 def test_set_interpolation_method_invalid():
     """Test setInterpolationMethod with invalid method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     with pytest.raises(ValueError, match="not supported"):
         p.setInterpolationMethod("invalid_method")
 
 
 def test_set_allocation_ratios_invalid_type():
     """Test setAllocationRatios with invalid type raises ValueError."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     # The function now validates allocType and raises an error for invalid types
     with pytest.raises(ValueError, match="allocType must be one of"):
         p.setAllocationRatios("invalid_type", generic=None)
@@ -330,7 +327,7 @@ def test_set_allocation_ratios_invalid_type():
 
 def test_check_case_status_decorator():
     """Test _checkCaseStatus decorator prevents method execution."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
@@ -344,7 +341,7 @@ def test_check_case_status_decorator():
 
 def test_check_configuration_decorator():
     """Test _checkConfiguration decorator raises error when not configured."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.xi_n = None
     p.alpha_ijkn = None
 
@@ -354,7 +351,7 @@ def test_check_configuration_decorator():
 
 def test_check_configuration_decorator_no_allocation():
     """Test _checkConfiguration decorator raises error when allocation not set."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.alpha_ijkn = None
 
@@ -364,7 +361,7 @@ def test_check_configuration_decorator_no_allocation():
 
 def test_solve_invalid_objective():
     """Test solve with invalid objective."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
@@ -376,7 +373,7 @@ def test_solve_invalid_objective():
 
 def test_solve_invalid_option():
     """Test solve ignores unknown option."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
@@ -388,7 +385,7 @@ def test_solve_invalid_option():
 
 def test_solve_max_bequest_no_net_spending():
     """Test solve with maxBequest but no netSpending option."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
@@ -400,7 +397,7 @@ def test_solve_max_bequest_no_net_spending():
 
 def test_solve_no_rate_method():
     """Test solve without rate method set."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
@@ -413,8 +410,8 @@ def test_solve_no_rate_method():
 def test_plan_id_counter():
     """Test Plan ID counter functionality."""
     initial_id = owl.Plan.get_current_id()
-    p1 = owl.Plan(['Joe'], ["1961-01-15"], [80], "test1")
-    p2 = owl.Plan(['Jane'], ["1962-01-15"], [82], "test2")
+    p1 = owl.Plan(["Joe"], ["1961-01-15"], [80], "test1")
+    p2 = owl.Plan(["Jane"], ["1962-01-15"], [82], "test2")
 
     assert p1._id == initial_id + 1
     assert p2._id == initial_id + 2
@@ -423,22 +420,23 @@ def test_plan_id_counter():
 
 def test_rename():
     """Test rename method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.rename("new_name")
     assert p._name == "new_name"
 
 
 def test_set_description():
     """Test setDescription method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setDescription("Test description")
     assert p._description == "Test description"
 
 
 def test_set_logger():
     """Test setLogger method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     import owlplanner.mylogging as log
+
     new_logger = log.Logger(verbose=False)
     p.setLogger(new_logger)
     assert p.mylog is new_logger
@@ -446,7 +444,7 @@ def test_set_logger():
 
 def test_set_verbose():
     """Test setVerbose method."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test", verbose=True)
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=True)
     prev_state = p.setVerbose(False)
     assert prev_state is True  # Default is True
     assert p.mylog._verbose is False
@@ -454,7 +452,7 @@ def test_set_verbose():
 
 def test_clone_with_newname():
     """Test clone function with new name."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "original")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "original")
     p.setSpendingProfile("flat")
     cloned = plan.clone(p, newname="cloned")
     assert cloned._name == "cloned"
@@ -463,7 +461,7 @@ def test_clone_with_newname():
 
 def test_clone_without_newname():
     """Test clone function without new name."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "original")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "original")
     p.setSpendingProfile("flat")
     cloned = plan.clone(p)
     assert cloned._name == "original (copy)"
@@ -472,7 +470,7 @@ def test_clone_without_newname():
 
 def _make_single_plan(expectancy=85):
     """Helper: minimal configured single-person plan."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [expectancy], "original")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [expectancy], "original")
     p.setAccountBalances(taxable=[100], taxDeferred=[500], taxFree=[50])
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
@@ -482,11 +480,10 @@ def _make_single_plan(expectancy=85):
 
 def _make_couple_plan(expectancy=(88, 85)):
     """Helper: minimal configured couple plan."""
-    p = owl.Plan(['Alice', 'Bob'], ["1960-03-10", "1958-07-22"], list(expectancy), "couple")
+    p = owl.Plan(["Alice", "Bob"], ["1960-03-10", "1958-07-22"], list(expectancy), "couple")
     p.setAccountBalances(taxable=[100, 80], taxDeferred=[500, 400], taxFree=[50, 40])
     p.setSpendingProfile("flat")
-    p.setAllocationRatios("individual",
-                          generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("conservative")
     return p
 
@@ -532,8 +529,7 @@ def test_clone_with_new_expectancy_does_not_modify_source():
 def test_clone_with_new_expectancy_inherits_logger():
     """clone(..., expectancy=...) must write to the same logstreams as the source plan."""
     strio = StringIO()
-    p = owl.Plan(["Joe"], ["1961-01-15"], [85], "test",
-                 verbose=True, logstreams=[strio, strio])
+    p = owl.Plan(["Joe"], ["1961-01-15"], [85], "test", verbose=True, logstreams=[strio, strio])
     p.setAccountBalances(taxable=[100], taxDeferred=[500], taxFree=[50])
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
@@ -558,6 +554,7 @@ def test_clone_no_copy_suffix_accumulation():
 def test_q_functions():
     """Test VarBlock row-major indexing (replaces the deleted _q1/_q2/_q3/_q4 functions)."""
     from owlplanner.varmap import VarBlock
+
     # 1-D: equivalent to old _q1(C, l, N)
     b1 = VarBlock("e", 10, (5,))
     assert b1.idx(5) == 15
@@ -589,7 +586,7 @@ def test_gen_gamma_n():
 
 def test_set_account_balances_invalid_units():
     """Test setAccountBalances with invalid units."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     # The error comes from utils.getUnits
     with pytest.raises(ValueError, match="Unknown units"):
         p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50], units="invalid")
@@ -597,7 +594,7 @@ def test_set_account_balances_invalid_units():
 
 def test_set_account_balances_with_start_date():
     """Test setAccountBalances with start date."""
-    p = owl.Plan(['Joe'], ["1961-01-15"], [80], "test")
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50], startDate="2024-01-01")
     assert p.beta_ij is not None
     assert p.startDate == "2024-01-01"
@@ -607,24 +604,25 @@ def test_set_account_balances_with_start_date():
 # "net inv" integration tests
 # ---------------------------------------------------------------------------
 
+
 def _make_single_netinv_plan(net_inv_annual=0):
     """
     Single-individual plan used for 'net inv' integration tests.
     Returns a fully configured, unsolved Plan with net_inv set in every year.
     """
     thisyear = date.today().year
-    p = owl.Plan(['Joe'], [f"{thisyear - 66}-01-15"], [80], "netinv_test", verbose=False)
-    p.setSpendingProfile('flat', 60)
+    p = owl.Plan(["Joe"], [f"{thisyear - 66}-01-15"], [80], "netinv_test", verbose=False)
+    p.setSpendingProfile("flat", 60)
     p.setAccountBalances(taxable=[200], taxDeferred=[800], taxFree=[100], startDate="1-1")
-    p.setInterpolationMethod('s-curve')
-    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setInterpolationMethod("s-curve")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0], [65])
     p.setSocialSecurity([0], [67])
-    p.setRates('historical', 2000)
+    p.setRates("historical", 2000)
     p.zeroWagesAndContributions()
     if net_inv_annual != 0:
-        df = p.timeLists['Joe']
-        df['net inv'] = net_inv_annual   # constant in all rows
+        df = p.timeLists["Joe"]
+        df["net inv"] = net_inv_annual  # constant in all rows
         p.setContributions()
     return p
 
@@ -641,47 +639,43 @@ def test_netinv_populated_after_set_contributions():
     # At least some years inside the horizon should be 10 000
     assert np.any(p.netinv_in[0, :] == 10_000)
     # Years beyond the individual's horizon remain zero
-    assert p.netinv_in[0, p.horizons[0]:].sum() == 0.0
+    assert p.netinv_in[0, p.horizons[0] :].sum() == 0.0
 
 
 def test_netinv_increases_spending():
     """Adding 'net inv' income raises the optimal spending level."""
     p_base = _make_single_netinv_plan(0)
-    p_base.solve('maxSpending', {'withMedicare': 'None'})
-    assert p_base.caseStatus == 'solved'
+    p_base.solve("maxSpending", {"withMedicare": "None"})
+    assert p_base.caseStatus == "solved"
 
     p_rich = _make_single_netinv_plan(20_000)
-    p_rich.solve('maxSpending', {'withMedicare': 'None'})
-    assert p_rich.caseStatus == 'solved'
+    p_rich.solve("maxSpending", {"withMedicare": "None"})
+    assert p_rich.caseStatus == "solved"
 
-    assert p_rich.g_n[0] > p_base.g_n[0], (
-        "Plan with net inv should have higher spending than base plan"
-    )
+    assert p_rich.g_n[0] > p_base.g_n[0], "Plan with net inv should have higher spending than base plan"
 
 
 def test_netinv_increases_niit():
     """Large 'net inv' income pushes NII above NIIT threshold, raising J_n."""
     # Base plan with no net inv
     p_base = _make_single_netinv_plan(0)
-    p_base.solve('maxSpending', {'withMedicare': 'None'})
-    assert p_base.caseStatus == 'solved'
+    p_base.solve("maxSpending", {"withMedicare": "None"})
+    assert p_base.caseStatus == "solved"
 
     # Plan with very large net inv (well above $200k NIIT threshold for single filer)
     p_niit = _make_single_netinv_plan(300_000)
-    p_niit.solve('maxSpending', {'withMedicare': 'None'})
-    assert p_niit.caseStatus == 'solved'
+    p_niit.solve("maxSpending", {"withMedicare": "None"})
+    assert p_niit.caseStatus == "solved"
 
     # NIIT should be higher for the plan with large net inv
-    assert np.sum(p_niit.J_n) > np.sum(p_base.J_n), (
-        "Large net inv income should result in higher total NIIT"
-    )
+    assert np.sum(p_niit.J_n) > np.sum(p_base.J_n), "Large net inv income should result in higher total NIIT"
 
 
 def test_netinv_in_sources_dict():
     """'net inv' appears in sources_in after solving."""
     p = _make_single_netinv_plan(5_000)
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved'
-    assert 'net inv' in p.sources_in
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    assert "net inv" in p.sources_in
     # Values should match netinv_in
-    np.testing.assert_array_equal(p.sources_in['net inv'], p.netinv_in)
+    np.testing.assert_array_equal(p.sources_in["net inv"], p.netinv_in)

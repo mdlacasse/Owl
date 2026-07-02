@@ -53,6 +53,7 @@ class RatesDistribution(NamedTuple):
     covar : ndarray, shape (4, 4)
         Sample covariance matrix (always in decimal, unaffected by in_percent).
     """
+
     geo_means: np.ndarray
     arith_means: np.ndarray
     stdev: np.ndarray
@@ -239,19 +240,19 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
             raise ValueError(f"Range 'to' {ito} out of bounds.")
         if ifrm >= ito:
             raise ValueError(f'"from" {ifrm} must be smaller than "to" {ito}.')
-        data = pd.DataFrame({"S&P 500": SP500, "Bonds Baa": BondsBaa,
-                             "T-Notes": TNotes, "Inflation": Inflation})
+        data = pd.DataFrame({"S&P 500": SP500, "Bonds Baa": BondsBaa, "T-Notes": TNotes, "Inflation": Inflation})
         data = data.truncate(before=ifrm, after=ito)
     else:
         # ── DataFrame mode (new) ─────────────────────────────────────────────
         from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
+
         missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
         if missing:
             raise ValueError(f"DataFrame missing required columns: {missing}")
         if frm is not None or to is not None:
             ifrm = frm if frm is not None else 0
             ito = to if to is not None else len(df) - 1
-            data = df.iloc[ifrm: ito + 1]
+            data = df.iloc[ifrm : ito + 1]
         else:
             data = df
         if len(data) < 2:
@@ -295,5 +296,4 @@ def getRatesDistributions(frm=None, to=None, mylog=None, in_percent=True, *, df=
         arith_means = arith_means * 100
         stdev = stdev * 100
     # corr and covar are correlation-derived (unitless or decimal); never converted
-    return RatesDistribution(geo_means=geo_means, arith_means=arith_means,
-                             stdev=stdev, corr=corr, covar=covar)
+    return RatesDistribution(geo_means=geo_means, arith_means=arith_means, stdev=stdev, corr=corr, covar=covar)

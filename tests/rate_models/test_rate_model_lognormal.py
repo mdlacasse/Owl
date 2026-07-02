@@ -32,8 +32,12 @@ import numpy as np
 import pytest
 
 from owlplanner import Plan
-from owlplanner.rate_models.builtin import (LognormalRateModel, HistolognormalRateModel, GaussianRateModel,
-                                            StochasticRateModel)
+from owlplanner.rate_models.builtin import (
+    LognormalRateModel,
+    HistolognormalRateModel,
+    GaussianRateModel,
+    StochasticRateModel,
+)
 
 
 # ------------------------------------------------------------
@@ -78,6 +82,7 @@ def _set_histolognormal(p, frm=1928, to=2024, seed=None):
 # Model attributes — lognormal
 # ------------------------------------------------------------
 
+
 def test_model_name_lognormal():
     assert LognormalRateModel.model_name == "lognormal"
 
@@ -94,6 +99,7 @@ def test_constant_flag_lognormal():
 # Model attributes — histolognormal
 # ------------------------------------------------------------
 
+
 def test_model_name_histolognormal():
     assert HistolognormalRateModel.model_name == "historical_lognormal"
 
@@ -109,6 +115,7 @@ def test_constant_flag_histolognormal():
 # ------------------------------------------------------------
 # Output shape — lognormal
 # ------------------------------------------------------------
+
 
 def test_shape_via_plan_lognormal():
     p = _make_plan()
@@ -146,6 +153,7 @@ def test_rates_in_plausible_range_lognormal():
 # Output shape — histolognormal
 # ------------------------------------------------------------
 
+
 def test_shape_via_plan_histolognormal():
     p = _make_plan()
     _set_histolognormal(p)
@@ -182,6 +190,7 @@ def test_rates_in_plausible_range_histolognormal():
 # Reproducibility — lognormal
 # ------------------------------------------------------------
 
+
 def test_reproducible_same_seed_lognormal():
     p1 = _make_plan()
     _set_lognormal(p1, seed=42)
@@ -210,6 +219,7 @@ def test_non_reproducible_regen_changes_lognormal():
 # ------------------------------------------------------------
 # Reproducibility — histolognormal
 # ------------------------------------------------------------
+
 
 def test_reproducible_same_seed_histolognormal():
     p1 = _make_plan()
@@ -240,6 +250,7 @@ def test_non_reproducible_regen_changes_histolognormal():
 # Mean accuracy — lognormal
 # ------------------------------------------------------------
 
+
 def test_lognormal_mean_approx():
     """
     Over a large sample, the sample arithmetic mean should be close
@@ -248,11 +259,13 @@ def test_lognormal_mean_approx():
     rng = np.random.default_rng(0)
     means = np.array(_MEANS) / 100.0
     from owlplanner.rate_models._builtin_impl import generate_lognormal_series
+
     series, _, _, _ = generate_lognormal_series(10000, _MEANS, _STDEV, rng=rng)
     sample_means = series.mean(axis=0)
     # Within 1% absolute (loose tolerance for large-N Monte Carlo)
-    np.testing.assert_allclose(sample_means, means, atol=0.01,
-                               err_msg="Sample means deviate too far from specified arithmetic means")
+    np.testing.assert_allclose(
+        sample_means, means, atol=0.01, err_msg="Sample means deviate too far from specified arithmetic means"
+    )
 
 
 def test_lognormal_stdev_approx():
@@ -263,11 +276,16 @@ def test_lognormal_stdev_approx():
     rng = np.random.default_rng(123)
     stdev_decimal = np.array(_STDEV) / 100.0
     from owlplanner.rate_models._builtin_impl import generate_lognormal_series
+
     series, _, _, _ = generate_lognormal_series(15000, _MEANS, _STDEV, rng=rng)
     sample_stdev = series.std(axis=0)
     # Within 1.5% absolute (loose tolerance for Monte Carlo variance of variance)
-    np.testing.assert_allclose(sample_stdev, stdev_decimal, atol=0.015,
-                               err_msg="Sample stdevs deviate too far from specified standard deviations")
+    np.testing.assert_allclose(
+        sample_stdev,
+        stdev_decimal,
+        atol=0.015,
+        err_msg="Sample stdevs deviate too far from specified standard deviations",
+    )
 
 
 def test_lognormal_with_correlation():
@@ -293,17 +311,20 @@ def test_lognormal_with_correlation():
 # Moment accuracy — histolognormal
 # ------------------------------------------------------------
 
+
 def test_histolognormal_mean_approx():
     """
     Over a large sample, the sample arithmetic mean should be close
     to the fitted arithmetic mean from the historical log-space fit.
     """
     from owlplanner.rate_models._builtin_impl import generate_histolognormal_series
+
     rng = np.random.default_rng(77)
     series, means, _, _ = generate_histolognormal_series(15000, 1928, 2024, rng=rng)
     sample_means = series.mean(axis=0)
-    np.testing.assert_allclose(sample_means, means, atol=0.01,
-                               err_msg="Sample means deviate too far from fitted arithmetic means")
+    np.testing.assert_allclose(
+        sample_means, means, atol=0.01, err_msg="Sample means deviate too far from fitted arithmetic means"
+    )
 
 
 def test_histolognormal_stdev_approx():
@@ -312,16 +333,19 @@ def test_histolognormal_stdev_approx():
     close to the fitted arithmetic standard deviation from the historical fit.
     """
     from owlplanner.rate_models._builtin_impl import generate_histolognormal_series
+
     rng = np.random.default_rng(88)
     series, _, stdev, _ = generate_histolognormal_series(15000, 1928, 2024, rng=rng)
     sample_stdev = series.std(axis=0)
-    np.testing.assert_allclose(sample_stdev, stdev, atol=0.015,
-                               err_msg="Sample stdevs deviate too far from fitted standard deviations")
+    np.testing.assert_allclose(
+        sample_stdev, stdev, atol=0.015, err_msg="Sample stdevs deviate too far from fitted standard deviations"
+    )
 
 
 # ------------------------------------------------------------
 # Historical window sensitivity — histolognormal
 # ------------------------------------------------------------
+
 
 def test_histolognormal_different_windows_differ():
     p1 = _make_plan()
@@ -335,6 +359,7 @@ def test_histolognormal_different_windows_differ():
 # Parameter validation — histolognormal
 # ------------------------------------------------------------
 
+
 def test_invalid_frm_to_raises_histolognormal():
     """frm >= to should raise ValueError."""
     config = {"method": "historical_lognormal", "frm": 2000, "to": 2000}
@@ -345,6 +370,7 @@ def test_invalid_frm_to_raises_histolognormal():
 def test_histolognormal_frm_out_of_bounds_raises():
     """frm before valid historical range should raise ValueError."""
     from owlplanner.rates import FROM
+
     config = {"method": "historical_lognormal", "frm": FROM - 10, "to": FROM + 5}
     with pytest.raises(ValueError):
         HistolognormalRateModel(config)
@@ -353,6 +379,7 @@ def test_histolognormal_frm_out_of_bounds_raises():
 # ------------------------------------------------------------
 # Backward compatibility
 # ------------------------------------------------------------
+
 
 def test_gaussian_alias():
     """GaussianRateModel is the primary class; StochasticRateModel is an alias."""

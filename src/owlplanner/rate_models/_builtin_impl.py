@@ -135,12 +135,14 @@ def _historical_arith_means(frm: int, to: int) -> np.ndarray:
         raise ValueError(f"Upper range 'to={to}' out of bounds.")
     ifrm = frm - FROM
     ito = to - FROM
-    data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
     return data.mean(axis=0)
 
 
@@ -248,12 +250,14 @@ def generate_histogaussian_series(
 
     ifrm = frm - FROM
     ito = to - FROM
-    data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
 
     # Metadata from original data for UI display
     orig_means = data.mean(axis=0)
@@ -366,14 +370,16 @@ def generate_histolognormal_series(
 
     ifrm = frm - FROM
     ito = to - FROM
-    data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
 
-    lr = np.log(1.0 + data)            # log-returns, shape (T, 4)
+    lr = np.log(1.0 + data)  # log-returns, shape (T, 4)
 
     # PWL transform on inflation LOG-RETURNS (dim 3) to correct skew before Gaussian fit.
     # Applied in log-space: no log(1 + .) domain constraint needed.
@@ -383,8 +389,8 @@ def generate_histolognormal_series(
     lr_t = lr.copy()
     lr_t[:, 3] = pwl_transform(lr[:, 3], k, slope_lo, slope_hi)
 
-    mu_z = lr_t.mean(axis=0)           # log-space mean (transformed inflation)
-    Sigma_z = np.cov(lr_t.T)           # log-space covariance (transformed inflation)
+    mu_z = lr_t.mean(axis=0)  # log-space mean (transformed inflation)
+    Sigma_z = np.cov(lr_t.T)  # log-space covariance (transformed inflation)
 
     Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
 

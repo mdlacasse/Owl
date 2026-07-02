@@ -199,9 +199,7 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         if "other inc." in df.columns and "other inc" not in df.columns:
             df = df.rename(columns={"other inc.": "other inc"})
 
-        df = _checkColumns(
-            df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems
-        )
+        df = _checkColumns(df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems)
 
         # Ensure columns are in the correct order
         df = df[_timeHorizonItems].copy()
@@ -258,8 +256,8 @@ def _conditionHouseTables(dfDict, mylog):
     """
     houseDic = {}
 
-    items = {"Debts" : _debtItems, "Fixed Assets": _fixedAssetItems}
-    types = {"Debts" : _debtTypes, "Fixed Assets": _fixedAssetTypes}
+    items = {"Debts": _debtItems, "Fixed Assets": _fixedAssetItems}
+    types = {"Debts": _debtTypes, "Fixed Assets": _fixedAssetTypes}
     for page in items.keys():
         if page in dfDict:
             df = dfDict[page]
@@ -373,8 +371,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
                     df.loc[mask, col] = df.loc[mask, col] * 100.0
                     if mylog is not None:
                         mylog.vprint(
-                            f"Converted {mask.sum()} {col} value(s) from decimal "
-                            f"to percentage in {tableType} table."
+                            f"Converted {mask.sum()} {col} value(s) from decimal to percentage in {tableType} table."
                         )
 
     # For Fixed Assets, validate and reset "year" column if in the past

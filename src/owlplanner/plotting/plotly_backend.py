@@ -40,24 +40,24 @@ from ..rate_models.constants import (
 # Canonical color maps — shared by cashflow_mix and lifetime_allocation so that
 # the same category always gets the same color in both chart types.
 _INCOME_COLORS = {
-    "portfolio":   "#795548",
-    "ss":          "#2196F3",
-    "pension":     "#009688",
-    "wages":       "#FF9800",
-    "spia":        "#E91E63",
+    "portfolio": "#795548",
+    "ss": "#2196F3",
+    "pension": "#009688",
+    "wages": "#FF9800",
+    "spia": "#E91E63",
     "fixedassets": "#8BC34A",
-    "other":       "#673AB7",
-    "bti":         "#CDDC39",
+    "other": "#673AB7",
+    "bti": "#CDDC39",
 }
 _OUTFLOW_COLORS = {
-    "living":     "#2196F3",
-    "taxes":      "#F44336",
+    "living": "#2196F3",
+    "taxes": "#F44336",
     "state_taxes": "#C62828",
     "healthcare": "#FF9800",
-    "debt":       "#9E9E9E",
-    "bti":        "#FF6F00",
-    "bequest":    "#4CAF50",
-    "heirtax":    "#E91E63",
+    "debt": "#9E9E9E",
+    "bti": "#FF6F00",
+    "bequest": "#4CAF50",
+    "heirtax": "#E91E63",
 }
 
 # Reusable legend layouts for plotly
@@ -119,12 +119,7 @@ class PlotlyBackend(PlotBackend):
         fig = go.Figure()
 
         # Add profile line
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=xi_n,
-            name="profile",
-            line=dict(width=2)
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=xi_n, name="profile", line=dict(width=2)))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -156,22 +151,12 @@ class PlotlyBackend(PlotBackend):
             y_title = f"$k (constant {year_n[0]})"
             infladjust = 1
 
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=y_data,
-            name="taxable income",
-            line=dict(width=2)
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=y_data, name="taxable income", line=dict(width=2)))
 
         # Add tax brackets
         for key, bracket_data in tax_brackets.items():
             data_adj = bracket_data * infladjust / 1000
-            fig.add_trace(go.Scatter(
-                x=year_n,
-                y=data_adj,
-                name=key,
-                line=dict(width=1, dash="dot")
-            ))
+            fig.add_trace(go.Scatter(x=year_n, y=data_adj, name=key, line=dict(width=1, dash="dot")))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -204,20 +189,10 @@ class PlotlyBackend(PlotBackend):
             y_title = f"$k (constant {year_n[0]})"
 
         # Add net spending line
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=net_data,
-            name="net",
-            line=dict(width=2)
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=net_data, name="net", line=dict(width=2)))
 
         # Add target line
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=target_data,
-            name="target",
-            line=dict(width=1, dash="dot")
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=target_data, name="target", line=dict(width=1, dash="dot")))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -227,7 +202,7 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend={**_LEGEND_BOTTOM, "y": -0.4},
-            margin=dict(b=150)
+            margin=dict(b=150),
         )
 
         # Format y-axis as k
@@ -236,7 +211,7 @@ class PlotlyBackend(PlotBackend):
         ymin = np.min(net_data)
         ymax = np.max(net_data)
         if np.abs(ymax - ymin) < 1:
-            fig.update_layout(yaxis=dict(range=[np.floor(ymin)-1, np.ceil(ymax)+1]))
+            fig.update_layout(yaxis=dict(range=[np.floor(ymin) - 1, np.ceil(ymax) + 1]))
 
         return fig
 
@@ -259,38 +234,18 @@ class PlotlyBackend(PlotBackend):
             y_title = f"$k (constant {year_n[0]})"
 
         # Add income taxes line
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=income_tax_data,
-            name="income tax",
-            line=dict(width=2)
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=income_tax_data, name="income tax", line=dict(width=2)))
 
         # Add Medicare line
-        fig.add_trace(go.Scatter(
-            x=year_n,
-            y=medicare_data,
-            name="Medicare",
-            line=dict(width=2, dash="dot")
-        ))
+        fig.add_trace(go.Scatter(x=year_n, y=medicare_data, name="Medicare", line=dict(width=2, dash="dot")))
 
         # Add ACA line when configured
         if aca_data is not None and (aca_data > 0).any():
-            fig.add_trace(go.Scatter(
-                x=year_n,
-                y=aca_data,
-                name="ACA",
-                line=dict(width=2, dash="dash")
-            ))
+            fig.add_trace(go.Scatter(x=year_n, y=aca_data, name="ACA", line=dict(width=2, dash="dash")))
 
         # Add state income tax line when configured
         if st_data is not None and (st_data > 0).any():
-            fig.add_trace(go.Scatter(
-                x=year_n,
-                y=st_data,
-                name="state tax",
-                line=dict(width=2, dash="longdash")
-            ))
+            fig.add_trace(go.Scatter(x=year_n, y=st_data, name="state tax", line=dict(width=2, dash="longdash")))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -334,15 +289,7 @@ class PlotlyBackend(PlotBackend):
             label = f"{rate_names[k]} <{mean_val:.1f} +/- {std_val:.1f}%>"
 
             # Add trace
-            fig.add_trace(go.Scatter(
-                x=year_n,
-                y=data,
-                name=label,
-                line=dict(
-                    width=2,
-                    dash=line_styles[k % N_k]
-                )
-            ))
+            fig.add_trace(go.Scatter(x=year_n, y=data, name=label, line=dict(width=2, dash=line_styles[k % N_k])))
 
         # Update layout
         fig.update_layout(
@@ -362,11 +309,7 @@ class PlotlyBackend(PlotBackend):
     def plot_rates_distributions(self, frm, to, SP500, BondsBaa, TNotes, Inflation, FROM):
         """Plot histograms of the rates distributions. Annotated mean is geometric (compound) mean."""
         # Create subplot figure
-        fig = make_subplots(
-            rows=1, cols=4,
-            subplot_titles=RATE_DISPLAY_NAMES_SHORT,
-            shared_yaxes=True
-        )
+        fig = make_subplots(rows=1, cols=4, subplot_titles=RATE_DISPLAY_NAMES_SHORT, shared_yaxes=True)
 
         # Calculate number of bins
         nbins = int((to - frm) / 4)
@@ -377,10 +320,10 @@ class PlotlyBackend(PlotBackend):
 
         # Get data arrays
         data = [
-            np.array(SP500[frm_idx:to_idx + 1]),
-            np.array(BondsBaa[frm_idx:to_idx + 1]),
-            np.array(TNotes[frm_idx:to_idx + 1]),
-            np.array(Inflation[frm_idx:to_idx + 1])
+            np.array(SP500[frm_idx : to_idx + 1]),
+            np.array(BondsBaa[frm_idx : to_idx + 1]),
+            np.array(TNotes[frm_idx : to_idx + 1]),
+            np.array(Inflation[frm_idx : to_idx + 1]),
         ]
 
         # Add histograms
@@ -389,34 +332,24 @@ class PlotlyBackend(PlotBackend):
             label = f"<>: {u.pc(mean_val, 2, 1)}"
 
             fig.add_trace(
-                go.Histogram(
-                    x=dat,
-                    nbinsx=nbins,
-                    name=label,
-                    showlegend=False,
-                    marker_color="orange"
-                ),
-                row=1, col=i+1
+                go.Histogram(x=dat, nbinsx=nbins, name=label, showlegend=False, marker_color="orange"), row=1, col=i + 1
             )
 
             # Add mean annotation
             fig.add_annotation(
-                x=0.5, y=0.95,
-                xref=f"x{i+1}",
+                x=0.5,
+                y=0.95,
+                xref=f"x{i + 1}",
                 yref="paper",
                 text=label,
                 showarrow=False,
                 font=dict(size=10),
-                bgcolor="rgba(255, 255, 255, 0.7)"
+                bgcolor="rgba(255, 255, 255, 0.7)",
             )
 
         # Update layout
         fig.update_layout(
-            title=f"Rates from {frm} to {to}",
-            template=self.template,
-            showlegend=False,
-            height=400,
-            width=1200
+            title=f"Rates from {frm} to {to}", template=self.template, showlegend=False, height=400, width=1200
         )
 
         # Update axes
@@ -428,7 +361,8 @@ class PlotlyBackend(PlotBackend):
                 zeroline=True,
                 zerolinecolor="gray",
                 zerolinewidth=1,
-                row=1, col=i+1
+                row=1,
+                col=i + 1,
             )
             fig.update_yaxes(
                 showgrid=True,
@@ -436,15 +370,17 @@ class PlotlyBackend(PlotBackend):
                 zeroline=True,
                 zerolinecolor="gray",
                 zerolinewidth=1,
-                row=1, col=i+1
+                row=1,
+                col=i + 1,
             )
 
         return fig
 
-    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
-                       rate_frm=None, rate_to=None, tag=""):
+    def plot_rates_cdf(
+        self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM, rate_frm=None, rate_to=None, tag=""
+    ):
         """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
-        show_hist = (rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None)
+        show_hist = rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None
         hist_sources = [SP500, BondsBaa, TNotes, Inflation]
         N_samples = tau_kn.shape[1]
 
@@ -457,30 +393,46 @@ class PlotlyBackend(PlotBackend):
             n_mc = len(mc_data)
             p_mc = np.arange(1, n_mc + 1) / n_mc
 
-            fig.add_trace(go.Scatter(
-                x=mc_data, y=p_mc, mode="lines",
-                name=f"{rate_name}: {rate_method} (N={N_samples})",
-                line=dict(color=colors[k], width=2, shape="hv"),
-                showlegend=True,
-                legendgroup=f"mc_{k}",
-            ), row=1, col=k + 1)
+            fig.add_trace(
+                go.Scatter(
+                    x=mc_data,
+                    y=p_mc,
+                    mode="lines",
+                    name=f"{rate_name}: {rate_method} (N={N_samples})",
+                    line=dict(color=colors[k], width=2, shape="hv"),
+                    showlegend=True,
+                    legendgroup=f"mc_{k}",
+                ),
+                row=1,
+                col=k + 1,
+            )
 
             if show_hist:
-                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM + 1], dtype=float))
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM : rate_to - FROM + 1], dtype=float))
                 n_h = len(h_arr)
                 p_h = np.arange(1, n_h + 1) / n_h
-                fig.add_trace(go.Scatter(
-                    x=h_arr, y=p_h, mode="lines",
-                    name=f"{rate_name}: Historical {rate_frm}-{rate_to} (N={n_h})",
-                    line=dict(color="gray", width=2, dash="dash", shape="hv"),
-                    showlegend=True,
-                    legendgroup=f"hist_{k}",
-                ), row=1, col=k + 1)
+                fig.add_trace(
+                    go.Scatter(
+                        x=h_arr,
+                        y=p_h,
+                        mode="lines",
+                        name=f"{rate_name}: Historical {rate_frm}-{rate_to} (N={n_h})",
+                        line=dict(color="gray", width=2, dash="dash", shape="hv"),
+                        showlegend=True,
+                        legendgroup=f"hist_{k}",
+                    ),
+                    row=1,
+                    col=k + 1,
+                )
 
             fig.add_shape(
                 type="line",
-                x0=0, x1=0, y0=0, y1=1,
-                xref=f"x{k + 1}", yref="paper",
+                x0=0,
+                x1=0,
+                y0=0,
+                y1=1,
+                xref=f"x{k + 1}",
+                yref="paper",
                 line=dict(color="lightgray", width=1, dash="dot"),
             )
 
@@ -503,8 +455,9 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_rates_correlations(self, pname, tau_kn, rate_method, rate_frm=None, rate_to=None,
-                                tag="", share_range=False):
+    def plot_rates_correlations(
+        self, pname, tau_kn, rate_method, rate_frm=None, rate_to=None, tag="", share_range=False
+    ):
         """Plot correlations between various rates."""
         # Create DataFrame with rate data
         rate_names = RATE_DISPLAY_NAMES
@@ -515,11 +468,12 @@ class PlotlyBackend(PlotBackend):
         # Create subplot figure
         n_vars = len(rate_names)
         fig = make_subplots(
-            rows=n_vars, cols=n_vars,
+            rows=n_vars,
+            cols=n_vars,
             # subplot_titles=rate_names,  # Only use rate names for first row
             shared_xaxes=True,  # Share x-axes
             vertical_spacing=0.05,
-            horizontal_spacing=0.05
+            horizontal_spacing=0.05,
         )
 
         # Set range if requested
@@ -535,23 +489,18 @@ class PlotlyBackend(PlotBackend):
                 if i == j:
                     # Diagonal: histogram
                     fig.add_trace(
-                        go.Histogram(
-                            x=df[rate_names[i]],
-                            marker_color="orange",
-                            showlegend=False
-                        ),
-                        row=i+1, col=j+1
+                        go.Histogram(x=df[rate_names[i]], marker_color="orange", showlegend=False), row=i + 1, col=j + 1
                     )
                     # Set y-axis for histogram to be independent and start from 0
                     fig.update_yaxes(
                         showticklabels=True,
-                        row=i+1,
-                        col=j+1,
+                        row=i + 1,
+                        col=j + 1,
                         range=[0, None],  # Start from 0, let max be automatic
                         autorange=True,  # Allow automatic scaling
                         matches=None,  # Don't share with other plots
                         scaleanchor=None,  # Don't link to any other axis
-                        constrain=None  # Don't constrain the range
+                        constrain=None,  # Don't constrain the range
                     )
                 elif i < j:
                     # Upper triangle: scatter plot
@@ -560,17 +509,15 @@ class PlotlyBackend(PlotBackend):
                             x=df[rate_names[j]],
                             y=df[rate_names[i]],
                             mode="markers",
-                            marker=dict(
-                                size=6,
-                                opacity=0.5
-                            ),
-                            showlegend=False
+                            marker=dict(size=6, opacity=0.5),
+                            showlegend=False,
                         ),
-                        row=i+1, col=j+1
+                        row=i + 1,
+                        col=j + 1,
                     )
                     # Set range for scatter plot if requested
                     if share_range and minval is not None and maxval is not None:
-                        fig.update_yaxes(range=[minval, maxval], row=i+1, col=j+1)
+                        fig.update_yaxes(range=[minval, maxval], row=i + 1, col=j + 1)
                 else:
                     # Lower triangle: KDE
                     x = df[rate_names[j]]
@@ -582,19 +529,13 @@ class PlotlyBackend(PlotBackend):
                     Z = kde(np.vstack([X.ravel(), Y.ravel()])).reshape(X.shape)
 
                     fig.add_trace(
-                        go.Contour(
-                            x=x_grid,
-                            y=y_grid,
-                            z=Z,
-                            showscale=False,
-                            colorscale="Viridis",
-                            showlegend=False
-                        ),
-                        row=i+1, col=j+1
+                        go.Contour(x=x_grid, y=y_grid, z=Z, showscale=False, colorscale="Viridis", showlegend=False),
+                        row=i + 1,
+                        col=j + 1,
                     )
                     # Set range for KDE plot if requested
                     if share_range and minval is not None and maxval is not None:
-                        fig.update_yaxes(range=[minval, maxval], row=i+1, col=j+1)
+                        fig.update_yaxes(range=[minval, maxval], row=i + 1, col=j + 1)
 
         # Update layout
         N_samples = tau_kn.shape[1]
@@ -605,13 +546,7 @@ class PlotlyBackend(PlotBackend):
         if tag:
             title += " - " + tag
 
-        fig.update_layout(
-            title=title,
-            template=self.template,
-            height=800,
-            width=800,
-            showlegend=False
-        )
+        fig.update_layout(title=title, template=self.template, height=800, width=800, showlegend=False)
 
         # Update axes
         for i in range(n_vars):
@@ -619,23 +554,31 @@ class PlotlyBackend(PlotBackend):
                 # Add zero lines
                 fig.add_shape(
                     type="line",
-                    x0=0, y0=0, x1=0, y1=1,
-                    xref=f"x{j+1}", yref=f"y{i+1}",
-                    line=dict(color="gray", width=1, dash="dot")
+                    x0=0,
+                    y0=0,
+                    x1=0,
+                    y1=1,
+                    xref=f"x{j + 1}",
+                    yref=f"y{i + 1}",
+                    line=dict(color="gray", width=1, dash="dot"),
                 )
                 if i != j:
                     fig.add_shape(
                         type="line",
-                        x0=0, y0=0, x1=1, y1=0,
-                        xref=f"x{j+1}", yref=f"y{i+1}",
-                        line=dict(color="gray", width=1, dash="dot")
+                        x0=0,
+                        y0=0,
+                        x1=1,
+                        y1=0,
+                        xref=f"x{j + 1}",
+                        yref=f"y{i + 1}",
+                        line=dict(color="gray", width=1, dash="dot"),
                     )
 
                 # Update axis labels
-                if i == n_vars-1:  # Bottom row
-                    fig.update_xaxes(title_text=rate_names[j], row=i+1, col=j+1)
+                if i == n_vars - 1:  # Bottom row
+                    fig.update_xaxes(title_text=rate_names[j], row=i + 1, col=j + 1)
                 if j == 0:  # Left column
-                    fig.update_yaxes(title_text=rate_names[i], row=i+1, col=j+1)
+                    fig.update_yaxes(title_text=rate_names[i], row=i + 1, col=j + 1)
 
         return fig
 
@@ -645,7 +588,7 @@ class PlotlyBackend(PlotBackend):
         If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
         Zeros are excluded from the histogram when log_x is True.
         """
-        _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
+        _LOG_FLOOR = 0.001  # $1 in thousands; values below excluded when log_x
         _LOG_NBINS_MAX = 50
         _LOG_NBINS_MIN = 10
 
@@ -702,8 +645,7 @@ class PlotlyBackend(PlotBackend):
         # Handle partial bequest cases
         if (phi_j is not None and np.all((1 - phi_j) < 0.01)) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
-                print(f"Optimized solutions all have null partial bequest in year {my[0]}.",
-                      file=description)
+                print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
             df.drop("partial", axis=1, inplace=True)
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
@@ -717,8 +659,7 @@ class PlotlyBackend(PlotBackend):
         if len(df) > 0:
             thisyear = year_n[0]
             if log_x:
-                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).",
-                      file=description)
+                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).", file=description)
 
             if objective == "maxBequest":
                 # Single figure with both partial and final bequests
@@ -740,27 +681,20 @@ class PlotlyBackend(PlotBackend):
                             dmedian = u.d(medians.iloc[i], latex=False)
                             dmean = u.d(means.iloc[i], latex=False)
                             label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
-                            fig.add_trace(go.Bar(
-                                x=centers, y=counts, name=label,
-                                opacity=0.7, marker_color=colors[i]
-                            ))
+                            fig.add_trace(go.Bar(x=centers, y=counts, name=label, opacity=0.7, marker_color=colors[i]))
                     else:
                         log_x = False
                         for i, col in enumerate(df.columns):
                             dmedian = u.d(medians.iloc[i], latex=False)
                             dmean = u.d(means.iloc[i], latex=False)
                             label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
-                            fig.add_trace(go.Histogram(
-                                x=df[col], name=label, opacity=0.7, marker_color=colors[i]
-                            ))
+                            fig.add_trace(go.Histogram(x=df[col], name=label, opacity=0.7, marker_color=colors[i]))
                 else:
                     for i, col in enumerate(df.columns):
                         dmedian = u.d(medians.iloc[i], latex=False)
                         dmean = u.d(means.iloc[i], latex=False)
                         label = f"{my[i]}: M: {dmedian}, <x>: {dmean}"
-                        fig.add_trace(go.Histogram(
-                            x=df[col], name=label, opacity=0.7, marker_color=colors[i]
-                        ))
+                        fig.add_trace(go.Histogram(x=df[col], name=label, opacity=0.7, marker_color=colors[i]))
 
                 fig.update_layout(
                     title=objective,
@@ -769,7 +703,7 @@ class PlotlyBackend(PlotBackend):
                     template=self.template,
                     barmode="overlay",
                     showlegend=True,
-                    legend=_LEGEND_BOTTOM
+                    legend=_LEGEND_BOTTOM,
                 )
                 if log_x:
                     fig.update_xaxes(type="log")
@@ -780,9 +714,7 @@ class PlotlyBackend(PlotBackend):
             elif nfields == 2:
                 # Two separate histograms
                 fig = make_subplots(
-                    rows=1, cols=2,
-                    subplot_titles=[f"partial {my[0]}", objective],
-                    horizontal_spacing=0.1
+                    rows=1, cols=2, subplot_titles=[f"partial {my[0]}", objective], horizontal_spacing=0.1
                 )
 
                 cols = ["partial", objective]
@@ -797,21 +729,21 @@ class PlotlyBackend(PlotBackend):
                         if edges is not None:
                             counts, centers = _histogram_log(df[col], edges)
                             fig.add_trace(
-                                go.Bar(x=centers, y=counts, name=label,
-                                       marker_color=colors[i], showlegend=True),
-                                row=1, col=i+1
+                                go.Bar(x=centers, y=counts, name=label, marker_color=colors[i], showlegend=True),
+                                row=1,
+                                col=i + 1,
                             )
                         else:
                             fig.add_trace(
-                                go.Histogram(x=df[col], name=label,
-                                             marker_color=colors[i], showlegend=True),
-                                row=1, col=i+1
+                                go.Histogram(x=df[col], name=label, marker_color=colors[i], showlegend=True),
+                                row=1,
+                                col=i + 1,
                             )
                     else:
                         fig.add_trace(
-                            go.Histogram(x=df[col], name=label,
-                                         marker_color=colors[i], showlegend=True),
-                            row=1, col=i+1
+                            go.Histogram(x=df[col], name=label, marker_color=colors[i], showlegend=True),
+                            row=1,
+                            col=i + 1,
                         )
 
                 fig.update_layout(title=title, template=self.template, height=400, width=800)
@@ -848,7 +780,7 @@ class PlotlyBackend(PlotBackend):
                     yaxis_title="Count",
                     template=self.template,
                     showlegend=True,
-                    legend=_LEGEND_BOTTOM
+                    legend=_LEGEND_BOTTOM,
                 )
                 if use_log_scale:
                     fig.update_xaxes(type="log")
@@ -870,20 +802,28 @@ class PlotlyBackend(PlotBackend):
     def plot_spending_by_year(self, objective, start_years, values, n_d, year_n):
         """Bar chart of optimal spending or bequest by historical start year (today's dollars)."""
         import io as _io
+
         thisyear = int(year_n[0])
         label = "Spending basis" if objective == "maxSpending" else "Bequest"
         mean_val = float(np.mean(values))
 
         fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=start_years.tolist(),
-            y=(values / 1000).tolist(),
-            name=label,
-            marker_color="steelblue",
-            opacity=0.75,
-        ))
-        fig.add_hline(y=mean_val / 1000, line_dash="dash", line_color="navy",
-                      annotation_text=f"Mean {u.d(mean_val)}", annotation_position="top right")
+        fig.add_trace(
+            go.Bar(
+                x=start_years.tolist(),
+                y=(values / 1000).tolist(),
+                name=label,
+                marker_color="steelblue",
+                opacity=0.75,
+            )
+        )
+        fig.add_hline(
+            y=mean_val / 1000,
+            line_dash="dash",
+            line_color="navy",
+            annotation_text=f"Mean {u.d(mean_val)}",
+            annotation_position="top right",
+        )
         fig.update_layout(
             title=f"{label} by historical start year",
             xaxis_title="Historical start year",
@@ -893,65 +833,114 @@ class PlotlyBackend(PlotBackend):
             showlegend=False,
         )
         description = _io.StringIO()
-        print(f"{label} by start year: min {u.d(float(values.min()))}, "
-              f"max {u.d(float(values.max()))}, mean {u.d(mean_val)}.", file=description)
+        print(
+            f"{label} by start year: min {u.d(float(values.min()))}, "
+            f"max {u.d(float(values.max()))}, mean {u.d(mean_val)}.",
+            file=description,
+        )
         return fig, description
 
-    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate_pct, g_opt, year_n, start_years=None,
-                                 with_longevity=False):
+    def plot_stochastic_frontier(
+        self,
+        frontier_prob,
+        frontier_g,
+        frontier_shortfall,
+        target_success_rate_pct,
+        g_opt,
+        year_n,
+        start_years=None,
+        with_longevity=False,
+    ):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
         frontier_type = "Historical" if start_years is not None else "Stochastic"
         shortfall_pct = 100.0 - target_success_rate_pct
 
-        fig = make_subplots(rows=1, cols=2,
-                            subplot_titles=("Success rate curve", "Efficient frontier"))
+        fig = make_subplots(rows=1, cols=2, subplot_titles=("Success rate curve", "Efficient frontier"))
 
-        fig.add_trace(go.Scatter(
-            x=(frontier_prob * 100).tolist(), y=(frontier_g / 1000).tolist(),
-            mode="lines", line=dict(color="steelblue", width=2),
-            showlegend=False,
-        ), row=1, col=1)
-        fig.add_trace(go.Scatter(
-            x=[shortfall_pct], y=[g_opt / 1000],
-            mode="markers+text",
-            name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
-            marker=dict(color="firebrick", size=10),
-            text=[f"{u.d(g_opt)}"],
-            textposition="top right",
-        ), row=1, col=1)
-        fig.add_vline(x=shortfall_pct, line_dash="dash", line_color="firebrick",
-                      opacity=0.5, row=1, col=1)
+        fig.add_trace(
+            go.Scatter(
+                x=(frontier_prob * 100).tolist(),
+                y=(frontier_g / 1000).tolist(),
+                mode="lines",
+                line=dict(color="steelblue", width=2),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[shortfall_pct],
+                y=[g_opt / 1000],
+                mode="markers+text",
+                name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
+                marker=dict(color="firebrick", size=10),
+                text=[f"{u.d(g_opt)}"],
+                textposition="top right",
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_vline(x=shortfall_pct, line_dash="dash", line_color="firebrick", opacity=0.5, row=1, col=1)
 
         idx = int(np.argmin(np.abs(frontier_g - g_opt)))
         sf_at_target = float(frontier_shortfall[idx]) / 1000
 
-        fig.add_trace(go.Scatter(
-            x=(frontier_shortfall / 1000).tolist(), y=(frontier_g / 1000).tolist(),
-            mode="lines", line=dict(color="darkorange", width=2),
-            showlegend=False,
-        ), row=1, col=2)
-        fig.add_trace(go.Scatter(
-            x=[sf_at_target], y=[g_opt / 1000],
-            mode="markers+text",
-            name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
-            marker=dict(color="firebrick", size=10),
-            text=[f"{u.d(g_opt)}"],
-            textposition="top right",
-            showlegend=False,
-        ), row=1, col=2)
-        fig.add_vline(x=sf_at_target, line_dash="dash", line_color="firebrick",
-                      opacity=0.5, row=1, col=2)
+        fig.add_trace(
+            go.Scatter(
+                x=(frontier_shortfall / 1000).tolist(),
+                y=(frontier_g / 1000).tolist(),
+                mode="lines",
+                line=dict(color="darkorange", width=2),
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=[sf_at_target],
+                y=[g_opt / 1000],
+                mode="markers+text",
+                name=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
+                marker=dict(color="firebrick", size=10),
+                text=[f"{u.d(g_opt)}"],
+                textposition="top right",
+                showlegend=False,
+            ),
+            row=1,
+            col=2,
+        )
+        fig.add_vline(x=sf_at_target, line_dash="dash", line_color="firebrick", opacity=0.5, row=1, col=2)
 
-        fig.update_xaxes(title_text="Shortfall probability (%)", ticksuffix="%",
-                         title_font_size=14, tickfont_size=11, row=1, col=1)
-        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$",
-                         title_font_size=14, tickfont_size=11, row=1, col=1)
-        fig.update_xaxes(title_text=f"Expected shortfall ({thisyear} $k)", tickprefix="$",
-                         title_font_size=14, tickfont_size=11, row=1, col=2)
-        fig.update_yaxes(title_text=f"Committed spending ({thisyear} $k)", tickprefix="$",
-                         title_font_size=14, tickfont_size=11, row=1, col=2)
+        fig.update_xaxes(
+            title_text="Shortfall probability (%)", ticksuffix="%", title_font_size=14, tickfont_size=11, row=1, col=1
+        )
+        fig.update_yaxes(
+            title_text=f"Committed spending ({thisyear} $k)",
+            tickprefix="$",
+            title_font_size=14,
+            tickfont_size=11,
+            row=1,
+            col=1,
+        )
+        fig.update_xaxes(
+            title_text=f"Expected shortfall ({thisyear} $k)",
+            tickprefix="$",
+            title_font_size=14,
+            tickfont_size=11,
+            row=1,
+            col=2,
+        )
+        fig.update_yaxes(
+            title_text=f"Committed spending ({thisyear} $k)",
+            tickprefix="$",
+            title_font_size=14,
+            tickfont_size=11,
+            row=1,
+            col=2,
+        )
         fig.update_annotations(font_size=14)
         longevity_tag = " · longevity" if with_longevity else ""
         fig.update_layout(
@@ -961,40 +950,46 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star,
-                                    target_success_rate_pct, year_n):
+    def plot_stochastic_cvar_vs_pos(
+        self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star, target_success_rate_pct, year_n
+    ):
         """CVaR vs Probability of Success curve with current target and optimal ρ* marked."""
         thisyear = int(year_n[0])
         pos_pct = (1.0 - frontier_prob) * 100
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=pos_pct.tolist(), y=(frontier_cvar / 1000).tolist(),
-            mode="lines", line=dict(color="steelblue", width=2),
-            showlegend=False,
-        ))
-        fig.add_vline(x=target_success_rate_pct, line_dash="dot", line_color="firebrick",
-                      opacity=0.6)
-        fig.add_trace(go.Scatter(
-            x=[rho_star_pct], y=[cvar_star / 1000],
-            mode="markers+text",
-            marker=dict(symbol="diamond", color="darkorange", size=12),
-            text=[f"ρ*={rho_star_pct:.0f}%"],
-            textposition="top left",
-            showlegend=False,
-        ))
-        fig.update_xaxes(title_text="Probability of success (%)", ticksuffix="%",
-                         title_font_size=14, tickfont_size=11)
-        fig.update_yaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$",
-                         title_font_size=14, tickfont_size=11)
+        fig.add_trace(
+            go.Scatter(
+                x=pos_pct.tolist(),
+                y=(frontier_cvar / 1000).tolist(),
+                mode="lines",
+                line=dict(color="steelblue", width=2),
+                showlegend=False,
+            )
+        )
+        fig.add_vline(x=target_success_rate_pct, line_dash="dot", line_color="firebrick", opacity=0.6)
+        fig.add_trace(
+            go.Scatter(
+                x=[rho_star_pct],
+                y=[cvar_star / 1000],
+                mode="markers+text",
+                marker=dict(symbol="diamond", color="darkorange", size=12),
+                text=[f"ρ*={rho_star_pct:.0f}%"],
+                textposition="top left",
+                showlegend=False,
+            )
+        )
+        fig.update_xaxes(title_text="Probability of success (%)", ticksuffix="%", title_font_size=14, tickfont_size=11)
+        fig.update_yaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$", title_font_size=14, tickfont_size=11)
         fig.update_layout(
             title=dict(text=f"Tail risk (CVaR) vs probability of success ({thisyear}$)", font_size=20),
             template=self.template,
         )
         return fig
 
-    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star_pct, res_star,
-                                    cvar_star, cvar_at_target, year_n, floor_label="HSF"):
+    def plot_stochastic_res_vs_cvar(
+        self, frontier_cvar, res_values, rho_star_pct, res_star, cvar_star, cvar_at_target, year_n, floor_label="HSF"
+    ):
         """RES vs CVaR curve with current target and RES* marked."""
         thisyear = int(year_n[0])
         valid = ~np.isnan(res_values)
@@ -1002,24 +997,29 @@ class PlotlyBackend(PlotBackend):
         y = res_values[valid]
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=x.tolist(), y=y.tolist(),
-            mode="lines", line=dict(color="darkorange", width=2),
-            showlegend=False,
-        ))
-        fig.add_vline(x=cvar_at_target / 1000, line_dash="dot", line_color="firebrick",
-                      opacity=0.6)
+        fig.add_trace(
+            go.Scatter(
+                x=x.tolist(),
+                y=y.tolist(),
+                mode="lines",
+                line=dict(color="darkorange", width=2),
+                showlegend=False,
+            )
+        )
+        fig.add_vline(x=cvar_at_target / 1000, line_dash="dot", line_color="firebrick", opacity=0.6)
         fig.add_hline(y=res_star, line_dash="dash", line_color="darkorange", opacity=0.5)
-        fig.add_trace(go.Scatter(
-            x=[cvar_star / 1000], y=[res_star],
-            mode="markers+text",
-            marker=dict(symbol="diamond", color="darkorange", size=12),
-            text=[f"RES*={res_star:.2f}"],
-            textposition="top right",
-            showlegend=False,
-        ))
-        fig.update_xaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$",
-                         title_font_size=14, tickfont_size=11)
+        fig.add_trace(
+            go.Scatter(
+                x=[cvar_star / 1000],
+                y=[res_star],
+                mode="markers+text",
+                marker=dict(symbol="diamond", color="darkorange", size=12),
+                text=[f"RES*={res_star:.2f}"],
+                textposition="top right",
+                showlegend=False,
+            )
+        )
+        fig.update_xaxes(title_text=f"CVaR ({thisyear} $k)", tickprefix="$", title_font_size=14, tickfont_size=11)
         fig.update_yaxes(title_text="RES", title_font_size=14, tickfont_size=11)
         fig.update_layout(
             title=dict(text=f"Retirement Efficiency Score vs tail risk ({floor_label} floor)", font_size=20),
@@ -1027,8 +1027,9 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
-    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate_pct, year_n,
-                                 with_longevity=False):
+    def plot_stochastic_outcomes(
+        self, start_years, bases, g_opt, target_success_rate_pct, year_n, with_longevity=False
+    ):
         """Bar chart of achieved spending by scenario.
 
         Historical mode: bars by start year (x = historical start year).
@@ -1046,17 +1047,40 @@ class PlotlyBackend(PlotBackend):
             x = start_years.tolist()
             if success.any():
                 x_ok = [x[i] for i in range(len(x)) if success[i]]
-                fig.add_trace(go.Bar(x=x_ok, y=(achieved[success] / 1000).tolist(),
-                                     name="No shortfall", marker_color="mediumseagreen", opacity=0.8))
+                fig.add_trace(
+                    go.Bar(
+                        x=x_ok,
+                        y=(achieved[success] / 1000).tolist(),
+                        name="No shortfall",
+                        marker_color="mediumseagreen",
+                        opacity=0.8,
+                    )
+                )
             if (~success).any():
                 x_fail = [x[i] for i in range(len(x)) if not success[i]]
-                fig.add_trace(go.Bar(x=x_fail, y=(achieved[~success] / 1000).tolist(),
-                                     name="Shortfall", marker_color="tomato", opacity=0.8))
-            fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
-                          annotation_text=f"Commitment {u.d(g_opt)}", annotation_position="top right")
+                fig.add_trace(
+                    go.Bar(
+                        x=x_fail,
+                        y=(achieved[~success] / 1000).tolist(),
+                        name="Shortfall",
+                        marker_color="tomato",
+                        opacity=0.8,
+                    )
+                )
+            fig.add_hline(
+                y=g_opt / 1000,
+                line_dash="dash",
+                line_color="black",
+                annotation_text=f"Commitment {u.d(g_opt)}",
+                annotation_position="top right",
+            )
             fig.update_xaxes(title_text="Historical start year", title_font_size=14, tickfont_size=11)
-            fig.update_yaxes(title_text=f"Achieved {label.lower()} ({thisyear} $k)",
-                             tickprefix="$", title_font_size=14, tickfont_size=11)
+            fig.update_yaxes(
+                title_text=f"Achieved {label.lower()} ({thisyear} $k)",
+                tickprefix="$",
+                title_font_size=14,
+                tickfont_size=11,
+            )
         else:
             # Sort scenarios from worst to best; x-axis = scenario percentile (0–100%)
             order = np.argsort(achieved)
@@ -1067,29 +1091,43 @@ class PlotlyBackend(PlotBackend):
             fail_mask = ~sorted_ok
             ok_mask = sorted_ok
             if fail_mask.any():
-                fig.add_trace(go.Bar(
-                    x=[pct[i] for i in range(N) if fail_mask[i]],
-                    y=(sorted_ach[fail_mask] / 1000).tolist(),
-                    name="Shortfall", marker_color="tomato", opacity=0.8,
-                ))
+                fig.add_trace(
+                    go.Bar(
+                        x=[pct[i] for i in range(N) if fail_mask[i]],
+                        y=(sorted_ach[fail_mask] / 1000).tolist(),
+                        name="Shortfall",
+                        marker_color="tomato",
+                        opacity=0.8,
+                    )
+                )
             if ok_mask.any():
-                fig.add_trace(go.Bar(
-                    x=[pct[i] for i in range(N) if ok_mask[i]],
-                    y=(sorted_ach[ok_mask] / 1000).tolist(),
-                    name="No shortfall", marker_color="mediumseagreen", opacity=0.8,
-                ))
+                fig.add_trace(
+                    go.Bar(
+                        x=[pct[i] for i in range(N) if ok_mask[i]],
+                        y=(sorted_ach[ok_mask] / 1000).tolist(),
+                        name="No shortfall",
+                        marker_color="mediumseagreen",
+                        opacity=0.8,
+                    )
+                )
             n_ok = int(success.sum())
-            fig.add_hline(y=g_opt / 1000, line_dash="dash", line_color="black",
-                          annotation_text=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)",
-                          annotation_position="top left")
-            fig.update_xaxes(title_text="Scenario percentile", ticksuffix="%",
-                             title_font_size=14, tickfont_size=11)
-            fig.update_yaxes(title_text=f"Achieved {label.lower()} ({thisyear} $k)",
-                             tickprefix="$", title_font_size=14, tickfont_size=11)
+            fig.add_hline(
+                y=g_opt / 1000,
+                line_dash="dash",
+                line_color="black",
+                annotation_text=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)",
+                annotation_position="top left",
+            )
+            fig.update_xaxes(title_text="Scenario percentile", ticksuffix="%", title_font_size=14, tickfont_size=11)
+            fig.update_yaxes(
+                title_text=f"Achieved {label.lower()} ({thisyear} $k)",
+                tickprefix="$",
+                title_font_size=14,
+                tickfont_size=11,
+            )
 
         fig.update_layout(
-            title=dict(text=f"Scenario outcomes — {target_success_rate_pct:.0f}% target{longevity_tag}",
-                       font_size=20),
+            title=dict(text=f"Scenario outcomes — {target_success_rate_pct:.0f}% target{longevity_tag}", font_size=20),
             template=self.template,
             barmode="overlay",
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
@@ -1106,30 +1144,43 @@ class PlotlyBackend(PlotBackend):
         age_start = min(current_ages)
         survival_full = []
 
-        for i, (sex, ca) in enumerate(zip(sexes, current_ages)):
+        for i, (sex, ca) in enumerate(zip(sexes, current_ages, strict=True)):
             ages_i, pmf_i = survival_pmf(sex, ca, table=table)
             surv_i = np.concatenate([[1.0], 1.0 - np.cumsum(pmf_i[:-1])])
             n_prepend = ca - age_start
             full_surv = np.concatenate([np.ones(n_prepend), surv_i])
             survival_full.append(full_surv)
-            fig.add_trace(go.Scatter(
-                x=ages_i.tolist(), y=(surv_i * 100).tolist(),
-                mode="lines", name=inames[i],
-                line=dict(color=colors[i % len(colors)], width=2),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=ages_i.tolist(),
+                    y=(surv_i * 100).tolist(),
+                    mode="lines",
+                    name=inames[i],
+                    line=dict(color=colors[i % len(colors)], width=2),
+                )
+            )
 
         if len(current_ages) == 2:
             ages_common = np.arange(age_start, age_start + len(survival_full[0]), dtype=int)
             joint_surv = 1.0 - np.prod([1.0 - s for s in survival_full], axis=0)
-            fig.add_trace(go.Scatter(
-                x=ages_common.tolist(), y=(joint_surv * 100).tolist(),
-                mode="lines", name="Joint (last survivor)",
-                line=dict(color="mediumpurple", width=2, dash="dot"),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=ages_common.tolist(),
+                    y=(joint_surv * 100).tolist(),
+                    mode="lines",
+                    name="Joint (last survivor)",
+                    line=dict(color="mediumpurple", width=2, dash="dot"),
+                )
+            )
 
         fig.update_xaxes(title_text="Age", title_font_size=14, tickfont_size=11)
-        fig.update_yaxes(title_text="Probability of being alive (%)", ticksuffix="%",
-                         title_font_size=14, tickfont_size=11, range=[0, 101])
+        fig.update_yaxes(
+            title_text="Probability of being alive (%)",
+            ticksuffix="%",
+            title_font_size=14,
+            tickfont_size=11,
+            range=[0, 101],
+        )
         fig.update_layout(
             title=dict(text=f"Survival curves — {table}", font_size=20),
             template=self.template,
@@ -1148,40 +1199,52 @@ class PlotlyBackend(PlotBackend):
             ages_i = drawn_lifespans[:, i]
             median_i = int(np.median(ages_i))
             median_lines.append(f"{median_i}  {inames[i]}")
-            fig.add_trace(go.Histogram(
-                x=ages_i.tolist(),
-                name=inames[i],
-                marker_color=colors[i % len(colors)],
-                opacity=0.75,
-                xbins=dict(size=1),
-                bingroup=1,
-            ))
+            fig.add_trace(
+                go.Histogram(
+                    x=ages_i.tolist(),
+                    name=inames[i],
+                    marker_color=colors[i % len(colors)],
+                    opacity=0.75,
+                    xbins=dict(size=1),
+                    bingroup=1,
+                )
+            )
 
         if n_i == 2:
             joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
             joint_median = int(np.median(joint_ages))
             median_lines.append(f"{joint_median}  Joint")
-            fig.add_trace(go.Histogram(
-                x=joint_ages.tolist(),
-                name="Joint (last survivor)",
-                marker_color="mediumpurple",
-                opacity=0.5,
-                xbins=dict(size=1),
-                bingroup=1,
-            ))
+            fig.add_trace(
+                go.Histogram(
+                    x=joint_ages.tolist(),
+                    name="Joint (last survivor)",
+                    marker_color="mediumpurple",
+                    opacity=0.5,
+                    xbins=dict(size=1),
+                    bingroup=1,
+                )
+            )
 
         annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
         fig.add_annotation(
             text="<b>Medians</b>",
-            xref="paper", yref="paper", x=0.02, y=0.99,
-            xanchor="left", showarrow=False,
+            xref="paper",
+            yref="paper",
+            x=0.02,
+            y=0.99,
+            xanchor="left",
+            showarrow=False,
             font=dict(size=15, color="gray"),
         )
-        for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
+        for k, (line, color) in enumerate(zip(median_lines, annotation_colors, strict=True)):
             fig.add_annotation(
                 text=line,
-                xref="paper", yref="paper", x=0.02, y=0.89 - k * 0.10,
-                xanchor="left", showarrow=False,
+                xref="paper",
+                yref="paper",
+                x=0.02,
+                y=0.89 - k * 0.10,
+                xanchor="left",
+                showarrow=False,
                 font=dict(size=15, color=color),
             )
 
@@ -1199,9 +1262,16 @@ class PlotlyBackend(PlotBackend):
         """Diverging bar chart of retention margin above real break-even. Reference at 0."""
         title = title.replace("\n", "<br>")
         colors = ["steelblue" if (not np.isnan(m) and m > 0) else "tomato" for m in margin_n]
-        fig = go.Figure(go.Bar(x=year_n, y=margin_n, marker_color=colors, opacity=0.85,
-                               name="Retention margin",
-                               hovertemplate="%{x}: %{y:+.1f} pp<extra></extra>"))
+        fig = go.Figure(
+            go.Bar(
+                x=year_n,
+                y=margin_n,
+                marker_color=colors,
+                opacity=0.85,
+                name="Retention margin",
+                hovertemplate="%{x}: %{y:+.1f} pp<extra></extra>",
+            )
+        )
         fig.add_hline(y=0, line_width=1, line_color="black")
         fig.update_layout(
             title=title,
@@ -1258,14 +1328,9 @@ class PlotlyBackend(PlotBackend):
 
             # Add stacked area traces
             for data, dname in stack_data:
-                fig.add_trace(go.Scatter(
-                    x=years_n,
-                    y=data/1000,
-                    name=dname,
-                    stackgroup="one",
-                    fill="tonexty",
-                    opacity=0.6
-                ))
+                fig.add_trace(
+                    go.Scatter(x=years_n, y=data / 1000, name=dname, stackgroup="one", fill="tonexty", opacity=0.6)
+                )
 
             # Update layout
             title = f"{name}<br>Asset Composition - {jkey}"
@@ -1279,7 +1344,7 @@ class PlotlyBackend(PlotBackend):
                 template=self.template,
                 showlegend=True,
                 legend={**_LEGEND_BOTTOM, "y": -0.65},
-                margin=dict(b=150)
+                margin=dict(b=150),
             )
 
             # Format y-axis as k
@@ -1321,19 +1386,14 @@ class PlotlyBackend(PlotBackend):
                     stack_names.append(aname)
 
                     # Get allocation data
-                    data = 100*alpha_ijkn[i, acList.index(acType), assetDic[key], :len(year_n)]
+                    data = 100 * alpha_ijkn[i, acList.index(acType), assetDic[key], : len(year_n)]
                     stack_data.append(data)
 
                 # Add stacked area traces
                 for data, name in zip(stack_data, stack_names, strict=True):
-                    fig.add_trace(go.Scatter(
-                        x=year_n,
-                        y=data,
-                        name=name,
-                        stackgroup="one",
-                        fill="tonexty",
-                        opacity=0.6
-                    ))
+                    fig.add_trace(
+                        go.Scatter(x=year_n, y=data, name=name, stackgroup="one", fill="tonexty", opacity=0.6)
+                    )
 
                 # Update layout
                 plot_title = f"{title} - {acType} {inames[i]}"
@@ -1344,7 +1404,7 @@ class PlotlyBackend(PlotBackend):
                     template=self.template,
                     showlegend=True,
                     legend=_LEGEND_BOTTOM_REVERSED,
-                    margin=dict(b=150)
+                    margin=dict(b=150),
                 )
 
                 # Format y-axis as percentage
@@ -1380,14 +1440,9 @@ class PlotlyBackend(PlotBackend):
 
         # Add stacked area traces for each account type
         for account_name, data in nonzero_series.items():
-            fig.add_trace(go.Scatter(
-                x=year_n_full,
-                y=data,
-                name=account_name,
-                stackgroup="one",
-                fill="tonexty",
-                opacity=0.6
-            ))
+            fig.add_trace(
+                go.Scatter(x=year_n_full, y=data, name=account_name, stackgroup="one", fill="tonexty", opacity=0.6)
+            )
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -1398,7 +1453,7 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend=_LEGEND_BOTTOM_REVERSED,
-            margin=dict(b=150)
+            margin=dict(b=150),
         )
 
         # Format y-axis as currency
@@ -1416,7 +1471,7 @@ class PlotlyBackend(PlotBackend):
             scale = 1.0
         else:
             yformat = f"$k (constant {year_n[0]})"
-            scale = gamma_n[:len(year_n_full)]
+            scale = gamma_n[: len(year_n_full)]
 
         def _scaled(arr):
             return np.asarray(arr) / (scale * 1000)
@@ -1425,34 +1480,54 @@ class PlotlyBackend(PlotBackend):
         for name, arr in bs_data["assets"].items():
             data = _scaled(arr)
             if np.max(np.abs(data)) > 1.0e-3:
-                fig.add_trace(go.Scatter(
-                    x=year_n_full, y=data, name=name,
-                    stackgroup="assets", fill="tonexty", opacity=0.6,
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n_full,
+                        y=data,
+                        name=name,
+                        stackgroup="assets",
+                        fill="tonexty",
+                        opacity=0.6,
+                    )
+                )
 
         # Liabilities stacked below zero (shown as negative).
         for name, arr in bs_data["liabilities"].items():
             data = -_scaled(arr)
             if np.max(np.abs(data)) > 1.0e-3:
-                fig.add_trace(go.Scatter(
-                    x=year_n_full, y=data, name=name,
-                    stackgroup="liabilities", fill="tonexty", opacity=0.6,
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n_full,
+                        y=data,
+                        name=name,
+                        stackgroup="liabilities",
+                        fill="tonexty",
+                        opacity=0.6,
+                    )
+                )
 
         # Net-worth lines overlaid on top.  A neutral mid-grey reads as a summary
         # line (every stacked band is colored) and keeps roughly equal contrast
         # against both light and dark themes.
         nw_color = "#808080"
-        fig.add_trace(go.Scatter(
-            x=year_n_full, y=_scaled(bs_data["net worth"]),
-            name="net worth", mode="lines",
-            line=dict(color=nw_color, width=2.5),
-        ))
-        fig.add_trace(go.Scatter(
-            x=year_n_full, y=_scaled(bs_data["liquid net worth"]),
-            name="liquid net worth", mode="lines",
-            line=dict(color=nw_color, width=2.5, dash="dash"),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=year_n_full,
+                y=_scaled(bs_data["net worth"]),
+                name="net worth",
+                mode="lines",
+                line=dict(color=nw_color, width=2.5),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=year_n_full,
+                y=_scaled(bs_data["liquid net worth"]),
+                name="liquid net worth",
+                mode="lines",
+                line=dict(color=nw_color, width=2.5, dash="dash"),
+            )
+        )
 
         title = title.replace("\n", "<br>")
         fig.update_layout(
@@ -1481,15 +1556,18 @@ class PlotlyBackend(PlotBackend):
             scale = gamma_n[:-1]
 
         _hsa_thr = 1.0e-3
-        has_medicare = (
-            "medicare_withdrawals" in hsa_data
-            and np.max(np.abs(hsa_data["medicare_withdrawals"])) > 0
-        )
+        has_medicare = "medicare_withdrawals" in hsa_data and np.max(np.abs(hsa_data["medicare_withdrawals"])) > 0
         fig = go.Figure()
         title_html = title.replace("\n", "<br>")
         colors = [
-            "#636EFA", "#EF553B", "#00CC96", "#AB63FA",
-            "#FFA15A", "#19D3F3", "#FF6692", "#B6E880",
+            "#636EFA",
+            "#EF553B",
+            "#00CC96",
+            "#AB63FA",
+            "#FFA15A",
+            "#19D3F3",
+            "#FF6692",
+            "#B6E880",
         ]
         n_ind = len(inames)
         for i, iname in enumerate(inames):
@@ -1499,45 +1577,61 @@ class PlotlyBackend(PlotBackend):
             ctrb = hsa_data["contributions"][i] / (scale * 1000)
             wdrwl = hsa_data["withdrawals"][i] / (scale * 1000)
             if np.max(np.abs(bal)) > _hsa_thr:
-                fig.add_trace(go.Scatter(
-                    x=year_n_full, y=bal,
-                    name=f"balance {iname}",
-                    fill="tozeroy", opacity=0.4,
-                    line=dict(color=c),
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n_full,
+                        y=bal,
+                        name=f"balance {iname}",
+                        fill="tozeroy",
+                        opacity=0.4,
+                        line=dict(color=c),
+                    )
+                )
             if np.max(np.abs(ctrb)) > _hsa_thr:
-                fig.add_trace(go.Scatter(
-                    x=year_n, y=ctrb,
-                    name=f"contributions {iname}",
-                    line=dict(color=c, dash="dash"),
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n,
+                        y=ctrb,
+                        name=f"contributions {iname}",
+                        line=dict(color=c, dash="dash"),
+                    )
+                )
             if has_medicare:
                 med = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
                 nonmed = wdrwl - med
                 if np.max(np.abs(med)) > _hsa_thr:
-                    fig.add_trace(go.Scatter(
-                        x=year_n, y=med,
-                        name=f"Medicare {iname}",
-                        stackgroup=f"wdrwl_{i}",
-                        opacity=0.65,
-                        line=dict(color=mc, width=0),
-                        fillcolor=mc,
-                    ))
+                    fig.add_trace(
+                        go.Scatter(
+                            x=year_n,
+                            y=med,
+                            name=f"Medicare {iname}",
+                            stackgroup=f"wdrwl_{i}",
+                            opacity=0.65,
+                            line=dict(color=mc, width=0),
+                            fillcolor=mc,
+                        )
+                    )
                 if np.max(np.abs(nonmed)) > _hsa_thr:
-                    fig.add_trace(go.Scatter(
-                        x=year_n, y=nonmed,
-                        name=f"QME {iname}",
-                        stackgroup=f"wdrwl_{i}",
-                        opacity=0.3,
-                        line=dict(color=c, width=0),
-                        fillcolor=c,
-                    ))
+                    fig.add_trace(
+                        go.Scatter(
+                            x=year_n,
+                            y=nonmed,
+                            name=f"QME {iname}",
+                            stackgroup=f"wdrwl_{i}",
+                            opacity=0.3,
+                            line=dict(color=c, width=0),
+                            fillcolor=c,
+                        )
+                    )
             elif np.max(np.abs(wdrwl)) > _hsa_thr:
-                fig.add_trace(go.Scatter(
-                    x=year_n, y=wdrwl,
-                    name=f"withdrawals {iname}",
-                    line=dict(color=c, dash="dot"),
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n,
+                        y=wdrwl,
+                        name=f"withdrawals {iname}",
+                        line=dict(color=c, dash="dot"),
+                    )
+                )
 
         fig.update_layout(
             title=title_html,
@@ -1584,14 +1678,7 @@ class PlotlyBackend(PlotBackend):
         # Add stacked area traces for each source type
         for source_name, data in nonzero_series.items():
             group = "negative" if np.sum(data) < 0 else "positive"
-            fig.add_trace(go.Scatter(
-                x=year_n,
-                y=data,
-                name=source_name,
-                stackgroup=group,
-                fill="tonexty",
-                opacity=0.6
-            ))
+            fig.add_trace(go.Scatter(x=year_n, y=data, name=source_name, stackgroup=group, fill="tonexty", opacity=0.6))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -1601,7 +1688,7 @@ class PlotlyBackend(PlotBackend):
             template=self.template,
             showlegend=True,
             legend={**_LEGEND_BOTTOM_REVERSED, "y": -0.75},
-            margin=dict(b=150)
+            margin=dict(b=150),
         )
 
         # Format y-axis as k
@@ -1612,24 +1699,24 @@ class PlotlyBackend(PlotBackend):
     def plot_lifetime_allocation(self, alloc, name):
         """Plot two pie charts: lifetime outflows breakdown and income sources."""
         outflow_labels_map = {
-            "living":     "Living expenses",
-            "taxes":      "Taxes",
+            "living": "Living expenses",
+            "taxes": "Taxes",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
-            "debt":       "Debt payments",
-            "bti":        "Big-ticket items",
-            "bequest":    "Bequest",
-            "heirtax":    "Est. heir taxes",
+            "debt": "Debt payments",
+            "bti": "Big-ticket items",
+            "bequest": "Bequest",
+            "heirtax": "Est. heir taxes",
         }
         income_labels_map = {
-            "portfolio":   "Portfolio",
-            "ss":          "Social Security",
-            "pension":     "Pension",
-            "wages":       "Wages",
-            "spia":        "SPIA",
+            "portfolio": "Portfolio",
+            "ss": "Social Security",
+            "pension": "Pension",
+            "wages": "Wages",
+            "spia": "SPIA",
             "fixedassets": "Fixed assets",
-            "other":       "Other income",
-            "bti":         "Big-ticket items",
+            "other": "Other income",
+            "bti": "Big-ticket items",
         }
 
         def _pie_data(values_dict, labels_map, color_map):
@@ -1648,28 +1735,40 @@ class PlotlyBackend(PlotBackend):
             return None
 
         fig = make_subplots(
-            rows=1, cols=2,
+            rows=1,
+            cols=2,
             specs=[[{"type": "pie"}, {"type": "pie"}]],
             subplot_titles=["Sources of income", "Outflows breakdown"],
         )
-        fig.add_trace(go.Pie(
-            labels=inc_labels, values=inc_values,
-            marker_colors=inc_colors,
-            textinfo="label+percent",
-            hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
-        ), row=1, col=1)
-        fig.add_trace(go.Pie(
-            labels=out_labels, values=out_values,
-            marker_colors=out_colors,
-            textinfo="label+percent",
-            hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
-        ), row=1, col=2)
+        fig.add_trace(
+            go.Pie(
+                labels=inc_labels,
+                values=inc_values,
+                marker_colors=inc_colors,
+                textinfo="label+percent",
+                hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
+            ),
+            row=1,
+            col=1,
+        )
+        fig.add_trace(
+            go.Pie(
+                labels=out_labels,
+                values=out_values,
+                marker_colors=out_colors,
+                textinfo="label+percent",
+                hovertemplate="%{label}<br>$%{value:,.0f}k<br>%{percent}<extra></extra>",
+            ),
+            row=1,
+            col=2,
+        )
         fa_bequest = alloc.get("fa_bequest", 0.0)
-        fa_note = f" (excl. ${fa_bequest/1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
+        fa_note = f" (excl. ${fa_bequest / 1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
         fig.update_layout(
             title=dict(
                 text=name + "<br>Lifetime Cash Flow (today's $)" + fa_note,
-                x=0.5, xanchor="center",
+                x=0.5,
+                xanchor="center",
             ),
             template=self.template,
             showlegend=False,
@@ -1679,29 +1778,30 @@ class PlotlyBackend(PlotBackend):
     def plot_cashflow_mix(self, mix, name):
         """Plot annual cash flow breakdown as normalized stacked-area charts (%)."""
         outflow_labels = {
-            "living":     "Living expenses",
-            "taxes":      "Taxes",
+            "living": "Living expenses",
+            "taxes": "Taxes",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
-            "debt":       "Debt payments",
-            "bti":        "Big-ticket items",
+            "debt": "Debt payments",
+            "bti": "Big-ticket items",
         }
         # portfolio is first so it anchors the bottom of the income stack.
         income_labels = {
-            "portfolio":   "Portfolio",
-            "ss":          "Social Security",
-            "pension":     "Pension",
-            "wages":       "Wages",
-            "spia":        "SPIA",
+            "portfolio": "Portfolio",
+            "ss": "Social Security",
+            "pension": "Pension",
+            "wages": "Wages",
+            "spia": "SPIA",
             "fixedassets": "Fixed assets",
-            "other":       "Other income",
-            "bti":         "Big-ticket items",
+            "other": "Other income",
+            "bti": "Big-ticket items",
         }
 
         year_n = mix["year_n"]
 
         fig = make_subplots(
-            rows=1, cols=2,
+            rows=1,
+            cols=2,
             subplot_titles=["Sources of income", "Outflows breakdown"],
         )
 
@@ -1709,35 +1809,45 @@ class PlotlyBackend(PlotBackend):
         for key, label in income_labels.items():
             data = mix["income"].get(key)
             if data is not None and data.max() > 0:
-                fig.add_trace(go.Scatter(
-                    x=year_n, y=data,
-                    name=label,
-                    stackgroup="income",
-                    groupnorm="percent",
-                    fill="tonexty",
-                    opacity=0.7,
-                    marker_color=_INCOME_COLORS[key],
-                    hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
-                    legend="legend",
-                    showlegend=True,
-                ), row=1, col=1)
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n,
+                        y=data,
+                        name=label,
+                        stackgroup="income",
+                        groupnorm="percent",
+                        fill="tonexty",
+                        opacity=0.7,
+                        marker_color=_INCOME_COLORS[key],
+                        hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
+                        legend="legend",
+                        showlegend=True,
+                    ),
+                    row=1,
+                    col=1,
+                )
                 has_inc = True
 
         for key, label in outflow_labels.items():
             data = mix["outflows"].get(key)
             if data is not None and data.max() > 0:
-                fig.add_trace(go.Scatter(
-                    x=year_n, y=data,
-                    name=label,
-                    stackgroup="outflows",
-                    groupnorm="percent",
-                    fill="tonexty",
-                    opacity=0.7,
-                    marker_color=_OUTFLOW_COLORS[key],
-                    hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
-                    legend="legend2",
-                    showlegend=True,
-                ), row=1, col=2)
+                fig.add_trace(
+                    go.Scatter(
+                        x=year_n,
+                        y=data,
+                        name=label,
+                        stackgroup="outflows",
+                        groupnorm="percent",
+                        fill="tonexty",
+                        opacity=0.7,
+                        marker_color=_OUTFLOW_COLORS[key],
+                        hovertemplate=f"{label}: %{{y:.1f}}%<extra></extra>",
+                        legend="legend2",
+                        showlegend=True,
+                    ),
+                    row=1,
+                    col=2,
+                )
                 has_out = True
 
         if not has_out or not has_inc:
@@ -1748,19 +1858,26 @@ class PlotlyBackend(PlotBackend):
         fig.update_layout(
             title=dict(
                 text=name + "<br>Annual Cash Flow Mix (today's $, bequest excl.)",
-                x=0.5, xanchor="center",
+                x=0.5,
+                xanchor="center",
             ),
             template=self.template,
             showlegend=True,
             legend=dict(
-                x=0.44, y=0.02, xanchor="right", yanchor="bottom",
+                x=0.44,
+                y=0.02,
+                xanchor="right",
+                yanchor="bottom",
                 orientation="v",
                 bgcolor="rgba(255,255,255,0.15)",
                 bordercolor="rgba(128,128,128,0.3)",
                 borderwidth=1,
             ),
             legend2=dict(
-                x=0.98, y=0.02, xanchor="right", yanchor="bottom",
+                x=0.98,
+                y=0.02,
+                xanchor="right",
+                yanchor="bottom",
                 orientation="v",
                 bgcolor="rgba(255,255,255,0.15)",
                 bordercolor="rgba(128,128,128,0.3)",

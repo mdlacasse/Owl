@@ -36,8 +36,8 @@ except FileNotFoundError:
     st.stop()
 
 # Split preamble from ## sections
-parts = re.split(r'\n(?=## )', content)
-preamble = parts[0].strip().rstrip('-').strip()
+parts = re.split(r"\n(?=## )", content)
+preamble = parts[0].strip().rstrip("-").strip()
 sections = parts[1:]
 
 kz.initGlobalKey("paramsExpandAll", False)
@@ -63,13 +63,13 @@ with col2:
 
 # st.divider()
 for i, section in enumerate(sections):
-    heading, _, body = section.partition('\n')
+    heading, _, body = section.partition("\n")
     # Strip trailing horizontal rules added as separators in the source
-    body = body.strip().rstrip('-').strip()
+    body = body.strip().rstrip("-").strip()
     # Extract label: remove "## " prefix, add bold inside any :orange[...] wrapper
-    label = re.sub(r'^##\s+', '', heading)
-    label = re.sub(r':orange\[(.+?)\]', r':orange[**\1**]', label)
-    if not label.startswith(':orange['):
+    label = re.sub(r"^##\s+", "", heading)
+    label = re.sub(r":orange\[(.+?)\]", r":orange[**\1**]", label)
+    if not label.startswith(":orange["):
         label = f":orange[**{label}**]"
     with st.expander(label, expanded=expand_all or (i == 0), type="compact"):
         st.markdown(body)

@@ -162,6 +162,7 @@ def test_vprint_with_file_kwarg():
 def test_deepcopy():
     """Test __deepcopy__ method."""
     import copy
+
     stream = StringIO()
     logger = log.Logger(verbose=False, logstreams=[stream, stream])
     logger.setVerbose(True)
@@ -176,6 +177,7 @@ def test_deepcopy():
 def test_deepcopy_with_custom_streams():
     """Test __deepcopy__ with custom streams."""
     import copy
+
     stream1 = StringIO()
     stream2 = StringIO()
     logger = log.Logger(verbose=False, logstreams=[stream1, stream2])

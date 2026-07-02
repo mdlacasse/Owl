@@ -80,8 +80,8 @@ SKIP_FIELDS = {
 # Sentinel overrides for fields with tight bounds or domain constraints, where
 # the generic "default + delta" sentinel would be invalid.
 SENTINEL_OVERRIDES = {
-    ("rates_selection", "dividend_rate"): 2.5,        # UI bounds dividend <= 5%
-    ("aca_settings", "aca_start_year"): 2030,          # setACA rejects 0 < year < 2000
+    ("rates_selection", "dividend_rate"): 2.5,  # UI bounds dividend <= 5%
+    ("aca_settings", "aca_start_year"): 2030,  # setACA rejects 0 < year < 2000
 }
 
 
@@ -176,8 +176,7 @@ def test_scalar_field_roundtrips_through_plan(section, field, kind, default):
         f"Wire it in plan_bridge.py or add to SKIP_FIELDS with a reason."
     )
     assert out[section][field] == pytest.approx(sentinel), (
-        f"{section}.{field} changed across plan round-trip: "
-        f"sent {sentinel!r}, got {out[section][field]!r}"
+        f"{section}.{field} changed across plan round-trip: sent {sentinel!r}, got {out[section][field]!r}"
     )
 
 
@@ -195,8 +194,7 @@ def test_scalar_field_roundtrips_through_ui(section, field, kind, default):
         f"Wire it in ui_bridge.py or add to SKIP_FIELDS with a reason."
     )
     assert out[section][field] == pytest.approx(sentinel), (
-        f"{section}.{field} changed across UI round-trip: "
-        f"sent {sentinel!r}, got {out[section][field]!r}"
+        f"{section}.{field} changed across UI round-trip: sent {sentinel!r}, got {out[section][field]!r}"
     )
 
 

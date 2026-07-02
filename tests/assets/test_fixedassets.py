@@ -37,7 +37,7 @@ class TestCalculateFutureValue:
         years = 10
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
         # FV = 100000 * (1.05)^10 ≈ 162889.46
-        expected = 100_000 * (1.05 ** 10)
+        expected = 100_000 * (1.05**10)
         assert future_value == pytest.approx(expected, abs=1.0)
 
     def test_zero_growth_rate(self):
@@ -70,7 +70,7 @@ class TestCalculateFutureValue:
         annual_rate = 10.0
         years = 5
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
-        expected = 100_000 * (1.10 ** 5)
+        expected = 100_000 * (1.10**5)
         assert future_value == pytest.approx(expected, abs=1.0)
 
     def test_fractional_years(self):
@@ -79,7 +79,7 @@ class TestCalculateFutureValue:
         annual_rate = 5.0
         years = 2.5
         future_value = fixedassets.calculate_future_value(current_value, annual_rate, years)
-        expected = 100_000 * (1.05 ** 2.5)
+        expected = 100_000 * (1.05**2.5)
         assert future_value == pytest.approx(expected, abs=1.0)
 
 
@@ -105,15 +105,19 @@ class TestGetFixedAssetsArrays:
 
     def test_annuity_asset(self):
         """Test fixed annuity asset (ordinary income)."""
-        df = pd.DataFrame([{
-            "name": "annuity",
-            "type": "fixed annuity",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 3.0,
-            "yod": 2025,
-            "commission": 0.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "annuity",
+                    "type": "fixed annuity",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 3.0,
+                    "yod": 2025,
+                    "commission": 0.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -124,15 +128,19 @@ class TestGetFixedAssetsArrays:
 
     def test_residence_single_small_gain(self):
         """Test primary residence with small gain (within exclusion)."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 400_000,
-            "rate": 2.0,
-            "yod": 2025,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 400_000,
+                    "rate": 2.0,
+                    "yod": 2025,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
@@ -145,15 +153,19 @@ class TestGetFixedAssetsArrays:
 
     def test_residence_single_large_gain(self):
         """Test primary residence with large gain (exceeds exclusion)."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 600_000,
-            "rate": 2.0,
-            "yod": 2025,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 600_000,
+                    "rate": 2.0,
+                    "yod": 2025,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
@@ -167,15 +179,19 @@ class TestGetFixedAssetsArrays:
 
     def test_residence_married_large_gain(self):
         """Test primary residence with married filing status."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 800_000,
-            "rate": 2.0,
-            "yod": 2025,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 800_000,
+                    "rate": 2.0,
+                    "yod": 2025,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(
@@ -189,15 +205,19 @@ class TestGetFixedAssetsArrays:
 
     def test_stocks_with_gain(self):
         """Test stocks asset with capital gain."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 150_000,
-            "rate": 5.0,
-            "yod": 2025,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 150_000,
+                    "rate": 5.0,
+                    "yod": 2025,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -209,15 +229,19 @@ class TestGetFixedAssetsArrays:
 
     def test_real_estate_with_gain(self):
         """Test real estate asset with capital gain."""
-        df = pd.DataFrame([{
-            "name": "rental",
-            "type": "real estate",
-            "basis": 300_000,
-            "value": 400_000,
-            "rate": 3.0,
-            "yod": 2025,
-            "commission": 6.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "rental",
+                    "type": "real estate",
+                    "basis": 300_000,
+                    "value": 400_000,
+                    "rate": 3.0,
+                    "yod": 2025,
+                    "commission": 6.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -227,15 +251,19 @@ class TestGetFixedAssetsArrays:
 
     def test_collectibles_with_gain(self):
         """Test collectibles asset with capital gain."""
-        df = pd.DataFrame([{
-            "name": "art",
-            "type": "collectibles",
-            "basis": 50_000,
-            "value": 80_000,
-            "rate": 4.0,
-            "yod": 2025,
-            "commission": 10.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "art",
+                    "type": "collectibles",
+                    "basis": 50_000,
+                    "value": 80_000,
+                    "rate": 4.0,
+                    "yod": 2025,
+                    "commission": 10.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -245,15 +273,19 @@ class TestGetFixedAssetsArrays:
 
     def test_precious_metals_with_gain(self):
         """Test precious metals asset with capital gain."""
-        df = pd.DataFrame([{
-            "name": "gold",
-            "type": "precious metals",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 2.0,
-            "yod": 2025,
-            "commission": 2.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "gold",
+                    "type": "precious metals",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 2.0,
+                    "yod": 2025,
+                    "commission": 2.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -263,15 +295,19 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_with_loss(self):
         """Test asset sold at a loss."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 80_000,
-            "rate": 0.0,
-            "yod": 2025,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 80_000,
+                    "rate": 0.0,
+                    "yod": 2025,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -283,15 +319,19 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_outside_horizon_before(self):
         """Test asset disposed before plan starts."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 2.0,
-            "yod": 2020,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 2.0,
+                    "yod": 2020,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -302,15 +342,19 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_outside_horizon_after(self):
         """Test asset disposed after plan ends - should not be in arrays."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 2.0,
-            "yod": 2040,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 2.0,
+                    "yod": 2040,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -322,15 +366,19 @@ class TestGetFixedAssetsArrays:
 
     def test_negative_yod_counts_from_plan_end(self):
         """Test negative yod offsets from the end of the plan."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 0.0,
-            "yod": -1,  # Last plan year
-            "commission": 0.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": -1,  # Last plan year
+                    "commission": 0.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 3  # Plan years: 2025, 2026, 2027
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -340,15 +388,19 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_with_future_growth(self):
         """Test asset that grows before disposition."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 100_000,  # Current value
-            "rate": 5.0,  # 5% growth per year
-            "yod": 2027,  # Disposed in 2 years
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 100_000,  # Current value
+                    "rate": 5.0,  # 5% growth per year
+                    "yod": 2027,  # Disposed in 2 years
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -361,26 +413,28 @@ class TestGetFixedAssetsArrays:
 
     def test_multiple_assets_same_year(self):
         """Test multiple assets disposed in same year."""
-        df = pd.DataFrame([
-            {
-                "name": "stocks",
-                "type": "stocks",
-                "basis": 100_000,
-                "value": 120_000,
-                "rate": 0.0,
-                "yod": 2026,
-                "commission": 1.0
-            },
-            {
-                "name": "annuity",
-                "type": "fixed annuity",
-                "basis": 50_000,
-                "value": 60_000,
-                "rate": 0.0,
-                "yod": 2026,
-                "commission": 0.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": 2026,
+                    "commission": 1.0,
+                },
+                {
+                    "name": "annuity",
+                    "type": "fixed annuity",
+                    "basis": 50_000,
+                    "value": 60_000,
+                    "rate": 0.0,
+                    "yod": 2026,
+                    "commission": 0.0,
+                },
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -392,26 +446,28 @@ class TestGetFixedAssetsArrays:
 
     def test_multiple_assets_different_years(self):
         """Test multiple assets disposed in different years."""
-        df = pd.DataFrame([
-            {
-                "name": "stocks",
-                "type": "stocks",
-                "basis": 100_000,
-                "value": 120_000,
-                "rate": 0.0,
-                "yod": 2026,
-                "commission": 1.0
-            },
-            {
-                "name": "house",
-                "type": "residence",
-                "basis": 200_000,
-                "value": 300_000,
-                "rate": 0.0,
-                "yod": 2028,
-                "commission": 5.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": 2026,
+                    "commission": 1.0,
+                },
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 0.0,
+                    "yod": 2028,
+                    "commission": 5.0,
+                },
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -423,15 +479,19 @@ class TestGetFixedAssetsArrays:
 
     def test_unknown_asset_type(self):
         """Test unknown asset type (should default to capital gains treatment)."""
-        df = pd.DataFrame([{
-            "name": "unknown",
-            "type": "unknown_type",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 0.0,
-            "yod": 2025,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "unknown",
+                    "type": "unknown_type",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": 2025,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -442,15 +502,19 @@ class TestGetFixedAssetsArrays:
 
     def test_case_insensitive_asset_type(self):
         """Test that asset type is case-insensitive."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "STOCKS",  # Uppercase
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 0.0,
-            "yod": 2025,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "STOCKS",  # Uppercase
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": 2025,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -460,16 +524,20 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_with_acquisition_year(self):
         """Test asset with explicit acquisition year (future acquisition)."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "year": 2027,  # Acquired in 2027
-            "basis": 100_000,
-            "value": 100_000,  # Value at acquisition
-            "rate": 5.0,
-            "yod": 2029,  # Disposed in 2029
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 100_000,
+                    "value": 100_000,  # Value at acquisition
+                    "rate": 5.0,
+                    "yod": 2029,  # Disposed in 2029
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -485,16 +553,20 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_acquired_future_disposed_beyond_plan(self):
         """Test asset acquired in future but disposed beyond plan - should not be in arrays."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "year": 2027,  # Acquired in 2027
-            "basis": 200_000,
-            "value": 200000,
-            "rate": 3.0,
-            "yod": 2040,  # Disposed beyond plan (plan ends 2034)
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 200_000,
+                    "value": 200000,
+                    "rate": 3.0,
+                    "yod": 2040,  # Disposed beyond plan (plan ends 2034)
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -505,16 +577,20 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_backward_compatibility_no_year_column(self):
         """Test backward compatibility when 'year' column is missing (defaults to thisyear)."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            # No "year" column - should default to thisyear
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 5.0,
-            "yod": 2027,  # Disposed in 2 years
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    # No "year" column - should default to thisyear
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,
+                    "yod": 2027,  # Disposed in 2 years
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -527,16 +603,20 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_acquired_after_plan_ends(self):
         """Test asset acquired after plan ends - should be ignored."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "year": 2040,  # Acquired after plan ends (plan ends 2034)
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 5.0,
-            "yod": 2045,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "year": 2040,  # Acquired after plan ends (plan ends 2034)
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,
+                    "yod": 2045,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -547,16 +627,20 @@ class TestGetFixedAssetsArrays:
 
     def test_asset_disposed_before_acquisition(self):
         """Test asset with invalid yod < acquisition year - should be ignored."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "year": 2027,  # Acquired in 2027
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 5.0,
-            "yod": 2025,  # Disposed before acquisition (invalid)
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,
+                    "yod": 2025,  # Disposed before acquisition (invalid)
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         tax_free, ordinary, capital = fixedassets.get_fixed_assets_arrays(df, N_n, None, thisyear)
@@ -582,15 +666,19 @@ class TestGetFixedAssetsBequestValue:
 
     def test_asset_disposed_beyond_plan(self):
         """Test asset with yod beyond plan end - should be in bequest."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 3.0,
-            "yod": 2040,  # Beyond plan end (plan ends 2034)
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 3.0,
+                    "yod": 2040,  # Beyond plan end (plan ends 2034)
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -604,15 +692,19 @@ class TestGetFixedAssetsBequestValue:
 
     def test_zero_yod_liquidates_at_plan_end(self):
         """Test yod=0 is treated as liquidated at plan end."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 110_000,
-            "rate": 0.0,
-            "yod": 0,
-            "commission": 0.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 110_000,
+                    "rate": 0.0,
+                    "yod": 0,
+                    "commission": 0.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 3  # Plan ends in 2027
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -621,16 +713,20 @@ class TestGetFixedAssetsBequestValue:
 
     def test_asset_with_acquisition_year_in_bequest(self):
         """Test asset with explicit acquisition year in bequest calculation."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "year": 2027,  # Acquired in 2027
-            "basis": 200_000,
-            "value": 200000,  # Value at acquisition
-            "rate": 3.0,
-            "yod": 2040,  # Beyond plan end
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 200_000,
+                    "value": 200000,  # Value at acquisition
+                    "rate": 3.0,
+                    "yod": 2040,  # Beyond plan end
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -643,15 +739,19 @@ class TestGetFixedAssetsBequestValue:
 
     def test_asset_disposed_during_plan_not_in_bequest(self):
         """Test asset disposed during plan - should NOT be in bequest."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 3.0,
-            "yod": 2030,  # Within plan (plan ends 2034)
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 3.0,
+                    "yod": 2030,  # Within plan (plan ends 2034)
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -660,16 +760,20 @@ class TestGetFixedAssetsBequestValue:
 
     def test_asset_acquired_after_plan_ends_not_in_bequest(self):
         """Test asset acquired after plan ends - should not be in bequest."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "year": 2040,  # Acquired after plan ends
-            "basis": 200_000,
-            "value": 200000,
-            "rate": 3.0,
-            "yod": 2045,
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "year": 2040,  # Acquired after plan ends
+                    "basis": 200_000,
+                    "value": 200000,
+                    "rate": 3.0,
+                    "yod": 2045,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -678,27 +782,29 @@ class TestGetFixedAssetsBequestValue:
 
     def test_multiple_assets_in_bequest(self):
         """Test multiple assets in bequest calculation."""
-        df = pd.DataFrame([
-            {
-                "name": "house1",
-                "type": "residence",
-                "basis": 200_000,
-                "value": 300_000,
-                "rate": 3.0,
-                "yod": 2040,  # Beyond plan
-                "commission": 5.0
-            },
-            {
-                "name": "house2",
-                "type": "residence",
-                "year": 2027,  # Acquired in 2027
-                "basis": 150_000,
-                "value": 150_000,
-                "rate": 2.0,
-                "yod": 2045,  # Beyond plan
-                "commission": 6.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house1",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 3.0,
+                    "yod": 2040,  # Beyond plan
+                    "commission": 5.0,
+                },
+                {
+                    "name": "house2",
+                    "type": "residence",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 150_000,
+                    "value": 150_000,
+                    "rate": 2.0,
+                    "yod": 2045,  # Beyond plan
+                    "commission": 6.0,
+                },
+            ]
+        )
         thisyear = 2025
         N_n = 10
         bequest = fixedassets.get_fixed_assets_bequest_value(df, N_n, None, thisyear)
@@ -709,26 +815,28 @@ class TestGetFixedAssetsBequestValue:
 
     def test_no_double_counting_arrays_vs_bequest(self):
         """Test that assets are not double-counted between arrays and bequest."""
-        df = pd.DataFrame([
-            {
-                "name": "stocks",
-                "type": "stocks",
-                "basis": 100_000,
-                "value": 100_000,
-                "rate": 5.0,
-                "yod": 2030,  # Within plan - should be in arrays only
-                "commission": 1.0
-            },
-            {
-                "name": "house",
-                "type": "residence",
-                "basis": 200_000,
-                "value": 200000,
-                "rate": 3.0,
-                "yod": 2040,  # Beyond plan - should be in bequest only
-                "commission": 5.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,
+                    "yod": 2030,  # Within plan - should be in arrays only
+                    "commission": 1.0,
+                },
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 200000,
+                    "rate": 3.0,
+                    "yod": 2040,  # Beyond plan - should be in bequest only
+                    "commission": 5.0,
+                },
+            ]
+        )
         thisyear = 2025
         N_n = 10
         # Check arrays
@@ -764,15 +872,19 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_asset_held_for_full_horizon(self):
         """Test asset held for the entire plan (yod beyond plan end)."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 0.0,  # No growth, for a simple check
-            "yod": 2040,  # Beyond plan end (plan ends 2034)
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 0.0,  # No growth, for a simple check
+                    "yod": 2040,  # Beyond plan end (plan ends 2034)
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -781,36 +893,44 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_asset_with_growth(self):
         """Test asset value grows over time before disposition."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 5.0,  # 5% growth per year
-            "yod": 2030,  # Disposed in 5 years
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,  # 5% growth per year
+                    "yod": 2030,  # Disposed in 5 years
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
         # Held from 2025 (index 0) through its 2030 disposition year (index 5),
         # gone by 2031 (index 6). The proceeds land in savings the year after yod.
         for n in range(6):
-            expected = 100_000 * (1.05 ** n)
+            expected = 100_000 * (1.05**n)
             assert values[n] == pytest.approx(expected, abs=1.0)
         assert np.all(values[6:] == 0)
 
     def test_asset_counted_through_disposition_year(self):
         """An asset is still counted in its disposition year and drops out the year after."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 0.0,
-            "yod": 2027,
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": 2027,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -818,20 +938,24 @@ class TestGetFixedAssetsCurrentValuesArray:
         assert values[0] == pytest.approx(120_000, abs=1.0)
         assert values[1] == pytest.approx(120_000, abs=1.0)
         assert values[n] == pytest.approx(120_000, abs=1.0)  # counted through yod
-        assert np.all(values[n + 1:] == 0)  # gone the year after yod
+        assert np.all(values[n + 1 :] == 0)  # gone the year after yod
 
     def test_asset_acquired_mid_horizon(self):
         """Test asset acquired after plan start is not counted before its reference year."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "year": 2027,  # Acquired in 2027
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 0.0,
-            "yod": 2040,  # Held beyond plan end
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "year": 2027,  # Acquired in 2027
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 0.0,
+                    "yod": 2040,  # Held beyond plan end
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -843,15 +967,19 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_negative_yod_counts_from_plan_end(self):
         """Test negative yod offsets from the end of the plan."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 120_000,
-            "rate": 0.0,
-            "yod": -1,  # Disposed in the last plan year
-            "commission": 0.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 120_000,
+                    "rate": 0.0,
+                    "yod": -1,  # Disposed in the last plan year
+                    "commission": 0.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 3  # Plan years: 2025, 2026, 2027
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -863,16 +991,20 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_asset_disposed_before_acquisition_ignored(self):
         """Test asset with invalid yod < acquisition year is ignored."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "year": 2027,
-            "basis": 100_000,
-            "value": 100_000,
-            "rate": 5.0,
-            "yod": 2025,  # Disposed before acquisition (invalid)
-            "commission": 1.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "year": 2027,
+                    "basis": 100_000,
+                    "value": 100_000,
+                    "rate": 5.0,
+                    "yod": 2025,  # Disposed before acquisition (invalid)
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -880,19 +1012,23 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_real_rate_asset_with_gamma(self):
         """Test real-rate asset type scales with gamma_n (inflation)."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 300_000,
-            "rate": 0.0,  # Real rate of 0 -> tracks inflation exactly
-            "yod": 2040,  # Held beyond plan
-            "commission": 5.0
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 0.0,  # Real rate of 0 -> tracks inflation exactly
+                    "yod": 2040,  # Held beyond plan
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 3
         # gamma_n: cumulative inflation factor, length N_n+1
-        gamma_n = np.array([1.0, 1.03, 1.03 ** 2, 1.03 ** 3])
+        gamma_n = np.array([1.0, 1.03, 1.03**2, 1.03**3])
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, gamma_n, thisyear)
         for n in range(N_n):
             expected = 300_000 * gamma_n[n] / gamma_n[0]
@@ -900,26 +1036,28 @@ class TestGetFixedAssetsCurrentValuesArray:
 
     def test_multiple_assets_summed(self):
         """Test multiple assets held simultaneously are summed."""
-        df = pd.DataFrame([
-            {
-                "name": "house",
-                "type": "residence",
-                "basis": 200_000,
-                "value": 300_000,
-                "rate": 0.0,
-                "yod": 2040,
-                "commission": 5.0
-            },
-            {
-                "name": "stocks",
-                "type": "stocks",
-                "basis": 50_000,
-                "value": 80_000,
-                "rate": 0.0,
-                "yod": 2027,
-                "commission": 1.0
-            }
-        ])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 300_000,
+                    "rate": 0.0,
+                    "yod": 2040,
+                    "commission": 5.0,
+                },
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 50_000,
+                    "value": 80_000,
+                    "rate": 0.0,
+                    "yod": 2027,
+                    "commission": 1.0,
+                },
+            ]
+        )
         thisyear = 2025
         N_n = 10
         values = fixedassets.get_fixed_assets_current_values_array(df, N_n, None, thisyear)
@@ -948,15 +1086,19 @@ class TestGetFixedAssetsDispositionCostsArray:
 
     def test_commission_plus_capgains(self):
         """Stocks: cost = commission + capgains_rate * gain (gain net of basis, after commission)."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 100_000,
-            "value": 200_000,
-            "rate": 0.0,
-            "yod": 2040,  # Held throughout
-            "commission": 1.0,
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 100_000,
+                    "value": 200_000,
+                    "rate": 0.0,
+                    "yod": 2040,  # Held throughout
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 3
         capgains_rate = 0.15
@@ -969,15 +1111,19 @@ class TestGetFixedAssetsDispositionCostsArray:
 
     def test_residence_exclusion_applied(self):
         """Residence gain within the $250k single exclusion incurs no cap-gains tax (commission only)."""
-        df = pd.DataFrame([{
-            "name": "house",
-            "type": "residence",
-            "basis": 200_000,
-            "value": 400_000,  # gain ~200k < 250k single exclusion
-            "rate": 0.0,
-            "yod": 2040,
-            "commission": 5.0,
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "house",
+                    "type": "residence",
+                    "basis": 200_000,
+                    "value": 400_000,  # gain ~200k < 250k single exclusion
+                    "rate": 0.0,
+                    "yod": 2040,
+                    "commission": 5.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 2
         costs = fixedassets.get_fixed_assets_disposition_costs_array(
@@ -990,15 +1136,19 @@ class TestGetFixedAssetsDispositionCostsArray:
 
     def test_asset_excluded_after_disposition(self):
         """The embedded disposition cost is booked through the disposition year, then drops out."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 50_000,
-            "value": 80_000,
-            "rate": 0.0,
-            "yod": 2027,
-            "commission": 1.0,
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 50_000,
+                    "value": 80_000,
+                    "rate": 0.0,
+                    "yod": 2027,
+                    "commission": 1.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 5
         costs = fixedassets.get_fixed_assets_disposition_costs_array(df, N_n, None, 0.15, thisyear)
@@ -1006,19 +1156,23 @@ class TestGetFixedAssetsDispositionCostsArray:
         assert costs[0] > 0
         assert costs[1] > 0
         assert costs[n] > 0  # counted through yod, matching the gross value array
-        assert np.all(costs[n + 1:] == 0)  # gone the year after yod
+        assert np.all(costs[n + 1 :] == 0)  # gone the year after yod
 
     def test_loss_incurs_commission_only(self):
         """An asset sold at a loss incurs only commission (no negative tax)."""
-        df = pd.DataFrame([{
-            "name": "stocks",
-            "type": "stocks",
-            "basis": 200_000,
-            "value": 100_000,
-            "rate": 0.0,
-            "yod": 2040,
-            "commission": 2.0,
-        }])
+        df = pd.DataFrame(
+            [
+                {
+                    "name": "stocks",
+                    "type": "stocks",
+                    "basis": 200_000,
+                    "value": 100_000,
+                    "rate": 0.0,
+                    "yod": 2040,
+                    "commission": 2.0,
+                }
+            ]
+        )
         thisyear = 2025
         N_n = 2
         costs = fixedassets.get_fixed_assets_disposition_costs_array(df, N_n, None, 0.15, thisyear)

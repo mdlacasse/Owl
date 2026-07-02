@@ -22,9 +22,7 @@ def test_compute_pension_benefits_single():
     horizons = np.array([20])
     N_i, N_n = 1, 20
 
-    pi_in = pension.compute_pension_benefits(
-        amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear
-    )
+    pi_in = pension.compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear)
     assert pi_in.shape == (1, 20)
     assert np.sum(pi_in) > 0
     assert np.sum(pi_in) == pytest.approx(12 * 1000 * 20, rel=0.01)  # ~full 20 years
@@ -40,9 +38,7 @@ def test_compute_pension_benefits_couple():
     horizons = np.array([20, 20])
     N_i, N_n = 2, 20
 
-    pi_in = pension.compute_pension_benefits(
-        amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear
-    )
+    pi_in = pension.compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear)
     assert pi_in.shape == (2, 20)
     assert np.sum(pi_in[0]) > 0
     assert np.sum(pi_in[1]) == 0
@@ -58,9 +54,7 @@ def test_compute_pension_benefits_zero_amounts():
     horizons = np.array([20, 20])
     N_i, N_n = 2, 20
 
-    pi_in = pension.compute_pension_benefits(
-        amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear
-    )
+    pi_in = pension.compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear)
     assert np.all(pi_in == 0)
 
 
@@ -74,9 +68,7 @@ def test_compute_pension_benefits_annual_conversion():
     horizons = np.array([10])
     N_i, N_n = 1, 10
 
-    pi_in = pension.compute_pension_benefits(
-        amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear
-    )
+    pi_in = pension.compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, thisyear=thisyear)
     # Should be 100*12 = 1200 per year for years 0-9 (already started)
     assert np.all(pi_in[0] == 1200)
 
@@ -97,9 +89,7 @@ def test_pension_survivor_benefit_added_to_pibar():
         "pension survivor test",
     )
     p.setSpendingProfile("flat", 50)
-    p.setAccountBalances(
-        taxable=[100, 100], taxDeferred=[200, 200], taxFree=[50, 50], startDate="1-1"
-    )
+    p.setAccountBalances(taxable=[100, 100], taxDeferred=[200, 200], taxFree=[50, 50], startDate="1-1")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]] * 2)
     p.setSocialSecurity([0, 0], [67, 67])
     # Jack: $1000/month ($12k/year), 50% survivor. Jill: no pension.
@@ -121,8 +111,7 @@ def test_pension_survivor_benefit_added_to_pibar():
     survivor_amt = 0.5 * primary_last
     for n in range(p.n_d, p.horizons[1]):
         assert p.piBar_in[1, n] >= survivor_amt * 0.99, (
-            f"Survivor piBar_in[1,{n}]={p.piBar_in[1, n]:.0f} "
-            f"expected >= {survivor_amt:.0f}"
+            f"Survivor piBar_in[1,{n}]={p.piBar_in[1, n]:.0f} expected >= {survivor_amt:.0f}"
         )
 
 
@@ -145,11 +134,16 @@ def test_compute_piBar_in_rate_sensitivity():
     gamma_2x = np.linspace(1.0, 2.0, N_n)  # inflation grows 1 -> 2
     for gamma in (gamma_flat, gamma_2x):
         piBar = pension.compute_piBar_in(
-            pi_in, gamma,
+            pi_in,
+            gamma,
             indexed=[False, False],
             survivor_fraction=np.array([0.5, 0.0]),
-            n_d=n_d, i_d=i_d, i_s=i_s,
-            horizons=horizons, N_i=N_i, N_n=N_n,
+            n_d=n_d,
+            i_d=i_d,
+            i_s=i_s,
+            horizons=horizons,
+            N_i=N_i,
+            N_n=N_n,
         )
         np.testing.assert_array_almost_equal(piBar[0], pi_in[0], err_msg="Non-indexed: piBar should equal pi_in")
         # Survivor gets 6k (50% of 12k), constant
@@ -158,18 +152,28 @@ def test_compute_piBar_in_rate_sensitivity():
 
     # Case 2: Indexed — piBar should scale with gamma
     piBar_flat = pension.compute_piBar_in(
-        pi_in, gamma_flat,
+        pi_in,
+        gamma_flat,
         indexed=[True, False],
         survivor_fraction=np.array([0.5, 0.0]),
-        n_d=n_d, i_d=i_d, i_s=i_s,
-        horizons=horizons, N_i=N_i, N_n=N_n,
+        n_d=n_d,
+        i_d=i_d,
+        i_s=i_s,
+        horizons=horizons,
+        N_i=N_i,
+        N_n=N_n,
     )
     piBar_2x = pension.compute_piBar_in(
-        pi_in, gamma_2x,
+        pi_in,
+        gamma_2x,
         indexed=[True, False],
         survivor_fraction=np.array([0.5, 0.0]),
-        n_d=n_d, i_d=i_d, i_s=i_s,
-        horizons=horizons, N_i=N_i, N_n=N_n,
+        n_d=n_d,
+        i_d=i_d,
+        i_s=i_s,
+        horizons=horizons,
+        N_i=N_i,
+        N_n=N_n,
     )
     # Primary: piBar[0,n] = pi_in[0,n] * gamma[n]; ratio should equal gamma ratio
     for n in range(5):

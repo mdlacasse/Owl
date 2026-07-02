@@ -51,8 +51,15 @@ def test_traditional_columns(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
     df = _sheet_df(wb, "Balance Sheet")
     assert list(df.columns) == [
-        "year", "taxable", "tax-deferred", "tax-free", "HSA",
-        "fixed assets", "total assets", "debt", "net worth",
+        "year",
+        "taxable",
+        "tax-deferred",
+        "tax-free",
+        "HSA",
+        "fixed assets",
+        "total assets",
+        "debt",
+        "net worth",
     ]
 
 
@@ -60,16 +67,25 @@ def test_liquid_columns(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
     df = _sheet_df(wb, "Liquid Balance Sheet")
     assert list(df.columns) == [
-        "year", "taxable", "tax-deferred", "tax-free", "HSA",
-        "fixed assets", "total assets", "debt", "deferred income tax",
-        "disposition costs", "total liabilities", "liquid net worth",
+        "year",
+        "taxable",
+        "tax-deferred",
+        "tax-free",
+        "HSA",
+        "fixed assets",
+        "total assets",
+        "debt",
+        "deferred income tax",
+        "disposition costs",
+        "total liabilities",
+        "liquid net worth",
     ]
 
 
 def test_traditional_net_worth_identity(alex_jamie_plan):
     wb = alex_jamie_plan.saveWorkbook(saveToFile=False)
     df = _sheet_df(wb, "Balance Sheet")
-    assets = (df["taxable"] + df["tax-deferred"] + df["tax-free"] + df["HSA"] + df["fixed assets"])
+    assets = df["taxable"] + df["tax-deferred"] + df["tax-free"] + df["HSA"] + df["fixed assets"]
     assert (assets - df["total assets"]).abs().max() == pytest.approx(0.0, abs=1.0)
     assert (df["total assets"] - df["debt"] - df["net worth"]).abs().max() == pytest.approx(0.0, abs=1.0)
 
@@ -83,8 +99,9 @@ def test_liquid_net_worth_identity(alex_jamie_plan):
     assert (df["deferred income tax"] - expected_tax).abs().max() == pytest.approx(0.0, abs=1.0)
     total_liab = df["debt"] + df["deferred income tax"] + df["disposition costs"]
     assert (df["total liabilities"] - total_liab).abs().max() == pytest.approx(0.0, abs=1.0)
-    assert (df["total assets"] - df["total liabilities"] - df["liquid net worth"]).abs().max() == \
-        pytest.approx(0.0, abs=1.0)
+    assert (df["total assets"] - df["total liabilities"] - df["liquid net worth"]).abs().max() == pytest.approx(
+        0.0, abs=1.0
+    )
 
 
 def test_liquid_net_worth_below_traditional(alex_jamie_plan):

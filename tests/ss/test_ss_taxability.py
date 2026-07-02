@@ -22,7 +22,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
 import numpy as np
 import pytest
 from datetime import date
@@ -31,8 +30,18 @@ import owlplanner as owl
 from owlplanner import tax_federal as tx
 
 
-def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
-                      pension=None, pension_ages=None, rate_year=2000, expectancy=None):
+def _make_couple_plan(
+    name,
+    taxable,
+    tax_deferred,
+    tax_free,
+    ss_pias,
+    ss_ages,
+    pension=None,
+    pension_ages=None,
+    rate_year=2000,
+    expectancy=None,
+):
     """
     Create a minimal Jack+Jill-style couple plan using historical rates.
 
@@ -40,26 +49,24 @@ def _make_couple_plan(name, taxable, tax_deferred, tax_free, ss_pias, ss_ages,
     expectancy defaults to [80, 80]; pass a shorter value to reduce MIP size.
     """
     thisyear = date.today().year
-    inames = ['Jack', 'Jill']
+    inames = ["Jack", "Jill"]
     # Jack 66 (past SS age), Jill 63 — both within expected SS window.
     dobs = [f"{thisyear - 66}-01-15", f"{thisyear - 63}-01-16"]
     if expectancy is None:
         expectancy = [80, 80]
 
     p = owl.Plan(inames, dobs, expectancy, name)
-    p.setSpendingProfile('flat', 60)
+    p.setSpendingProfile("flat", 60)
     p.setAccountBalances(taxable=taxable, taxDeferred=tax_deferred, taxFree=tax_free, startDate="1-1")
-    p.setInterpolationMethod('s-curve')
-    p.setAllocationRatios('individual',
-                          generic=[[[60, 40, 0, 0], [70, 30, 0, 0]],
-                                   [[50, 50, 0, 0], [70, 30, 0, 0]]])
+    p.setInterpolationMethod("s-curve")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
     if pension is not None:
         p.setPension(pension, pension_ages)
     else:
         p.setPension([0, 0], [65, 65])
 
-    p.setSocialSecurity(ss_pias, ss_ages)   # No tax_fraction → dynamic SC-loop computation
-    p.setRates('historical', rate_year)
+    p.setSocialSecurity(ss_pias, ss_ages)  # No tax_fraction → dynamic SC-loop computation
+    p.setRates("historical", rate_year)
     return p
 
 
@@ -73,13 +80,17 @@ def test_ss_feasible_and_bounded():
     only assert the valid range.
     """
     p = _make_couple_plan(
-        'ss_feasible',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
-        pension=[0, 10], pension_ages=[65, 65],
+        "ss_feasible",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+        pension=[0, 10],
+        pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     psi_ss = p.Psi_n[ss_mask]
@@ -99,14 +110,18 @@ def test_ss_max_bracket():
     the cap.  After the first spouse dies, solo income may be lower.
     """
     p = _make_couple_plan(
-        'ss_max',
-        taxable=[100, 50], tax_deferred=[500, 200], tax_free=[100, 50],
-        ss_pias=[2_500, 2_000], ss_ages=[66, 66],
+        "ss_max",
+        taxable=[100, 50],
+        tax_deferred=[500, 200],
+        tax_free=[100, 50],
+        ss_pias=[2_500, 2_000],
+        ss_ages=[66, 66],
         # $3,500/month each = $42,000/year each (monthly dollar units for setPension)
-        pension=[3_500, 3_500], pension_ages=[65, 65],
+        pension=[3_500, 3_500],
+        pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     # Check only joint years (both spouses alive) — solo years may have lower Psi_n.
@@ -124,13 +139,17 @@ def test_ss_partial_bracket():
     Confirms the SC loop handles the intermediate bracket and produces valid Psi_n values.
     """
     p = _make_couple_plan(
-        'ss_partial',
-        taxable=[30, 20], tax_deferred=[200, 80], tax_free=[30, 20],
-        ss_pias=[1_500, 1_200], ss_ages=[67, 67],
-        pension=[5, 0], pension_ages=[65, 65],
+        "ss_partial",
+        taxable=[30, 20],
+        tax_deferred=[200, 80],
+        tax_free=[30, 20],
+        ss_pias=[1_500, 1_200],
+        ss_ages=[67, 67],
+        pension=[5, 0],
+        pension_ages=[65, 65],
     )
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     psi_ss = p.Psi_n[ss_mask]
@@ -186,13 +205,16 @@ def test_ss_dynamic_psi_varies():
       - Psi_n values vary (not uniformly fixed at the 0.85 default)
     """
     p = _make_couple_plan(
-        'ss_dynamic',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        "ss_dynamic",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
     )
     assert p.ssecTaxFraction is None, "Expected dynamic SC-loop mode (no tax_fraction)"
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     # Psi_n should vary across years (not uniformly 0.85 as in fixed-fraction mode).
@@ -208,14 +230,18 @@ def test_ss_lp_feasible_and_bounded():
     Jack (66→74) gets SS from age 67; Jill (63→74) gets SS from age 70.
     """
     p = _make_couple_plan(
-        'ss_lp_feasible',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
-        pension=[0, 10], pension_ages=[65, 65],
+        "ss_lp_feasible",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+        pension=[0, 10],
+        pension_ages=[65, 65],
         expectancy=[74, 74],
     )
-    p.solve('maxSpending', {'withSSTaxability': 'optimize', 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withSSTaxability": "optimize", "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     psi_ss = p.Psi_n[ss_mask]
@@ -232,23 +258,24 @@ def test_ss_lp_max_bracket():
     giving joint SS years 3–6 to verify the 85% cap — without a full 17-year MIP.
     """
     p = _make_couple_plan(
-        'ss_lp_max',
-        taxable=[100, 50], tax_deferred=[500, 200], tax_free=[100, 50],
-        ss_pias=[2_500, 2_000], ss_ages=[66, 66],
-        pension=[3_500, 3_500], pension_ages=[65, 65],
+        "ss_lp_max",
+        taxable=[100, 50],
+        tax_deferred=[500, 200],
+        tax_free=[100, 50],
+        ss_pias=[2_500, 2_000],
+        ss_ages=[66, 66],
+        pension=[3_500, 3_500],
+        pension_ages=[65, 65],
         expectancy=[74, 74],
     )
-    p.solve('maxSpending', {'withSSTaxability': 'optimize',
-                            'gap': 1e-5, 'relTol': 1e-5, 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus}"
+    p.solve("maxSpending", {"withSSTaxability": "optimize", "gap": 1e-5, "relTol": 1e-5, "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     joint_mask = np.arange(p.N_n) < p.n_d
     joint_ss_mask = ss_mask & joint_mask
     assert joint_ss_mask.any(), "Expected some joint SS-active years"
     psi_joint = p.Psi_n[joint_ss_mask]
-    assert np.all(psi_joint > 0.84), (
-        f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
-    )
+    assert np.all(psi_joint > 0.84), f"Expected Psi_n≈0.85 for joint SS years, got min={psi_joint.min():.4f}"
 
 
 def test_ss_lp_vs_loop_consistency():
@@ -264,20 +291,24 @@ def test_ss_lp_vs_loop_consistency():
     years 1–6 and Jill (63→74) has SS years 7–9, giving 9/10 SS-active years.
     """
     p = _make_couple_plan(
-        'ss_consistency',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
-        pension=[500, 200], pension_ages=[65, 65],
+        "ss_consistency",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+        pension=[500, 200],
+        pension_ages=[65, 65],
         expectancy=[74, 74],
     )
     # SC-loop solve
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
-    obj_loop = p.g_n[0]   # nominal spending in year 0 (objective proxy)
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"SC-loop solver failed: {p.caseStatus}"
+    obj_loop = p.g_n[0]  # nominal spending in year 0 (objective proxy)
 
     # LP-based solve (exact MIP formulation)
-    p.solve('maxSpending', {'withSSTaxability': 'optimize', 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"LP solver failed: {p.caseStatus}"
+    p.solve("maxSpending", {"withSSTaxability": "optimize", "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"LP solver failed: {p.caseStatus}"
     obj_lp = p.g_n[0]
     psi_lp = p.Psi_n.copy()
 
@@ -307,16 +338,16 @@ def test_ss_lp_low_ss_high_income():
       - IRA balance $400k → large withdrawals drive PI >> Lo + ζ̄ = $31,000
     """
     thisyear = date.today().year
-    p = owl.Plan(['Kim'], [f'{thisyear - 66}-06-01'], [74], 'ss_lp_low_ss')
-    p.setSpendingProfile('flat', 60)
-    p.setAccountBalances(taxable=[0], taxDeferred=[400], taxFree=[0], startDate='1-1')
-    p.setInterpolationMethod('s-curve')
-    p.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p = owl.Plan(["Kim"], [f"{thisyear - 66}-06-01"], [74], "ss_lp_low_ss")
+    p.setSpendingProfile("flat", 60)
+    p.setAccountBalances(taxable=[0], taxDeferred=[400], taxFree=[0], startDate="1-1")
+    p.setInterpolationMethod("s-curve")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setPension([0], [65])
-    p.setSocialSecurity([500], [67])   # $500/month PIA → ζ̄ ≈ $6k/year < ΔP=$9k (single)
-    p.setRates('historical', 2000)
-    p.solve('maxSpending', {'withSSTaxability': 'optimize', 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver status: {p.caseStatus} (expected 'solved')"
+    p.setSocialSecurity([500], [67])  # $500/month PIA → ζ̄ ≈ $6k/year < ΔP=$9k (single)
+    p.setRates("historical", 2000)
+    p.solve("maxSpending", {"withSSTaxability": "optimize", "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus} (expected 'solved')"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     assert ss_mask.any(), "Expected some SS-active years"
     psi_ss = p.Psi_n[ss_mask]
@@ -333,16 +364,17 @@ def test_historical_crash_years_feasible():
     (-37% and -26% equities), and expectancy=[74, 74] for a small N_n≈10 plan.
     """
     p = _make_couple_plan(
-        'ss_crash_years',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        "ss_crash_years",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
         expectancy=[74, 74],
-        rate_year=1972,   # year 1 = 1973 crash (-37%), year 2 = 1974 crash (-26%)
+        rate_year=1972,  # year 1 = 1973 crash (-37%), year 2 = 1974 crash (-26%)
     )
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', (
-        f"Solver failed under 1973–74 crash rates: {p.caseStatus}"
-    )
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver failed under 1973–74 crash rates: {p.caseStatus}"
     # Psi_n must stay in [0, 0.85] even under extreme negative returns.
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
     if ss_mask.any():
@@ -357,18 +389,21 @@ def test_ss_fixed_fraction():
     and produce a different (lower) spending than the SC-loop default.
     """
     p = _make_couple_plan(
-        'ss_fixed_half',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        "ss_fixed_half",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
     )
     # SC-loop solve for reference
-    p.solve('maxSpending', {'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"SC-loop solver failed: {p.caseStatus}"
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved", f"SC-loop solver failed: {p.caseStatus}"
     obj_loop = p.g_n[0]
 
     # Fixed-fraction solve
-    p.solve('maxSpending', {'withSSTaxability': 0.5, 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Fixed-fraction solver failed: {p.caseStatus}"
+    p.solve("maxSpending", {"withSSTaxability": 0.5, "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Fixed-fraction solver failed: {p.caseStatus}"
     obj_fixed = p.g_n[0]
 
     # Psi_n must be uniformly 0.5 everywhere
@@ -387,12 +422,15 @@ def test_ss_fixed_fraction_zero():
     Numeric withSSTaxability=0.0 should pin Psi_n to 0 for all years.
     """
     p = _make_couple_plan(
-        'ss_fixed_zero',
-        taxable=[90, 60], tax_deferred=[600, 150], tax_free=[70, 40],
-        ss_pias=[2_333, 2_083], ss_ages=[67, 70],
+        "ss_fixed_zero",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
     )
-    p.solve('maxSpending', {'withSSTaxability': 0.0, 'withMedicare': 'None'})
-    assert p.caseStatus == 'solved', f"Solver failed: {p.caseStatus}"
+    p.solve("maxSpending", {"withSSTaxability": 0.0, "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver failed: {p.caseStatus}"
 
     # Psi_n must be uniformly 0.0
     assert np.allclose(p.Psi_n, 0.0, atol=1e-6), (

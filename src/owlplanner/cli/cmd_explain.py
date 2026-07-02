@@ -29,13 +29,15 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
     individuals = []
     for i in range(N_i):
         birth_year = int(plan.yobs[i])
-        individuals.append({
-            "name": plan.inames[i],
-            "birth_year": birth_year,
-            "current_age": current_year - birth_year,
-            "life_expectancy": int(plan.expectancy[i]),
-            "plan_end_year": int(plan.year_n[0]) + int(plan.horizons[i]) - 1,
-        })
+        individuals.append(
+            {
+                "name": plan.inames[i],
+                "birth_year": birth_year,
+                "current_age": current_year - birth_year,
+                "life_expectancy": int(plan.expectancy[i]),
+                "plan_end_year": int(plan.year_n[0]) + int(plan.horizons[i]) - 1,
+            }
+        )
 
     # beta_ij shape: (N_i, N_j), values in dollars; j=0 taxable, 1 tax-deferred, 2 roth, 3 hsa
     account_labels = ["taxable", "tax_deferred", "roth", "hsa"]
@@ -45,8 +47,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
             name = plan.inames[i]
             account_balances[name] = {lbl: int(plan.beta_ij[i, j]) for j, lbl in enumerate(account_labels)}
         account_balances["total"] = {
-            lbl: int(sum(plan.beta_ij[i, j] for i in range(N_i)))
-            for j, lbl in enumerate(account_labels)
+            lbl: int(sum(plan.beta_ij[i, j] for i in range(N_i))) for j, lbl in enumerate(account_labels)
         }
 
     social_security = [
@@ -82,15 +83,17 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         for _, row in fa_df.iterrows():
             if not _active(row):
                 continue
-            fixed_assets.append({
-                "name": str(row["name"]),
-                "type": str(row["type"]),
-                "value": int(round(float(row["value"]))),
-                "basis": int(round(float(row["basis"]))),
-                "annual_growth_pct": round(float(row["rate"]), 4),
-                "sell_year": int(row["yod"]),
-                "commission_pct": round(float(row["commission"]), 4),
-            })
+            fixed_assets.append(
+                {
+                    "name": str(row["name"]),
+                    "type": str(row["type"]),
+                    "value": int(round(float(row["value"]))),
+                    "basis": int(round(float(row["basis"]))),
+                    "annual_growth_pct": round(float(row["rate"]), 4),
+                    "sell_year": int(row["yod"]),
+                    "commission_pct": round(float(row["commission"]), 4),
+                }
+            )
 
     debts = []
     debt_df = house_lists.get("Debts")
@@ -98,22 +101,30 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         for _, row in debt_df.iterrows():
             if not _active(row):
                 continue
-            debts.append({
-                "name": str(row["name"]),
-                "type": str(row["type"]),
-                "balance": int(round(float(row["amount"]))),
-                "rate_pct": round(float(row["rate"]), 4),
-                "years_remaining": int(row["term"]),
-            })
+            debts.append(
+                {
+                    "name": str(row["name"]),
+                    "type": str(row["type"]),
+                    "balance": int(round(float(row["amount"]))),
+                    "rate_pct": round(float(row["rate"]), 4),
+                    "years_remaining": int(row["term"]),
+                }
+            )
 
     # Opening balance sheet (reference-year dollars): savings + fixed assets - debts.
     savings_total = int(sum(account_balances["total"].values())) if account_balances else 0
     fixed_assets_total = int(sum(a["value"] for a in fixed_assets))
     debt_total = int(sum(d["balance"] for d in debts))
-    deferred_tax = int(round(
-        (account_balances["total"].get("tax_deferred", 0) + account_balances["total"].get("hsa", 0))
-        * plan.liquidationTaxRate
-    )) if account_balances else 0
+    deferred_tax = (
+        int(
+            round(
+                (account_balances["total"].get("tax_deferred", 0) + account_balances["total"].get("hsa", 0))
+                * plan.liquidationTaxRate
+            )
+        )
+        if account_balances
+        else 0
+    )
     opening_balance_sheet = {
         "savings_total": savings_total,
         "fixed_assets_total": fixed_assets_total,
@@ -165,10 +176,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
     "set_overrides",
     multiple=True,
     metavar="KEY.PATH=VALUE",
-    help=(
-        "Override any TOML parameter before describing. "
-        "Same syntax as 'owlcli run --set'."
-    ),
+    help=("Override any TOML parameter before describing. Same syntax as 'owlcli run --set'."),
 )
 def cmd_explain(filename, set_overrides):
     """Describe a case configuration without solving it.

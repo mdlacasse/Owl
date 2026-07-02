@@ -42,6 +42,7 @@ from owlplanner.rates import SP500, BondsBaa, TNotes, Inflation
 # Helpers
 # ------------------------------------------------------------
 
+
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -64,14 +65,15 @@ def _historical_bounds(frm=FROM, to=TO):
     ifrm = frm - FROM
     ito = to - FROM
     arrays = [SP500, BondsBaa, TNotes, Inflation]
-    lo = np.array([a.iloc[ifrm:ito + 1].to_numpy().min() / 100.0 for a in arrays])
-    hi = np.array([a.iloc[ifrm:ito + 1].to_numpy().max() / 100.0 for a in arrays])
+    lo = np.array([a.iloc[ifrm : ito + 1].to_numpy().min() / 100.0 for a in arrays])
+    hi = np.array([a.iloc[ifrm : ito + 1].to_numpy().max() / 100.0 for a in arrays])
     return lo, hi
 
 
 # ------------------------------------------------------------
 # Constants
 # ------------------------------------------------------------
+
 
 def test_inflation_floor_is_negative():
     assert INFLATION_FLOOR < 0.0
@@ -84,6 +86,7 @@ def test_inflation_floor_is_reasonable():
 # ------------------------------------------------------------
 # Model attributes
 # ------------------------------------------------------------
+
 
 def test_model_name():
     assert HistoCopulaRateModel.model_name == "historical_copula"
@@ -100,6 +103,7 @@ def test_constant_flag():
 # ------------------------------------------------------------
 # Output shape and finiteness
 # ------------------------------------------------------------
+
 
 def test_shape_via_plan():
     p = _make_plan()
@@ -135,13 +139,13 @@ def test_output_is_finite():
 # Inflation floor
 # ------------------------------------------------------------
 
+
 def test_inflation_floor_enforced_direct():
     """Generated inflation must never fall below INFLATION_FLOOR."""
     rng = np.random.default_rng(7)
     series, _, _, _ = generate_histocopula_series(5000, FROM, TO, rng)
     assert np.all(series[:, 3] >= INFLATION_FLOOR), (
-        f"Some inflation samples below floor {INFLATION_FLOOR:.2%}: "
-        f"min={series[:, 3].min():.4f}"
+        f"Some inflation samples below floor {INFLATION_FLOOR:.2%}: min={series[:, 3].min():.4f}"
     )
 
 
@@ -163,6 +167,7 @@ def test_inflation_floor_enforced_short_window():
 # Marginal bounds: no extrapolation beyond historical [min, max]
 # ------------------------------------------------------------
 
+
 def test_marginals_bounded_by_history():
     """All generated values must lie within the historical [min, max] for each asset."""
     lo, hi = _historical_bounds()
@@ -183,27 +188,29 @@ def test_marginals_bounded_by_history():
 # Correlation preservation
 # ------------------------------------------------------------
 
+
 def test_correlation_preserved():
     """Generated rank correlations should be close to historical rank correlations."""
     from scipy.stats import spearmanr
 
     ifrm, ito = FROM - FROM, TO - FROM
-    hist_data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    hist_data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
     hist_corr = spearmanr(hist_data).statistic  # (4, 4)
 
     rng = np.random.default_rng(5)
     series, _, _, _ = generate_histocopula_series(10000, FROM, TO, rng)
-    gen_corr = spearmanr(series).statistic       # (4, 4)
+    gen_corr = spearmanr(series).statistic  # (4, 4)
 
     # Allow up to 0.10 absolute deviation on any rank-correlation pair
     np.testing.assert_allclose(
-        gen_corr, hist_corr, atol=0.10,
-        err_msg="Generated rank correlations deviate too far from historical"
+        gen_corr, hist_corr, atol=0.10, err_msg="Generated rank correlations deviate too far from historical"
     )
 
 
@@ -211,56 +218,69 @@ def test_correlation_preserved():
 # Marginal statistics
 # ------------------------------------------------------------
 
+
 def test_mean_close_to_historical():
     """Generated arithmetic means should be close to historical means (large N)."""
     ifrm, ito = FROM - FROM, TO - FROM
-    hist_data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    hist_data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
     hist_means = hist_data.mean(axis=0)
 
     rng = np.random.default_rng(11)
     series, means_meta, _, _ = generate_histocopula_series(15000, FROM, TO, rng)
 
     # Metadata means should equal historical means exactly
-    np.testing.assert_allclose(means_meta, hist_means, atol=1e-12,
-                               err_msg="Metadata means do not match historical means")
+    np.testing.assert_allclose(
+        means_meta, hist_means, atol=1e-12, err_msg="Metadata means do not match historical means"
+    )
 
     # Sample means from 15k draws should be within 1% of historical
-    np.testing.assert_allclose(series.mean(axis=0), hist_means, atol=0.01,
-                               err_msg="Sample means deviate too far from historical means")
+    np.testing.assert_allclose(
+        series.mean(axis=0), hist_means, atol=0.01, err_msg="Sample means deviate too far from historical means"
+    )
 
 
 def test_stdev_close_to_historical():
     """Generated standard deviations should be close to historical stdevs (large N)."""
     ifrm, ito = FROM - FROM, TO - FROM
-    hist_data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    hist_data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
     hist_stdev = hist_data.std(axis=0, ddof=1)
 
     rng = np.random.default_rng(22)
     series, _, stdev_meta, _ = generate_histocopula_series(15000, FROM, TO, rng)
 
     # Metadata stdev should equal historical stdev exactly
-    np.testing.assert_allclose(stdev_meta, hist_stdev, atol=1e-12,
-                               err_msg="Metadata stdevs do not match historical stdevs")
+    np.testing.assert_allclose(
+        stdev_meta, hist_stdev, atol=1e-12, err_msg="Metadata stdevs do not match historical stdevs"
+    )
 
     # Sample stdevs within 1.5% of historical (Monte Carlo variance of variance)
     # Exclude inflation since clipping at floor reduces its variance slightly
-    np.testing.assert_allclose(series[:, :3].std(axis=0), hist_stdev[:3], atol=0.015,
-                               err_msg="Sample stdevs (non-inflation) deviate too far from historical")
+    np.testing.assert_allclose(
+        series[:, :3].std(axis=0),
+        hist_stdev[:3],
+        atol=0.015,
+        err_msg="Sample stdevs (non-inflation) deviate too far from historical",
+    )
 
 
 # ------------------------------------------------------------
 # Reproducibility
 # ------------------------------------------------------------
+
 
 def test_reproducible_same_seed():
     p1 = _make_plan()
@@ -297,6 +317,7 @@ def test_direct_model_seed_reproducible():
 # Historical window sensitivity
 # ------------------------------------------------------------
 
+
 def test_different_windows_differ():
     p1 = _make_plan()
     _set_copula(p1, frm=1928, to=1970, seed=7)
@@ -315,6 +336,7 @@ def test_post_1950_window_respects_floor():
 # ------------------------------------------------------------
 # Parameter validation
 # ------------------------------------------------------------
+
 
 def test_invalid_frm_equal_to_raises():
     config = {"method": "historical_copula", "frm": 2000, "to": 2000}
@@ -358,6 +380,7 @@ def test_seed_in_config_makes_rng_deterministic():
 # ------------------------------------------------------------
 # Integration: Plan.setRates with method string
 # ------------------------------------------------------------
+
 
 def test_setrates_string_method():
     """Plan.setRates('historical_copula') should work and produce valid tau_kn."""

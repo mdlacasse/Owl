@@ -28,6 +28,7 @@ from owlplanner.rate_models.loader import (
 # 1. Available models listing
 # ------------------------------------------------------------
 
+
 def test_list_available_rate_models_contains_expected():
     models = list_available_rate_models()
 
@@ -43,6 +44,7 @@ def test_list_available_rate_models_contains_expected():
 # 2. setRate metadata
 # ------------------------------------------------------------
 
+
 def test_rate_user_metadata():
     meta = get_rate_model_metadata("user")
 
@@ -56,6 +58,7 @@ def test_rate_user_metadata():
 # 3. DataFrame model metadata
 # ------------------------------------------------------------
 
+
 def test_dataframe_metadata():
     meta = get_rate_model_metadata("dataframe")
 
@@ -68,6 +71,7 @@ def test_dataframe_metadata():
 # 4. Unknown method should raise
 # ------------------------------------------------------------
 
+
 def test_unknown_method_raises():
     with pytest.raises(ValueError):
         get_rate_model_metadata("not_a_real_method")
@@ -77,8 +81,8 @@ def test_unknown_method_raises():
 # 5. External plugin metadata
 # ------------------------------------------------------------
 
-def test_external_plugin_metadata(tmp_path):
 
+def test_external_plugin_metadata(tmp_path):
     plugin_code = """
 from owlplanner.rate_models.base import BaseRateModel
 import numpy as np
@@ -112,8 +116,8 @@ class RateModel(BaseRateModel):
 # 6. Plugin missing RateModel class
 # ------------------------------------------------------------
 
-def test_plugin_missing_class_raises(tmp_path):
 
+def test_plugin_missing_class_raises(tmp_path):
     plugin_code = """
 # no RateModel class here
 """

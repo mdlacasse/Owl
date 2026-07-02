@@ -4,6 +4,7 @@ All new rate models should subclass BaseRateModel.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
+
 ###########################################################################
 import numpy as np
 
@@ -15,6 +16,7 @@ from owlplanner.rate_models._builtin_impl import _validate_historical_range
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+
 
 def _normalize_aliases(config: dict) -> dict:
     """Remap TOML names: standard_deviations→stdev, correlations→corr."""
@@ -30,10 +32,13 @@ def _normalize_aliases(config: dict) -> dict:
 # Constant-preset models
 # ---------------------------------------------------------------------------
 
+
 class Trailing30RateModel(BaseRateModel):
     model_name = "trailing_30"
-    description = ("Constant rates equal to the 30-year trailing geometric mean of annual returns. "
-                   "A long-run backward-looking assumption.")
+    description = (
+        "Constant rates equal to the 30-year trailing geometric mean of annual returns. "
+        "A long-run backward-looking assumption."
+    )
     deterministic = True
     constant = True
     required_parameters = {}
@@ -41,6 +46,7 @@ class Trailing30RateModel(BaseRateModel):
 
     def generate(self, N):
         from owlplanner.rates import get_fixed_rates_decimal
+
         return impl.generate_fixed_series(N, get_fixed_rates_decimal("trailing_30"))
 
 
@@ -54,6 +60,7 @@ class OptimisticRateModel(BaseRateModel):
 
     def generate(self, N):
         from owlplanner.rates import get_fixed_rates_decimal
+
         return impl.generate_fixed_series(N, get_fixed_rates_decimal("optimistic"))
 
 
@@ -67,12 +74,14 @@ class ConservativeRateModel(BaseRateModel):
 
     def generate(self, N):
         from owlplanner.rates import get_fixed_rates_decimal
+
         return impl.generate_fixed_series(N, get_fixed_rates_decimal("conservative"))
 
 
 # ---------------------------------------------------------------------------
 # User-specified constant rates
 # ---------------------------------------------------------------------------
+
 
 class UserRateModel(BaseRateModel):
     model_name = "user"
@@ -105,6 +114,7 @@ class UserRateModel(BaseRateModel):
 # Historical deterministic models
 # ---------------------------------------------------------------------------
 
+
 class HistoricalRateModel(BaseRateModel):
     model_name = "historical"
     description = (
@@ -123,10 +133,7 @@ class HistoricalRateModel(BaseRateModel):
     optional_parameters = {
         "to": {
             "type": "int",
-            "description": (
-                "Ending historical year (inclusive). "
-                "Defaults to frm if not provided."
-            ),
+            "description": ("Ending historical year (inclusive). Defaults to frm if not provided."),
             "example": "2002",
         },
     }
@@ -185,6 +192,7 @@ class HistoricalAverageRateModel(BaseRateModel):
 # ---------------------------------------------------------------------------
 # Stochastic models
 # ---------------------------------------------------------------------------
+
 
 class GaussianRateModel(BaseRateModel):
     model_name = "gaussian"

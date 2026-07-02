@@ -140,12 +140,14 @@ def test_dataframe_method():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     n = p.N_n
 
-    df = pd.DataFrame({
-        "S&P 500":   [5.0] * n,   # percent → stored as 0.05
-        "Bonds Baa": [3.0] * n,
-        "T-Notes":    [2.5] * n,
-        "Inflation": [2.0] * n,
-    })
+    df = pd.DataFrame(
+        {
+            "S&P 500": [5.0] * n,  # percent → stored as 0.05
+            "Bonds Baa": [3.0] * n,
+            "T-Notes": [2.5] * n,
+            "Inflation": [2.0] * n,
+        }
+    )
 
     p.setRates(method="dataframe", df=df)
 
@@ -158,12 +160,14 @@ def test_dataframe_method_in_percent_false():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     n = p.N_n
 
-    df = pd.DataFrame({
-        "S&P 500":   [0.05] * n,
-        "Bonds Baa": [0.03] * n,
-        "T-Notes":    [0.025] * n,
-        "Inflation": [0.02] * n,
-    })
+    df = pd.DataFrame(
+        {
+            "S&P 500": [0.05] * n,
+            "Bonds Baa": [0.03] * n,
+            "T-Notes": [0.025] * n,
+            "Inflation": [0.02] * n,
+        }
+    )
 
     p.setRates(method="dataframe", df=df, in_percent=False)
 
@@ -176,12 +180,14 @@ def test_dataframe_method_in_percent_type_error():
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
     n = p.N_n
 
-    df = pd.DataFrame({
-        "S&P 500":   [5.0] * n,
-        "Bonds Baa": [3.0] * n,
-        "T-Notes":   [2.5] * n,
-        "Inflation": [2.0] * n,
-    })
+    df = pd.DataFrame(
+        {
+            "S&P 500": [5.0] * n,
+            "Bonds Baa": [3.0] * n,
+            "T-Notes": [2.5] * n,
+            "Inflation": [2.0] * n,
+        }
+    )
 
     with pytest.raises(ValueError, match="in_percent"):
         p.setRates(method="dataframe", df=df, in_percent="False")
@@ -335,12 +341,14 @@ def test_dataframe_insufficient_rows():
     n = p.N_n
 
     # Too few rows (n-1 instead of n)
-    df = pd.DataFrame({
-        "S&P 500": [5.0] * (n - 1),
-        "Bonds Baa": [3.0] * (n - 1),
-        "T-Notes": [2.5] * (n - 1),
-        "Inflation": [2.0] * (n - 1),
-    })
+    df = pd.DataFrame(
+        {
+            "S&P 500": [5.0] * (n - 1),
+            "Bonds Baa": [3.0] * (n - 1),
+            "T-Notes": [2.5] * (n - 1),
+            "Inflation": [2.0] * (n - 1),
+        }
+    )
 
     with pytest.raises(ValueError, match="needs at least"):
         p.setRates(method="dataframe", df=df)

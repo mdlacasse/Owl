@@ -90,15 +90,13 @@ class DataFrameRateModel(BaseRateModel):
     #######################################################################
 
     def generate(self, N):
-
         df = self.get_param("df")
         n_years = self.get_param("n_years")
         offset = int(self.get_param("offset") or 0)
 
         if N != n_years:
             raise ValueError(
-                f"DataFrameRateModel was configured for n_years={n_years} "
-                f"but generate() was called with N={N}."
+                f"DataFrameRateModel was configured for n_years={n_years} but generate() was called with N={N}."
             )
 
         # --------------------------------------------------
@@ -107,10 +105,7 @@ class DataFrameRateModel(BaseRateModel):
 
         missing = [c for c in REQUIRED_RATE_COLUMNS if c not in df.columns]
         if missing:
-            raise ValueError(
-                f"DataFrame missing required columns: {missing}. "
-                f"Required: {list(REQUIRED_RATE_COLUMNS)}"
-            )
+            raise ValueError(f"DataFrame missing required columns: {missing}. Required: {list(REQUIRED_RATE_COLUMNS)}")
 
         # --------------------------------------------------
         # Validate row count: must have at least n_years + offset rows
@@ -129,17 +124,13 @@ class DataFrameRateModel(BaseRateModel):
             raise ValueError("offset must be >= 0.")
 
         if offset + N > data.shape[0]:
-            raise ValueError(
-                f"DataFrame does not contain enough rows for offset={offset} and N={N}."
-            )
+            raise ValueError(f"DataFrame does not contain enough rows for offset={offset} and N={N}.")
 
-        data = data[offset:offset + N]
+        data = data[offset : offset + N]
 
         in_percent = self.get_param("in_percent")
         if not isinstance(in_percent, bool):
-            raise ValueError(
-                f"'in_percent' must be a bool (True or False), got {type(in_percent).__name__!r}."
-            )
+            raise ValueError(f"'in_percent' must be a bool (True or False), got {type(in_percent).__name__!r}.")
         if in_percent:
             data = data / 100.0
 

@@ -42,24 +42,24 @@ from ..rate_models.constants import (  # noqa: E402
 # Canonical color maps — shared by cashflow_mix and lifetime_allocation so that
 # the same category always gets the same color in both chart types.
 _INCOME_COLORS = {
-    "portfolio":   "#795548",
-    "ss":          "#2196F3",
-    "pension":     "#009688",
-    "wages":       "#FF9800",
-    "spia":        "#E91E63",
+    "portfolio": "#795548",
+    "ss": "#2196F3",
+    "pension": "#009688",
+    "wages": "#FF9800",
+    "spia": "#E91E63",
     "fixedassets": "#8BC34A",
-    "other":       "#673AB7",
-    "bti":         "#CDDC39",
+    "other": "#673AB7",
+    "bti": "#CDDC39",
 }
 _OUTFLOW_COLORS = {
-    "living":     "#2196F3",
-    "taxes":      "#F44336",
+    "living": "#2196F3",
+    "taxes": "#F44336",
     "state_taxes": "#C62828",
     "healthcare": "#FF9800",
-    "debt":       "#9E9E9E",
-    "bti":        "#FF6F00",
-    "bequest":    "#4CAF50",
-    "heirtax":    "#E91E63",
+    "debt": "#9E9E9E",
+    "bti": "#FF6F00",
+    "bequest": "#4CAF50",
+    "heirtax": "#E91E63",
 }
 
 
@@ -76,10 +76,10 @@ class MatplotlibBackend(PlotBackend):
 
     def set_plot_style(self):
         """Set the style for all matplotlib plots."""
-        plt.rcParams.update({'figure.autolayout': True})
-        plt.rcParams.update({'figure.figsize': (6, 4)})
-        plt.rcParams.update({'axes.grid': True})
-        plt.rcParams.update({'axes.grid.which': 'both'})
+        plt.rcParams.update({"figure.autolayout": True})
+        plt.rcParams.update({"figure.figsize": (6, 4)})
+        plt.rcParams.update({"axes.grid": True})
+        plt.rcParams.update({"axes.grid.which": "both"})
 
     def _line_income_plot(self, x, series, style, title, yformat=r"\$k"):
         """Core line plotter function."""
@@ -146,7 +146,7 @@ class MatplotlibBackend(PlotBackend):
         If log_x is True, use log-spaced bins and a log-scale x-axis (log-normal style).
         Zeros are excluded from the histogram when log_x is True.
         """
-        _LOG_FLOOR = 0.001   # $1 in thousands; values below excluded when log_x
+        _LOG_FLOOR = 0.001  # $1 in thousands; values below excluded when log_x
         _LOG_NBINS_MAX = 50
         _LOG_NBINS_MIN = 10
 
@@ -201,18 +201,15 @@ class MatplotlibBackend(PlotBackend):
         if len(df) > 0:
             thisyear = year_n[0]
             if log_x:
-                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).",
-                      file=description)
+                print("Histogram: log-scale x-axis, log-spaced bins (zeros excluded).", file=description)
 
             if objective == "maxBequest":
                 fig, axes = plt.subplots()
                 if log_x:
-                    all_pos = np.concatenate([
-                        df[col][(df[col] >= _LOG_FLOOR) & np.isfinite(df[col])].to_numpy()
-                        for col in df.columns
-                    ])
-                    edges = _log_spaced_edges(
-                        pd.Series(all_pos), n_positive=len(all_pos)) if len(all_pos) > 0 else None
+                    all_pos = np.concatenate(
+                        [df[col][(df[col] >= _LOG_FLOOR) & np.isfinite(df[col])].to_numpy() for col in df.columns]
+                    )
+                    edges = _log_spaced_edges(pd.Series(all_pos), n_positive=len(all_pos)) if len(all_pos) > 0 else None
                 else:
                     edges = None
                 if edges is not None:
@@ -280,8 +277,9 @@ class MatplotlibBackend(PlotBackend):
 
         return None, description
 
-    def plot_rates_correlations(self, name, tau_kn, rate_method, rate_frm=None, rate_to=None,
-                                tag="", share_range=False):
+    def plot_rates_correlations(
+        self, name, tau_kn, rate_method, rate_frm=None, rate_to=None, tag="", share_range=False
+    ):
         """Plot correlations between various rates."""
         rate_names = RATE_DISPLAY_NAMES
         df = pd.DataFrame()
@@ -317,8 +315,7 @@ class MatplotlibBackend(PlotBackend):
         g.figure.suptitle(title, y=1.08)
         return g.figure
 
-    def plot_rates(self, name, tau_kn, year_n, N_k,
-                   rate_method, rate_frm=None, rate_to=None, tag=""):
+    def plot_rates(self, name, tau_kn, year_n, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         fig, ax = plt.subplots()
         title = name + "\nReturn & Inflation Rates (" + str(rate_method)
@@ -357,14 +354,14 @@ class MatplotlibBackend(PlotBackend):
         nbins = int((to - frm) / 4)
         fig, ax = plt.subplots(1, 4, sharey=True, sharex=True, tight_layout=True)
 
-        dat0 = np.array(SP500[frm:to + 1])
-        dat1 = np.array(BondsBaa[frm:to + 1])
-        dat2 = np.array(TNotes[frm:to + 1])
-        dat3 = np.array(Inflation[frm:to + 1])
+        dat0 = np.array(SP500[frm : to + 1])
+        dat1 = np.array(BondsBaa[frm : to + 1])
+        dat2 = np.array(TNotes[frm : to + 1])
+        dat3 = np.array(Inflation[frm : to + 1])
 
         fig.suptitle(title)
         data = [dat0, dat1, dat2, dat3]
-        for ax_i, dat, subtitle in zip(ax, data, RATE_DISPLAY_NAMES_SHORT):
+        for ax_i, dat, subtitle in zip(ax, data, RATE_DISPLAY_NAMES_SHORT, strict=True):
             ax_i.set_title(subtitle)
             mean_val = u.geometric_mean_pct(dat)
             ax_i.hist(dat, bins=nbins, label="<>: " + u.pc(mean_val, 2, 1))
@@ -372,10 +369,11 @@ class MatplotlibBackend(PlotBackend):
 
         return fig
 
-    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
-                       rate_frm=None, rate_to=None, tag=""):
+    def plot_rates_cdf(
+        self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM, rate_frm=None, rate_to=None, tag=""
+    ):
         """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
-        show_hist = (rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None)
+        show_hist = rate_method in HISTORICAL_RANGE_METHODS and rate_frm is not None and rate_to is not None
         hist_sources = [SP500, BondsBaa, TNotes, Inflation]
         N_samples = tau_kn.shape[1]
 
@@ -387,18 +385,25 @@ class MatplotlibBackend(PlotBackend):
         if tag:
             title += " - " + tag
 
-        for k, (ax, rate_name) in enumerate(zip(axes, RATE_DISPLAY_NAMES_SHORT)):
+        for k, (ax, rate_name) in enumerate(zip(axes, RATE_DISPLAY_NAMES_SHORT, strict=True)):
             mc_data = np.sort(100.0 * tau_kn[k])
             n_mc = len(mc_data)
             p_mc = np.arange(1, n_mc + 1) / n_mc
             ax.step(mc_data, p_mc, where="post", linewidth=1.5, label=f"{rate_method} (N={N_samples})")
 
             if show_hist:
-                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM: rate_to - FROM + 1], dtype=float))
+                h_arr = np.sort(np.array(hist_sources[k][rate_frm - FROM : rate_to - FROM + 1], dtype=float))
                 n_h = len(h_arr)
                 p_h = np.arange(1, n_h + 1) / n_h
-                ax.step(h_arr, p_h, where="post", color="gray", linestyle="--", linewidth=1.5,
-                        label=f"Historical {rate_frm}-{rate_to} (N={n_h})")
+                ax.step(
+                    h_arr,
+                    p_h,
+                    where="post",
+                    color="gray",
+                    linestyle="--",
+                    linewidth=1.5,
+                    label=f"Historical {rate_frm}-{rate_to} (N={n_h})",
+                )
 
             ax.axvline(x=0, color="lightgray", linewidth=0.8, linestyle=":")
             ax.set_title(rate_name)
@@ -426,7 +431,7 @@ class MatplotlibBackend(PlotBackend):
         for key in tax_brackets:
             data_adj = tax_brackets[key] * infladjust
             ax.plot(year_n, data_adj, label=key, ls=":")
-        ax.grid(visible=True, which='both')
+        ax.grid(visible=True, which="both")
         ax.legend(loc="upper left", reverse=True, fontsize=8, framealpha=0.3)
 
         return fig
@@ -491,8 +496,9 @@ class MatplotlibBackend(PlotBackend):
             title = name + "\nAsset Composition - " + jkey
             if tag:
                 title += " - " + tag
-            fig, ax = self._stack_plot(years_n, inames, title, range(len(inames)),
-                                       y2stack, stackNames, "upper left", yformat)
+            fig, ax = self._stack_plot(
+                years_n, inames, title, range(len(inames)), y2stack, stackNames, "upper left", yformat
+            )
             figures.append(fig)
 
         return figures
@@ -538,8 +544,9 @@ class MatplotlibBackend(PlotBackend):
         else:
             yformat = r"\$k (constant " + str(year_n[0]) + r")"
             savings = {k: v / gamma_n for k, v in savings_in.items()}
-        fig, ax = self._stack_plot(year_n_full, inames, title, range(len(inames)),
-                                   savings, stypes, "upper left", yformat)
+        fig, ax = self._stack_plot(
+            year_n_full, inames, title, range(len(inames)), savings, stypes, "upper left", yformat
+        )
 
         return fig
 
@@ -551,7 +558,7 @@ class MatplotlibBackend(PlotBackend):
             scale = 1.0
         else:
             yformat = r"\$k (constant " + str(year_n[0]) + r")"
-            scale = gamma_n[:len(year_n_full)]
+            scale = gamma_n[: len(year_n_full)]
 
         def _scaled(arr):
             return np.asarray(arr) / (scale * 1000)
@@ -565,8 +572,7 @@ class MatplotlibBackend(PlotBackend):
         for name, arr in bs_data["assets"].items():
             data = _scaled(arr)
             if np.max(np.abs(data)) > 1.0e-3:
-                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6,
-                                color=colors[ci % len(colors)], label=name)
+                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6, color=colors[ci % len(colors)], label=name)
                 cum = cum + data
                 ci += 1
 
@@ -575,16 +581,20 @@ class MatplotlibBackend(PlotBackend):
         for name, arr in bs_data["liabilities"].items():
             data = -_scaled(arr)
             if np.max(np.abs(data)) > 1.0e-3:
-                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6,
-                                color=colors[ci % len(colors)], label=name)
+                ax.fill_between(year_n_full, cum, cum + data, alpha=0.6, color=colors[ci % len(colors)], label=name)
                 cum = cum + data
                 ci += 1
 
         # Net-worth lines overlaid on top.
-        ax.plot(year_n_full, _scaled(bs_data["net worth"]), color="black",
-                linewidth=2, label="net worth")
-        ax.plot(year_n_full, _scaled(bs_data["liquid net worth"]), color="black",
-                linewidth=2, linestyle="--", label="liquid net worth")
+        ax.plot(year_n_full, _scaled(bs_data["net worth"]), color="black", linewidth=2, label="net worth")
+        ax.plot(
+            year_n_full,
+            _scaled(bs_data["liquid net worth"]),
+            color="black",
+            linewidth=2,
+            linestyle="--",
+            label="liquid net worth",
+        )
 
         ax.axhline(0, color="gray", linewidth=1)
         ax.set_title(title)
@@ -607,10 +617,7 @@ class MatplotlibBackend(PlotBackend):
             scale = gamma_n[:-1]
 
         _hsa_thr = 1.0e-3
-        has_medicare = (
-            "medicare_withdrawals" in hsa_data
-            and np.max(np.abs(hsa_data["medicare_withdrawals"])) > 0
-        )
+        has_medicare = "medicare_withdrawals" in hsa_data and np.max(np.abs(hsa_data["medicare_withdrawals"])) > 0
         fig, ax = plt.subplots(1, 1)
         colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         n_ind = len(inames)
@@ -629,13 +636,9 @@ class MatplotlibBackend(PlotBackend):
                 med = hsa_data["medicare_withdrawals"][i] / (scale * 1000)
                 nonmed = wdrwl - med
                 if np.max(np.abs(med)) > _hsa_thr:
-                    ax.fill_between(year_n, 0, med,
-                                    alpha=0.55, color=mc,
-                                    label=f"Medicare {iname}")
+                    ax.fill_between(year_n, 0, med, alpha=0.55, color=mc, label=f"Medicare {iname}")
                 if np.max(np.abs(nonmed)) > _hsa_thr:
-                    ax.fill_between(year_n, med, med + nonmed,
-                                    alpha=0.3, color=c,
-                                    label=f"QME {iname}")
+                    ax.fill_between(year_n, med, med + nonmed, alpha=0.3, color=c, label=f"QME {iname}")
             elif np.max(np.abs(wdrwl)) > _hsa_thr:
                 ax.plot(year_n, wdrwl, ":", color=c, label=f"withdrawals {iname}")
 
@@ -692,8 +695,13 @@ class MatplotlibBackend(PlotBackend):
 
         fig, ax = plt.subplots(figsize=(10, 4))
         ax.bar(start_years, values / 1000, color="steelblue", alpha=0.75, width=0.85)
-        ax.axhline(float(np.mean(values)) / 1000, color="navy", linestyle="--", linewidth=1.2,
-                   label=f"Mean {u.d(float(np.mean(values)))}")
+        ax.axhline(
+            float(np.mean(values)) / 1000,
+            color="navy",
+            linestyle="--",
+            linewidth=1.2,
+            label=f"Mean {u.d(float(np.mean(values)))}",
+        )
         ax.set_xlabel("Historical start year")
         ax.set_ylabel(ylabel)
         ax.set_title(f"{label} by historical start year")
@@ -702,13 +710,24 @@ class MatplotlibBackend(PlotBackend):
         plt.tight_layout()
 
         description = io.StringIO()
-        print(f"{label} by start year: min {u.d(float(values.min()))}, "
-              f"max {u.d(float(values.max()))}, mean {u.d(float(values.mean()))}.", file=description)
+        print(
+            f"{label} by start year: min {u.d(float(values.min()))}, "
+            f"max {u.d(float(values.max()))}, mean {u.d(float(values.mean()))}.",
+            file=description,
+        )
         return fig, description
 
-    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate_pct, g_opt, year_n, start_years=None,
-                                 with_longevity=False):
+    def plot_stochastic_frontier(
+        self,
+        frontier_prob,
+        frontier_g,
+        frontier_shortfall,
+        target_success_rate_pct,
+        g_opt,
+        year_n,
+        start_years=None,
+        with_longevity=False,
+    ):
         """Efficient frontier: committed spending vs. shortfall probability, with target marked."""
         thisyear = int(year_n[0])
         frontier_type = "Historical" if start_years is not None else "Stochastic"
@@ -718,8 +737,14 @@ class MatplotlibBackend(PlotBackend):
         ax.plot(frontier_prob * 100, frontier_g / 1000, color="steelblue", linewidth=1.5)
         shortfall_pct = 100.0 - target_success_rate_pct
         ax.axvline(shortfall_pct, color="firebrick", linestyle="--", linewidth=1, alpha=0.7)
-        ax.scatter([shortfall_pct], [g_opt / 1000], color="firebrick", zorder=5, s=60,
-                   label=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}")
+        ax.scatter(
+            [shortfall_pct],
+            [g_opt / 1000],
+            color="firebrick",
+            zorder=5,
+            s=60,
+            label=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
+        )
         ax.set_xlabel("Shortfall probability (%)", fontsize=11)
         ax.set_ylabel(f"Committed spending ({thisyear} $k)", fontsize=11)
         ax.set_title("Success rate curve", fontsize=12)
@@ -749,8 +774,9 @@ class MatplotlibBackend(PlotBackend):
         plt.tight_layout()
         return fig
 
-    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate_pct, year_n,
-                                 with_longevity=False):
+    def plot_stochastic_outcomes(
+        self, start_years, bases, g_opt, target_success_rate_pct, year_n, with_longevity=False
+    ):
         """Bar chart of achieved spending by scenario.
 
         Historical mode: bars by start year (x = historical start year).
@@ -766,13 +792,24 @@ class MatplotlibBackend(PlotBackend):
         fig, ax = plt.subplots(figsize=(11, 4.1))
         if is_historical:
             if success.any():
-                ax.bar(start_years[success], achieved[success] / 1000, color="mediumseagreen",
-                       alpha=0.8, width=0.85, label="No shortfall")
+                ax.bar(
+                    start_years[success],
+                    achieved[success] / 1000,
+                    color="mediumseagreen",
+                    alpha=0.8,
+                    width=0.85,
+                    label="No shortfall",
+                )
             if (~success).any():
-                ax.bar(start_years[~success], achieved[~success] / 1000, color="tomato",
-                       alpha=0.8, width=0.85, label="Shortfall")
-            ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
-                       label=f"Commitment {u.d(g_opt)}")
+                ax.bar(
+                    start_years[~success],
+                    achieved[~success] / 1000,
+                    color="tomato",
+                    alpha=0.8,
+                    width=0.85,
+                    label="Shortfall",
+                )
+            ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5, label=f"Commitment {u.d(g_opt)}")
             ax.set_xlabel("Historical start year", fontsize=11)
             ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)", fontsize=11)
             ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
@@ -787,14 +824,31 @@ class MatplotlibBackend(PlotBackend):
             fail_mask = ~sorted_ok
             ok_mask = sorted_ok
             if fail_mask.any():
-                ax.bar(pct[fail_mask], sorted_ach[fail_mask] / 1000, color="tomato",
-                       alpha=0.8, width=bar_width, label="Shortfall")
+                ax.bar(
+                    pct[fail_mask],
+                    sorted_ach[fail_mask] / 1000,
+                    color="tomato",
+                    alpha=0.8,
+                    width=bar_width,
+                    label="Shortfall",
+                )
             if ok_mask.any():
-                ax.bar(pct[ok_mask], sorted_ach[ok_mask] / 1000, color="mediumseagreen",
-                       alpha=0.8, width=bar_width, label="No shortfall")
+                ax.bar(
+                    pct[ok_mask],
+                    sorted_ach[ok_mask] / 1000,
+                    color="mediumseagreen",
+                    alpha=0.8,
+                    width=bar_width,
+                    label="No shortfall",
+                )
             n_ok = int(success.sum())
-            ax.axhline(g_opt / 1000, color="black", linestyle="--", linewidth=1.5,
-                       label=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)")
+            ax.axhline(
+                g_opt / 1000,
+                color="black",
+                linestyle="--",
+                linewidth=1.5,
+                label=f"Commitment {u.d(g_opt)}  ({n_ok / N * 100:.0f}% success)",
+            )
             ax.set_xlabel("Scenario percentile (%)", fontsize=11)
             ax.set_ylabel(f"Achieved {label.lower()} ({thisyear} $k)", fontsize=11)
             ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
@@ -807,12 +861,14 @@ class MatplotlibBackend(PlotBackend):
         plt.tight_layout()
         return fig
 
-    def plot_stochastic_cvar_vs_pos(self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star,
-                                    target_success_rate_pct, year_n):
+    def plot_stochastic_cvar_vs_pos(
+        self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star, target_success_rate_pct, year_n
+    ):
         return None
 
-    def plot_stochastic_res_vs_cvar(self, frontier_cvar, res_values, rho_star_pct, res_star,
-                                    cvar_star, cvar_at_target, year_n, floor_label="HSF"):
+    def plot_stochastic_res_vs_cvar(
+        self, frontier_cvar, res_values, rho_star_pct, res_star, cvar_star, cvar_at_target, year_n, floor_label="HSF"
+    ):
         return None
 
     def plot_survival_curves(self, sexes, current_ages, inames, table="SSA2025"):
@@ -825,20 +881,25 @@ class MatplotlibBackend(PlotBackend):
         age_start = min(current_ages)
         survival_full = []
 
-        for i, (sex, ca) in enumerate(zip(sexes, current_ages)):
+        for i, (sex, ca) in enumerate(zip(sexes, current_ages, strict=True)):
             ages_i, pmf_i = survival_pmf(sex, ca, table=table)
             surv_i = np.concatenate([[1.0], 1.0 - np.cumsum(pmf_i[:-1])])
             n_prepend = ca - age_start
             full_surv = np.concatenate([np.ones(n_prepend), surv_i])
             survival_full.append(full_surv)
-            ax.plot(ages_i, surv_i * 100, color=colors[i % len(colors)],
-                    linewidth=2, label=inames[i])
+            ax.plot(ages_i, surv_i * 100, color=colors[i % len(colors)], linewidth=2, label=inames[i])
 
         if len(current_ages) == 2:
             ages_common = np.arange(age_start, age_start + len(survival_full[0]), dtype=int)
             joint_surv = 1.0 - np.prod([1.0 - s for s in survival_full], axis=0)
-            ax.plot(ages_common, joint_surv * 100, color="mediumpurple",
-                    linewidth=2, linestyle="dotted", label="Joint (last survivor)")
+            ax.plot(
+                ages_common,
+                joint_surv * 100,
+                color="mediumpurple",
+                linewidth=2,
+                linestyle="dotted",
+                label="Joint (last survivor)",
+            )
 
         ax.set_xlabel("Age", fontsize=11)
         ax.set_ylabel("Probability of being alive (%)", fontsize=11)
@@ -866,22 +927,38 @@ class MatplotlibBackend(PlotBackend):
             ages_i = drawn_lifespans[:, i]
             median_i = int(np.median(ages_i))
             median_lines.append(f"{median_i}  {inames[i]}")
-            ax.hist(ages_i, bins=bins, color=colors[i % len(colors)],
-                    alpha=0.75, label=inames[i])
+            ax.hist(ages_i, bins=bins, color=colors[i % len(colors)], alpha=0.75, label=inames[i])
 
         if n_i == 2:
             joint_ages = np.maximum(drawn_lifespans[:, 0], drawn_lifespans[:, 1])
             joint_median = int(np.median(joint_ages))
             median_lines.append(f"{joint_median}  Joint")
-            ax.hist(joint_ages, bins=bins, color="mediumpurple",
-                    alpha=0.5, label="Joint (last survivor)")
+            ax.hist(joint_ages, bins=bins, color="mediumpurple", alpha=0.5, label="Joint (last survivor)")
 
         annotation_colors = colors[:n_i] + (["mediumpurple"] if n_i == 2 else [])
-        ax.text(0.03, 0.97, "Medians", transform=ax.transAxes,
-                va="top", ha="left", fontsize=11, color="gray", fontweight="bold")
-        for k, (line, color) in enumerate(zip(median_lines, annotation_colors)):
-            ax.text(0.03, 0.90 - k * 0.07, line, transform=ax.transAxes,
-                    va="top", ha="left", fontsize=11, color=color, fontweight="bold")
+        ax.text(
+            0.03,
+            0.97,
+            "Medians",
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=11,
+            color="gray",
+            fontweight="bold",
+        )
+        for k, (line, color) in enumerate(zip(median_lines, annotation_colors, strict=True)):
+            ax.text(
+                0.03,
+                0.90 - k * 0.07,
+                line,
+                transform=ax.transAxes,
+                va="top",
+                ha="left",
+                fontsize=11,
+                color=color,
+                fontweight="bold",
+            )
 
         ax.set_xlabel("Age at death", fontsize=11)
         ax.set_ylabel("Number of scenarios", fontsize=11)
@@ -895,24 +972,24 @@ class MatplotlibBackend(PlotBackend):
     def plot_lifetime_allocation(self, alloc, name):
         """Plot two pie charts: lifetime outflows breakdown and income sources."""
         outflow_labels_map = {
-            "living":     "Living expenses",
-            "taxes":      "Taxes",
+            "living": "Living expenses",
+            "taxes": "Taxes",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
-            "debt":       "Debt payments",
-            "bti":        "Big-ticket items",
-            "bequest":    "Bequest",
-            "heirtax":    "Est. heir taxes",
+            "debt": "Debt payments",
+            "bti": "Big-ticket items",
+            "bequest": "Bequest",
+            "heirtax": "Est. heir taxes",
         }
         income_labels_map = {
-            "portfolio":   "Portfolio",
-            "ss":          "Social Security",
-            "pension":     "Pension",
-            "wages":       "Wages",
-            "spia":        "SPIA",
+            "portfolio": "Portfolio",
+            "ss": "Social Security",
+            "pension": "Pension",
+            "wages": "Wages",
+            "spia": "SPIA",
             "fixedassets": "Fixed assets",
-            "other":       "Other income",
-            "bti":         "Big-ticket items",
+            "other": "Other income",
+            "bti": "Big-ticket items",
         }
 
         def _filter(values_dict, labels_map, color_map):
@@ -936,15 +1013,17 @@ class MatplotlibBackend(PlotBackend):
             (axes[1], out_values, out_labels, out_colors, "Outflows breakdown"),
         ]:
             wedges, _, autotexts = ax.pie(
-                values, colors=colors, autopct="%1.1f%%", startangle=90,
+                values,
+                colors=colors,
+                autopct="%1.1f%%",
+                startangle=90,
             )
             for t in autotexts:
                 t.set_fontsize(7)
-            ax.legend(wedges, labels, loc="upper center", bbox_to_anchor=(0.5, 0.0),
-                      fontsize=8, ncol=2, framealpha=0.5)
+            ax.legend(wedges, labels, loc="upper center", bbox_to_anchor=(0.5, 0.0), fontsize=8, ncol=2, framealpha=0.5)
             ax.set_title(subtitle)
         fa_bequest = alloc.get("fa_bequest", 0.0)
-        fa_note = f" (excl. \\${fa_bequest/1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
+        fa_note = f" (excl. \\${fa_bequest / 1000:,.0f}k fixed-asset bequest)" if fa_bequest > 0 else ""
         fig.suptitle(name + "\nLifetime Cash Flow (today's \\$)" + fa_note)
         plt.tight_layout()
         fig.subplots_adjust(bottom=0.25, top=0.80)
@@ -953,23 +1032,23 @@ class MatplotlibBackend(PlotBackend):
     def plot_cashflow_mix(self, mix, name):
         """Plot annual cash flow breakdown as normalized stacked-area charts (%)."""
         outflow_labels = {
-            "living":     "Living expenses",
-            "taxes":      "Taxes",
+            "living": "Living expenses",
+            "taxes": "Taxes",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
-            "debt":       "Debt payments",
-            "bti":        "Big-ticket items",
+            "debt": "Debt payments",
+            "bti": "Big-ticket items",
         }
         # portfolio is first so it anchors the bottom of the income stack.
         income_labels = {
-            "portfolio":   "Portfolio",
-            "ss":          "Social Security",
-            "pension":     "Pension",
-            "wages":       "Wages",
-            "spia":        "SPIA",
+            "portfolio": "Portfolio",
+            "ss": "Social Security",
+            "pension": "Pension",
+            "wages": "Wages",
+            "spia": "SPIA",
             "fixedassets": "Fixed assets",
-            "other":       "Other income",
-            "bti":         "Big-ticket items",
+            "other": "Other income",
+            "bti": "Big-ticket items",
         }
 
         year_n = mix["year_n"]
@@ -979,7 +1058,7 @@ class MatplotlibBackend(PlotBackend):
             total = sum(arrays)
             mask = total > 0
             pcts, lbls, clrs = [], [], []
-            for arr, (key, label) in zip(arrays, ((k, v) for k, v in labels.items() if k in data_dict)):
+            for arr, (key, label) in zip(arrays, ((k, v) for k, v in labels.items() if k in data_dict), strict=True):
                 pct = np.where(mask, arr / total * 100, 0.0)
                 if pct.max() > 0:
                     pcts.append(pct)

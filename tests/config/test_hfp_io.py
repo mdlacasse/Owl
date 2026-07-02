@@ -44,13 +44,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
 
         # Set some basic contributions
         p.zeroWagesAndContributions()
@@ -69,13 +63,7 @@ class TestHFPWriteRead:
             wb.save(tmp_path)
 
             # Read it back
-            p2 = owl.Plan(
-                ["Alice"],
-                ["1970-01-15"],
-                [expectancy],
-                "Test Plan 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             p2.readHFP(tmp_path)
 
             # Verify data was preserved
@@ -94,13 +82,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"].drop(columns=["other inc"])
         p.timeLists["Alice"] = alice_df
@@ -110,13 +92,7 @@ class TestHFPWriteRead:
         try:
             alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
 
-            p2 = owl.Plan(
-                ["Alice"],
-                ["1970-01-15"],
-                [expectancy],
-                "Test Plan 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             with pytest.raises(Exception, match="missing required column"):
                 p2.readHFP(tmp_path)
         finally:
@@ -128,13 +104,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
         alice_df.loc[alice_df["year"] == 2025, "other inc"] = 5_000
@@ -147,13 +117,7 @@ class TestHFPWriteRead:
             wb = p.saveContributions()
             wb.save(tmp_path)
 
-            p2 = owl.Plan(
-                ["Alice"],
-                ["1970-01-15"],
-                [expectancy],
-                "Test Plan 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             p2.readHFP(tmp_path)
 
             alice_df2 = p2.timeLists["Alice"]
@@ -169,35 +133,31 @@ class TestHFPWriteRead:
         birth_year = 1980
         remaining_years = 25
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Bob"],
-            ["1980-01-15"],
-            [expectancy],
-            "Test Debts",
-            verbose=False
-        )
+        p = owl.Plan(["Bob"], ["1980-01-15"], [expectancy], "Test Debts", verbose=False)
 
         # Create debts DataFrame with active column
-        debts_df = pd.DataFrame([
-            {
-                "active": True,
-                "name": "Mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 200_000,
-                "rate": 4.5
-            },
-            {
-                "active": False,
-                "name": "Old Loan",
-                "type": "loan",
-                "year": 2015,
-                "term": 10,
-                "amount": 50_000,
-                "rate": 5.0
-            }
-        ])
+        debts_df = pd.DataFrame(
+            [
+                {
+                    "active": True,
+                    "name": "Mortgage",
+                    "type": "mortgage",
+                    "year": 2020,
+                    "term": 30,
+                    "amount": 200_000,
+                    "rate": 4.5,
+                },
+                {
+                    "active": False,
+                    "name": "Old Loan",
+                    "type": "loan",
+                    "year": 2015,
+                    "term": 10,
+                    "amount": 50_000,
+                    "rate": 5.0,
+                },
+            ]
+        )
 
         # Set up houseLists
         p.houseLists = {"Debts": debts_df}
@@ -212,13 +172,7 @@ class TestHFPWriteRead:
             wb.save(tmp_path)
 
             # Read it back
-            p2 = owl.Plan(
-                ["Bob"],
-                ["1980-01-15"],
-                [expectancy],
-                "Test Debts 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Bob"], ["1980-01-15"], [expectancy], "Test Debts 2", verbose=False)
             p2.readHFP(tmp_path)
 
             # Verify debts were preserved
@@ -248,39 +202,35 @@ class TestHFPWriteRead:
         birth_year = 1975
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Carol"],
-            ["1975-01-15"],
-            [expectancy],
-            "Test Fixed Assets",
-            verbose=False
-        )
+        p = owl.Plan(["Carol"], ["1975-01-15"], [expectancy], "Test Fixed Assets", verbose=False)
 
         # Create fixed assets DataFrame with active column and year (acquisition year)
-        assets_df = pd.DataFrame([
-            {
-                "active": True,
-                "name": "House",
-                "type": "residence",
-                "year": thisyear,  # Acquired in current year
-                "basis": 150_000,
-                "value": 300_000,
-                "rate": 3.0,
-                "yod": 2035,
-                "commission": 6.0
-            },
-            {
-                "active": False,
-                "name": "Collectible",
-                "type": "collectibles",
-                "year": thisyear + 2,  # Acquired in future year
-                "basis": 10_000,
-                "value": 15_000,
-                "rate": 2.0,
-                "yod": 2030,
-                "commission": 10.0
-            }
-        ])
+        assets_df = pd.DataFrame(
+            [
+                {
+                    "active": True,
+                    "name": "House",
+                    "type": "residence",
+                    "year": thisyear,  # Acquired in current year
+                    "basis": 150_000,
+                    "value": 300_000,
+                    "rate": 3.0,
+                    "yod": 2035,
+                    "commission": 6.0,
+                },
+                {
+                    "active": False,
+                    "name": "Collectible",
+                    "type": "collectibles",
+                    "year": thisyear + 2,  # Acquired in future year
+                    "basis": 10_000,
+                    "value": 15_000,
+                    "rate": 2.0,
+                    "yod": 2030,
+                    "commission": 10.0,
+                },
+            ]
+        )
 
         # Set up houseLists
         p.houseLists = {"Fixed Assets": assets_df}
@@ -295,13 +245,7 @@ class TestHFPWriteRead:
             wb.save(tmp_path)
 
             # Read it back
-            p2 = owl.Plan(
-                ["Carol"],
-                ["1975-01-15"],
-                [expectancy],
-                "Test Fixed Assets 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Carol"], ["1975-01-15"], [expectancy], "Test Fixed Assets 2", verbose=False)
             p2.readHFP(tmp_path)
 
             # Verify fixed assets were preserved
@@ -337,12 +281,13 @@ class TestHFPWriteRead:
             "year": [2020] * 6,
             "term": [10] * 6,
             "amount": [10_000] * 6,
-            "rate": [5.0] * 6
+            "rate": [5.0] * 6,
         }
         debts_df = pd.DataFrame(debts_data)
 
         # Use conditionDebtsAndFixedAssetsDF to process it
         from owlplanner import hfp_io
+
         processed_df = hfp_io.conditionDebtsAndFixedAssetsDF(debts_df, "Debts")
 
         # Verify all active values are boolean
@@ -366,12 +311,13 @@ class TestHFPWriteRead:
             "year": [2020] * 4,
             "term": [10] * 4,
             "amount": [10_000] * 4,
-            "rate": [5.0] * 4
+            "rate": [5.0] * 4,
         }
         debts_df = pd.DataFrame(debts_data)
 
         # Use conditionDebtsAndFixedAssetsDF to process it
         from owlplanner import hfp_io
+
         processed_df = hfp_io.conditionDebtsAndFixedAssetsDF(debts_df, "Debts")
 
         # Verify all active values are boolean
@@ -393,12 +339,13 @@ class TestHFPWriteRead:
             "year": [2020] * 4,
             "term": [10] * 4,
             "amount": [10_000] * 4,
-            "rate": [5.0] * 4
+            "rate": [5.0] * 4,
         }
         debts_df = pd.DataFrame(debts_data)
 
         # Use conditionDebtsAndFixedAssetsDF to process it
         from owlplanner import hfp_io
+
         processed_df = hfp_io.conditionDebtsAndFixedAssetsDF(debts_df, "Debts")
 
         # Verify all active values are boolean
@@ -415,13 +362,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"].drop(columns=["net inv"])
         p.timeLists["Alice"] = alice_df
@@ -431,13 +372,7 @@ class TestHFPWriteRead:
         try:
             alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
 
-            p2 = owl.Plan(
-                ["Alice"],
-                ["1970-01-15"],
-                [expectancy],
-                "Test Plan 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             with pytest.raises(Exception, match="missing required column"):
                 p2.readHFP(tmp_path)
         finally:
@@ -449,13 +384,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
         alice_df.loc[alice_df["year"] == 2025, "net inv"] = 12_000
@@ -468,13 +397,7 @@ class TestHFPWriteRead:
             wb = p.saveContributions()
             wb.save(tmp_path)
 
-            p2 = owl.Plan(
-                ["Alice"],
-                ["1970-01-15"],
-                [expectancy],
-                "Test Plan 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             p2.readHFP(tmp_path)
 
             alice_df2 = p2.timeLists["Alice"]
@@ -489,13 +412,7 @@ class TestHFPWriteRead:
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
-        p = owl.Plan(
-            ["Alice"],
-            ["1970-01-15"],
-            [expectancy],
-            "Test Plan",
-            verbose=False
-        )
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
         alice_df = p.timeLists["Alice"]
         # Set a net inv value in a specific year
@@ -505,6 +422,7 @@ class TestHFPWriteRead:
 
         # Find the year index in p.year_n
         import numpy as np
+
         year_indices = np.where(p.year_n == target_year)[0]
         assert len(year_indices) > 0, f"Year {target_year} not in plan horizon"
         n = year_indices[0]
@@ -515,14 +433,8 @@ class TestHFPWriteRead:
         # Create a plan for married couple
         birth_years = [1970, 1972]
         remaining_years = [30, 28]
-        expectancy = [(thisyear - by) + ry for by, ry in zip(birth_years, remaining_years)]
-        p = owl.Plan(
-            ["George", "Gina"],
-            ["1970-01-15", "1972-03-20"],
-            expectancy,
-            "Test Married",
-            verbose=False
-        )
+        expectancy = [(thisyear - by) + ry for by, ry in zip(birth_years, remaining_years, strict=True)]
+        p = owl.Plan(["George", "Gina"], ["1970-01-15", "1972-03-20"], expectancy, "Test Married", verbose=False)
 
         # Set contributions for both
         p.zeroWagesAndContributions()
@@ -535,17 +447,19 @@ class TestHFPWriteRead:
         p.setContributions()
 
         # Add debts
-        debts_df = pd.DataFrame([
-            {
-                "active": True,
-                "name": "Joint Mortgage",
-                "type": "mortgage",
-                "year": 2020,
-                "term": 30,
-                "amount": 300_000,
-                "rate": 4.0
-            }
-        ])
+        debts_df = pd.DataFrame(
+            [
+                {
+                    "active": True,
+                    "name": "Joint Mortgage",
+                    "type": "mortgage",
+                    "year": 2020,
+                    "term": 30,
+                    "amount": 300_000,
+                    "rate": 4.0,
+                }
+            ]
+        )
         p.houseLists = {"Debts": debts_df}
 
         # Save to temporary file
@@ -557,24 +471,17 @@ class TestHFPWriteRead:
             wb.save(tmp_path)
 
             # Read it back
-            p2 = owl.Plan(
-                ["George", "Gina"],
-                ["1970-01-15", "1972-03-20"],
-                expectancy,
-                "Test Married 2",
-                verbose=False
-            )
+            p2 = owl.Plan(["George", "Gina"], ["1970-01-15", "1972-03-20"], expectancy, "Test Married 2", verbose=False)
             p2.readHFP(tmp_path)
 
             # Verify both individuals' data
             assert "George" in p2.timeLists
             assert "Gina" in p2.timeLists
-            assert p2.timeLists["George"].loc[
-                p2.timeLists["George"]["year"] == 2025, "anticipated wages"
-            ].iloc[0] == 120_000
-            assert p2.timeLists["Gina"].loc[
-                p2.timeLists["Gina"]["year"] == 2025, "anticipated wages"
-            ].iloc[0] == 80_000
+            assert (
+                p2.timeLists["George"].loc[p2.timeLists["George"]["year"] == 2025, "anticipated wages"].iloc[0]
+                == 120_000
+            )
+            assert p2.timeLists["Gina"].loc[p2.timeLists["Gina"]["year"] == 2025, "anticipated wages"].iloc[0] == 80_000
 
             # Verify debts
             assert "Debts" in p2.houseLists

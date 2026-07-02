@@ -88,20 +88,20 @@ partD_irmaa_costs = np.cumsum(partD_irmaa_fees)
 # a future Congress reinstates pre-TCJA law.
 taxBrackets_preTCJA = np.array(
     [
-        [12_600, 51_270, 124_160, 258_920, 562_960, 565_260, 9_999_999],   # Single
+        [12_600, 51_270, 124_160, 258_920, 562_960, 565_260, 9_999_999],  # Single
         [25_200, 102_540, 206_840, 315_260, 562_960, 635_920, 9_999_999],  # MFJ
     ]
 )
 
 # Permanently superseded by OBBBA; retained for hypothetical yOBBBA modeling only.
-stdDeduction_preTCJA = np.array([8_580, 17_160])   # Single, MFJ
+stdDeduction_preTCJA = np.array([8_580, 17_160])  # Single, MFJ
 #########################################################################
 
 # These are current for 2026 (2025TY).
-stdDeduction_OBBBA = np.array([16_100, 32_200])    # Single, MFJ
+stdDeduction_OBBBA = np.array([16_100, 32_200])  # Single, MFJ
 
 # These are current for 2026 per individual. Source: IRS Rev. Proc. 2025-32.
-extra65Deduction = np.array([2_050, 1_650])        # Single, MFJ (per spouse)
+extra65Deduction = np.array([2_050, 1_650])  # Single, MFJ (per spouse)
 
 # LTCG bracket thresholds: taxable income above which 15% and 20% rates apply.
 # Source: IRS Topic 409, Publication 550. Values indexed for inflation annually.
@@ -109,8 +109,8 @@ extra65Deduction = np.array([2_050, 1_650])        # Single, MFJ (per spouse)
 # TODO: Update annually. Verify against IRS.gov/taxtopics/tc409 for current tax year.
 capGainRates = np.array(
     [
-        [49_450, 545_500],   # Single
-        [98_900, 613_700],   # Married filing jointly
+        [49_450, 545_500],  # Single
+        [98_900, 613_700],  # Married filing jointly
     ]
 )
 
@@ -168,7 +168,7 @@ acaFPL = _ACA_FPL[2025]
 # Breakpoints: 150%, 200%, 250%, 300%, 400%. Below 150%: 0%.
 _ACA_BREAKPOINTS_2025 = np.array([1.50, 2.00, 2.50, 3.00, 4.00])
 _ACA_CONTRIB_PCT_2025 = np.array([0.0, 0.02, 0.04, 0.06, 0.085])
-_ACA_CONTRIB_CAP_2025 = 0.085   # ARP/IRA cap above 400% FPL
+_ACA_CONTRIB_CAP_2025 = 0.085  # ARP/IRA cap above 400% FPL
 
 # 2026 plan year: IRS Rev. Proc. 2025-25. IRA expires; no subsidy above 400%.
 # NOTE: As of 2026, Congress has considered extending IRA subsidies (8.5% cap above 400%).
@@ -307,7 +307,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     # Has it already started?
     Nmed = Nn - nmstart
 
-    Lbar = np.zeros((Nmed, Nq-1))
+    Lbar = np.zeros((Nmed, Nq - 1))
     Cbar = np.zeros((Nmed, Nq))
 
     # Year starts at offset nmstart in the plan. L and C arrays are shorter.
@@ -320,9 +320,9 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
             imed += 1
         if imed:
             if Ni == 1 or not (n < horizons[0] and n < horizons[1]):
-                status = 0   # single or one spouse deceased
+                status = 0  # single or one spouse deceased
             else:
-                status = 1   # married filing jointly
+                status = 1  # married filing jointly
             Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
             Cbar[nn] = imed * gamma_n[n] * costs_per_person
             if include_part_d and part_d_base_annual_per_person != 0:
@@ -447,7 +447,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
 
 def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
     """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range."""
-    idx = int(np.searchsorted(breakpoints, ratio, side='right')) - 1
+    idx = int(np.searchsorted(breakpoints, ratio, side="right")) - 1
     idx = max(0, min(idx, len(breakpoints) - 2))
     lo, hi = breakpoints[idx], breakpoints[idx + 1]
     t = (ratio - lo) / (hi - lo)
@@ -698,7 +698,7 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
                 if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
-                    sigmaBar[n] += max(0, 6000 - 0.06*max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
+                    sigmaBar[n] += max(0, 6000 - 0.06 * max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
 
         # Fill in future tax rates for year n.
         if thisyear + n < yOBBBA:
@@ -789,9 +789,7 @@ def rho_in(yobs, longevity, N_n):
     """
     N_i = len(yobs)
     if np.any(np.array(longevity) > 120):
-        raise RuntimeError(
-            "RMD: Unsupported life expectancy over 120 years."
-        )
+        raise RuntimeError("RMD: Unsupported life expectancy over 120 years.")
 
     rho = np.zeros((N_i, N_n))
     thisyear = date.today().year

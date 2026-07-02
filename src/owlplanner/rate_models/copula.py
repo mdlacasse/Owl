@@ -28,6 +28,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import numpy as np
 from scipy.special import ndtri
@@ -83,12 +84,14 @@ def generate_histocopula_series(
 
     ifrm = frm - FROM
     ito = to - FROM
-    data = np.column_stack([
-        SP500.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        BondsBaa.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        TNotes.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-        Inflation.iloc[ifrm:ito + 1].to_numpy() / 100.0,
-    ])
+    data = np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
 
     T, K = data.shape
 
@@ -99,10 +102,10 @@ def generate_histocopula_series(
         U_hist[:, k] = (rankdata(data[:, k]) - 0.5) / T
 
     # Step 2: Φ⁻¹(U) → standard normals in copula space.
-    Z_hist = ndtri(U_hist)                   # (T, K)
+    Z_hist = ndtri(U_hist)  # (T, K)
 
     # Step 3: Gaussian copula correlation matrix.
-    Rho = np.corrcoef(Z_hist.T)              # (K, K)
+    Rho = np.corrcoef(Z_hist.T)  # (K, K)
     if np.any(np.isnan(Rho)):
         raise ValueError(
             f"Historical window [{frm}, {to}] produced a degenerate correlation matrix "
@@ -112,10 +115,10 @@ def generate_histocopula_series(
         mylog.vprint(f"historical_copula: Rho fitted on {T} years ({frm}-{to}).")
 
     # Step 4: sample from multivariate normal with the copula correlation.
-    Z_samples = rng.multivariate_normal(np.zeros(K), Rho, size=N)   # (N, K)
+    Z_samples = rng.multivariate_normal(np.zeros(K), Rho, size=N)  # (N, K)
 
     # Step 5a: Φ(Z) → U[0,1].
-    U_samples = norm.cdf(Z_samples)          # (N, K)
+    U_samples = norm.cdf(Z_samples)  # (N, K)
 
     # Step 5b: empirical quantile back-transform (linear interpolation over sorted history).
     # u_grid[i] = (i + 0.5) / T matches the forward transform.
@@ -188,9 +191,7 @@ class HistoCopulaRateModel(BaseRateModel):
             self._hist_target_means = _historical_arith_means(self._frm, self._to)
 
     def generate(self, N):
-        series, means, stdev_arr, corr_arr = generate_histocopula_series(
-            N, self._frm, self._to, self._rng, self.logger
-        )
+        series, means, stdev_arr, corr_arr = generate_histocopula_series(N, self._frm, self._to, self._rng, self.logger)
         self.params["values"] = means.copy()
         self.params["stdev"] = stdev_arr.copy()
         self.params["corr"] = corr_arr.copy()

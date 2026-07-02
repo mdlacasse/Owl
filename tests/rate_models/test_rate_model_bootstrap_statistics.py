@@ -27,6 +27,7 @@ from owlplanner.rate_models.historical_bootstrap import BootstrapSORRateModel
 # Helpers
 # ---------------------------------------------------------
 
+
 def get_historical_slice(frm, to):
     import os
     import sys
@@ -62,6 +63,7 @@ def compute_autocorr(data):
 # Core Distribution Fidelity Test
 # ---------------------------------------------------------
 
+
 def test_bootstrap_distribution_matches_historical():
     frm, to = 1950, 2020
     N = 30
@@ -88,45 +90,30 @@ def test_bootstrap_distribution_matches_historical():
     # -----------------------------
     # Mean should be close
     # -----------------------------
-    assert np.allclose(
-        boot_stats["mean"],
-        hist_stats["mean"],
-        atol=0.01
-    )
+    assert np.allclose(boot_stats["mean"], hist_stats["mean"], atol=0.01)
 
     # -----------------------------
     # Std deviation should be close
     # -----------------------------
-    assert np.allclose(
-        boot_stats["std"],
-        hist_stats["std"],
-        atol=0.01
-    )
+    assert np.allclose(boot_stats["std"], hist_stats["std"], atol=0.01)
 
     # -----------------------------
     # Correlation matrix similar
     # -----------------------------
-    assert np.allclose(
-        boot_stats["corr"],
-        hist_stats["corr"],
-        atol=0.05
-    )
+    assert np.allclose(boot_stats["corr"], hist_stats["corr"], atol=0.05)
 
 
 # ---------------------------------------------------------
 # Autocorrelation Tests
 # ---------------------------------------------------------
 
+
 def test_iid_bootstrap_has_near_zero_autocorr():
     frm, to = 1950, 2020
     N = 5000
 
     model = BootstrapSORRateModel(
-        config={
-            "frm": frm,
-            "to": to,
-            "bootstrap_type": "iid"
-        },
+        config={"frm": frm, "to": to, "bootstrap_type": "iid"},
         seed=42,
     )
 
@@ -162,6 +149,7 @@ def test_block_bootstrap_preserves_positive_autocorr():
 # Crisis Overweight Test
 # ---------------------------------------------------------
 
+
 def test_crisis_overweight_increases_crisis_frequency():
     frm, to = 1950, 2020
     N = 10000
@@ -186,21 +174,10 @@ def test_crisis_overweight_increases_crisis_frequency():
     crisis_series = crisis_model.generate(N)
 
     hist = get_historical_slice(frm, to)
-    crisis_returns = hist[
-        np.isin(
-            np.arange(frm, to + 1),
-            crisis_years
-        )
-    ]
+    crisis_returns = hist[np.isin(np.arange(frm, to + 1), crisis_years)]
 
-    base_hits = sum(
-        any(np.allclose(row, c) for c in crisis_returns)
-        for row in base_series
-    )
+    base_hits = sum(any(np.allclose(row, c) for c in crisis_returns) for row in base_series)
 
-    crisis_hits = sum(
-        any(np.allclose(row, c) for c in crisis_returns)
-        for row in crisis_series
-    )
+    crisis_hits = sum(any(np.allclose(row, c) for c in crisis_returns) for row in crisis_series)
 
     assert crisis_hits > base_hits

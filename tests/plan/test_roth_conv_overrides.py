@@ -41,7 +41,7 @@ def _make_plan(name, horizon_years=12):
     """Single-person plan with a large tax-deferred balance, ample for Roth conversions."""
     age = 65
     yobs = THISYEAR - age
-    expectancy = horizon_years + age - 1   # gives horizons[0] = horizon_years
+    expectancy = horizon_years + age - 1  # gives horizons[0] = horizon_years
     p = owl.Plan([name], [f"{yobs}-06-15"], [expectancy], name, verbose=False)
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[1000], taxFree=[50], startDate="1-1")
@@ -116,8 +116,8 @@ def test_all_years_pinned_above_cap():
     exactly -- the cap never clips a pinned cell, no matter how many cells are pinned."""
     p = _make_plan("roth_all_pinned_above_cap", horizon_years=6)
     override = 70_000
-    p.myRothX_in[0, :p.horizons[0]] = override
+    p.myRothX_in[0, : p.horizons[0]] = override
     options = dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True)
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
-    np.testing.assert_allclose(p.x_in[0, :p.horizons[0]], override)
+    np.testing.assert_allclose(p.x_in[0, : p.horizons[0]], override)

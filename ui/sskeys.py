@@ -217,8 +217,11 @@ def caseIsNotMCReady():
     """
     Check that rates are set to a stochastic method before MC run.
     """
-    return (caseIsNotRunReady() or getCaseKey("rateType") != "varying"
-            or getCaseKey("varyingType") not in STOCHASTIC_METHODS)
+    return (
+        caseIsNotRunReady()
+        or getCaseKey("rateType") != "varying"
+        or getCaseKey("varyingType") not in STOCHASTIC_METHODS
+    )
 
 
 def caseIsNotStochReady():
@@ -261,6 +264,7 @@ def copyCase():
     if not ss.cases[dupname].get("reproducibleRates", False):
         # Generate a new seed for non-reproducible rates.
         import time
+
         ss.cases[dupname]["rateSeed"] = int(time.time() * 1000000) % (2**31)
 
     ss.cases[dupname]["name"] = dupname
@@ -269,6 +273,7 @@ def copyCase():
 
     # Create a new StringIO for logs to separate them from the original case
     from io import StringIO
+
     ss.cases[dupname]["logs"] = StringIO()
     # Reset the logger so a new one gets created when needed
     ss.cases[dupname]["_ui_logger"] = None
@@ -730,7 +735,7 @@ def getAccountAllocationRatios():
 
 
 def getPreviousMAGIs():
-    backMAGIs = [0., 0.]
+    backMAGIs = [0.0, 0.0]
     for ii in range(2):
         val = getCaseKey(f"MAGI{ii}")
         if val:
@@ -747,7 +752,7 @@ def getFixedIncome(ni, what):
         amounts.append(getCaseKey(f"{what}Amt{i}"))
         age_y = getCaseKey(f"{what}Age_y{i}")
         age_m = getCaseKey(f"{what}Age_m{i}")
-        age = age_y + age_m/12
+        age = age_y + age_m / 12
         ages.append(age)
         if what == "p":
             indexed.append(getCaseKey(f"{what}Idx{i}"))
@@ -769,7 +774,7 @@ def getDate(text, nkey, disabled=False, callback=setpull, help=None, min_value=N
         help=help,
         on_change=callback,
         args=[nkey],
-        key=widget_key
+        key=widget_key,
     )
     if mydate is None:
         st.error("A date must be set.", icon=":material/error:")
@@ -801,8 +806,9 @@ def getIntNum(text, nkey, disabled=False, callback=setpull, step=1, help=None, m
     )
 
 
-def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0,
-           max_value=None, format="%.1f", help=None):
+def getNum(
+    text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.0, max_value=None, format="%.1f", help=None
+):
     widget_key = genCaseKey(nkey)
     kval = getCaseKey(nkey)
     value = 0.0 if kval is None else float(kval)
@@ -818,7 +824,7 @@ def getNum(text, nkey, disabled=False, callback=setpull, step=10.0, min_value=0.
         format=format,
         on_change=callback,
         args=[nkey],
-        key=widget_key
+        key=widget_key,
     )
 
 
@@ -827,13 +833,7 @@ def getText(text, nkey, disabled=False, callback=setpull, placeholder=None, help
     initGlobalKey(widget_key, getCaseKey(nkey))
 
     return st.text_input(
-        text,
-        disabled=disabled,
-        on_change=callback,
-        args=[nkey],
-        placeholder=placeholder,
-        help=help,
-        key=widget_key
+        text, disabled=disabled, on_change=callback, args=[nkey], placeholder=placeholder, help=help, key=widget_key
     )
 
 
@@ -849,7 +849,7 @@ def getLongText(text, nkey, disabled=False, callback=setpull, placeholder=None, 
         args=[nkey],
         placeholder=placeholder,
         help=help,
-        key=widget_key
+        key=widget_key,
     )
 
 
@@ -908,7 +908,7 @@ def getRadio(text, choices, nkey, callback=setpull, disabled=False, help=None):
         disabled=disabled,
         horizontal=True,
         help=help,
-        key=widget_key
+        key=widget_key,
     )
 
 
@@ -927,20 +927,16 @@ def getSelectbox(text, choices, nkey, callback=setpull, disabled=False, help=Non
         st.error(f"Value '{widget_value}' not available. Defaulting to '{choices[0]}'.", icon=":material/error:")
         widget_value = choices[0]
         index = 0
-    return st.selectbox(text, choices, index=index, on_change=callback, args=[nkey],
-                        disabled=disabled, help=help, key=widget_key)
+    return st.selectbox(
+        text, choices, index=index, on_change=callback, args=[nkey], disabled=disabled, help=help, key=widget_key
+    )
 
 
 def getToggle(text, nkey, callback=setpull, disabled=False, help=None):
     widget_key = genCaseKey(nkey)
     initGlobalKey(widget_key, getCaseKey(nkey))
 
-    return st.toggle(
-        text,
-        on_change=callback, args=[nkey], disabled=disabled,
-        help=help,
-        key=widget_key
-    )
+    return st.toggle(text, on_change=callback, args=[nkey], disabled=disabled, help=help, key=widget_key)
 
 
 def divider(color, width="auto"):
@@ -990,7 +986,9 @@ def titleBar(txt):
         top: 2.875rem;
         z-index: 110;
     }}
-</style>""" % (bc, fc), unsafe_allow_html=True
+</style>"""
+        % (bc, fc),
+        unsafe_allow_html=True,
     )
     with header:
         col1, col2, col3, col4 = st.columns([0.005, 0.6, 0.4, 0.01], gap="small")

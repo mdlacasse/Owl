@@ -59,7 +59,7 @@ def test_MC():
     assert os.path.exists(hfp), f"HFP file does not exist: {hfp}"
     p.readHFP(hfp)
     # Verify HFP was loaded
-    assert hasattr(p, 'timeLists') and p.timeLists is not None, f"HFP file {hfp} was not loaded"
+    assert hasattr(p, "timeLists") and p.timeLists is not None, f"HFP file {hfp} was not loaded"
     options = p.solverOptions
     objective = p.objective
     p.runMC(objective, options, 20)

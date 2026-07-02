@@ -42,14 +42,14 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_rates_correlations(self, name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None,
-                                tag="", share_range=False):
+    def plot_rates_correlations(
+        self, name, tau_kn, N_n, rate_method, rate_frm=None, rate_to=None, tag="", share_range=False
+    ):
         """Plot correlations between various rates."""
         pass
 
     @abstractmethod
-    def plot_rates(self, name, tau_kn, year_n, N_k, rate_method,
-                   rate_frm=None, rate_to=None, tag=""):
+    def plot_rates(self, name, tau_kn, year_n, N_k, rate_method, rate_frm=None, rate_to=None, tag=""):
         """Plot rate values used over the time horizon."""
         pass
 
@@ -59,8 +59,9 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_rates_cdf(self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM,
-                       rate_frm=None, rate_to=None, tag=""):
+    def plot_rates_cdf(
+        self, name, tau_kn, rate_method, SP500, BondsBaa, TNotes, Inflation, FROM, rate_frm=None, rate_to=None, tag=""
+    ):
         """Plot empirical CDFs of rates, with historical range overlay for historical methods."""
         pass
 
@@ -137,9 +138,17 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_frontier(self, frontier_prob, frontier_g, frontier_shortfall,
-                                 target_success_rate_pct, g_opt, year_n, start_years=None,
-                                 with_longevity=False):
+    def plot_stochastic_frontier(
+        self,
+        frontier_prob,
+        frontier_g,
+        frontier_shortfall,
+        target_success_rate_pct,
+        g_opt,
+        year_n,
+        start_years=None,
+        with_longevity=False,
+    ):
         """Efficient frontier plot: committed spending vs. shortfall probability.
 
         Marks the target success rate point on the curve.
@@ -156,8 +165,9 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
-    def plot_stochastic_outcomes(self, start_years, bases, g_opt, target_success_rate_pct, year_n,
-                                 with_longevity=False):
+    def plot_stochastic_outcomes(
+        self, start_years, bases, g_opt, target_success_rate_pct, year_n, with_longevity=False
+    ):
         """Bar chart of achieved spending by scenario, colored by success/failure.
 
         Historical mode (start_years is not None): x = historical start year.

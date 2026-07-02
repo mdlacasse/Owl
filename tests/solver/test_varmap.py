@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 import numpy as np
 import pytest
 from owlplanner.varmap import VarBlock, VarMap
@@ -109,8 +110,8 @@ class TestVarBlock:
 class TestVarMap:
     def test_add_advances_cursor(self):
         vm = VarMap()
-        vm.add("b", 2, 3, 5)   # 30 vars
-        vm.add("d", 2, 4)      # 8 vars
+        vm.add("b", 2, 3, 5)  # 30 vars
+        vm.add("d", 2, 4)  # 8 vars
         assert vm["b"].start == 0
         assert vm["d"].start == 30
         assert vm.nvars == 38
@@ -171,7 +172,7 @@ class TestVarMap:
         vm.add("a", 5)
         vm.add_if(False, "opt", 10)
         vm.add("b", 3)
-        assert vm["b"].start == 5   # cursor did not advance when cond=False
+        assert vm["b"].start == 5  # cursor did not advance when cond=False
         assert vm.nvars == 8
 
     def test_add_if_true_cursor_advances(self):
@@ -187,7 +188,7 @@ class TestVarMap:
         """VarMap.extract produces correctly shaped arrays from x."""
         vm = VarMap()
         vm.add("b", 2, 3, 4)  # 24 vars, shape (2,3,4)
-        vm.add("g", 4)         # 4 vars, shape (4,)
+        vm.add("g", 4)  # 4 vars, shape (4,)
         x = np.arange(vm.nvars, dtype=float)
         b = vm["b"].extract(x)
         g = vm["g"].extract(x)
@@ -199,28 +200,28 @@ class TestVarMap:
     def test_conditional_blocks_shift_correctly(self):
         """Simulates medi=False, ss_lp=True: h absent, plo/phi/q/tss present."""
         vm = VarMap()
-        vm.add("b", 1, 3, 4)    # 12
-        vm.add("d", 1, 3)       # 3
-        vm.add("e", 3)          # 3
-        vm.add("f", 2, 3)       # 6
-        vm.add("g", 3)          # 3   → cursor=27
+        vm.add("b", 1, 3, 4)  # 12
+        vm.add("d", 1, 3)  # 3
+        vm.add("e", 3)  # 3
+        vm.add("f", 2, 3)  # 6
+        vm.add("g", 3)  # 3   → cursor=27
         medi = False
         ss_lp = True
         Nmed = 2
         N_q = 5
-        vm.add_if(medi, "h", Nmed, N_q)   # absent → cursor stays 27
-        vm.add("m", 3)          # 3   → cursor=30
-        vm.add("s", 3)          # 3   → cursor=33
-        vm.add("w", 1, 3, 3)   # 9   → cursor=42
-        vm.add("x", 1, 3)      # 3   → cursor=45
+        vm.add_if(medi, "h", Nmed, N_q)  # absent → cursor stays 27
+        vm.add("m", 3)  # 3   → cursor=30
+        vm.add("s", 3)  # 3   → cursor=33
+        vm.add("w", 1, 3, 3)  # 9   → cursor=42
+        vm.add("x", 1, 3)  # 3   → cursor=45
         vm.add_if(ss_lp, "plo", 3)  # 3 → cursor=48
         vm.add_if(ss_lp, "phi", 3)  # 3 → cursor=51
-        vm.add_if(ss_lp, "q",   3)  # 3 → cursor=54
+        vm.add_if(ss_lp, "q", 3)  # 3 → cursor=54
         vm.add_if(ss_lp, "tss", 3)  # 3 → cursor=57
         vm.mark_binary_start()
-        vm.add("zx", 3, 2)     # 6   → cursor=63
-        vm.add_if(medi,   "zm", Nmed, N_q)  # absent
-        vm.add_if(ss_lp,  "zs", 3, 2)      # 6 → cursor=69
+        vm.add("zx", 3, 2)  # 6   → cursor=63
+        vm.add_if(medi, "zm", Nmed, N_q)  # absent
+        vm.add_if(ss_lp, "zs", 3, 2)  # 6 → cursor=69
 
         assert "h" not in vm
         assert "tss" in vm

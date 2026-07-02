@@ -33,6 +33,7 @@ from owlplanner.rate_models.dataframe import DataFrameRateModel
 # Minimal full config dict for config_to_plan tests
 # ---------------------------------------------------------------------------
 
+
 def _minimal_config(rates_section):
     """Return a complete single-person config dict with the supplied rates_selection."""
     return {
@@ -101,8 +102,8 @@ def _make_plan():
 # StochasticRateModel.from_config — unit tests
 # ===========================================================================
 
-class TestStochasticFromConfig:
 
+class TestStochasticFromConfig:
     def test_toml_alias_standard_deviations_mapped_to_stdev(self):
         """from_config maps TOML key 'standard_deviations' → internal key 'stdev'."""
         section = {
@@ -143,9 +144,9 @@ class TestStochasticFromConfig:
         section = {
             "values": [7.0, 4.0, 3.3, 2.8],
             "standard_deviations": [17.0, 8.0, 10.0, 3.0],
-            "from": 1928,       # historical param — not stochastic
-            "to": 2025,         # historical param — not stochastic
-            "bogus_key": 99,    # completely unknown
+            "from": 1928,  # historical param — not stochastic
+            "to": 2025,  # historical param — not stochastic
+            "bogus_key": 99,  # completely unknown
         }
         result = StochasticRateModel.from_config(section)
         assert "from" not in result
@@ -170,8 +171,8 @@ class TestStochasticFromConfig:
 # StochasticRateModel.to_config — unit tests
 # ===========================================================================
 
-class TestStochasticToConfig:
 
+class TestStochasticToConfig:
     def test_produces_toml_alias_standard_deviations(self):
         """to_config maps internal 'stdev' → TOML key 'standard_deviations'."""
         result = StochasticRateModel.to_config(
@@ -204,7 +205,7 @@ class TestStochasticToConfig:
             corr=corr_matrix,
         )
         assert len(result["correlations"]) == 6  # 4*(4-1)//2
-        assert result["correlations"][0] == pytest.approx(0.4)   # (0,1)
+        assert result["correlations"][0] == pytest.approx(0.4)  # (0,1)
         assert result["correlations"][1] == pytest.approx(0.26)  # (0,2)
         # Diagonal elements must NOT appear
         assert all(-1.0 <= v <= 1.0 for v in result["correlations"])
@@ -243,7 +244,7 @@ class TestStochasticToConfig:
         assert "correlations" in out
         assert out["values"] == pytest.approx([7.0, 4.0, 3.3, 2.8])
         assert out["standard_deviations"] == pytest.approx([17.0, 8.0, 10.0, 3.0])
-        assert out["correlations"][0] == pytest.approx(0.4)   # (0,1)
+        assert out["correlations"][0] == pytest.approx(0.4)  # (0,1)
         assert out["correlations"][1] == pytest.approx(0.26)  # (0,2)
 
 
@@ -251,8 +252,8 @@ class TestStochasticToConfig:
 # Default BaseRateModel.from_config — unit tests via HistoricalRateModel
 # ===========================================================================
 
-class TestDefaultFromConfig:
 
+class TestDefaultFromConfig:
     def test_from_key_translated_to_frm(self):
         """TOML key 'from' is translated to internal key 'frm'."""
         result = HistoricalRateModel.from_config({"from": 1969, "to": 2000})
@@ -275,13 +276,15 @@ class TestDefaultFromConfig:
 
     def test_unknown_keys_filtered(self):
         """Keys not in required_parameters | optional_parameters are dropped."""
-        result = HistoricalRateModel.from_config({
-            "from": 1969,
-            "to": 2000,
-            "bootstrap_type": "block",   # not a HistoricalRateModel param
-            "values": [7, 4, 3, 2],      # not a HistoricalRateModel param
-            "bogus": 42,
-        })
+        result = HistoricalRateModel.from_config(
+            {
+                "from": 1969,
+                "to": 2000,
+                "bootstrap_type": "block",  # not a HistoricalRateModel param
+                "values": [7, 4, 3, 2],  # not a HistoricalRateModel param
+                "bogus": 42,
+            }
+        )
         assert "bootstrap_type" not in result
         assert "values" not in result
         assert "bogus" not in result
@@ -299,8 +302,8 @@ class TestDefaultFromConfig:
 # Default BaseRateModel.to_config — unit tests
 # ===========================================================================
 
-class TestDefaultToConfig:
 
+class TestDefaultToConfig:
     def test_frm_translated_to_from(self):
         """Internal key 'frm' is renamed to TOML key 'from'."""
         result = HistoricalRateModel.to_config(frm=1969, to=2000)
@@ -317,9 +320,9 @@ class TestDefaultToConfig:
         result = HistoricalAverageRateModel.to_config(
             frm=1969,
             to=2000,
-            values=[0.07, 0.04, 0.03, 0.02],   # computed — not declared
-            stdev=[0.17, 0.08, 0.06, 0.02],    # computed — not declared
-            corr=np.eye(4),                     # computed — not declared
+            values=[0.07, 0.04, 0.03, 0.02],  # computed — not declared
+            stdev=[0.17, 0.08, 0.06, 0.02],  # computed — not declared
+            corr=np.eye(4),  # computed — not declared
         )
         assert result == {"from": 1969, "to": 2000}
 
@@ -337,14 +340,18 @@ class TestDefaultToConfig:
 # DataFrameRateModel.to_config
 # ===========================================================================
 
-class TestDataFrameToConfig:
 
+class TestDataFrameToConfig:
     def test_returns_empty_dict_always(self):
         """DataFrame cannot be serialized to TOML; to_config must return {}."""
-        df = pd.DataFrame({
-            "S&P 500": [0.07], "Bonds Baa": [0.04],
-            "T-Notes": [0.03], "Inflation": [0.02],
-        })
+        df = pd.DataFrame(
+            {
+                "S&P 500": [0.07],
+                "Bonds Baa": [0.04],
+                "T-Notes": [0.03],
+                "Inflation": [0.02],
+            }
+        )
         assert DataFrameRateModel.to_config(df=df, n_years=1, offset=0, in_percent=True) == {}
         assert DataFrameRateModel.to_config() == {}
 
@@ -352,10 +359,14 @@ class TestDataFrameToConfig:
         """Saving a plan with method=dataframe writes no df/n_years keys to config."""
         p = _make_plan()
         n = p.N_n
-        df = pd.DataFrame({
-            "S&P 500": [5.0] * n, "Bonds Baa": [3.0] * n,
-            "T-Notes": [2.5] * n, "Inflation": [2.0] * n,
-        })
+        df = pd.DataFrame(
+            {
+                "S&P 500": [5.0] * n,
+                "Bonds Baa": [3.0] * n,
+                "T-Notes": [2.5] * n,
+                "Inflation": [2.0] * n,
+            }
+        )
         p.setRates(method="dataframe", df=df)
         diconf = plan_to_config(p)
         rates = diconf["rates_selection"]
@@ -371,8 +382,8 @@ class TestDataFrameToConfig:
 # Stochastic config → plan via config_to_plan (the alias-normalization bug fix)
 # ===========================================================================
 
-class TestStochasticConfigToPlan:
 
+class TestStochasticConfigToPlan:
     def test_loads_standard_deviations_and_correlations_from_toml_keys(self):
         """
         config_to_plan correctly processes standard_deviations/correlations from
@@ -380,13 +391,15 @@ class TestStochasticConfigToPlan:
         alias-normalization — the path that was silently broken before the fix.
         """
         rates = _base_rates_section("gaussian")
-        rates.update({
-            "values": [7.0, 4.0, 3.3, 2.8],
-            "standard_deviations": [17.0, 8.0, 10.0, 3.0],
-            "correlations": [0.4, 0.26, -0.22, 0.84, -0.39, -0.39],
-            "from": 1928,
-            "to": 2025,
-        })
+        rates.update(
+            {
+                "values": [7.0, 4.0, 3.3, 2.8],
+                "standard_deviations": [17.0, 8.0, 10.0, 3.0],
+                "correlations": [0.4, 0.26, -0.22, 0.84, -0.39, -0.39],
+                "from": 1928,
+                "to": 2025,
+            }
+        )
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
         assert plan.rateMethod == "gaussian"
@@ -399,12 +412,14 @@ class TestStochasticConfigToPlan:
     def test_loads_without_correlations(self):
         """Stochastic config without correlations key loads and uses identity matrix."""
         rates = _base_rates_section("gaussian")
-        rates.update({
-            "values": [7.0, 4.0, 3.3, 2.8],
-            "standard_deviations": [17.0, 8.0, 10.0, 3.0],
-            "from": 1928,
-            "to": 2025,
-        })
+        rates.update(
+            {
+                "values": [7.0, 4.0, 3.3, 2.8],
+                "standard_deviations": [17.0, 8.0, 10.0, 3.0],
+                "from": 1928,
+                "to": 2025,
+            }
+        )
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
         assert plan.rateMethod == "gaussian"
@@ -416,8 +431,8 @@ class TestStochasticConfigToPlan:
 # Stochastic full round-trip: plan → config → plan
 # ===========================================================================
 
-class TestStochasticRoundTrip:
 
+class TestStochasticRoundTrip:
     def test_values_and_stdev_preserved(self):
         """plan → config → plan preserves rateValues and rateStdev."""
         p = _make_plan()
@@ -474,15 +489,17 @@ class TestStochasticRoundTrip:
 # Lognormal config_to_plan + full round-trip
 # ===========================================================================
 
-class TestLognormalConfigToPlan:
 
+class TestLognormalConfigToPlan:
     def test_config_to_plan_with_toml_aliases(self):
         """config_to_plan correctly processes standard_deviations for lognormal."""
         rates = _base_rates_section("lognormal")
-        rates.update({
-            "values": [7.0, 4.5, 3.5, 2.5],
-            "standard_deviations": [17.0, 8.0, 6.0, 2.0],
-        })
+        rates.update(
+            {
+                "values": [7.0, 4.5, 3.5, 2.5],
+                "standard_deviations": [17.0, 8.0, 6.0, 2.0],
+            }
+        )
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
         assert plan.rateMethod == "lognormal"
@@ -492,7 +509,6 @@ class TestLognormalConfigToPlan:
 
 
 class TestLognormalRoundTrip:
-
     def test_values_and_stdev_preserved(self):
         """plan → config → plan preserves rateValues and rateStdev for lognormal."""
         p = _make_plan()
@@ -537,8 +553,8 @@ class TestLognormalRoundTrip:
 # Histolognormal config_to_plan + full round-trip
 # ===========================================================================
 
-class TestHistolognormalConfigToPlan:
 
+class TestHistolognormalConfigToPlan:
     def test_config_to_plan_with_from_alias(self):
         """config_to_plan correctly processes TOML 'from' key for historical_lognormal."""
         rates = _base_rates_section("historical_lognormal")
@@ -552,7 +568,6 @@ class TestHistolognormalConfigToPlan:
 
 
 class TestHistolognormalRoundTrip:
-
     def test_frm_to_preserved(self):
         """plan → config → plan preserves rateFrm and rateTo for historical_lognormal."""
         p = _make_plan()
@@ -583,8 +598,8 @@ class TestHistolognormalRoundTrip:
 # BootstrapSORRateModel — unit tests + round-trip
 # ===========================================================================
 
-class TestBootstrapSORSerialization:
 
+class TestBootstrapSORSerialization:
     def test_from_config_translates_from_to_frm(self):
         """from_config translates 'from' → 'frm' for historical_bootstrap."""
         section = {
@@ -608,8 +623,9 @@ class TestBootstrapSORSerialization:
     def test_from_config_drops_non_bootstrap_keys(self):
         """from_config drops keys not declared by BootstrapSORRateModel."""
         section = {
-            "from": 1969, "to": 2024,
-            "values": [7, 4, 3, 2],          # stochastic param — not bootstrap
+            "from": 1969,
+            "to": 2024,
+            "values": [7, 4, 3, 2],  # stochastic param — not bootstrap
             "standard_deviations": [17, 8, 6, 2],
         }
         result = BootstrapSORRateModel.from_config(section)
@@ -620,9 +636,12 @@ class TestBootstrapSORSerialization:
     def test_to_config_translates_frm_to_from(self):
         """to_config translates 'frm' → 'from' and includes all declared optional params."""
         result = BootstrapSORRateModel.to_config(
-            frm=1969, to=2024,
-            bootstrap_type="block", block_size=5,
-            crisis_years=[1973, 2008], crisis_weight=2.0,
+            frm=1969,
+            to=2024,
+            bootstrap_type="block",
+            block_size=5,
+            crisis_years=[1973, 2008],
+            crisis_weight=2.0,
         )
         assert "from" in result
         assert "frm" not in result
@@ -683,8 +702,8 @@ class TestBootstrapSORSerialization:
 # GMMRateModel — unit tests + round-trip
 # ===========================================================================
 
-class TestGMMSerialization:
 
+class TestGMMSerialization:
     def test_from_config_translates_from_to_frm(self):
         """from_config translates 'from' → 'frm' and passes through n_components."""
         section = {"from": 1960, "to": 2020, "n_components": 5}
@@ -698,8 +717,9 @@ class TestGMMSerialization:
     def test_from_config_drops_non_gmm_keys(self):
         """from_config filters out keys not declared by GMMRateModel."""
         section = {
-            "from": 1960, "to": 2020,
-            "bootstrap_type": "block",   # bootstrap-only param
+            "from": 1960,
+            "to": 2020,
+            "bootstrap_type": "block",  # bootstrap-only param
             "standard_deviations": [17, 8, 6, 2],
         }
         result = GMMRateModel.from_config(section)
@@ -748,12 +768,12 @@ class TestGMMSerialization:
         This tests the plan_bridge fix that relaxes the HISTORICAL_RANGE_METHODS guard
         for models that declare frm as optional.
         """
-        rates = {"method": "gmm"}   # no 'from', no 'to', no 'n_components'
+        rates = {"method": "gmm"}  # no 'from', no 'to', no 'n_components'
         plan = config_to_plan(_minimal_config(rates), verbose=False, loadHFP=False)
 
         assert plan.rateMethod == "gmm"
         assert plan.tau_kn.shape == (4, plan.N_n)
-        assert plan.rateModel.n_components == 3   # default
+        assert plan.rateModel.n_components == 3  # default
 
     def test_round_trip_default_n_components(self):
         """n_components=3 (the default) is preserved through a full round-trip."""

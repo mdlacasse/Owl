@@ -62,19 +62,14 @@ def _parse_one(spec: str) -> tuple[list[str], object]:
     Returns (path_parts, value).  Raises click.BadParameter on bad syntax.
     """
     if "=" not in spec:
-        raise click.BadParameter(
-            f"--set requires KEY=VALUE syntax (got {spec!r}). "
-            "Example: --set basic_info.state=TX"
-        )
+        raise click.BadParameter(f"--set requires KEY=VALUE syntax (got {spec!r}). Example: --set basic_info.state=TX")
     key_part, _, val_part = spec.partition("=")
     key_part = key_part.strip()
     if not key_part:
         raise click.BadParameter(f"--set key cannot be empty (got {spec!r})")
     path = [p.strip() for p in key_part.split(".")]
     if any(not p for p in path):
-        raise click.BadParameter(
-            f"--set key has empty path component (got {key_part!r})"
-        )
+        raise click.BadParameter(f"--set key has empty path component (got {key_part!r})")
     return path, _parse_value(val_part)
 
 
@@ -106,8 +101,7 @@ def _set_path(d: dict, path: list[str], value, spec: str) -> None:
     # Validate top-level section against the schema to catch typos.
     if path[0] not in d and path[0] not in KNOWN_SECTIONS:
         raise click.BadParameter(
-            f"--set path {spec!r}: unknown top-level section '{path[0]}'. "
-            f"Known sections: {sorted(KNOWN_SECTIONS)}"
+            f"--set path {spec!r}: unknown top-level section '{path[0]}'. Known sections: {sorted(KNOWN_SECTIONS)}"
         )
     node = d
     for part in path[:-1]:
@@ -115,8 +109,7 @@ def _set_path(d: dict, path: list[str], value, spec: str) -> None:
             node[part] = {}
         if not isinstance(node[part], dict):
             raise click.BadParameter(
-                f"--set path {spec!r}: '{part}' is not a section "
-                f"(got {type(node[part]).__name__})"
+                f"--set path {spec!r}: '{part}' is not a section (got {type(node[part]).__name__})"
             )
         node = node[part]
     node[path[-1]] = value

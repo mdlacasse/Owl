@@ -36,16 +36,19 @@ else:
     elif kz.caseHasNotRun():
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
-    st.markdown("Results for the active *case* run against a single scenario using the "
-                "parameters selected in the **Case Setup** section.")
+    st.markdown(
+        "Results for the active *case* run against a single scenario using the "
+        "parameters selected in the **Case Setup** section."
+    )
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         choices = ["nominal", "today"]
         kz.initCaseKey("plots", choices[0])
-        helpmsg = (f"Plot can be in today's dollars or in nominal value. Today's dollars are "
-                   f"inflation-adjusted and labeled '\\$k (constant {owb.baseYear()})' on the axis.")
-        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg,
-                          callback=owb.setDefaultPlots)
+        helpmsg = (
+            f"Plot can be in today's dollars or in nominal value. Today's dollars are "
+            f"inflation-adjusted and labeled '\\$k (constant {owb.baseYear()})' on the axis."
+        )
+        ret = kz.getRadio("Dollar amounts in plots", choices, "plots", help=helpmsg, callback=owb.setDefaultPlots)
 
     with col3:
         helpmsg = "Re-run the case, or generate a new set of stochastic rates."

@@ -4,6 +4,7 @@ Unit tests for owlplanner.cli.set_override.apply_overrides.
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+import click
 import pytest
 from owlplanner.cli.set_override import apply_overrides
 
@@ -11,6 +12,7 @@ from owlplanner.cli.set_override import apply_overrides
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _base():
     return {
@@ -23,6 +25,7 @@ def _base():
 # ---------------------------------------------------------------------------
 # Happy-path parsing
 # ---------------------------------------------------------------------------
+
 
 def test_string_value():
     result = apply_overrides(_base(), ["basic_info.state=CA"])
@@ -71,13 +74,14 @@ def test_string_with_spaces_via_fallback():
 # Path creation
 # ---------------------------------------------------------------------------
 
+
 def test_unknown_top_level_section_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(click.BadParameter):
         apply_overrides(_base(), ["new_section.key=hello"])
 
 
 def test_unknown_top_level_section_typo_raises():
-    with pytest.raises(Exception):
+    with pytest.raises(click.BadParameter):
         apply_overrides(_base(), ["a.b.c.d=99"])
 
 
@@ -96,28 +100,36 @@ def test_creates_known_section_not_in_dict():
 # Multiple overrides
 # ---------------------------------------------------------------------------
 
+
 def test_multiple_overrides_all_applied():
-    result = apply_overrides(_base(), [
-        "basic_info.state=MN",
-        "solver_options.bequest=300",
-        "rates_selection.method=conservative",
-    ])
+    result = apply_overrides(
+        _base(),
+        [
+            "basic_info.state=MN",
+            "solver_options.bequest=300",
+            "rates_selection.method=conservative",
+        ],
+    )
     assert result["basic_info"]["state"] == "MN"
     assert result["solver_options"]["bequest"] == 300
     assert result["rates_selection"]["method"] == "conservative"
 
 
 def test_later_override_wins():
-    result = apply_overrides(_base(), [
-        "basic_info.state=CA",
-        "basic_info.state=OR",
-    ])
+    result = apply_overrides(
+        _base(),
+        [
+            "basic_info.state=CA",
+            "basic_info.state=OR",
+        ],
+    )
     assert result["basic_info"]["state"] == "OR"
 
 
 # ---------------------------------------------------------------------------
 # Original dict is not mutated
 # ---------------------------------------------------------------------------
+
 
 def test_original_not_mutated():
     original = _base()
@@ -134,6 +146,7 @@ def test_returns_new_dict():
 # ---------------------------------------------------------------------------
 # Error cases
 # ---------------------------------------------------------------------------
+
 
 def test_no_equals_raises():
     with pytest.raises((ValueError, Exception)):

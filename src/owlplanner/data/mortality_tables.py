@@ -526,15 +526,15 @@ _PUBT2010_FEMALE_QX = [
 
 # fmt: on
 
-_TABLES = {                                                          # LE@65 avg M+F
-    "VBT2015-SM":    {"M": np.array(_VBT2015SM_MALE_QX),  "F": np.array(_VBT2015SM_FEMALE_QX)},   # 82.3
-    "SSA2025":       {"M": np.array(_SSA2025_MALE_QX),    "F": np.array(_SSA2025_FEMALE_QX)},     # 83.3
-    "Pub2010-Safety":  {"M": np.array(_PUBS2010_MALE_QX), "F": np.array(_PUBS2010_FEMALE_QX)},    # 84.9
-    "Pub2010-General": {"M": np.array(_PUBG2010_MALE_QX), "F": np.array(_PUBG2010_FEMALE_QX)},    # 85.6
-    "RP2014":        {"M": np.array(_RP2014_MALE_QX),     "F": np.array(_RP2014_FEMALE_QX)},      # 85.9
-    "VBT2015-NS":    {"M": np.array(_VBT2015NS_MALE_QX),  "F": np.array(_VBT2015NS_FEMALE_QX)},   # 86.7
-    "IAM2012":       {"M": np.array(_IAM2012_MALE_QX),    "F": np.array(_IAM2012_FEMALE_QX)},     # 86.7
-    "Pub2010-Teacher": {"M": np.array(_PUBT2010_MALE_QX), "F": np.array(_PUBT2010_FEMALE_QX)},    # 87.1
+_TABLES = {  # LE@65 avg M+F
+    "VBT2015-SM": {"M": np.array(_VBT2015SM_MALE_QX), "F": np.array(_VBT2015SM_FEMALE_QX)},  # 82.3
+    "SSA2025": {"M": np.array(_SSA2025_MALE_QX), "F": np.array(_SSA2025_FEMALE_QX)},  # 83.3
+    "Pub2010-Safety": {"M": np.array(_PUBS2010_MALE_QX), "F": np.array(_PUBS2010_FEMALE_QX)},  # 84.9
+    "Pub2010-General": {"M": np.array(_PUBG2010_MALE_QX), "F": np.array(_PUBG2010_FEMALE_QX)},  # 85.6
+    "RP2014": {"M": np.array(_RP2014_MALE_QX), "F": np.array(_RP2014_FEMALE_QX)},  # 85.9
+    "VBT2015-NS": {"M": np.array(_VBT2015NS_MALE_QX), "F": np.array(_VBT2015NS_FEMALE_QX)},  # 86.7
+    "IAM2012": {"M": np.array(_IAM2012_MALE_QX), "F": np.array(_IAM2012_FEMALE_QX)},  # 86.7
+    "Pub2010-Teacher": {"M": np.array(_PUBT2010_MALE_QX), "F": np.array(_PUBT2010_FEMALE_QX)},  # 87.1
 }
 
 # Backward-compat alias (used by tests and any code that imported _QX directly)
@@ -552,7 +552,7 @@ MORTALITY_TABLE_INFO: dict[str, dict] = {
     "SSA2025": {
         "le_at_65": 83,
         "description": "General US population — Social Security Administration 2025 period life table."
-                       " Use when no specific category fits.",
+        " Use when no specific category fits.",
     },
     "Pub2010-Safety": {
         "le_at_65": 85,
@@ -573,7 +573,7 @@ MORTALITY_TABLE_INFO: dict[str, dict] = {
     "IAM2012": {
         "le_at_65": 87,
         "description": "Annuity purchasers — Individual Annuity Mortality 2012."
-                       " Use when the individual owns or plans to buy a life annuity (SPIA).",
+        " Use when the individual owns or plans to buy a life annuity (SPIA).",
     },
     "Pub2010-Teacher": {
         "le_at_65": 87,
@@ -599,8 +599,7 @@ MORTALITY_DESCRIPTIONS = {
         " population — a reasonable choice if you are in good health and have never smoked."
     ),
     "VBT2015-SM": (
-        "Smokers have meaningfully shorter life expectancy. Use this if you are a current"
-        " or long-term smoker."
+        "Smokers have meaningfully shorter life expectancy. Use this if you are a current or long-term smoker."
     ),
     "Pub2010-General": (
         "General government employees (public sector retirees, SOA Pub-2010). Use if you"
@@ -656,7 +655,7 @@ def survival_pmf(sex, current_age, table="SSA2025"):
     log_survival = np.concatenate([[0.0], np.cumsum(np.log1p(-qx[current_age:_MAX_AGE]))])
     survival = np.exp(log_survival)  # shape: len(ages)
 
-    pmf = survival * qx[current_age: _MAX_AGE + 1]
+    pmf = survival * qx[current_age : _MAX_AGE + 1]
     pmf = pmf / pmf.sum()  # normalize to correct floating-point drift
     return ages, pmf
 

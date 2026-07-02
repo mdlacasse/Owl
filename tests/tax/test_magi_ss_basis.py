@@ -37,17 +37,14 @@ import owlplanner as owl
 def _couple_with_ss(name, sstax="loop", medicare="loop"):
     thisyear = date.today().year
     # Both already at/near Medicare age so IRMAA is active and SS is being collected.
-    p = owl.Plan(["Pat", "Sam"], [f"{thisyear - 67}-01-15", f"{thisyear - 66}-01-16"],
-                 [88, 90], name, verbose=False)
+    p = owl.Plan(["Pat", "Sam"], [f"{thisyear - 67}-01-15", f"{thisyear - 66}-01-16"], [88, 90], name, verbose=False)
     p.setSpendingProfile("flat", 60)
     p.setAccountBalances(taxable=[150, 100], taxDeferred=[700, 300], taxFree=[60, 40], startDate="1-1")
     p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
     p.setInterpolationMethod("s-curve")
-    p.setAllocationRatios("individual",
-                          generic=[[[60, 40, 0, 0], [70, 30, 0, 0]],
-                                   [[50, 50, 0, 0], [70, 30, 0, 0]]])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
     p.setPension([0, 0], [65, 65])
-    p.setSocialSecurity([3500, 3000], [67, 67])   # sizeable SS so the non-taxable slice matters
+    p.setSocialSecurity([3500, 3000], [67, 67])  # sizeable SS so the non-taxable slice matters
     opts = {"withMedicare": medicare}
     if sstax != "loop":
         opts["withSSTaxability"] = sstax
@@ -92,6 +89,7 @@ def test_ss_taxability_uses_full_ss_magi():
     Cross-check that loop-mode Psi matches the IRS formula evaluated on MAGI_aca_n.
     """
     import owlplanner.tax_federal as tx
+
     p = _couple_with_ss("magi_ss_pi")
     assert p.caseStatus == "solved"
     ss_n = np.sum(p.zetaBar_in, axis=0)

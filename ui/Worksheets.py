@@ -71,6 +71,5 @@ else:
         with col_instr:
             st.markdown("##### Select a tab below, then expand a section to view its data.")
         with col_expand:
-            kz.getToggle("Expand all", "worksheetExpandAll",
-                         help="Expand all sections across all tabs.")
+            kz.getToggle("Expand all", "worksheetExpandAll", help="Expand all sections across all tabs.")
         owb.showWorkbook()

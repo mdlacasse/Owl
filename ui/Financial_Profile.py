@@ -101,8 +101,7 @@ that has not yet been uploaded.""")
             st.markdown("#### :orange[Load Example HFP Workbook]")
             st.markdown("Read associated HFP workbook.")
             helpmsg = "Load associated HFP workbook from GitHub"
-            st.button("Load example workbook", help=helpmsg, type=mytype,
-                      on_click=loadWCExample, args=[tomlexcase])
+            st.button("Load example workbook", help=helpmsg, type=mytype, on_click=loadWCExample, args=[tomlexcase])
 
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
@@ -209,15 +208,11 @@ For these initial five years, only Roth-related entries are read; all other colu
                 required=True,
                 min_value=0.0,
                 step=0.01,
-            )
+            ),
         }
 
         edited_debtdf = st.data_editor(
-            debtdf,
-            column_config=debtconf,
-            num_rows="dynamic",
-            hide_index=True,
-            key=kz.genCaseKey("debts")
+            debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
         )
         debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
@@ -317,11 +312,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
         }
 
         edited_fixeddf = st.data_editor(
-            fixeddf,
-            column_config=fixedconf,
-            hide_index=True,
-            num_rows="dynamic",
-            key=kz.genCaseKey("fixed_assets")
+            fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=kz.genCaseKey("fixed_assets")
         )
         fixedCaption = """Value is in reference-year $ (at the start of the reference year). \
 Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).

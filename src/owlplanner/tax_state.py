@@ -23,6 +23,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 import toml
 from datetime import date
 from functools import lru_cache
@@ -60,8 +61,7 @@ def get_state_entry(state: str, filing_status: int, toml_path=None) -> dict:
     suffix = "MFJ" if filing_status == 1 else "Single"
     key = f"{state.upper()}_{suffix}"
     if key not in data:
-        raise ValueError(f"Unknown state or filing status: '{key}'. "
-                         f"Expected e.g. 'MN_Single' or 'MN_MFJ'.")
+        raise ValueError(f"Unknown state or filing status: '{key}'. Expected e.g. 'MN_Single' or 'MN_MFJ'.")
     return data[key]
 
 
@@ -80,9 +80,7 @@ def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     return rates, widths
 
 
-def st_taxParams(state: str, N_i: int, n_d: int, N_n: int,
-                 gamma_n: np.ndarray, yobs: list,
-                 toml_path=None) -> tuple:
+def st_taxParams(state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, toml_path=None) -> tuple:
     """Compute state income tax parameter arrays for the LP.
 
     Parameters
@@ -137,8 +135,7 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int,
         return brackets[:target_n]
 
     brackets_single = _pad(list(entry_single["brackets"]), N_st)
-    brackets_mfj = _pad(list(entry_mfj["brackets"]) if N_i == 2 else
-                        list(entry_single["brackets"]), N_st)
+    brackets_mfj = _pad(list(entry_mfj["brackets"]) if N_i == 2 else list(entry_single["brackets"]), N_st)
 
     rates_s, widths_s = _brackets_to_rates_and_widths(brackets_single, _LAST_BRACKET_SENTINEL)
     rates_m, widths_m = _brackets_to_rates_and_widths(brackets_mfj, _LAST_BRACKET_SENTINEL)
@@ -185,8 +182,7 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int,
         for n in range(N_n):
             year = thisyear + n
             # Check if at least one individual meets the age requirement.
-            age_ok = (exemption_age == 0 or
-                      any(year - yob >= exemption_age for yob in yobs))
+            age_ok = exemption_age == 0 or any(year - yob >= exemption_age for yob in yobs)
             if age_ok:
                 if re_base == np.inf:
                     st_re_cap_n[n] = np.inf
@@ -205,8 +201,7 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int,
     ss_thresh_base = float(ss_entry.get("ss_exemption_threshold", 0))
     st_ss_thresh_n = np.array([ss_thresh_base * gamma_n[n] for n in range(N_n)])
 
-    return (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-            st_re_cap_n, st_pe_cap_n, st_tax_ss, st_ss_thresh_n)
+    return (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n, st_re_cap_n, st_pe_cap_n, st_tax_ss, st_ss_thresh_n)
 
 
 def valid_states() -> list:

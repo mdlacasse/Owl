@@ -89,7 +89,7 @@ def test_summary_dic_fraction_of_years():
         """Extract numeric value from formatted string like '$123,456'."""
         if isinstance(s, str):
             # Remove $ and commas, convert to float
-            return float(s.replace('$', '').replace(',', ''))
+            return float(s.replace("$", "").replace(",", ""))
         return float(s)
 
     # Check that partial values are <= full values for common keys that represent totals
@@ -177,6 +177,7 @@ def test_summary_df_with_n():
     df = p.summaryDf(N=5)
 
     import pandas as pd
+
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 1  # One row (the plan)
     assert df.index[0] == p._name
@@ -237,7 +238,7 @@ def test_summary_progressive_years():
     def extract_value(s):
         """Extract numeric value from formatted string."""
         if isinstance(s, str):
-            return float(s.replace('$', '').replace(',', ''))
+            return float(s.replace("$", "").replace(",", ""))
         return float(s)
 
     # Get summaries for increasing N values
@@ -250,7 +251,7 @@ def test_summary_progressive_years():
 
     # Verify values are non-decreasing (spending should accumulate)
     for i in range(1, len(values)):
-        assert values[i] >= values[i-1], "Spending should not decrease as N increases"
+        assert values[i] >= values[i - 1], "Spending should not decrease as N increases"
 
 
 def test_summary_unsolved_plan():

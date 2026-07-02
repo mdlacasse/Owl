@@ -38,6 +38,7 @@ from owlplanner.rate_models.loader import list_available_rate_models
 
 try:
     from sklearn.mixture import GaussianMixture as _SklearnGMM
+
     _SKLEARN_AVAILABLE = True
 except ImportError:
     _SKLEARN_AVAILABLE = False
@@ -46,6 +47,7 @@ except ImportError:
 # ------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------
+
 
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
@@ -68,6 +70,7 @@ def _make_model(frm=1928, to=2025, n_components=3, seed=None):
 # Model attributes
 # ------------------------------------------------------------
 
+
 def test_model_name():
     assert GMMRateModel.model_name == "gmm"
 
@@ -87,6 +90,7 @@ def test_gmm_in_registry():
 # ------------------------------------------------------------
 # Output shape and sanity
 # ------------------------------------------------------------
+
 
 def test_shape_via_plan():
     p = _make_plan()
@@ -125,6 +129,7 @@ def test_output_is_decimal_not_percent():
 # Reproducibility
 # ------------------------------------------------------------
 
+
 def test_reproducible_same_seed():
     p1 = _make_plan()
     _set_gmm(p1, seed=42)
@@ -160,6 +165,7 @@ def test_non_reproducible_regen_changes():
 # Fitted GMM parameters
 # ------------------------------------------------------------
 
+
 def test_fitted_weights_sum_to_one():
     model = _make_model()
     assert abs(model._weights.sum() - 1.0) < 1e-9
@@ -187,6 +193,7 @@ def test_covariances_positive_definite():
 # n_components option
 # ------------------------------------------------------------
 
+
 def test_two_components():
     model = _make_model(n_components=2, seed=7)
     assert model._weights.shape == (2,)
@@ -205,6 +212,7 @@ def test_five_components():
 # representative_sample
 # ------------------------------------------------------------
 
+
 def test_representative_sample_shape():
     """representative_sample returns N synthetic draws, not the historical pool."""
     model = _make_model(frm=1928, to=2025, seed=0)
@@ -222,6 +230,7 @@ def test_representative_sample_is_decimal():
 # Historical window sensitivity
 # ------------------------------------------------------------
 
+
 def test_different_windows_differ():
     p1 = _make_plan()
     _set_gmm(p1, frm=1928, to=1970, seed=7)
@@ -235,6 +244,7 @@ def test_different_windows_differ():
 # ------------------------------------------------------------
 # Parameter validation
 # ------------------------------------------------------------
+
 
 def test_frm_equals_to_raises():
     config = {"method": "gmm", "frm": 2000, "to": 2000}
@@ -258,6 +268,7 @@ def test_n_components_one_raises():
 # Offline comparison against scikit-learn
 # (skipped when scikit-learn is not installed)
 # ------------------------------------------------------------
+
 
 @pytest.mark.skipif(not _SKLEARN_AVAILABLE, reason="scikit-learn not installed")
 def test_scipy_gmm_log_likelihood_vs_sklearn():

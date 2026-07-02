@@ -28,6 +28,7 @@ import os
 # Conditional import of loguru - only available if package is installed
 try:
     from loguru import logger as loguru_logger
+
     HAS_LOGURU = True
 except ImportError:
     loguru_logger = None  # type: ignore[assignment]
@@ -44,8 +45,7 @@ class Logger(object):
         if logstreams == "loguru" or logstreams == ["loguru"]:
             if not HAS_LOGURU:
                 raise ImportError(
-                    "loguru is required when using loguru logging backend. "
-                    "Install it with: pip install loguru"
+                    "loguru is required when using loguru logging backend. Install it with: pip install loguru"
                 )
             self._use_loguru = True
             self._logstreams = None
@@ -96,10 +96,7 @@ class Logger(object):
             logstreams = self._logstreams
 
         # Create a new Logger instance with the same settings
-        new_logger = Logger(
-            verbose=self._verbose,
-            logstreams=logstreams
-        )
+        new_logger = Logger(verbose=self._verbose, logstreams=logstreams)
 
         # Copy the verbose stack state
         new_logger._verboseStack = copy.deepcopy(self._verboseStack, memo)

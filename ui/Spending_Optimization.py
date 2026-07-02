@@ -126,11 +126,17 @@ Select a target success rate to find the committed spending that meets it.
             help_roll = "Roll the rate sequence by this many years (0 = no shift)."
             col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
             with col1:
-                kz.getIntNum("Roll (years)", "stoch_roll_sequence", min_value=0, max_value=N_n,
-                             step=1, callback=kz.setpull, help=help_roll)
+                kz.getIntNum(
+                    "Roll (years)",
+                    "stoch_roll_sequence",
+                    min_value=0,
+                    max_value=N_n,
+                    step=1,
+                    callback=kz.setpull,
+                    help=help_roll,
+                )
             with col2:
-                kz.getToggle("Reverse sequence", "stoch_reverse_sequence",
-                             callback=kz.setpull, help=help_reverse)
+                kz.getToggle("Reverse sequence", "stoch_reverse_sequence", callback=kz.setpull, help=help_reverse)
     else:
         if kz.caseIsNotMCReady():
             st.warning(
@@ -140,8 +146,10 @@ Select a target success rate to find the committed spending that meets it.
             )
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
-            _help = ("Use a reasonable number on the Community Server (e.g., 200). "
-                     "Consider self-hosting for larger ensembles.")
+            _help = (
+                "Use a reasonable number on the Community Server (e.g., 200). "
+                "Consider self-hosting for larger ensembles."
+            )
             kz.getIntNum("Number of MC scenarios", "stoch_N_mc", step=50, min_value=10, max_value=5000, help=_help)
         with col4:
             st.button(
@@ -160,33 +168,49 @@ Select a target success rate to find the committed spending that meets it.
                 "For couples, the scenario horizon is the last-survivor horizon max(τ₁, τ₂). "
                 "Sex for each individual is configured on the **Create Case** page."
             )
-            help_repro = ("When enabled, the same random seed will be used for all longevity draws, "
-                          "ensuring reproducible results across runs.")
-            help_seed = ("Integer seed ≥ 1 for the random number generator. "
-                         "Change this value to explore different lifespan draws while keeping results reproducible.")
+            help_repro = (
+                "When enabled, the same random seed will be used for all longevity draws, "
+                "ensuring reproducible results across runs."
+            )
+            help_seed = (
+                "Integer seed ≥ 1 for the random number generator. "
+                "Change this value to explore different lifespan draws while keeping results reproducible."
+            )
             col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
             with col1:
-                kz.getToggle("Stochastic lifespan", "stoch_with_longevity",
-                             callback=kz.setpull, help=help_longevity)
+                kz.getToggle("Stochastic lifespan", "stoch_with_longevity", callback=kz.setpull, help=help_longevity)
             if kz.getCaseKey("stoch_with_longevity"):
                 with col2:
-                    kz.getToggle("Reproducible draws", "stoch_longevity_reproducible",
-                                 callback=kz.setpull, help=help_repro)
+                    kz.getToggle(
+                        "Reproducible draws", "stoch_longevity_reproducible", callback=kz.setpull, help=help_repro
+                    )
                 if kz.getCaseKey("stoch_longevity_reproducible"):
                     with col3:
-                        kz.getIntNum("Longevity seed", "stoch_longevity_seed",
-                                     min_value=1, max_value=2**31 - 1,
-                                     step=1, callback=kz.setpull, help=help_seed)
+                        kz.getIntNum(
+                            "Longevity seed",
+                            "stoch_longevity_seed",
+                            min_value=1,
+                            max_value=2**31 - 1,
+                            step=1,
+                            callback=kz.setpull,
+                            help=help_seed,
+                        )
                 from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_DESCRIPTIONS
+
                 st.markdown("#### :orange[Mortality table]")
-                help_table = ("Actuarial life table used to sample random lifespans. "
-                              "Choose the table that best reflects the health profile of the individuals in the plan. "
-                              "Tables are ordered by life expectancy at age 65, shortest to longest.")
+                help_table = (
+                    "Actuarial life table used to sample random lifespans. "
+                    "Choose the table that best reflects the health profile of the individuals in the plan. "
+                    "Tables are ordered by life expectancy at age 65, shortest to longest."
+                )
                 col1, col2 = st.columns([1, 3.2], gap="large", vertical_alignment="bottom")
                 with col1:
                     selected_table = kz.getSelectbox(
-                        "Mortality table", MORTALITY_TABLE_KEYS, "stoch_mortality_table",
-                        callback=kz.setpull, help=help_table,
+                        "Mortality table",
+                        MORTALITY_TABLE_KEYS,
+                        "stoch_mortality_table",
+                        callback=kz.setpull,
+                        help=help_table,
                     )
                 with col2:
                     st.caption(MORTALITY_DESCRIPTIONS.get(selected_table, ""))
@@ -244,7 +268,7 @@ Select a target success rate to find the committed spending that meets it.
             st.markdown("#### :orange[RES floor]")
             _floor_opts = ["hsf", "custom"]
             _floor_labels = {
-                "hsf":    "HSF (min historical spending)",
+                "hsf": "HSF (min historical spending)",
                 "custom": "Custom ($/yr)",
             }
             _default_floor = "hsf"
@@ -265,8 +289,13 @@ Select a target success rate to find the committed spending that meets it.
                 )
             if kz.getCaseKey("stoch_res_floor_method") == "custom":
                 with col2:
-                    kz.getIntNum("Floor ($/yr)", "stoch_res_floor_value",
-                                 min_value=0, step=1000, callback=owb.updateStochasticFloor)
+                    kz.getIntNum(
+                        "Floor ($/yr)",
+                        "stoch_res_floor_value",
+                        min_value=0,
+                        step=1000,
+                        callback=owb.updateStochasticFloor,
+                    )
             col3, col4 = st.columns(2, gap="medium")
             if fig_cvar:
                 owb.renderPlot(fig_cvar, col3)

@@ -112,12 +112,12 @@ def test_bill_matches_annuity_formula():
 
     # Disable all real-world features so the LP is a pure annuity problem.
     options = {
-        'withSCLoop': False,
-        'withACA': 'none',
-        'withMedicare': 'none',
-        'withLTCG': 'none',
-        'withSSTaxability': 'none',
-        'withNIIT': 'none',
+        "withSCLoop": False,
+        "withACA": "none",
+        "withMedicare": "none",
+        "withLTCG": "none",
+        "withSSTaxability": "none",
+        "withNIIT": "none",
     }
     p.solve("maxSpending", options=options)
 
@@ -143,12 +143,12 @@ def test_bill_end_of_year_timing_difference():
     p = owl.readConfig("examples/Case_bill", verbose=False, loadHFP=False)
 
     options = {
-        'withSCLoop': False,
-        'withACA': 'none',
-        'withMedicare': 'none',
-        'withLTCG': 'none',
-        'withSSTaxability': 'none',
-        'withNIIT': 'none',
+        "withSCLoop": False,
+        "withACA": "none",
+        "withMedicare": "none",
+        "withLTCG": "none",
+        "withSSTaxability": "none",
+        "withNIIT": "none",
     }
     p.solve("maxSpending", options=options)
     assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
@@ -160,9 +160,7 @@ def test_bill_end_of_year_timing_difference():
     g_end = _annuity_spending_end_of_year(1_000_000.0, r_n, gamma_n)
     rate_pct = 100.0 * g_end / 1_000_000.0
 
-    assert rate_pct == pytest.approx(3.9869, abs=5e-4), (
-        f"End-of-year rate {rate_pct:.4f}% != expected 3.9869%"
-    )
+    assert rate_pct == pytest.approx(3.9869, abs=5e-4), f"End-of-year rate {rate_pct:.4f}% != expected 3.9869%"
 
 
 @pytest.mark.toml

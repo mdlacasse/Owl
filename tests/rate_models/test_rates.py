@@ -47,7 +47,9 @@ def test_trailing_30_matches_30yr_historical_average():
     expected = np.array(dist.geo_means)
     actual = np.array(get_fixed_rates_decimal("trailing_30"))
     np.testing.assert_array_almost_equal(
-        actual, expected, decimal=5,
+        actual,
+        expected,
+        decimal=5,
         err_msg="trailing-30 must match 30-year trailing geometric mean from historical rates",
     )
 
@@ -66,6 +68,7 @@ class TestBuiltinRateModelInitialization:
     def test_initialization_with_logger(self):
         """Test initialization with custom logger."""
         from owlplanner import mylogging
+
         mylog = mylogging.Logger(verbose=False)
         m = BuiltinRateModel(_model_config("trailing_30"), logger=mylog)
         series = m.generate(1)
@@ -336,20 +339,20 @@ class TestRatesDataframeWithPlan:
         p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
         n_years = p.N_n
-        df = pd.DataFrame({
-            "S&P 500": [10.0] * n_years,
-            "Bonds Baa": [4.0] * n_years,
-            "T-Notes": [3.0] * n_years,
-            "Inflation": [2.5] * n_years,
-        })
+        df = pd.DataFrame(
+            {
+                "S&P 500": [10.0] * n_years,
+                "Bonds Baa": [4.0] * n_years,
+                "T-Notes": [3.0] * n_years,
+                "Inflation": [2.5] * n_years,
+            }
+        )
         p.setRates("dataframe", df=df)
 
         assert p.rateMethod == "dataframe"
         assert p.tau_kn.shape[0] == 4
         assert p.tau_kn.shape[1] == p.N_n
-        np.testing.assert_array_almost_equal(
-            p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6
-        )
+        np.testing.assert_array_almost_equal(p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6)
 
     def test_plan_set_rates_dataframe_with_offset(self):
         """Test Plan.setRates with dataframe method and offset."""
@@ -362,18 +365,18 @@ class TestRatesDataframeWithPlan:
 
         n_years = p.N_n
         offset = 5
-        df = pd.DataFrame({
-            "S&P 500": [1.0] * offset + [10.0] * n_years,
-            "Bonds Baa": [1.0] * offset + [4.0] * n_years,
-            "T-Notes": [1.0] * offset + [3.0] * n_years,
-            "Inflation": [1.0] * offset + [2.5] * n_years,
-        })
+        df = pd.DataFrame(
+            {
+                "S&P 500": [1.0] * offset + [10.0] * n_years,
+                "Bonds Baa": [1.0] * offset + [4.0] * n_years,
+                "T-Notes": [1.0] * offset + [3.0] * n_years,
+                "Inflation": [1.0] * offset + [2.5] * n_years,
+            }
+        )
         p.setRates("dataframe", df=df, offset=offset)
 
         assert p.rateMethod == "dataframe"
-        np.testing.assert_array_almost_equal(
-            p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6
-        )
+        np.testing.assert_array_almost_equal(p.tau_kn[:, 0], [0.10, 0.04, 0.03, 0.025], decimal=6)
 
 
 class TestGetRatesDistributions:
@@ -407,6 +410,7 @@ class TestGetRatesDistributions:
     def test_get_rates_distributions_with_logger(self):
         """Test getRatesDistributions with custom logger."""
         from owlplanner import mylogging
+
         mylog = mylogging.Logger(verbose=False)
         frm, to = 2000, 2010
         dist = getRatesDistributions(frm, to, mylog=mylog)
@@ -485,12 +489,14 @@ class TestGetRatesDistributionsDataFrame:
     def _make_df(self, n=20):
         """Synthetic 4-column DataFrame in percent."""
         rng = np.random.default_rng(0)
-        return pd.DataFrame({
-            "S&P 500":   rng.normal(7.0, 15.0, n),
-            "Bonds Baa": rng.normal(4.5,  8.0, n),
-            "T-Notes":   rng.normal(3.5,  5.0, n),
-            "Inflation": rng.normal(2.5,  2.0, n),
-        })
+        return pd.DataFrame(
+            {
+                "S&P 500": rng.normal(7.0, 15.0, n),
+                "Bonds Baa": rng.normal(4.5, 8.0, n),
+                "T-Notes": rng.normal(3.5, 5.0, n),
+                "Inflation": rng.normal(2.5, 2.0, n),
+            }
+        )
 
     def test_df_mode_basic_shapes(self):
         df = self._make_df()
@@ -504,20 +510,20 @@ class TestGetRatesDistributionsDataFrame:
     def test_df_mode_in_percent_true(self):
         df = self._make_df()
         dist = getRatesDistributions(df=df, in_percent=True)
-        assert all(abs(dist.geo_means) < 100)     # percent-scale, not decimal
+        assert all(abs(dist.geo_means) < 100)  # percent-scale, not decimal
         assert all(abs(dist.arith_means) < 100)
 
     def test_df_mode_in_percent_false(self):
         df = self._make_df()
         dist = getRatesDistributions(df=df, in_percent=False)
-        assert all(abs(dist.geo_means) < 1.0)     # decimal-scale
+        assert all(abs(dist.geo_means) < 1.0)  # decimal-scale
         assert all(abs(dist.arith_means) < 1.0)
 
     def test_df_mode_row_slicing(self):
         df = self._make_df(30)
         dist_all = getRatesDistributions(df=df)
         dist_sub = getRatesDistributions(frm=0, to=9, df=df)  # first 10 rows
-        assert not np.allclose(dist_all.geo_means, dist_sub.geo_means)    # different subsets differ
+        assert not np.allclose(dist_all.geo_means, dist_sub.geo_means)  # different subsets differ
 
     def test_df_mode_partial_index(self):
         df = self._make_df(20)
@@ -537,18 +543,20 @@ class TestGetRatesDistributionsDataFrame:
     def test_df_mode_correlation_properties(self):
         df = self._make_df(50)
         dist = getRatesDistributions(df=df)
-        assert np.allclose(dist.corr, dist.corr.T)               # symmetric
-        assert np.allclose(np.diag(dist.corr), np.ones(4))       # unit diagonal
+        assert np.allclose(dist.corr, dist.corr.T)  # symmetric
+        assert np.allclose(np.diag(dist.corr), np.ones(4))  # unit diagonal
 
     def test_df_mode_constant_column_corr_finite(self):
         """Zero-variance column must not produce inf/nan in correlation matrix."""
         rng = np.random.default_rng(1)
-        df = pd.DataFrame({
-            "S&P 500":   rng.normal(7.0, 15.0, 25),
-            "Bonds Baa": np.full(25, 4.0),
-            "T-Notes":   rng.normal(3.5, 5.0, 25),
-            "Inflation": rng.normal(2.5, 2.0, 25),
-        })
+        df = pd.DataFrame(
+            {
+                "S&P 500": rng.normal(7.0, 15.0, 25),
+                "Bonds Baa": np.full(25, 4.0),
+                "T-Notes": rng.normal(3.5, 5.0, 25),
+                "Inflation": rng.normal(2.5, 2.0, 25),
+            }
+        )
         dist = getRatesDistributions(df=df)
         assert np.all(np.isfinite(dist.corr))
         assert np.all(np.isfinite(dist.covar))

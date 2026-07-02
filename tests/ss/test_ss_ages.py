@@ -23,6 +23,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 import numpy as np
 import pytest
 from owlplanner import readConfig
@@ -32,6 +33,7 @@ from owlplanner.socialsecurity import build_own_benefit_table, getFRAs
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def joe():
@@ -48,6 +50,7 @@ def jack_jill():
 # ---------------------------------------------------------------------------
 # build_own_benefit_table tests
 # ---------------------------------------------------------------------------
+
 
 class TestBuildOwnBenefitTable:
     def test_shape(self):
@@ -76,7 +79,7 @@ class TestBuildOwnBenefitTable:
         _, ages_k = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n)
         assert abs(ages_k[0] - 62.0) < 1e-9
         assert abs(ages_k[96] - 70.0) < 1e-9
-        assert abs(ages_k[1] - ages_k[0] - 1/12) < 1e-9
+        assert abs(ages_k[1] - ages_k[0] - 1 / 12) < 1e-9
 
     def test_zero_pia(self):
         """Zero PIA produces all-zero benefit table."""
@@ -101,8 +104,7 @@ class TestBuildOwnBenefitTable:
         horizons = [N_n]
         gamma_n = np.ones(N_n)
         fras = getFRAs(yobs, mobs, tobs)
-        B, ages_k = build_own_benefit_table(
-            pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
+        B, ages_k = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
         # Find k=0 (age 62) and k=96 (age 70)
         # B_at_70 > B_at_62 for years after both payment start dates
         k_62 = 0
@@ -123,11 +125,10 @@ class TestBuildOwnBenefitTable:
         horizons = [N_n]
         gamma_n = np.ones(N_n)
         fras = getFRAs(yobs, mobs, tobs)
-        B_no_trim, _ = build_own_benefit_table(
-            pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
+        B_no_trim, _ = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
         B_trimmed, _ = build_own_benefit_table(
-            pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n,
-            trim_pct=25, trim_year=2036, thisyear=2026)
+            pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, trim_pct=25, trim_year=2036, thisyear=2026
+        )
         # Before trim year: equal
         np.testing.assert_array_almost_equal(B_no_trim[:, :, :10], B_trimmed[:, :, :10])
         # After trim year: trimmed is 75% of full
@@ -137,6 +138,7 @@ class TestBuildOwnBenefitTable:
 # ---------------------------------------------------------------------------
 # withSSAges='optimize' integration tests
 # ---------------------------------------------------------------------------
+
 
 class TestSSAgesOptimize:
     def test_single_solves(self, joe):
@@ -184,13 +186,13 @@ class TestSSAgesOptimize:
         # Not strictly required to differ, but they typically will for a couple
         # (at least one should differ from default 67)
         ages = [float(a) for a in jack_jill.ssecAges]
-        assert any(abs(a - 67.0) > 1/12 for a in ages), f"Both ages appear to be 67: {ages}"
+        assert any(abs(a - 67.0) > 1 / 12 for a in ages), f"Both ages appear to be 67: {ages}"
 
     def test_ssa_lp_flag_reset_between_solves(self, joe):
         """_ssa_lp flag is reset when switching back to fixed mode."""
         joe.solve("maxSpending", options={"withSSAges": "optimize"})
         assert joe._ssa_lp is True
-        joe.solve("maxSpending")   # default: fixed
+        joe.solve("maxSpending")  # default: fixed
         assert joe._ssa_lp is False
 
     def test_zssa_not_in_vm_for_fixed_mode(self, joe):
@@ -212,7 +214,7 @@ class TestSSAgesOptimize:
         jack_jill.solve("maxSpending", options={"withSSAges": name0})
         assert jack_jill.caseStatus == "solved"
         assert 62.0 <= float(jack_jill.ssecAges[0]) <= 70.0 + 1e-9
-        assert abs(float(jack_jill.ssecAges[1]) - age1_before) < 1/12, (
+        assert abs(float(jack_jill.ssecAges[1]) - age1_before) < 1 / 12, (
             f"Individual 1's age changed: {age1_before:.2f} → {jack_jill.ssecAges[1]:.2f}"
         )
 
@@ -222,7 +224,7 @@ class TestSSAgesOptimize:
         age0_before = float(jack_jill.ssecAges[0])
         jack_jill.solve("maxSpending", options={"withSSAges": [name1]})
         assert jack_jill.caseStatus == "solved"
-        assert abs(float(jack_jill.ssecAges[0]) - age0_before) < 1/12, (
+        assert abs(float(jack_jill.ssecAges[0]) - age0_before) < 1 / 12, (
             f"Individual 0's age changed: {age0_before:.2f} → {jack_jill.ssecAges[0]:.2f}"
         )
         assert 62.0 <= float(jack_jill.ssecAges[1]) <= 70.0 + 1e-9

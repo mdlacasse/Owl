@@ -83,10 +83,7 @@ def test_stochastic_spending_mc_longevity_handles_longer_horizons(monkeypatch):
     )
 
     current_ages = [int(p.year_n[0] - p.yobs[i]) for i in range(p.N_i)]
-    horizons = [
-        max(int(drawn[i] - current_ages[i] + 1) for i in range(p.N_i))
-        for drawn in out1["drawn_lifespans"]
-    ]
+    horizons = [max(int(drawn[i] - current_ages[i] + 1) for i in range(p.N_i)) for drawn in out1["drawn_lifespans"]]
     assert max(horizons) > base_horizon
     assert len(out1["bases"]) >= 2
 

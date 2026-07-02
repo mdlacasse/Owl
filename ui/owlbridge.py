@@ -35,22 +35,19 @@ import owlplanner as owl
 from owlplanner.utils import (
     drop_all_zero_numeric_columns,
     worksheet_age_on_dec_31_or_blank,
-    get_monetary_option,
     parse_swap_roth_converters,
 )
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
-from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF, getTableTypes
+from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF
 from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
-    FIXED_TYPE_UI,
     HISTORICAL_RANGE_METHODS,
     HISTORICAL_STOCHASTIC_METHODS,
     STOCHASTIC_METHODS,
     VARYING_TYPE_UI,
 )
 from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
-from moseklicense import hasMOSEK
 
 import sskeys as kz
 import progress
@@ -68,12 +65,16 @@ def getFixedRates(method):
 
 def getMethodDescription(method):
     from owlplanner.rate_models.loader import get_rate_model_metadata
+
     return get_rate_model_metadata(method).get("description", "")
 
 
 def createPlan():
     if not kz.has_current_case():
-        st.error("No case selected or current case no longer exists. Please select or create a case.", icon=":material/error:")
+        st.error(
+            "No case selected or current case no longer exists. Please select or create a case.",
+            icon=":material/error:",
+        )
         return
     name = kz.currentCaseName()
     inames = [kz.getCaseKey("iname0")]
@@ -93,8 +94,7 @@ def createPlan():
         strio = StringIO()
         kz.storeCaseKey("logs", strio)
     try:
-        plan = owl.Plan(inames, dobs, life, name,
-                        verbose=True, logstreams=[strio, strio])
+        plan = owl.Plan(inames, dobs, life, name, verbose=True, logstreams=[strio, strio])
         plan.setSexes(sexes)
         kz.setCaseKey("plan", plan)
         kz.setCaseKey("id", plan._id)
@@ -216,8 +216,17 @@ def runHistorical(plan):
     try:
         mybar = progress.Progress()
         fig, summary, fig2 = plan1.runHistoricalRange(
-            objective, options, hyfrm, hyto, figure=True, progcall=mybar,
-            reverse=reverse, roll=roll, augmented=augmented, log_x=log_x)
+            objective,
+            options,
+            hyfrm,
+            hyto,
+            figure=True,
+            progcall=mybar,
+            reverse=reverse,
+            roll=roll,
+            augmented=augmented,
+            log_x=log_x,
+        )
         kz.storeCaseKey("histoPlot", fig)
         kz.storeCaseKey("histoSummary", summary)
         kz.storeCaseKey("histoBarPlot", fig2)
@@ -253,26 +262,34 @@ def runMC(plan):
 def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
-    g_opt, lam = owl.g_for_success_rate(
-        target_sr_pct, result["lambdas"], result["frontier_g"], result["frontier_prob"])
+
+    g_opt, lam = owl.g_for_success_rate(target_sr_pct, result["lambdas"], result["frontier_g"], result["frontier_prob"])
     lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
     actual_sr_pct = 100.0 * (1.0 - float(result["frontier_prob"][lam_idx]))
 
-    kz.storeCaseKey("stochResult", {
-        "g_opt": g_opt,
-        "lam": lam,
-        "target_success_rate_pct": target_sr_pct,
-        "actual_success_rate_pct": actual_sr_pct,
-    })
+    kz.storeCaseKey(
+        "stochResult",
+        {
+            "g_opt": g_opt,
+            "lam": lam,
+            "target_success_rate_pct": target_sr_pct,
+            "actual_success_rate_pct": actual_sr_pct,
+        },
+    )
     with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
-        result["frontier_prob"], result["frontier_g"], result["frontier_shortfall"],
-        target_sr_pct, g_opt, result["year_n"], result["start_years"],
-        with_longevity=with_longevity)
+        result["frontier_prob"],
+        result["frontier_g"],
+        result["frontier_shortfall"],
+        target_sr_pct,
+        g_opt,
+        result["year_n"],
+        result["start_years"],
+        with_longevity=with_longevity,
+    )
     fig_outcomes = plotter.plot_stochastic_outcomes(
-        result["start_years"], result["bases"], g_opt,
-        target_sr_pct, result["year_n"],
-        with_longevity=with_longevity)
+        result["start_years"], result["bases"], g_opt, target_sr_pct, result["year_n"], with_longevity=with_longevity
+    )
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
 
@@ -315,18 +332,25 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
     elif floor_method == "zero":
         floor = 0.0
         floor_label = "zero"
-    else:   # "custom"
+    else:  # "custom"
         floor = float(kz.getCaseKey("stoch_res_floor_value") or 0.0)
         floor_label = f"${floor:,.0f}/yr (custom)"
     frontier_cvar = owl.compute_cvar(bases_arr, frontier_g, frontier_prob, floor)
     res = owl.compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_sr_pct)
     if res is not None:
         fig_cvar = plotter.plot_stochastic_cvar_vs_pos(
-            frontier_prob, frontier_cvar, res["rho_star_pct"], res["cvar_star"],
-            target_sr_pct, result["year_n"])
+            frontier_prob, frontier_cvar, res["rho_star_pct"], res["cvar_star"], target_sr_pct, result["year_n"]
+        )
         fig_res = plotter.plot_stochastic_res_vs_cvar(
-            frontier_cvar, res["res_values"], res["rho_star_pct"], res["res_star"],
-            res["cvar_star"], res["cvar_at_target"], result["year_n"], floor_label)
+            frontier_cvar,
+            res["res_values"],
+            res["rho_star_pct"],
+            res["res_star"],
+            res["cvar_star"],
+            res["cvar_at_target"],
+            result["year_n"],
+            floor_label,
+        )
         kz.storeCaseKey("stochCVaRPlot", fig_cvar)
         kz.storeCaseKey("stochRESPlot", fig_res)
     else:
@@ -367,19 +391,24 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
         scenarios_line = f"Scenarios:                       {n_total}\n"
 
     rate_method = result.get("rate_method", "")
-    rate_line = f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
+    rate_line = (
+        f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
+    )
 
-    kz.storeCaseKey("stochSummary", (
-        f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
-        f"Target success rate:             {target_sr_pct:.0f}%  (actual: {actual_sr_pct:.0f}%)\n"
-        f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
-        f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
-        f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
-        f"CVaR (avg loss | failure):       ${cvar:,.0f}/yr  ({cvar_pct:.1%} of committed)\n"
-        f"{rate_line}"
-        f"{longevity_line}"
-        f"{scenarios_line}"
-    ).rstrip())
+    kz.storeCaseKey(
+        "stochSummary",
+        (
+            f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
+            f"Target success rate:             {target_sr_pct:.0f}%  (actual: {actual_sr_pct:.0f}%)\n"
+            f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
+            f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
+            f"Mean shortfall:                  ${exp_shortfall:,.0f}/yr  ({exp_shortfall_pct:.1%} of committed)\n"
+            f"CVaR (avg loss | failure):       ${cvar:,.0f}/yr  ({cvar_pct:.1%} of committed)\n"
+            f"{rate_line}"
+            f"{longevity_line}"
+            f"{scenarios_line}"
+        ).rstrip(),
+    )
 
 
 def histYendMax():
@@ -401,8 +430,9 @@ def baseYear():
 def getGuaranteedIncome(plan):
     """Average annual guaranteed income in today's dollars (SS + pension + SPIA)."""
     import numpy as np
+
     streams = owl.fixedIncomeStreams(plan)
-    real_total = streams["total"] / plan.gamma_n[:plan.N_n]
+    real_total = streams["total"] / plan.gamma_n[: plan.N_n]
     return float(np.mean(real_total))
 
 
@@ -485,20 +515,28 @@ def runStochasticSpending(plan):
             reverse = bool(kz.getCaseKey("stoch_reverse_sequence") or False)
             roll = int(kz.getCaseKey("stoch_roll_sequence") or 0)
             result = plan1.runStochasticSpending(
-                options, "historical",
-                ystart=ystart, yend=yend, progcall=mybar,
-                reverse=reverse, roll=roll,
-                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
+                options,
+                "historical",
+                ystart=ystart,
+                yend=yend,
+                progcall=mybar,
+                reverse=reverse,
+                roll=roll,
+                with_longevity=with_longevity,
+                sexes=sexes,
+                seed=longevity_seed,
+            )
         else:
             N = kz.getCaseKey("stoch_N_mc") or 200
             result = plan1.runStochasticSpending(
-                options, "mc",
-                N=N, progcall=mybar,
-                with_longevity=with_longevity, sexes=sexes, seed=longevity_seed)
+                options, "mc", N=N, progcall=mybar, with_longevity=with_longevity, sexes=sexes, seed=longevity_seed
+            )
 
         result["with_longevity"] = with_longevity
         result["mortality_table"] = mortality_table
-        result["rate_method"] = "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "")
+        result["rate_method"] = (
+            "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "")
+        )
         kz.storeCaseKey("stochScenarioData", result)
         _apply_stochastic_target(result, target_sr_pct, plan1._plotter, plan1)
     except Exception as e:
@@ -727,8 +765,7 @@ def _setRates(plan):
             roll_seq = kz.getCaseKey("roll_sequence")
             reverse_seq = False if reverse_seq is None else bool(reverse_seq)
             roll_seq = 0 if roll_seq is None else int(roll_seq)
-            plan.setRates(varyingType, values=means, stdev=stdev, corr=corr,
-                          reverse=reverse_seq, roll=roll_seq)
+            plan.setRates(varyingType, values=means, stdev=stdev, corr=corr, reverse=reverse_seq, roll=roll_seq)
 
             # Store seed, reproducibility, and sequence options back to case keys
             kz.setCaseKey("rateSeed", plan.rateSeed)
@@ -803,8 +840,9 @@ def setInterpolationMethod(plan):
 
 
 def _setInterpolationMethod(plan):
-    plan.setInterpolationMethod(kz.getCaseKey("interpMethod"), kz.getCaseKey("interpCenter"),
-                                kz.getCaseKey("interpWidth"))
+    plan.setInterpolationMethod(
+        kz.getCaseKey("interpMethod"), kz.getCaseKey("interpCenter"), kz.getCaseKey("interpWidth")
+    )
 
 
 @_checkPlan
@@ -821,7 +859,7 @@ def _setContributions(plan, action):
 
     # Save current state to detect changes
     original_timeLists = {}
-    for i, iname in enumerate(plan.inames):
+    for iname in plan.inames:
         if iname in plan.timeLists:
             original_timeLists[iname] = plan.timeLists[iname].copy()
 
@@ -874,7 +912,11 @@ def _setContributions(plan, action):
         if kz.getCaseKey("status") == "married":
             kz.setCaseKey("timeList1", plan.timeLists[kz.getCaseKey("iname1")])
     elif action == "reset":
-        marked = original_filename + " *" if original_filename and original_filename != "None" and not original_filename.endswith(" *") else original_filename
+        marked = (
+            original_filename + " *"
+            if original_filename and original_filename != "None" and not original_filename.endswith(" *")
+            else original_filename
+        )
         kz.setCaseKey("hfpFileName", marked)
         plan.hfpFileName = marked
     elif action == "set":
@@ -888,7 +930,9 @@ def _setContributions(plan, action):
             plan.hfpFileName = marked
         else:
             # Strip marker when data matches the loaded file.
-            base = original_filename[:-2] if original_filename and original_filename.endswith(" *") else original_filename
+            base = (
+                original_filename[:-2] if original_filename and original_filename.endswith(" *") else original_filename
+            )
             if base and base != "None":
                 kz.storeCaseKey("hfpFileName", base)
                 plan.hfpFileName = base
@@ -970,9 +1014,7 @@ def syncHouseLists(plan):
     fixedAssets = kz.getCaseKey("houseListFixedAssets")
 
     plan.houseLists["Debts"] = conditionDebtsAndFixedAssetsDF(debts, "Debts", mylog=logger)
-    plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(
-        fixedAssets, "Fixed Assets", mylog=logger
-    )
+    plan.houseLists["Fixed Assets"] = conditionDebtsAndFixedAssetsDF(fixedAssets, "Fixed Assets", mylog=logger)
 
     return True
 
@@ -1175,7 +1217,7 @@ def setWorksheetRealDollars(plan, key):
 
 
 def setGlobalPlotBackend(key):
-    val = kz.getGlobalKey("_"+key)
+    val = kz.getGlobalKey("_" + key)
     kz.storeGlobalKey(key, val)
     # Apply to all existing cases.
     for casename in kz.onlyCaseNames():
@@ -1217,9 +1259,7 @@ def _worksheet_age_int_cell(y, plan, i, last_alive_year):
     if pd.isna(y):
         return pd.NA
     yi = int(y)
-    v = worksheet_age_on_dec_31_or_blank(
-        yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year
-    )
+    v = worksheet_age_on_dec_31_or_blank(yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year)
     if v is None:
         return pd.NA
     return int(v)
@@ -1322,8 +1362,7 @@ def showWorkbook(plan):
             if "Accounts" in name:
                 acct_note = " Opening balance as of Jan 1st of that year."
                 display_df = df.style.apply(highlight_year_row, axis=1)
-                st.dataframe(display_df, width="stretch", column_config=colfor,
-                             hide_index=True, placeholder="-")
+                st.dataframe(display_df, width="stretch", column_config=colfor, hide_index=True, placeholder="-")
             else:
                 acct_note = ""
                 st.dataframe(
@@ -1336,9 +1375,10 @@ def showWorkbook(plan):
 
             dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
             age_note = (
-                " Ages are as of December 31 of each row's calendar year; "
-                "blank after an individual's plan horizon."
-            ) if plan.worksheetShowAges else ""
+                (" Ages are as of December 31 of each row's calendar year; blank after an individual's plan horizon.")
+                if plan.worksheetShowAges
+                else ""
+            )
 
             if tax_sheet:
                 cap = (
@@ -1353,8 +1393,13 @@ def showWorkbook(plan):
             else:
                 raise ValueError(f"Worksheet '{name}' not classified — add it to currencySheets or handle explicitly.")
 
-    theme_tabs = {"Accounts": [], "Balance Sheets": [], "Cash Flow": [],
-                  "Income & Taxes": [], "Allocations & Rates": []}
+    theme_tabs = {
+        "Accounts": [],
+        "Balance Sheets": [],
+        "Cash Flow": [],
+        "Income & Taxes": [],
+        "Allocations & Rates": [],
+    }
     for name in wb.sheetnames:
         if name == "Summary" or name.startswith("Config"):
             continue
@@ -1371,7 +1416,7 @@ def showWorkbook(plan):
 
     expand_all = bool(kz.getCaseKey("worksheetExpandAll"))
     tab_widgets = st.tabs(list(theme_tabs.keys()))
-    for tab_widget, sheet_names in zip(tab_widgets, theme_tabs.values()):
+    for tab_widget, sheet_names in zip(tab_widgets, theme_tabs.values(), strict=True):
         with tab_widget:
             for name in sheet_names:
                 _render_sheet(name)
@@ -1535,10 +1580,10 @@ def genDic(plan):
         dic[f"dob{i}"] = plan.dobs[i]
         dic[f"life{i}"] = plan.expectancy[i]
         dic[f"ssAge_y{i}"] = int(plan.ssecAges[i])
-        dic[f"ssAge_m{i}"] = round((plan.ssecAges[i] % 1.) * 12)
+        dic[f"ssAge_m{i}"] = round((plan.ssecAges[i] % 1.0) * 12)
         dic[f"ssAmt{i}"] = plan.ssecAmounts[i]
         dic[f"pAge_y{i}"] = int(plan.pensionAges[i])
-        dic[f"pAge_m{i}"] = round((plan.pensionAges[i] % 1.) * 12)
+        dic[f"pAge_m{i}"] = round((plan.pensionAges[i] % 1.0) * 12)
         dic[f"pAmt{i}"] = plan.pensionAmounts[i]
         dic[f"pIdx{i}"] = plan.pensionIsIndexed[i]
         frac = plan.pensionSurvivorFraction[i] if hasattr(plan, "pensionSurvivorFraction") else 0.0
@@ -1557,7 +1602,9 @@ def genDic(plan):
                     dic[f"j{j2}_init%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][0][k2])
                     dic[f"j{j2}_fin%{k2}_{i}"] = int(plan.boundsAR[longAccName[j2]][i][1][k2])
         else:
-            st.error("Only 'individual' and 'account' asset allocations are currently supported", icon=":material/error:")
+            st.error(
+                "Only 'individual' and 'account' asset allocations are currently supported", icon=":material/error:"
+            )
             return None
 
     solverOptionKeys = list(plan.solverOptions)
@@ -1718,7 +1765,7 @@ def renderPlot(fig, col=None):
         return
 
     # Check if it's a plotly figure.
-    if hasattr(fig, 'to_dict'):  # plotly figures have to_dict method.
+    if hasattr(fig, "to_dict"):  # plotly figures have to_dict method.
         if col:
             col.plotly_chart(fig, width="stretch")
         else:
@@ -1767,7 +1814,7 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
 
     if "Fixed Assets" in plan.houseLists and not plan.houseLists["Fixed Assets"].empty:
         # Ensure rates are set: gamma_n is needed for real-rate asset types
-        if plan.rateMethod is None or not hasattr(plan, 'tau_kn'):
+        if plan.rateMethod is None or not hasattr(plan, "tau_kn"):
             _setRates(plan)
 
         plan.processDebtsAndFixedAssets()
@@ -1783,6 +1830,7 @@ def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
 # -------------------------------
 # UI-level logging helper
 # -------------------------------
+
 
 def _get_case_logger():
     """

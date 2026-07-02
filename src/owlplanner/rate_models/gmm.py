@@ -22,6 +22,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import numpy as np
 from scipy.special import logsumexp
@@ -37,7 +38,6 @@ _REG_COVAR = 1e-6  # diagonal regularization added to each covariance matrix
 
 
 class GMMRateModel(BaseRateModel):
-
     model_name = "gmm"
 
     description = (
@@ -146,10 +146,9 @@ class GMMRateModel(BaseRateModel):
             # ----------------------------------------------------------
             # E-step: compute log responsibilities (unnormalized first)
             # ----------------------------------------------------------
-            log_r = np.column_stack([
-                np.log(weights[k]) + multivariate_normal.logpdf(X, mean=means[k], cov=covs[k])
-                for k in range(K)
-            ])  # shape (N, K)
+            log_r = np.column_stack(
+                [np.log(weights[k]) + multivariate_normal.logpdf(X, mean=means[k], cov=covs[k]) for k in range(K)]
+            )  # shape (N, K)
 
             ll = logsumexp(log_r, axis=1).sum()
             log_r -= logsumexp(log_r, axis=1, keepdims=True)  # normalize
@@ -158,14 +157,15 @@ class GMMRateModel(BaseRateModel):
             # ----------------------------------------------------------
             # M-step: update parameters from responsibilities
             # ----------------------------------------------------------
-            Nk = resp.sum(axis=0) + 1e-300          # effective count per component
+            Nk = resp.sum(axis=0) + 1e-300  # effective count per component
             weights = Nk / N
-            means = (resp.T @ X) / Nk[:, None]      # (K, D)
-            covs = np.array([
-                ((resp[:, k:k+1] * (X - means[k])).T @ (X - means[k])) / Nk[k]
-                + _REG_COVAR * np.eye(D)
-                for k in range(K)
-            ])                                       # (K, D, D)
+            means = (resp.T @ X) / Nk[:, None]  # (K, D)
+            covs = np.array(
+                [
+                    ((resp[:, k : k + 1] * (X - means[k])).T @ (X - means[k])) / Nk[k] + _REG_COVAR * np.eye(D)
+                    for k in range(K)
+                ]
+            )  # (K, D, D)
 
             if ll - prev_ll < _TOL:
                 break
@@ -198,8 +198,10 @@ class GMMRateModel(BaseRateModel):
 
     def log_likelihood(self, X: np.ndarray) -> float:
         """Evaluate the fitted GMM log-likelihood on data X (shape N×D)."""
-        log_r = np.column_stack([
-            np.log(self._weights[k]) + multivariate_normal.logpdf(X, mean=self._means[k], cov=self._covs[k])
-            for k in range(self.n_components)
-        ])
+        log_r = np.column_stack(
+            [
+                np.log(self._weights[k]) + multivariate_normal.logpdf(X, mean=self._means[k], cov=self._covs[k])
+                for k in range(self.n_components)
+            ]
+        )
         return float(logsumexp(log_r, axis=1).sum())

@@ -38,6 +38,7 @@ from owlplanner.rate_models.garch_dcc import GARCHDCCRateModel
 # Helpers
 # ------------------------------------------------------------
 
+
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -59,6 +60,7 @@ def _make_model(frm=1928, to=2024, seed=None):
 # Model attributes
 # ------------------------------------------------------------
 
+
 def test_model_name():
     assert GARCHDCCRateModel.model_name == "garch_dcc"
 
@@ -74,6 +76,7 @@ def test_constant_flag():
 # ------------------------------------------------------------
 # Output shape and sanity
 # ------------------------------------------------------------
+
 
 def test_shape_via_plan():
     """tau_kn should be (4, N_n) after setRates with garch_dcc."""
@@ -110,6 +113,7 @@ def test_rates_in_plausible_range():
 # ------------------------------------------------------------
 # Reproducibility
 # ------------------------------------------------------------
+
 
 def test_reproducible_same_seed():
     """Two plans with the same seed must produce identical tau_kn."""
@@ -149,6 +153,7 @@ def test_non_reproducible_regen_changes():
 # Fitted GARCH parameters
 # ------------------------------------------------------------
 
+
 def test_fitted_garch_param_shapes():
     """omega, alpha, beta, sigma2_0 must all be shape (4,)."""
     model = _make_model()
@@ -168,6 +173,7 @@ def test_garch_stationarity():
 # Fitted DCC parameters
 # ------------------------------------------------------------
 
+
 def test_dcc_params_valid():
     """a, b must be scalars in (0, 1) with a + b < 1."""
     model = _make_model()
@@ -175,7 +181,7 @@ def test_dcc_params_valid():
     b = model._dcc_b
     assert 0 < a < 1, f"DCC a={a} out of (0,1)"
     assert 0 < b < 1, f"DCC b={b} out of (0,1)"
-    assert a + b < 1.0, f"DCC a+b={a+b} >= 1"
+    assert a + b < 1.0, f"DCC a+b={a + b} >= 1"
 
 
 def test_Q_bar_positive_definite():
@@ -188,6 +194,7 @@ def test_Q_bar_positive_definite():
 # ------------------------------------------------------------
 # Historical window sensitivity
 # ------------------------------------------------------------
+
 
 def test_different_windows_differ():
     """
@@ -206,6 +213,7 @@ def test_different_windows_differ():
 # ------------------------------------------------------------
 # Parameter validation
 # ------------------------------------------------------------
+
 
 def test_too_few_observations_raises():
     """Window of only 5 years should raise ValueError."""

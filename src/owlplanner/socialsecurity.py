@@ -46,14 +46,14 @@ Public API (used by plan.py): getFRAs, compute_social_security_benefits.
 All other functions are internal and may change without notice.
 """
 
-__all__ = ['getFRAs', 'compute_social_security_benefits', 'build_own_benefit_table']
+__all__ = ["getFRAs", "compute_social_security_benefits", "build_own_benefit_table"]
 
 import numpy as np
 from datetime import date
 
 # SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
 # Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
-_SELF_REDUCTION_RATE = 5 / 9 / 100 * 12       # 5/9 of 1% per month × 12 ≈ 0.06667/yr (own benefit)
+_SELF_REDUCTION_RATE = 5 / 9 / 100 * 12  # 5/9 of 1% per month × 12 ≈ 0.06667/yr (own benefit)
 _SPOUSAL_REDUCTION_RATE = 25 / 36 / 100 * 12  # 25/36 of 1% per month × 12 ≈ 0.08333/yr (spousal)
 
 
@@ -65,7 +65,7 @@ def _ssa_age(convage, bornOnFirstDays):
     one extra month relative to someone born mid-month.  Born-on-2nd attains age on the
     1st of the birth month — no prior-month shift, so no adjustment is applied.
     """
-    return convage + (1/12 if bornOnFirstDays else 0)
+    return convage + (1 / 12 if bornOnFirstDays else 0)
 
 
 def _reduction_factor(diff, delay_rate, first_36_rate, base_at_3):
@@ -132,11 +132,11 @@ def getFRAs(yobs, mobs, tobs):
         if y >= 1960:
             fras[i] = 67
         elif y >= 1955:
-            fras[i] = 66 + 2*(y - 1954)/12
+            fras[i] = 66 + 2 * (y - 1954) / 12
         elif y >= 1943:
             fras[i] = 66
         elif y >= 1938:
-            fras[i] = 65 + 2*(y - 1937)/12
+            fras[i] = 65 + 2 * (y - 1937) / 12
         else:
             fras[i] = 65
     return fras
@@ -183,7 +183,7 @@ def _survivor_factor(survivor_fra, survivor_age):
         Survivor's age (fractional years) at the time the survivor benefit begins.
         Values below 60 are treated as 60.
     """
-    survivor_age = max(survivor_age, 60)   # Cannot claim survivor benefits before age 60
+    survivor_age = max(survivor_age, 60)  # Cannot claim survivor benefits before age 60
     if survivor_age >= survivor_fra:
         return 1.0
     return 1.0 - 0.285 * (survivor_fra - survivor_age) / (survivor_fra - 60)
@@ -224,8 +224,8 @@ def getSpousalBenefits(pias):
         return benefits
     elif icount == 2:
         for i in range(2):
-            j = (i+1) % 2
-            benefits[i] = max(0, 0.5*pias[j] - pias[i])
+            j = (i + 1) % 2
+            benefits[i] = max(0, 0.5 * pias[j] - pias[i])
     else:
         raise ValueError(f"PIAs array cannot have {icount} entries.")
 
@@ -335,15 +335,16 @@ def _add_spousal_benefit(zeta_in, i, nd, spousal_amount, fra, yobs, mobs, ages, 
     """
     latest_claim_year = float(np.max(yobs + (mobs - 1) / 12 + ages))
     claim_age = latest_claim_year - yobs[i] - (mobs[i] - 1) / 12
-    payment_claim_year = latest_claim_year + 1/12
+    payment_claim_year = latest_claim_year + 1 / 12
     ns2 = max(0, int(payment_claim_year) - thisyear)
     spousal_factor = getSpousalFactor(fra, claim_age, bool(tobs[i] == 1))
     zeta_in[i, ns2:nd] += spousal_amount * spousal_factor
-    zeta_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.)
+    zeta_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
 
 
-def _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n, survivor_horizon,
-                            pia_earlier, survivor_factor):
+def _apply_survivor_benefit(
+    zeta_in, earlier_idx, survivor_idx, death_year_n, survivor_horizon, pia_earlier, survivor_factor
+):
     """Assign the surviving spouse's benefit from the year of first death onward.
 
     Two SSA rules are applied in order:
@@ -359,8 +360,9 @@ def _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n, su
     zeta_in[survivor_idx, death_year_n:survivor_horizon] = survivor_benefit
 
 
-def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i, N_n,
-                                     trim_pct=0, trim_year=None, thisyear=None):
+def compute_social_security_benefits(
+    pias, ages, yobs, mobs, tobs, horizons, N_i, N_n, trim_pct=0, trim_year=None, thisyear=None
+):
     """
     Compute annual Social Security benefits by individual and year.
 
@@ -423,44 +425,49 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
     for i in range(N_i):
         # Eligibility: born on 1st or 2nd can claim in their birthday month (or prior for 1st).
         # Factor shift: only born on 1st attains age one month early, warranting +1/12 SSA age.
-        bornOnFirstDays = (tobs[i] <= 2)
-        bornOnFirst = (tobs[i] == 1)
-        eligible = 62 if bornOnFirstDays else 62 + 1/12
+        bornOnFirstDays = tobs[i] <= 2
+        bornOnFirst = tobs[i] == 1
+        eligible = 62 if bornOnFirstDays else 62 + 1 / 12
         if round(ages[i] * 12) < round(eligible * 12):
             ages[i] = eligible
 
         janage = ages[i] + (mobs[i] - 1) / 12
-        paymentJanage = janage + 1/12
+        paymentJanage = janage + 1 / 12
         paymentIage = int(paymentJanage)
         payment_start_n = yobs[i] + paymentIage - thisyear
         ns = max(0, payment_start_n)
         nd = horizons[i]
         zeta_in[i, ns:nd] = pias[i]
         if payment_start_n >= 0 and ns < nd:
-            zeta_in[i, ns] *= 1 - (paymentJanage % 1.)
+            zeta_in[i, ns] *= 1 - (paymentJanage % 1.0)
 
         zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)
 
         if N_i == 2 and spousalBenefits[i] > 0:
-            _add_spousal_benefit(zeta_in, i, nd, spousalBenefits[i],
-                                 fras[i], yobs, mobs, ages, tobs, thisyear)
+            _add_spousal_benefit(zeta_in, i, nd, spousalBenefits[i], fras[i], yobs, mobs, ages, tobs, thisyear)
 
     if N_i == 2 and death_year_n < N_n:
         # Compute the survivor's age at the death year to apply the claiming-age reduction.
         survivor_fra = getSurvivorFRAs(
-            yobs[survivor_idx:survivor_idx + 1],
-            mobs[survivor_idx:survivor_idx + 1],
-            tobs[survivor_idx:survivor_idx + 1],
+            yobs[survivor_idx : survivor_idx + 1],
+            mobs[survivor_idx : survivor_idx + 1],
+            tobs[survivor_idx : survivor_idx + 1],
         )[0]
-        survivor_age_at_death = ((thisyear + death_year_n) - yobs[survivor_idx]
-                                 - (mobs[survivor_idx] - 1) / 12)
+        survivor_age_at_death = (thisyear + death_year_n) - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12
         # SSA: survivor benefits cannot begin before age 60; clamp for the factor calculation.
         survivor_factor = _survivor_factor(survivor_fra, max(survivor_age_at_death, 60))
         # Effective benefit: 82.5% PIA floor first, then survivor claiming-age reduction.
         deceased_effective = max(zeta_in[earlier_idx, death_year_n - 1], 0.825 * pias[earlier_idx])
         if deceased_effective * survivor_factor > zeta_in[survivor_idx, death_year_n - 1]:
-            _apply_survivor_benefit(zeta_in, earlier_idx, survivor_idx, death_year_n,
-                                    horizons[survivor_idx], pias[earlier_idx], survivor_factor)
+            _apply_survivor_benefit(
+                zeta_in,
+                earlier_idx,
+                survivor_idx,
+                death_year_n,
+                horizons[survivor_idx],
+                pias[earlier_idx],
+                survivor_factor,
+            )
 
     zeta_in *= 12
 
@@ -473,8 +480,9 @@ def compute_social_security_benefits(pias, ages, yobs, mobs, tobs, horizons, N_i
     return zeta_in, ages
 
 
-def build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n,
-                            trim_pct=0, trim_year=None, N_K=97, thisyear=None):
+def build_own_benefit_table(
+    pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n, trim_pct=0, trim_year=None, N_K=97, thisyear=None
+):
     """
     Precompute own-benefit table B_own[N_i, N_K, N_n] for SS claiming-age LP optimization.
 
@@ -526,19 +534,19 @@ def build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, ga
 
     for i in range(N_i):
         if pias[i] == 0:
-            continue   # No SS income; B_own[i,:,:] stays zero.
-        bornOnFirst = (tobs[i] == 1)
-        bornOnFirstDays = (tobs[i] <= 2)
+            continue  # No SS income; B_own[i,:,:] stays zero.
+        bornOnFirst = tobs[i] == 1
+        bornOnFirstDays = tobs[i] <= 2
         eligible = 62.0 if bornOnFirstDays else 62.0 + 1.0 / 12
         nd = min(int(horizons[i]), N_n)
 
         for k in range(N_K):
             claim_age = ages_k[k]
             if claim_age < eligible:
-                continue   # Ineligible claiming age; skip.
+                continue  # Ineligible claiming age; skip.
 
             factor = getSelfFactor(fras[i], claim_age, bornOnFirst)
-            benefit_real = pias[i] * 12 * factor   # annual benefit in today's dollars
+            benefit_real = pias[i] * 12 * factor  # annual benefit in today's dollars
 
             # Payment start year (mirrors compute_social_security_benefits logic).
             janage = claim_age + (mobs[i] - 1) / 12
@@ -548,7 +556,7 @@ def build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, ga
             ns = max(0, payment_start_n)
 
             if ns >= nd:
-                continue   # Payment starts after horizon; no benefit within plan.
+                continue  # Payment starts after horizon; no benefit within plan.
 
             B_own[i, k, ns:nd] = benefit_real * gamma_n[ns:nd]
 

@@ -152,17 +152,19 @@ with st.expander("*Explore some case examples*"):
         st.markdown("Go to **Create Case**, then choose any example from the dropdown.")
     with step2:
         st.markdown("**2. Load the financial profile**")
-        st.markdown("On the same page, load the associated financial profile using the highlighted"
-                    " *Load example workbook* button. View the content on the *Financial Profile* page.")
+        st.markdown(
+            "On the same page, load the associated financial profile using the highlighted"
+            " *Load example workbook* button. View the content on the *Financial Profile* page."
+        )
     with step3:
         st.markdown("**3. View the results**")
-        st.markdown("Navigate to **Graphs**, **Worksheets**, or **Reports** under Results "
-                    "to explore your personalized plan.")
+        st.markdown(
+            "Navigate to **Graphs**, **Worksheets**, or **Reports** under Results to explore your personalized plan."
+        )
 
     st.markdown("**Start here:**")
     st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
-    st.caption("Once you’ve run your first case,"
-               " explore other Case Setup pages to change assumptions.")
+    st.caption("Once you’ve run your first case, explore other Case Setup pages to change assumptions.")
 
 st.markdown("### :orange[Curious what Owl can do? See the full picture.]")
 modeling_md = Path(__file__).resolve().parent.parent / "info" / "modeling-capabilities.md"
@@ -192,7 +194,8 @@ You can also copy the case from within the app, modify, and save your changes.""
     with lm2:
         st.markdown(
             """- **Financial Profile** (Excel):
-    [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)""")
+    [HFP_jack+jill.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_jack+jill.xlsx?raw=true)"""
+        )
     st.caption("Right-click a link and choose “Save link as…” to download.")
 
     st.markdown("""

@@ -101,18 +101,29 @@ Changing any of these options only affects the next run.
 
         st.markdown("#### :orange[Rate sequence]")
         st.caption("*One variant per year when augmented is off*")
-        help_reverse = ("Reverse the rate sequence along the time axis (e.g. run last year first)."
-                        " Ignored when `Augmented sampling` is on.")
+        help_reverse = (
+            "Reverse the rate sequence along the time axis (e.g. run last year first)."
+            " Ignored when `Augmented sampling` is on."
+        )
         help_roll = "Roll the rate sequence by this many years (0 = no shift). Ignored when `Augmented sampling` is on."
         augmented = kz.getCaseKey("augmented_sampling")
         augmented = False if augmented is None else bool(augmented)
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
-            kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
-                         step=1, callback=kz.setpull, help=help_roll, disabled=augmented)
+            kz.getIntNum(
+                "Roll (years)",
+                "roll_sequence",
+                min_value=0,
+                max_value=N_n,
+                step=1,
+                callback=kz.setpull,
+                help=help_roll,
+                disabled=augmented,
+            )
         with col2:
-            kz.getToggle("Reverse sequence", "reverse_sequence", callback=kz.setpull, help=help_reverse,
-                         disabled=augmented)
+            kz.getToggle(
+                "Reverse sequence", "reverse_sequence", callback=kz.setpull, help=help_reverse, disabled=augmented
+            )
 
     st.divider()
     fig = kz.getCaseKey("histoPlot")

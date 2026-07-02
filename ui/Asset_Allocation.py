@@ -116,8 +116,7 @@ def checkAllAllocs():
     if kz.getCaseKey("allocType") == "individual":
         decos = ["j3_init%", "j3_fin%"]
     else:
-        decos = ["j0_init%", "j0_fin%", "j1_init%", "j1_fin%", "j2_init%", "j2_fin%",
-                 "jhsa_init%", "jhsa_fin%"]
+        decos = ["j0_init%", "j0_fin%", "j1_init%", "j1_fin%", "j2_init%", "j2_fin%", "jhsa_init%", "jhsa_fin%"]
     Ni = 1
     if kz.getCaseKey("status") == "married":
         Ni += 1

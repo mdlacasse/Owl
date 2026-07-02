@@ -36,6 +36,7 @@ from owlplanner.rate_models._builtin_impl import INFLATION_FLOOR
 # Helpers
 # ------------------------------------------------------------
 
+
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -68,6 +69,7 @@ def _set_bootstrap(
 # Shape and basic behavior
 # ------------------------------------------------------------
 
+
 def test_iid_bootstrap_shape():
     p = _make_plan()
     _set_bootstrap(p, bootstrap_type="iid")
@@ -96,6 +98,7 @@ def test_stationary_bootstrap_shape():
 # Reproducibility
 # ------------------------------------------------------------
 
+
 def test_reproducible_same_seed():
     p1 = _make_plan()
     _set_bootstrap(p1, bootstrap_type="block", block_size=4, seed=1234)
@@ -120,6 +123,7 @@ def test_non_reproducible_changes():
 # ------------------------------------------------------------
 # Crisis overweight
 # ------------------------------------------------------------
+
 
 def test_crisis_overweight_changes_distribution():
     """
@@ -146,6 +150,7 @@ def test_crisis_overweight_changes_distribution():
 # Block behavior sanity check
 # ------------------------------------------------------------
 
+
 def test_block_preserves_local_structure():
     """
     For block bootstrap, consecutive years should
@@ -168,6 +173,7 @@ def test_block_preserves_local_structure():
 # Stationary bootstrap randomness
 # ------------------------------------------------------------
 
+
 def test_stationary_varies_block_length():
     p = _make_plan()
     _set_bootstrap(p, bootstrap_type="stationary", block_size=5)
@@ -182,6 +188,7 @@ def test_stationary_varies_block_length():
 # ------------------------------------------------------------
 # Reverse / roll compatibility
 # ------------------------------------------------------------
+
 
 def test_reverse_roll_applies():
     plan = _make_plan()
@@ -212,13 +219,12 @@ def test_reverse_roll_applies():
 # Inflation floor
 # ------------------------------------------------------------
 
+
 def test_iid_bootstrap_inflation_floor():
     """IID bootstrap inflation must never fall below INFLATION_FLOOR."""
     p = _make_plan()
     p.setRates("historical_bootstrap", frm=1928, to=2024)
-    assert np.all(p.tau_kn[3] >= INFLATION_FLOOR), (
-        f"Bootstrap inflation below floor: min={p.tau_kn[3].min():.4f}"
-    )
+    assert np.all(p.tau_kn[3] >= INFLATION_FLOOR), f"Bootstrap inflation below floor: min={p.tau_kn[3].min():.4f}"
 
 
 def test_block_bootstrap_inflation_floor():
@@ -238,6 +244,7 @@ def test_stationary_bootstrap_inflation_floor():
 # ------------------------------------------------------------
 # Invalid bootstrap type
 # ------------------------------------------------------------
+
 
 def test_invalid_bootstrap_type():
     p = _make_plan()

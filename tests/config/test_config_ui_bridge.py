@@ -545,11 +545,35 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
     # swapRothConverters is intentionally excluded: it is derived from
     # swapRothConvertersEnabled/First/Year (see config_to_ui / ui_to_config).
     plan_known = {
-        "absTol", "amoConstraints", "amoRoth", "amoSurplus", "bequest", "bigMaca", "bigMamo",
-        "bigMltcg", "bigMniit", "bigMss", "bendersMaxIter", "epsilon", "fixedSpending", "gap",
-        "maxIter", "maxRothConversion", "maxTime", "netSpending", "noLateSurplus",
-        "noRothConversions", "oppCostX", "relTol", "solver", "spendingSlack",
-        "startRothConversions", "timePreference", "units", "useRothConvOverrides", "verbose",
+        "absTol",
+        "amoConstraints",
+        "amoRoth",
+        "amoSurplus",
+        "bequest",
+        "bigMaca",
+        "bigMamo",
+        "bigMltcg",
+        "bigMniit",
+        "bigMss",
+        "bendersMaxIter",
+        "epsilon",
+        "fixedSpending",
+        "gap",
+        "maxIter",
+        "maxRothConversion",
+        "maxTime",
+        "netSpending",
+        "noLateSurplus",
+        "noRothConversions",
+        "oppCostX",
+        "relTol",
+        "solver",
+        "spendingSlack",
+        "startRothConversions",
+        "timePreference",
+        "units",
+        "useRothConvOverrides",
+        "verbose",
         "withSCLoop",
     }
     assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
@@ -586,8 +610,7 @@ def test_rate_bool_optional_params_survive_ui_roundtrip(method):
     for param, default in bool_params.items():
         expected = not default
         assert out["rates_selection"].get(param) == expected, (
-            f"Bool optional_parameter '{param}' not preserved in ui_bridge "
-            f"round-trip for method='{method}'"
+            f"Bool optional_parameter '{param}' not preserved in ui_bridge round-trip for method='{method}'"
         )
 
 

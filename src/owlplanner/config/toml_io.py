@@ -25,15 +25,15 @@ def sanitize_config(diconf: dict, *, mylog=None) -> None:
     # Translate legacy rate method names to current canonical names.
     # Old names will be removed in a future release — users should update their TOML files.
     _LEGACY_METHOD_NAMES = {
-        "default":           "trailing_30",
-        "trailing-30":       "trailing_30",
+        "default": "trailing_30",
+        "trailing-30": "trailing_30",
         "historical average": "historical_average",
-        "histogaussian":     "historical_gaussian",
-        "histochastic":      "historical_gaussian",
-        "stochastic":        "historical_gaussian",
-        "histolognormal":    "historical_lognormal",
-        "bootstrap_sor":     "historical_bootstrap",
-        "var":               "vector_ar",
+        "histogaussian": "historical_gaussian",
+        "histochastic": "historical_gaussian",
+        "stochastic": "historical_gaussian",
+        "histolognormal": "historical_lognormal",
+        "bootstrap_sor": "historical_bootstrap",
+        "var": "vector_ar",
     }
     rs = diconf.get("rates_selection")
     if isinstance(rs, dict):
@@ -60,10 +60,7 @@ def sanitize_config(diconf: dict, *, mylog=None) -> None:
         year_val = int(start_roth)
         if year_val < thisyear:
             so["startRothConversions"] = thisyear
-            msg = (
-                f"startRothConversions ({year_val}) was in the past; "
-                f"reset to {thisyear}."
-            )
+            msg = f"startRothConversions ({year_val}) was in the past; reset to {thisyear}."
             if mylog:
                 mylog.print(msg, tag="WARNING")
 

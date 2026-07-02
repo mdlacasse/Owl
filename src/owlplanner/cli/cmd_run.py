@@ -63,9 +63,7 @@ def _parse_solver_opts(value):
     result = []
     for item in value:
         if "=" not in item:
-            raise click.BadParameter(
-                f"Each --solver-opt must be KEY=VALUE (e.g. solver=HiGHS). Got: {item!r}"
-            )
+            raise click.BadParameter(f"Each --solver-opt must be KEY=VALUE (e.g. solver=HiGHS). Got: {item!r}")
         key, _, val = item.partition("=")
         key = key.strip()
         if not key:
@@ -164,8 +162,19 @@ def _parse_solver_opts(value):
     default=False,
     help="Route plan logs through loguru instead of the default stream handler.",
 )
-def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose,
-            solver_opts, seed, set_overrides, output_format, use_loguru):
+def cmd_run(
+    filename: Path,
+    with_config: str,
+    solver,
+    max_time,
+    gap,
+    verbose,
+    solver_opts,
+    seed,
+    set_overrides,
+    output_format,
+    use_loguru,
+):
     """Run the retirement planning optimizer on an OWL case file.
 
     Loads the case from FILENAME (a .toml file), solves the optimization
@@ -210,6 +219,7 @@ def cmd_run(filename: Path, with_config: str, solver, max_time, gap, verbose,
             sys.stdout.write("\n")
         else:
             import json
+
             sys.stdout.write(json.dumps({"status": plan.caseStatus, "case_name": plan._name}))
             sys.stdout.write("\n")
             sys.exit(1)

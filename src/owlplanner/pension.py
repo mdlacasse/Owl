@@ -84,8 +84,7 @@ def compute_pension_benefits(amounts, ages, yobs, mobs, horizons, N_i, N_n, this
     return pi_in
 
 
-def compute_piBar_in(pi_in, gamma_n, indexed, survivor_fraction, n_d, i_d, i_s,
-                     horizons, N_i, N_n):
+def compute_piBar_in(pi_in, gamma_n, indexed, survivor_fraction, n_d, i_d, i_s, horizons, N_i, N_n):
     """
     Apply inflation scaling and survivor logic to primary pension; return piBar_in.
 
@@ -125,13 +124,11 @@ def compute_piBar_in(pi_in, gamma_n, indexed, survivor_fraction, n_d, i_d, i_s,
     # Add survivor benefit using the primary's pre-inflation amount (pi_in), then
     # apply the primary's indexing so the benefit tracks the same cost-of-living
     # adjustment as the primary's pension.
-    if (N_i == 2 and n_d < N_n and i_s >= 0
-            and survivor_fraction[i_d] > 0
-            and pi_in[i_d, n_d - 1] > 0):
+    if N_i == 2 and n_d < N_n and i_s >= 0 and survivor_fraction[i_d] > 0 and pi_in[i_d, n_d - 1] > 0:
         survivor_raw = survivor_fraction[i_d] * pi_in[i_d, n_d - 1]
         if indexed[i_d]:
-            piBar_in[i_s, n_d:horizons[i_s]] += survivor_raw * gamma_n[n_d:horizons[i_s]]
+            piBar_in[i_s, n_d : horizons[i_s]] += survivor_raw * gamma_n[n_d : horizons[i_s]]
         else:
-            piBar_in[i_s, n_d:horizons[i_s]] += survivor_raw
+            piBar_in[i_s, n_d : horizons[i_s]] += survivor_raw
 
     return piBar_in

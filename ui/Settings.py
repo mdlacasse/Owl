@@ -27,7 +27,7 @@ import owlbridge as owb
 
 
 def setKey(key):
-    val = kz.getGlobalKey("_"+key)
+    val = kz.getGlobalKey("_" + key)
     if val is not None:
         kz.storeGlobalKey(key, val)
 
@@ -42,8 +42,16 @@ with col1:
     st.markdown("#### :orange[Graph Appearance]")
     helpmsg = "Select the plotting library to use."
     index = choices.index(kz.getGlobalKey(gkey))
-    ret = st.radio("Plotting backend", options=choices, index=index, args=[gkey],
-                   key="_"+gkey, on_change=owb.setGlobalPlotBackend, help=helpmsg, horizontal=True)
+    ret = st.radio(
+        "Plotting backend",
+        options=choices,
+        index=index,
+        args=[gkey],
+        key="_" + gkey,
+        on_change=owb.setGlobalPlotBackend,
+        help=helpmsg,
+        horizontal=True,
+    )
 
 with col2:
     choices = ("sidebar", "top")
@@ -51,8 +59,16 @@ with col2:
     st.markdown("#### :orange[Menu]")
     helpmsg = "Select menu appearance."
     index = choices.index(kz.getGlobalKey(mkey))
-    ret = st.radio("Menu location", options=choices, index=index, args=[mkey],
-                   key="_"+mkey, on_change=setKey, help=helpmsg, horizontal=True)
+    ret = st.radio(
+        "Menu location",
+        options=choices,
+        index=index,
+        args=[mkey],
+        key="_" + mkey,
+        on_change=setKey,
+        help=helpmsg,
+        horizontal=True,
+    )
 
 with col3:
     choices = ("sticky", "static")
@@ -60,8 +76,16 @@ with col3:
     st.markdown("#### :orange[Header]")
     helpmsg = "Select header behavior."
     index = choices.index(kz.getGlobalKey(pkey))
-    ret = st.radio("Header behavior", options=choices, index=index, args=[pkey],
-                   key="_"+pkey, on_change=setKey, help=helpmsg, horizontal=True)
+    ret = st.radio(
+        "Header behavior",
+        options=choices,
+        index=index,
+        args=[pkey],
+        key="_" + pkey,
+        on_change=setKey,
+        help=helpmsg,
+        horizontal=True,
+    )
 
 st.divider()
 st.markdown("""

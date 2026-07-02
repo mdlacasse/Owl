@@ -147,13 +147,9 @@ def get_numeric_list_option(options, key, min_length, *, min_value=None) -> list
     """
     value = options[key]
     if not isinstance(value, (list, tuple)):
-        raise ValueError(
-            f"{key} must be a list or tuple, got {type(value).__name__}."
-        )
+        raise ValueError(f"{key} must be a list or tuple, got {type(value).__name__}.")
     if len(value) < min_length:
-        raise ValueError(
-            f"{key} must have at least {min_length} elements, got {len(value)}."
-        )
+        raise ValueError(f"{key} must have at least {min_length} elements, got {len(value)}.")
 
     result = []
     for i, val in enumerate(value):
@@ -164,9 +160,7 @@ def get_numeric_list_option(options, key, min_length, *, min_value=None) -> list
                 raise ValueError(f"{key}[{i}] {val!r} is not a number.")
             f = float(val)
             if min_value is not None and f < min_value:
-                raise ValueError(
-                    f"{key}[{i}] must be >= {min_value}, got {f}."
-                )
+                raise ValueError(f"{key}[{i}] must be >= {min_value}, got {f}.")
             result.append(f)
     return result
 
@@ -452,16 +446,14 @@ def detect_oscillation(obj_history, tolerance, max_cycle_length=15):
             continue
 
         recent = obj_history[-cycle_len:]
-        previous = obj_history[-2*cycle_len:-cycle_len]
+        previous = obj_history[-2 * cycle_len : -cycle_len]
 
-        matches = all(abs(recent[i] - previous[i]) <= tolerance
-                      for i in range(cycle_len))
+        matches = all(abs(recent[i] - previous[i]) <= tolerance for i in range(cycle_len))
 
         if matches:
             if len(obj_history) >= 3 * cycle_len:
-                earlier = obj_history[-3*cycle_len:-2*cycle_len]
-                if all(abs(recent[i] - earlier[i]) <= tolerance
-                       for i in range(cycle_len)):
+                earlier = obj_history[-3 * cycle_len : -2 * cycle_len]
+                if all(abs(recent[i] - earlier[i]) <= tolerance for i in range(cycle_len)):
                     return cycle_len
             else:
                 return cycle_len

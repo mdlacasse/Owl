@@ -74,9 +74,7 @@ def test_mediCosts_single_irmaa_brackets():
     # Bracket 1 is > 109k: add partB_irmaa_fees[1] = 12*81.20
     expected_low = tx.partB_irmaa_fees[0] + tx.partB_irmaa_fees[1]
     for n in range(2, Nn):
-        assert costs[n] == pytest.approx(expected_low), (
-            f"Single MAGI 120k: expect basic + first IRMAA in year n={n}"
-        )
+        assert costs[n] == pytest.approx(expected_low), f"Single MAGI 120k: expect basic + first IRMAA in year n={n}"
 
 
 def test_irmaa_values_2026_cms():
@@ -103,12 +101,8 @@ def test_mediCosts_part_d_irmaa_increases_cost():
     prevmagi = np.array([0.0, 0.0])
     magi = np.full(Nn, 120_000)  # Above first bracket
 
-    costs_part_b_only = tx.mediCosts(
-        yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=False
-    )
-    costs_with_part_d = tx.mediCosts(
-        yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=True
-    )
+    costs_part_b_only = tx.mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=False)
+    costs_with_part_d = tx.mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=True)
     # Part D first bracket surcharge = 12 * 14.50
     expected_extra = 12 * 14.50
     for n in range(2, Nn):
@@ -130,12 +124,24 @@ def test_mediCosts_part_d_base_premium():
     base_annual = base_monthly * 12
 
     costs_no_base = tx.mediCosts(
-        yobs, horizons, magi, prevmagi, gamma_n, Nn,
-        include_part_d=True, part_d_base_annual_per_person=0.0,
+        yobs,
+        horizons,
+        magi,
+        prevmagi,
+        gamma_n,
+        Nn,
+        include_part_d=True,
+        part_d_base_annual_per_person=0.0,
     )
     costs_with_base = tx.mediCosts(
-        yobs, horizons, magi, prevmagi, gamma_n, Nn,
-        include_part_d=True, part_d_base_annual_per_person=base_annual,
+        yobs,
+        horizons,
+        magi,
+        prevmagi,
+        gamma_n,
+        Nn,
+        include_part_d=True,
+        part_d_base_annual_per_person=base_annual,
     )
     for n in range(Nn):
         if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
@@ -154,12 +160,15 @@ def test_mediVals_combined_costs_increase_by_bracket():
     Nq = 6
 
     nm, Lbar, Cbar = tx.mediVals(
-        yobs, horizons, gamma_n, Nn, Nq,
-        include_part_d=True, part_d_base_annual_per_person=0.0,
+        yobs,
+        horizons,
+        gamma_n,
+        Nn,
+        Nq,
+        include_part_d=True,
+        part_d_base_annual_per_person=0.0,
     )
     assert nm == 0
     for nn in range(Cbar.shape[0]):
         for q in range(1, Nq):
-            assert Cbar[nn, q] > Cbar[nn, q - 1], (
-                f"Year nn={nn}: bracket {q} cost should exceed bracket {q-1}"
-            )
+            assert Cbar[nn, q] > Cbar[nn, q - 1], f"Year nn={nn}: bracket {q} cost should exceed bracket {q - 1}"

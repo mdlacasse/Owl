@@ -23,6 +23,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###################################################################
 import numpy as np
 
@@ -32,7 +33,6 @@ from owlplanner.rates import FROM, TO
 
 
 class BootstrapSORRateModel(BaseRateModel):
-
     model_name = "historical_bootstrap"
 
     description = (
@@ -123,7 +123,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _build_sampling_weights(self):
-
         T = len(self._years)
 
         if not self.crisis_years or self.crisis_weight == 1.0:
@@ -173,7 +172,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def generate(self, N):
-
         if self.bootstrap_type == "iid":
             out = self._iid_bootstrap(N)
         elif self.bootstrap_type == "block":
@@ -193,7 +191,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _iid_bootstrap(self, N):
-
         T = len(self._historical_data)
 
         if self._base_weights is None:
@@ -208,7 +205,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _block_bootstrap(self, N):
-
         T = len(self._historical_data)
 
         max_start = T - self.block_size + 1
@@ -228,7 +224,7 @@ class BootstrapSORRateModel(BaseRateModel):
 
         while total_len < N:
             start = self._choice(max_start, start_probs)
-            block = self._historical_data[start:start + self.block_size]
+            block = self._historical_data[start : start + self.block_size]
             blocks.append(block)
             total_len += len(block)
 
@@ -240,7 +236,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _circular_bootstrap(self, N):
-
         T = len(self._historical_data)
 
         blocks = []
@@ -262,7 +257,6 @@ class BootstrapSORRateModel(BaseRateModel):
     #######################################################################
 
     def _stationary_bootstrap(self, N):
-
         T = len(self._historical_data)
         p = 1.0 / self.block_size
 

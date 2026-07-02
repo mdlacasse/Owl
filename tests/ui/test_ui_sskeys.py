@@ -24,13 +24,13 @@ import ui.sskeys as sskeys
 
 
 def test_getIndex_found():
-    choices = ['a', 'b', 'c']
-    assert sskeys.getIndex('b', choices) == 1
+    choices = ["a", "b", "c"]
+    assert sskeys.getIndex("b", choices) == 1
 
 
 def test_getIndex_not_found():
-    choices = ['a', 'b', 'c']
-    assert sskeys.getIndex('z', choices) is None
+    choices = ["a", "b", "c"]
+    assert sskeys.getIndex("z", choices) is None
 
 
 def test_caseHasNoPlan(monkeypatch):

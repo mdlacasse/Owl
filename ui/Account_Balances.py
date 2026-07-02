@@ -33,26 +33,34 @@ if ret is None or kz.caseHasNoPlan():
 else:
     st.markdown("#### :orange[Savings Account Balances]")
     accounts = {"txbl": "taxable", "txDef": "tax-deferred", "txFree": "tax-free", "hsa": "HSA"}
-    hdetails = {"txbl": "Sum of brokerage and savings accounts. ",
-                "txDef": "Sum of IRA, 401k, 403b and the like. ",
-                "txFree": "Sum of Roth IRA, Roth 401k, Roth 403b and the like. ",
-                "hsa": "Sum of Health Savings Account (triple tax-advantaged). "}
+    hdetails = {
+        "txbl": "Sum of brokerage and savings accounts. ",
+        "txDef": "Sum of IRA, 401k, 403b and the like. ",
+        "txFree": "Sum of Roth IRA, Roth 401k, Roth 403b and the like. ",
+        "hsa": "Sum of Health Savings Account (triple tax-advantaged). ",
+    }
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname = kz.getCaseKey("iname0")
         for key in accounts:
             nkey = key + str(0)
             kz.initCaseKey(nkey, 0)
-            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts ($k)", nkey,
-                            help=hdetails[key]+kz.help1000)
+            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
 
         today = date.today()
         thisyear = today.year
         kz.initCaseKey("startDate", today)
         helpmsg = "Date at which savings balances are known. Values will be back projected to Jan 1st."
-        ret = st.date_input("Account balance date", min_value=date(thisyear, 1, 1),
-                            max_value=date(thisyear, 12, 31), value=kz.getCaseKey("startDate"),
-                            key=kz.genCaseKey("startDate"), args=["startDate"], on_change=kz.setpull, help=helpmsg)
+        ret = st.date_input(
+            "Account balance date",
+            min_value=date(thisyear, 1, 1),
+            max_value=date(thisyear, 12, 31),
+            value=kz.getCaseKey("startDate"),
+            key=kz.genCaseKey("startDate"),
+            args=["startDate"],
+            on_change=kz.setpull,
+            help=helpmsg,
+        )
 
     with col2:
         if kz.getCaseKey("status") == "married":
@@ -60,8 +68,7 @@ else:
             for key in accounts:
                 nkey = key + str(1)
                 kz.initCaseKey(nkey, 0)
-                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey,
-                                help=hdetails[key]+kz.help1000)
+                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
 
     st.divider()
     st.markdown("#### :orange[Taxable Account Cost Basis] *(optional)*")
@@ -93,8 +100,9 @@ else:
         balance = kz.getCaseKey(f"txbl{i}") or 0.0
         if basis > 0 and balance == 0:
             with warn_col:
-                st.warning(f"Set {iname}'s taxable account balance before entering a cost basis.",
-                           icon=":material/warning:")
+                st.warning(
+                    f"Set {iname}'s taxable account balance before entering a cost basis.", icon=":material/warning:"
+                )
         elif basis > balance > 0:
             with warn_col:
                 st.warning(
@@ -110,38 +118,44 @@ else:
         with st.expander("*Advanced options*"):
             st.markdown("#### :orange[Survivor's Spousal Beneficiary Fractions]")
             helpmsg = "Fraction of account left to surviving spouse."
-            hsahelp = ("Fraction of HSA left to surviving spouse. "
-                       "IRS rules allow a spouse beneficiary to inherit the HSA intact "
-                       "(full tax-advantaged status). Defaults to 1.0.")
+            hsahelp = (
+                "Fraction of HSA left to surviving spouse. "
+                "IRS rules allow a spouse beneficiary to inherit the HSA intact "
+                "(full tax-advantaged status). Defaults to 1.0."
+            )
             col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
             with col1:
                 nkey = "benf" + str(0)
                 kz.initCaseKey(nkey, 1)
-                ret = kz.getNum(accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                                step=0.05, help=helpmsg)
+                ret = kz.getNum(
+                    accounts["txbl"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg
+                )
             with col2:
                 nkey = "benf" + str(1)
                 kz.initCaseKey(nkey, 1)
-                ret = kz.getNum(accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                                step=0.05, help=helpmsg)
+                ret = kz.getNum(
+                    accounts["txDef"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg
+                )
             with col3:
                 nkey = "benf" + str(2)
                 kz.initCaseKey(nkey, 1)
-                ret = kz.getNum(accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0,
-                                step=0.05, help=helpmsg)
+                ret = kz.getNum(
+                    accounts["txFree"].capitalize(), nkey, format="%.2f", max_value=1.0, step=0.05, help=helpmsg
+                )
             with col4:
                 nkey = "benf" + str(3)
                 kz.initCaseKey(nkey, 1)
-                ret = kz.getNum("HSA", nkey, format="%.2f", max_value=1.0,
-                                step=0.05, help=hsahelp)
+                ret = kz.getNum("HSA", nkey, format="%.2f", max_value=1.0, step=0.05, help=hsahelp)
 
             st.markdown("#####")
             st.markdown("#### :orange[Cash Flow Surplus Deposit Fraction]")
             col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
             with col1:
                 kz.initCaseKey("surplusFraction", 0.5)
-                helpmsg = ("When beneficiary fractions are not all 1, "
-                           "assign all cash-flow surplus deposits to the account of the first spouse to pass.")
+                helpmsg = (
+                    "When beneficiary fractions are not all 1, "
+                    "assign all cash-flow surplus deposits to the account of the first spouse to pass."
+                )
                 ret = kz.getNum(
                     f"Fraction of cash flow surplus deposited in {iname1}'s taxable account",
                     "surplusFraction",

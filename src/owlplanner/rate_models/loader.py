@@ -21,6 +21,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 ###########################################################################
 import importlib.util
 import pathlib
@@ -86,11 +87,20 @@ _RATE_MODEL_REGISTRY = {
     "hmm": HMMRateModel,
 }
 
-BUILTIN_CORE_METHODS = frozenset({
-    "trailing_30", "optimistic", "conservative", "user",
-    "historical", "historical_average", "gaussian", "historical_gaussian",
-    "lognormal", "historical_lognormal",
-})
+BUILTIN_CORE_METHODS = frozenset(
+    {
+        "trailing_30",
+        "optimistic",
+        "conservative",
+        "user",
+        "historical",
+        "historical_average",
+        "gaussian",
+        "historical_gaussian",
+        "lognormal",
+        "historical_lognormal",
+    }
+)
 
 ALLOWED_METHODS = frozenset(_RATE_MODEL_REGISTRY.keys())
 
@@ -98,6 +108,7 @@ ALLOWED_METHODS = frozenset(_RATE_MODEL_REGISTRY.keys())
 # ------------------------------------------------------------
 # Loader
 # ------------------------------------------------------------
+
 
 def load_rate_model(method, method_file=None):
     """
@@ -125,9 +136,7 @@ def load_rate_model(method, method_file=None):
         spec.loader.exec_module(module)
 
         if not hasattr(module, "RateModel"):
-            raise ValueError(
-                f"Plugin file '{method_file}' must define class 'RateModel'."
-            )
+            raise ValueError(f"Plugin file '{method_file}' must define class 'RateModel'.")
 
         return module.RateModel
 
@@ -141,9 +150,7 @@ def load_rate_model(method, method_file=None):
     # Unknown method
     # ------------------------------------------------------------
     raise ValueError(
-        f"Unknown rate method '{method}'. "
-        f"Allowed methods: {sorted(ALLOWED_METHODS)} "
-        f"or provide method_file for plugin."
+        f"Unknown rate method '{method}'. Allowed methods: {sorted(ALLOWED_METHODS)} or provide method_file for plugin."
     )
 
 
@@ -170,6 +177,7 @@ RATE_MODEL_ALIASES = types.MappingProxyType(_METHOD_ALIASES)
 # Utilities
 # ------------------------------------------------------------
 
+
 def _is_valid_url(url: str) -> bool:
     """
     Return True if string is a valid http/https URL.
@@ -185,6 +193,7 @@ def _is_valid_url(url: str) -> bool:
 # Metadata collection
 # ------------------------------------------------------------
 
+
 def _collect_all_model_metadata():
     """
     Collect normalized metadata for all individual rate methods.
@@ -195,16 +204,18 @@ def _collect_all_model_metadata():
 
     for method, ModelClass in _RATE_MODEL_REGISTRY.items():
         md = ModelClass.get_metadata()
-        metadata.append({
-            "method": method,
-            "model_name": md.get("model_name", method),
-            "description": md.get("description", ""),
-            "more_info": md.get("more_info"),
-            "required_parameters": md.get("required_parameters", {}),
-            "optional_parameters": md.get("optional_parameters", {}),
-            "deterministic": md.get("deterministic", False),
-            "constant": md.get("constant", False),
-        })
+        metadata.append(
+            {
+                "method": method,
+                "model_name": md.get("model_name", method),
+                "description": md.get("description", ""),
+                "more_info": md.get("more_info"),
+                "required_parameters": md.get("required_parameters", {}),
+                "optional_parameters": md.get("optional_parameters", {}),
+                "deterministic": md.get("deterministic", False),
+                "constant": md.get("constant", False),
+            }
+        )
 
     return metadata
 
@@ -264,10 +275,7 @@ def generate_rate_models_markdown():
     lines.append("")
     lines.append("## :orange[Available Rate Models]")
     lines.append("")
-    lines.append(
-        "The following rate models are available via the `method` field "
-        "in `[rates_selection]`."
-    )
+    lines.append("The following rate models are available via the `method` field in `[rates_selection]`.")
     lines.append("")
 
     def render_section(title, entries):
@@ -278,7 +286,6 @@ def generate_rate_models_markdown():
         lines.append("")
 
         for entry in sorted(entries, key=lambda e: e["method"]):
-
             method = entry["method"]
             description = entry["description"]
             more_info = entry.get("more_info")
@@ -290,10 +297,7 @@ def generate_rate_models_markdown():
 
             if description:
                 if _is_valid_url(more_info):
-                    description = (
-                        description.rstrip()
-                        + f" [click here for more info]({more_info})"
-                    )
+                    description = description.rstrip() + f" [click here for more info]({more_info})"
 
                 lines.append(description)
                 lines.append("")
@@ -305,23 +309,17 @@ def generate_rate_models_markdown():
             lines.append("|-----------|----------|------|-------------|")
 
             # method parameter always first
-            lines.append(
-                f"| `method` | Yes | str | model name (`\"{method}\"`) |"
-            )
+            lines.append(f'| `method` | Yes | str | model name (`"{method}"`) |')
 
             # Required parameters in declared order
             for name, p in required.items():
                 doc_name = _TOML_DISPLAY_KEYS.get(name, name)
-                lines.append(
-                    f"| `{doc_name}` | Yes | {p.get('type', '')} | {p.get('description', '')} |"
-                )
+                lines.append(f"| `{doc_name}` | Yes | {p.get('type', '')} | {p.get('description', '')} |")
 
             # Optional parameters
             for name, p in optional.items():
                 doc_name = _TOML_DISPLAY_KEYS.get(name, name)
-                lines.append(
-                    f"| `{doc_name}` | No | {p.get('type', '')} | {p.get('description', '')} |"
-                )
+                lines.append(f"| `{doc_name}` | No | {p.get('type', '')} | {p.get('description', '')} |")
 
             lines.append("")
 
@@ -366,6 +364,7 @@ def generate_rate_models_markdown():
 # ------------------------------------------------------------
 # Export helper
 # ------------------------------------------------------------
+
 
 def export_rate_models_markdown(path: str):
     """

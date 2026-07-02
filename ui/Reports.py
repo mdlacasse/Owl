@@ -86,8 +86,11 @@ else:
                 )
                 cap_col, btn_col = st.columns([4, 1], vertical_alignment="top")
                 cap_col.caption("» subtotals.")
-                btn_col.button("Rerun all cases", on_click=owb.runAllCases,
-                               help="Rerun all other cases defined in the case selector.")
+                btn_col.button(
+                    "Rerun all cases",
+                    on_click=owb.runAllCases,
+                    help="Rerun all other cases defined in the case selector.",
+                )
             else:
                 st.info("No comparison data available yet.")
         with tab2:

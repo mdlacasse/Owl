@@ -74,8 +74,7 @@ def freeze_year():
     hardcoded list of names.
     """
     target_modules = [
-        mod for mod in sys.modules.values()
-        if mod is not None and getattr(mod, "date", None) is _REAL_DATE
+        mod for mod in sys.modules.values() if mod is not None and getattr(mod, "date", None) is _REAL_DATE
     ]
     patches = [patch.object(mod, "date", _FixedDate) for mod in target_modules]
     for p in patches:

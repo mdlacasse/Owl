@@ -25,8 +25,21 @@ import os
 from io import StringIO, BytesIO
 
 
-CASES = ["alex+jamie", "bill", "chris+pat", "helen+ruth", "jack+jill", "joe", "john+sally", "jon+jane",
-         "jordan+taylor", "kim+sam-bequest", "kim+sam-spending", "morgan", "robin"]
+CASES = [
+    "alex+jamie",
+    "bill",
+    "chris+pat",
+    "helen+ruth",
+    "jack+jill",
+    "joe",
+    "john+sally",
+    "jon+jane",
+    "jordan+taylor",
+    "kim+sam-bequest",
+    "kim+sam-spending",
+    "morgan",
+    "robin",
+]
 
 
 whereami = os.path.dirname(__file__)

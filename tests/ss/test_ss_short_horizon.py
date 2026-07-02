@@ -23,6 +23,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 import numpy as np
 import pytest
 from owlplanner.socialsecurity import compute_social_security_benefits
@@ -40,14 +41,22 @@ THISYEAR = 2026
 def _ss(pias, ages, yobs, mobs, tobs, horizons, N_n):
     """Thin wrapper so tests don't repeat keyword args."""
     return compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons,
-        N_i=len(pias), N_n=N_n, thisyear=THISYEAR,
+        pias,
+        ages,
+        yobs,
+        mobs,
+        tobs,
+        horizons,
+        N_i=len(pias),
+        N_n=N_n,
+        thisyear=THISYEAR,
     )
 
 
 # ---------------------------------------------------------------------------
 # Single individual
 # ---------------------------------------------------------------------------
+
 
 class TestSingleShortHorizon:
     def test_claiming_age_beyond_horizon_no_error(self):
@@ -86,6 +95,7 @@ class TestSingleShortHorizon:
 # ---------------------------------------------------------------------------
 # Couple
 # ---------------------------------------------------------------------------
+
 
 class TestCoupleShortHorizon:
     def test_one_spouse_claiming_beyond_horizon(self):
@@ -133,6 +143,7 @@ class TestCoupleShortHorizon:
 # ---------------------------------------------------------------------------
 # Integration: clone with short expectancy
 # ---------------------------------------------------------------------------
+
 
 class TestCloneShortExpectancy:
     @pytest.fixture

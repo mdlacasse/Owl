@@ -25,54 +25,29 @@ import sskeys as kz
 
 # Define the Case Setup pages in order
 CASE_SETUP_PAGES = [
-    {
-        "name": "Create Case",
-        "file": "Create_Case.py",
-        "icon": ":material/person_add:",
-        "key": "create_case"
-    },
+    {"name": "Create Case", "file": "Create_Case.py", "icon": ":material/person_add:", "key": "create_case"},
     {
         "name": "Financial Profile",
         "file": "Financial_Profile.py",
         "icon": ":material/home:",
-        "key": "household_profile"
+        "key": "household_profile",
     },
-    {
-        "name": "Fixed Income",
-        "file": "Fixed_Income.py",
-        "icon": ":material/currency_exchange:",
-        "key": "fixed_income"
-    },
+    {"name": "Fixed Income", "file": "Fixed_Income.py", "icon": ":material/currency_exchange:", "key": "fixed_income"},
     {
         "name": "Account Balances",
         "file": "Account_Balances.py",
         "icon": ":material/savings:",
-        "key": "account_balances"
+        "key": "account_balances",
     },
     {
         "name": "Asset Allocation",
         "file": "Asset_Allocation.py",
         "icon": ":material/percent:",
-        "key": "asset_allocation"
+        "key": "asset_allocation",
     },
-    {
-        "name": "Rates",
-        "file": "Rates.py",
-        "icon": ":material/monitoring:",
-        "key": "rates"
-    },
-    {
-        "name": "Goals",
-        "file": "Goals.py",
-        "icon": ":material/target:",
-        "key": "goals"
-    },
-    {
-        "name": "Run Options",
-        "file": "Run_Options.py",
-        "icon": ":material/tune:",
-        "key": "run_options"
-    },
+    {"name": "Rates", "file": "Rates.py", "icon": ":material/monitoring:", "key": "rates"},
+    {"name": "Goals", "file": "Goals.py", "icon": ":material/target:", "key": "goals"},
+    {"name": "Run Options", "file": "Run_Options.py", "icon": ":material/tune:", "key": "run_options"},
 ]
 
 
@@ -89,7 +64,7 @@ def get_current_page_index():
     try:
         # Walk up the stack to find the calling page
         while frame:
-            filename = frame.f_globals.get('__file__', '')
+            filename = frame.f_globals.get("__file__", "")
             if filename:
                 basename = os.path.basename(filename)
                 for idx, page_info in enumerate(CASE_SETUP_PAGES):
@@ -174,8 +149,7 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     mark_page_visited(current_page_key)
 
     total_pages = len(CASE_SETUP_PAGES)
-    visited_count = sum(1 for page_info in CASE_SETUP_PAGES
-                        if is_page_visited(page_info["key"]))
+    visited_count = sum(1 for page_info in CASE_SETUP_PAGES if is_page_visited(page_info["key"]))
 
     # Calculate progress
     progress = visited_count / total_pages
@@ -184,10 +158,10 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     if show_percentage:
         st.markdown(
             f'<div style="font-size: 0.85em; margin-bottom: 0.2em;">'
-            f'<strong>Case Setup Progress:</strong> ({progress*100:.0f}%) - Step {current_idx + 1} of {total_pages}'
+            f"<strong>Case Setup Progress:</strong> ({progress * 100:.0f}%) - Step {current_idx + 1} of {total_pages}"
             f'<br><span style="font-size: 0.75em; color: #666;">Click on any step below to navigate</span>'
-            f'</div>',
-            unsafe_allow_html=True
+            f"</div>",
+            unsafe_allow_html=True,
         )
 
     # Main progress bar (compact)
@@ -196,9 +170,9 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
     # Show step indicators (compact) - clickable navigation
     if show_labels:
         cols = st.columns(total_pages)
-        for idx, (col, page_info) in enumerate(zip(cols, CASE_SETUP_PAGES)):
+        for idx, (col, page_info) in enumerate(zip(cols, CASE_SETUP_PAGES, strict=True)):
             with col:
-                is_current = (idx == current_idx)
+                is_current = idx == current_idx
                 is_visited = is_page_visited(page_info["key"])
 
                 # Page icon colored by status: current=orange, visited=green+check, unvisited=gray
@@ -221,9 +195,9 @@ def show_progress_bar(show_labels=True, show_percentage=True, divider=True):
                 st.markdown(
                     f'<div style="text-align: left; margin-top: -0.9em; margin-left: 1em;'
                     f' font-size: 0.75em; color: {color};">'
-                    f'{page_info["name"]}'
-                    f'</div>',
-                    unsafe_allow_html=True
+                    f"{page_info['name']}"
+                    f"</div>",
+                    unsafe_allow_html=True,
                 )
 
 
@@ -242,8 +216,7 @@ def show_simple_progress_bar():
     mark_page_visited(current_page_key)
 
     total_pages = len(CASE_SETUP_PAGES)
-    visited_count = sum(1 for page_info in CASE_SETUP_PAGES
-                        if is_page_visited(page_info["key"]))
+    visited_count = sum(1 for page_info in CASE_SETUP_PAGES if is_page_visited(page_info["key"]))
 
     progress = visited_count / total_pages
     current_page_name = CASE_SETUP_PAGES[current_idx]["name"]

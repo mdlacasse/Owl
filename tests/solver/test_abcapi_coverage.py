@@ -294,9 +294,9 @@ def test_objective_arrays():
 def test_constraint_matrix_to_csr():
     """Test ConstraintMatrix.to_csr produces correct CSR arrays."""
     cm = abc.ConstraintMatrix(5)
-    cm.addNewRow({0: 1.0, 2: 3.0}, 0.0, 10.0)          # row 0: 2 nz
-    cm.addNewRow({1: 2.0, 3: 4.0, 4: 5.0}, 0.0, 5.0)   # row 1: 3 nz
-    cm.addNewRow({0: 6.0}, -np.inf, 1.0)               # row 2: 1 nz
+    cm.addNewRow({0: 1.0, 2: 3.0}, 0.0, 10.0)  # row 0: 2 nz
+    cm.addNewRow({1: 2.0, 3: 4.0, 4: 5.0}, 0.0, 5.0)  # row 1: 3 nz
+    cm.addNewRow({0: 6.0}, -np.inf, 1.0)  # row 2: 1 nz
 
     a_start, a_index, a_value = cm.to_csr()
 
@@ -306,9 +306,9 @@ def test_constraint_matrix_to_csr():
 
     # a_start[i] = index of first nz in row i; length = ncons
     assert len(a_start) == 3
-    assert a_start[0] == 0   # row 0 starts at nz index 0
-    assert a_start[1] == 2   # row 1 starts at nz index 2
-    assert a_start[2] == 5   # row 2 starts at nz index 5
+    assert a_start[0] == 0  # row 0 starts at nz index 0
+    assert a_start[1] == 2  # row 1 starts at nz index 2
+    assert a_start[2] == 5  # row 2 starts at nz index 5
 
     # Total non-zeros
     assert len(a_index) == 6

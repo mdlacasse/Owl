@@ -16,6 +16,7 @@ from owlplanner.export import plan_metrics, balance_sheet_arrays
 
 class _NumpyEncoder(json.JSONEncoder):
     """Serialize numpy scalar types that the default encoder rejects."""
+
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -40,47 +41,48 @@ def _metrics_to_summary(m: dict) -> dict:
     Renames keys for JSON clarity (e.g. ``_today`` → ``_today_dollars``,
     explicit ``_nominal`` suffix) and rounds all monetary values to integers.
     """
+
     def r(key):
         return int(round(m[key]))
 
     return {
-        "spending_basis_today_dollars":          r("spending_basis"),
-        "effective_tax_rate":                    round(m["effective_tax_rate"], 4),
-        "total_spending_nominal":                r("total_spending_nominal"),
-        "total_spending_today_dollars":          r("total_spending_today"),
-        "total_fixed_income_nominal":            r("total_fixed_income_nominal"),
-        "total_fixed_income_today_dollars":      r("total_fixed_income_today"),
-        "ss_income_nominal":                     r("ss_income_nominal"),
-        "ss_income_today_dollars":               r("ss_income_today"),
-        "pension_income_nominal":                r("pension_income_nominal"),
-        "pension_income_today_dollars":          r("pension_income_today"),
-        "spia_income_nominal":                   r("spia_income_nominal"),
-        "wages_nominal":                         r("wages_nominal"),
-        "roth_conversions_nominal":              r("roth_conversions_nominal"),
-        "roth_conversions_today_dollars":        r("roth_conversions_today"),
-        "federal_income_tax_nominal":            r("federal_income_tax_nominal"),
-        "federal_income_tax_today_dollars":      r("federal_income_tax_today"),
-        "ltcg_tax_nominal":                      r("ltcg_tax_nominal"),
-        "niit_nominal":                          r("niit_nominal"),
-        "state_tax_nominal":                     r("state_tax_nominal"),
-        "medicare_nominal":                      r("medicare_nominal"),
-        "aca_nominal":                           r("aca_nominal"),
-        "debt_payments_nominal":                 r("debt_payments_nominal"),
-        "final_bequest_nominal":                 r("final_bequest_nominal"),
-        "final_bequest_today_dollars":           r("final_bequest_today"),
-        "heirs_tax_liability_nominal":           r("heirs_tax_liability_nominal"),
-        "remaining_debt_balance":                r("remaining_debt_balance"),
-        "fixed_assets_start_nominal":            r("fixed_assets_start_nominal"),
-        "debt_start_nominal":                    r("debt_start_nominal"),
-        "net_worth_start_nominal":               r("net_worth_start_nominal"),
-        "net_worth_start_today_dollars":         r("net_worth_start_today"),
-        "liquid_net_worth_start_nominal":        r("liquid_net_worth_start_nominal"),
-        "liquid_net_worth_start_today_dollars":  r("liquid_net_worth_start_today"),
-        "deferred_income_tax_start_nominal":     r("deferred_income_tax_start_nominal"),
-        "liquidation_tax_rate":                  round(m["liquidation_tax_rate"], 4),
-        "liquidation_capgains_rate":             round(m["liquidation_capgains_rate"], 4),
-        "time_horizon_years":                    int(m["time_horizon_years"]),
-        "cumulative_inflation_factor":           round(m["inflation_factor"], 4),
+        "spending_basis_today_dollars": r("spending_basis"),
+        "effective_tax_rate": round(m["effective_tax_rate"], 4),
+        "total_spending_nominal": r("total_spending_nominal"),
+        "total_spending_today_dollars": r("total_spending_today"),
+        "total_fixed_income_nominal": r("total_fixed_income_nominal"),
+        "total_fixed_income_today_dollars": r("total_fixed_income_today"),
+        "ss_income_nominal": r("ss_income_nominal"),
+        "ss_income_today_dollars": r("ss_income_today"),
+        "pension_income_nominal": r("pension_income_nominal"),
+        "pension_income_today_dollars": r("pension_income_today"),
+        "spia_income_nominal": r("spia_income_nominal"),
+        "wages_nominal": r("wages_nominal"),
+        "roth_conversions_nominal": r("roth_conversions_nominal"),
+        "roth_conversions_today_dollars": r("roth_conversions_today"),
+        "federal_income_tax_nominal": r("federal_income_tax_nominal"),
+        "federal_income_tax_today_dollars": r("federal_income_tax_today"),
+        "ltcg_tax_nominal": r("ltcg_tax_nominal"),
+        "niit_nominal": r("niit_nominal"),
+        "state_tax_nominal": r("state_tax_nominal"),
+        "medicare_nominal": r("medicare_nominal"),
+        "aca_nominal": r("aca_nominal"),
+        "debt_payments_nominal": r("debt_payments_nominal"),
+        "final_bequest_nominal": r("final_bequest_nominal"),
+        "final_bequest_today_dollars": r("final_bequest_today"),
+        "heirs_tax_liability_nominal": r("heirs_tax_liability_nominal"),
+        "remaining_debt_balance": r("remaining_debt_balance"),
+        "fixed_assets_start_nominal": r("fixed_assets_start_nominal"),
+        "debt_start_nominal": r("debt_start_nominal"),
+        "net_worth_start_nominal": r("net_worth_start_nominal"),
+        "net_worth_start_today_dollars": r("net_worth_start_today"),
+        "liquid_net_worth_start_nominal": r("liquid_net_worth_start_nominal"),
+        "liquid_net_worth_start_today_dollars": r("liquid_net_worth_start_today"),
+        "deferred_income_tax_start_nominal": r("deferred_income_tax_start_nominal"),
+        "liquidation_tax_rate": round(m["liquidation_tax_rate"], 4),
+        "liquidation_capgains_rate": round(m["liquidation_capgains_rate"], 4),
+        "time_horizon_years": int(m["time_horizon_years"]),
+        "cumulative_inflation_factor": round(m["inflation_factor"], 4),
     }
 
 
@@ -118,26 +120,28 @@ def plan_to_dict(plan) -> dict:
     by_year = []
     for n in range(N):
         year = int(plan.year_n[n])
-        by_year.append({
-            "year": year,
-            "ages": [int(year - int(plan.yobs[i])) for i in range(plan.N_i)],
-            "spending": _round(spending[n]),
-            "federal_income_tax": _round(fed_tax[n]),
-            "ltcg_tax": _round(ltcg_tax[n]),
-            "niit": _round(niit[n]),
-            "state_tax": _round(state_tax[n]),
-            "medicare_premiums": _round(medicare[n]),
-            "aca_premiums": _round(aca[n]),
-            "roth_conversions": _round(roth_conv[n]),
-            "ss_income": [_round(ss_income[i, n]) for i in range(plan.N_i)],
-            "portfolio_total": _round(portfolio_total[n]),   # savings accounts only
-            "fixed_assets": _round(bs["fixed_assets"][n]),
-            "debt": _round(bs["debt"][n]),
-            "net_worth": _round(bs["net_worth"][n]),
-            "deferred_income_tax": _round(bs["deferred_income_tax"][n]),
-            "disposition_costs": _round(bs["disposition_costs"][n]),
-            "liquid_net_worth": _round(bs["liquid_net_worth"][n]),
-        })
+        by_year.append(
+            {
+                "year": year,
+                "ages": [int(year - int(plan.yobs[i])) for i in range(plan.N_i)],
+                "spending": _round(spending[n]),
+                "federal_income_tax": _round(fed_tax[n]),
+                "ltcg_tax": _round(ltcg_tax[n]),
+                "niit": _round(niit[n]),
+                "state_tax": _round(state_tax[n]),
+                "medicare_premiums": _round(medicare[n]),
+                "aca_premiums": _round(aca[n]),
+                "roth_conversions": _round(roth_conv[n]),
+                "ss_income": [_round(ss_income[i, n]) for i in range(plan.N_i)],
+                "portfolio_total": _round(portfolio_total[n]),  # savings accounts only
+                "fixed_assets": _round(bs["fixed_assets"][n]),
+                "debt": _round(bs["debt"][n]),
+                "net_worth": _round(bs["net_worth"][n]),
+                "deferred_income_tax": _round(bs["deferred_income_tax"][n]),
+                "disposition_costs": _round(bs["disposition_costs"][n]),
+                "liquid_net_worth": _round(bs["liquid_net_worth"][n]),
+            }
+        )
 
     # ---- Roth conversion schedule (non-zero years only) -----------------
     roth_schedule = []
@@ -192,10 +196,17 @@ def plan_to_json(plan, indent: int = 2) -> str:
 # ---------------------------------------------------------------------------
 
 KEY_METRICS = [
-    "spending_basis", "total_spending_today", "total_spending_nominal",
-    "ss_income_today", "roth_conversions_today",
-    "federal_income_tax_today", "state_tax_today", "medicare_today", "aca_today",
-    "final_bequest_today", "final_bequest_nominal",
+    "spending_basis",
+    "total_spending_today",
+    "total_spending_nominal",
+    "ss_income_today",
+    "roth_conversions_today",
+    "federal_income_tax_today",
+    "state_tax_today",
+    "medicare_today",
+    "aca_today",
+    "final_bequest_today",
+    "final_bequest_nominal",
     "effective_tax_rate",
 ]
 
@@ -223,8 +234,4 @@ def _pct(delta_val, base_val):
 
 def build_pct_change(delta: dict, base: dict) -> dict:
     """Return percent-change dict for KEY_METRICS, skipping None deltas."""
-    return {
-        k: _pct(delta[k], base[k])
-        for k in KEY_METRICS
-        if k in delta and delta[k] is not None
-    }
+    return {k: _pct(delta[k], base[k]) for k in KEY_METRICS if k in delta and delta[k] is not None}

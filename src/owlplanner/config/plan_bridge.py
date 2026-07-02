@@ -180,8 +180,7 @@ def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
     if method == "s-curve":
         if center is None or width is None:
             raise ValueError(
-                "interpolation_center and interpolation_width are required when "
-                "interpolation_method is 's-curve'"
+                "interpolation_center and interpolation_width are required when interpolation_method is 's-curve'"
             )
         plan.setInterpolationMethod(method, float(center), float(width))
     else:
@@ -189,7 +188,7 @@ def _apply_asset_allocation_to_plan(plan: "Plan", known: dict) -> None:
     alloc_type = known["asset_allocation"].get("type", "individual")
     if alloc_type == "account":
         bounds_ar = {}
-        for a_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
+        for a_type in ACCOUNT_TYPES[:3]:  # taxable, tax-deferred, tax-free
             bounds_ar[a_type] = np.array(
                 known["asset_allocation"][a_type],
                 dtype=np.float64,
@@ -485,25 +484,22 @@ def plan_to_config(myplan: "Plan") -> dict:
         aa_out["interpolation_width"] = float(myplan.interpWidth)
     diconf["asset_allocation"] = aa_out
     if myplan.ARCoord == "account":
-        for acc_type in ACCOUNT_TYPES[:3]:   # taxable, tax-deferred, tax-free
+        for acc_type in ACCOUNT_TYPES[:3]:  # taxable, tax-deferred, tax-free
             val = myplan.boundsAR[acc_type]
-            diconf["asset_allocation"][acc_type] = (
-                val.tolist() if hasattr(val, "tolist") else val
-            )
+            diconf["asset_allocation"][acc_type] = val.tolist() if hasattr(val, "tolist") else val
         # Save HSA allocation only when it differs from tax-free (avoids bloating old TOML files)
         hsa_val = myplan.boundsAR.get("hsa")
         tf_val = myplan.boundsAR.get("tax-free")
         if hsa_val is not None:
             import numpy as _np
+
             hsa_arr = _np.array(hsa_val)
             tf_arr = _np.array(tf_val)
             if not _np.array_equal(hsa_arr, tf_arr):
                 diconf["asset_allocation"]["hsa"] = hsa_arr.tolist()
     else:
         val = myplan.boundsAR["generic"]
-        diconf["asset_allocation"]["generic"] = (
-            val.tolist() if hasattr(val, "tolist") else val
-        )
+        diconf["asset_allocation"]["generic"] = val.tolist() if hasattr(val, "tolist") else val
 
     # Optimization Parameters
     diconf["optimization_parameters"] = {
@@ -587,8 +583,7 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         # so output goes to the same destination (e.g. UI StringIO) not stdout.
         if logstreams is None:
             src_log = plan.logger()
-            eff_logstreams = (None if src_log._logstreams == [sys.stdout, sys.stderr]
-                              else src_log._logstreams)
+            eff_logstreams = None if src_log._logstreams == [sys.stdout, sys.stderr] else src_log._logstreams
         else:
             eff_logstreams = logstreams
         diconf = plan_to_config(plan)
@@ -602,7 +597,8 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning
         # doesn't produce "foo (copy) (copy) (copy)".
         import re
-        base = re.sub(r'\s*\(copy(?:\s+\d+)?\)$', '', plan._name).rstrip()
+
+        base = re.sub(r"\s*\(copy(?:\s+\d+)?\)$", "", plan._name).rstrip()
         newplan.rename(base + " (copy)")
     else:
         newplan.rename(newname)

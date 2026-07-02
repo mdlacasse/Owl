@@ -31,14 +31,9 @@ ret = kz.titleBar(":material/finance: Monte Carlo")
 if ret is None or kz.caseHasNoPlan():
     kz.no_case_info()
 else:
-    if kz.getCaseKey("rateType") != "varying" or (
-        kz.getCaseKey("varyingType") not in owb.STOCHASTIC_METHODS
-    ):
+    if kz.getCaseKey("rateType") != "varying" or (kz.getCaseKey("varyingType") not in owb.STOCHASTIC_METHODS):
         methods_str = ", ".join(owb.STOCHASTIC_METHODS)
-        st.info(
-            f"Rates must be set to a stochastic method ({methods_str}) "
-            "to run Monte Carlo simulations."
-        )
+        st.info(f"Rates must be set to a stochastic method ({methods_str}) to run Monte Carlo simulations.")
     else:
         st.markdown("Generate a histogram of results obtained from running multiple scenarios with stochastic rates.")
         kz.initCaseKey("histogram_log_x_mc", False)

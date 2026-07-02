@@ -36,6 +36,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
 from datetime import date
 
 import numpy as np
@@ -58,7 +59,7 @@ def _single_plan(n_n: int, name: str = "test") -> owl.Plan:
     # so expectancy = n_n + thisyear - yobs - 1 = n_n + age - 1
     age = 65
     yobs = THISYEAR - age
-    expectancy = n_n + age - 1   # gives horizons[0] = n_n
+    expectancy = n_n + age - 1  # gives horizons[0] = n_n
     p = owl.Plan([name], [f"{yobs}-06-15"], [expectancy], name, verbose=False)
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[200], taxDeferred=[400], taxFree=[100], startDate="1-1")
@@ -82,9 +83,7 @@ def _couple_plan(horizons: list, name: str = "test-couple") -> owl.Plan:
     dobs = [f"{yobs0}-06-15", f"{yobs1}-06-15"]
     p = owl.Plan(inames, dobs, [exp0, exp1], name, verbose=False)
     p.setSpendingProfile("flat")
-    p.setAccountBalances(
-        taxable=[150, 100], taxDeferred=[300, 200], taxFree=[80, 60], startDate="1-1"
-    )
+    p.setAccountBalances(taxable=[150, 100], taxDeferred=[300, 200], taxFree=[80, 60], startDate="1-1")
     p.setAllocationRatios(
         "individual",
         generic=[
@@ -100,6 +99,7 @@ def _couple_plan(horizons: list, name: str = "test-couple") -> owl.Plan:
 # ---------------------------------------------------------------------------
 # Plan constructor threshold
 # ---------------------------------------------------------------------------
+
 
 class TestPlanConstructorThreshold:
     def test_n_n_1_raises(self):
@@ -132,6 +132,7 @@ class TestPlanConstructorThreshold:
 # ---------------------------------------------------------------------------
 # Roth disallowance for short individual horizons
 # ---------------------------------------------------------------------------
+
 
 class TestRothDisallowanceShortHorizon:
     def test_n_n_2_single_no_roth(self):
@@ -175,6 +176,7 @@ class TestRothDisallowanceShortHorizon:
 # Couple with one 1-year horizon: the previously crashing bug
 # ---------------------------------------------------------------------------
 
+
 class TestCoupleOneYearHorizon:
     def test_horizons_1_3_constructs(self):
         """Couple with horizons [1, 3] must construct (N_n = 3, was crashing)."""
@@ -201,6 +203,7 @@ class TestCoupleOneYearHorizon:
 # Stochastic spending: short-horizon threshold is now <= 1
 # ---------------------------------------------------------------------------
 
+
 def _stochastic_plan() -> owl.Plan:
     """Minimal single-person plan suitable for stochastic spending."""
     age = 65
@@ -211,8 +214,7 @@ def _stochastic_plan() -> owl.Plan:
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setSocialSecurity([0], [70])
     p.setReproducible(True, seed=42)
-    p.setRates("gaussian", values=[6, 3, 2, 2], stdev=[10, 4, 3, 1],
-               corr=[0.46, 0.06, -0.12, 0.68, -0.27, -0.21])
+    p.setRates("gaussian", values=[6, 3, 2, 2], stdev=[10, 4, 3, 1], corr=[0.46, 0.06, -0.12, 0.68, -0.27, -0.21])
     return p
 
 
@@ -224,6 +226,7 @@ class TestStochasticShortHorizonThreshold:
         no solved scenarios and raises RuntimeError rather than returning an
         empty result.  That is the expected, correct behavior.
         """
+
         def _die_immediately(_sex, ca, n, rng=None, table="SSA2025"):
             # Return age-at-death equal to current age → remaining horizon = 1
             return np.array([ca], dtype=int)
@@ -231,30 +234,29 @@ class TestStochasticShortHorizonThreshold:
         monkeypatch.setattr(stresstests, "sample_lifespans", _die_immediately)
         p = _stochastic_plan()
         with pytest.raises(RuntimeError, match="Fewer than 2 scenarios"):
-            p.runStochasticSpending({}, "mc", N=4, with_longevity=True,
-                                    sexes=["M"], seed=1)
+            p.runStochasticSpending({}, "mc", N=4, with_longevity=True, sexes=["M"], seed=1)
 
     def test_horizon_2_now_runs_lp(self, monkeypatch):
         """A drawn lifespan giving a 2-year horizon must now run the LP (not g_s=0)."""
+
         def _two_year_life(_sex, ca, n, rng=None, table="SSA2025"):
             # Return age-at-death = current_age + 1 → horizon = 2
             return np.array([ca + 1], dtype=int)
 
         monkeypatch.setattr(stresstests, "sample_lifespans", _two_year_life)
         p = _stochastic_plan()
-        out = p.runStochasticSpending({}, "mc", N=4, with_longevity=True,
-                                      sexes=["M"], seed=1)
+        out = p.runStochasticSpending({}, "mc", N=4, with_longevity=True, sexes=["M"], seed=1)
         # Horizon = 2 is now a real scenario; bases must be positive
         assert all(b > 0 for b in out["bases"]), f"Expected positive bases, got {out['bases']}"
         assert out["n_infeasible"] == 0
 
     def test_horizon_3_runs_lp(self, monkeypatch):
         """A 3-year horizon must run the LP (regression guard for prior behaviour)."""
+
         def _three_year_life(_sex, ca, n, rng=None, table="SSA2025"):
             return np.array([ca + 2], dtype=int)
 
         monkeypatch.setattr(stresstests, "sample_lifespans", _three_year_life)
         p = _stochastic_plan()
-        out = p.runStochasticSpending({}, "mc", N=4, with_longevity=True,
-                                      sexes=["M"], seed=1)
+        out = p.runStochasticSpending({}, "mc", N=4, with_longevity=True, sexes=["M"], seed=1)
         assert all(b > 0 for b in out["bases"])

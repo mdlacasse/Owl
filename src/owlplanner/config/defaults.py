@@ -95,9 +95,7 @@ def default_config(ni: int = 1) -> dict:
             "interpolation_center": 15.0,
             "interpolation_width": 5.0,
             "type": "individual",
-            "generic": [
-                copy.deepcopy(DEFAULT_GENERIC_ALLOCATION[0]) for _ in range(ni)
-            ],
+            "generic": [copy.deepcopy(DEFAULT_GENERIC_ALLOCATION[0]) for _ in range(ni)],
         },
         "optimization_parameters": {
             "spending_profile": "smile",

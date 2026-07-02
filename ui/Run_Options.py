@@ -47,7 +47,6 @@ ret = kz.titleBar(":material/tune: Run Options")
 if ret is None or kz.caseHasNoPlan():
     kz.no_case_info()
 else:
-
     st.markdown("#### :orange[Roth Conversions]")
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
@@ -64,8 +63,9 @@ else:
             "conversion that year (the magnitude is ignored, so flipping the sign keeps the "
             "value for later)."
         )
-        ret = kz.getToggle("Use Roth conversion overrides from Wages and Contributions tables",
-                           "useRothConvOverrides", help=helpmsg)
+        ret = kz.getToggle(
+            "Use Roth conversion overrides from Wages and Contributions tables", "useRothConvOverrides", help=helpmsg
+        )
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
         # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
@@ -75,8 +75,9 @@ else:
         helpmsg = "Do not perform Roth conversions before that year."
         thisyear = date.today().year
         kz.initCaseKey("startRothConversions", thisyear)
-        ret = kz.getIntNum("Year to start considering Roth conversions", "startRothConversions",
-                           min_value=thisyear, help=helpmsg)
+        ret = kz.getIntNum(
+            "Year to start considering Roth conversions", "startRothConversions", min_value=thisyear, help=helpmsg
+        )
     with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
@@ -92,8 +93,9 @@ else:
             excludeoff = swapon and not excludeset
             if excludeoff:
                 helpmsg += " Disabled while *Swap Roth converters mid-plan* is enabled."
-            ret = kz.getRadio("Exclude Roth conversions for...", choices, "noRothConversions",
-                              help=helpmsg, disabled=excludeoff)
+            ret = kz.getRadio(
+                "Exclude Roth conversions for...", choices, "noRothConversions", help=helpmsg, disabled=excludeoff
+            )
 
             # st.divider()
             swapoff = excludeset and not swapon
@@ -103,15 +105,17 @@ else:
             )
             if swapoff:
                 helpmsg += " Disabled while an exclusion is set above."
-            ret = kz.getToggle("Swap Roth converters mid-plan", "swapRothConvertersEnabled",
-                               help=helpmsg, disabled=swapoff)
+            ret = kz.getToggle(
+                "Swap Roth converters mid-plan", "swapRothConvertersEnabled", help=helpmsg, disabled=swapoff
+            )
             if kz.getCaseKey("swapRothConvertersEnabled"):
                 kz.initCaseKey("swapRothConvertersFirst", iname0)
                 ret = kz.getSelectbox("Converts first", [iname0, iname1], "swapRothConvertersFirst")
                 kz.initCaseKey("swapRothConvertersYear", thisyear)
                 helpmsg = "Year in which the other spouse takes over Roth conversions."
-                ret = kz.getIntNum("Year to switch converters", "swapRothConvertersYear",
-                                   min_value=thisyear, help=helpmsg)
+                ret = kz.getIntNum(
+                    "Year to switch converters", "swapRothConvertersYear", min_value=thisyear, help=helpmsg
+                )
 
     st.divider()
     st.markdown("#### :orange[Health Insurance]")
@@ -127,23 +131,33 @@ else:
         kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
 
     st.markdown("##### ACA Marketplace (Pre-65)")
-    helpmsg = ("Annual premium for the second-lowest-cost Silver plan in your area. "
-               "Used to compute Premium Tax Credit. Set to 0 to exclude ACA costs. "
-               "Applies only in years before Medicare (age 65). "
-               "See [Healthcare.gov](https://healthcare.gov) for your SLCSP.")
+    helpmsg = (
+        "Annual premium for the second-lowest-cost Silver plan in your area. "
+        "Used to compute Premium Tax Credit. Set to 0 to exclude ACA costs. "
+        "Applies only in years before Medicare (age 65). "
+        "See [Healthcare.gov](https://healthcare.gov) for your SLCSP."
+    )
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
-        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0., help=helpmsg)
+        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0.0, help=helpmsg)
     with cols[1]:
         acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
-        helpmsg_start = ("4-digit calendar year when ACA coverage begins (e.g. 2029 for the year of retirement). "
-                         "Years before this are assumed employer-covered (zero ACA cost). "
-                         "Set to 0 for coverage from the start of the plan. "
-                         "Do not enter an offset (e.g. 3); use the actual calendar year.")
+        helpmsg_start = (
+            "4-digit calendar year when ACA coverage begins (e.g. 2029 for the year of retirement). "
+            "Years before this are assumed employer-covered (zero ACA cost). "
+            "Set to 0 for coverage from the start of the plan. "
+            "Do not enter an offset (e.g. 3); use the actual calendar year."
+        )
         thisyear = date.today().year
-        kz.getIntNum("ACA start year (0 = plan start, else 4-digit year)", "acaStartYear",
-                     min_value=0, max_value=thisyear + 50, step=1,
-                     help=helpmsg_start, disabled=acaoff)
+        kz.getIntNum(
+            "ACA start year (0 = plan start, else 4-digit year)",
+            "acaStartYear",
+            min_value=0,
+            max_value=thisyear + 50,
+            step=1,
+            help=helpmsg_start,
+            disabled=acaoff,
+        )
 
     st.markdown("##### Medicare")
     cols = st.columns(3, gap="large", vertical_alignment="top")
@@ -160,27 +174,37 @@ else:
         for ii in range(2):
             kz.initCaseKey("MAGI" + str(ii), 0)
             if years[ii] > 0:
-                with cols[1+ii]:
+                with cols[1 + ii]:
                     ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
 
         cols = st.columns(3, gap="large", vertical_alignment="top")
         with cols[0]:
             kz.initCaseKey("includeMedicarePartD", True)
-            helpmsg_partd = ("Include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). "
-                             "Turn off if you have other drug coverage (e.g. employer, VA).")
+            helpmsg_partd = (
+                "Include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). "
+                "Turn off if you have other drug coverage (e.g. employer, VA)."
+            )
             kz.getToggle("Include Part D premiums", "includeMedicarePartD", help=helpmsg_partd)
         with cols[1]:
             kz.initCaseKey("medicarePartDBasePremium", None)
-            helpmsg_partd_base = ("Optional monthly Part D base premium per person (today's \\$). "
-                                  "Set to 0 to omit. National average ~\\$$39–47$ per month.")
-            kz.getNum("Part D base premium ($/month per person)", "medicarePartDBasePremium",
-                      min_value=0., help=helpmsg_partd_base)
+            helpmsg_partd_base = (
+                "Optional monthly Part D base premium per person (today's \\$). "
+                "Set to 0 to omit. National average ~\\$$39–47$ per month."
+            )
+            kz.getNum(
+                "Part D base premium ($/month per person)",
+                "medicarePartDBasePremium",
+                min_value=0.0,
+                help=helpmsg_partd_base,
+            )
 
     st.divider()
     st.markdown("#### :orange[Social Security Claiming Ages]")
-    helpmsg = ("Select which individuals should have their SS claiming month optimized "
-               "(any month between age 62 and 70). "
-               "Optimal ages are written back to the Fixed Income page and in the Synopsis after solving.")
+    helpmsg = (
+        "Select which individuals should have their SS claiming month optimized "
+        "(any month between age 62 and 70). "
+        "Optimal ages are written back to the Fixed Income page and in the Synopsis after solving."
+    )
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
@@ -198,29 +222,43 @@ else:
         st.markdown("#### :orange[Calculations]")
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
-            helpmsg = ("Option to use a self-consistent loop to adjust additional values such as the net"
-                       " investment income tax (NIIT), and capital gain tax rates."
-                       "  When Medicare is selected, this will also compute Medicare and IRMAA.")
+            helpmsg = (
+                "Option to use a self-consistent loop to adjust additional values such as the net"
+                " investment income tax (NIIT), and capital gain tax rates."
+                "  When Medicare is selected, this will also compute Medicare and IRMAA."
+            )
             ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
-            helpmsg = ("Option to optimize Medicare using binary variables."
-                       "  Use with caution as some cases might not converge"
-                       " without adjusting additional solver parameters.")
+            helpmsg = (
+                "Option to optimize Medicare using binary variables."
+                "  Use with caution as some cases might not converge"
+                " without adjusting additional solver parameters."
+            )
             medioff = not medion
             ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
-            helpmsg_aca = ("Co-optimize ACA bracket selection within the LP. "
-                           "More accurate but slower. Only applies when SLCSP > 0.")
+            helpmsg_aca = (
+                "Co-optimize ACA bracket selection within the LP. "
+                "More accurate but slower. Only applies when SLCSP > 0."
+            )
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
-            helpmsg_ltcg = ("Optimize LTCG bracket selection using binary variables. "
-                            "Replaces self-consistent loop for LTCG ordinary income stacking. "
-                            "More accurate but slower.")
+            helpmsg_ltcg = (
+                "Optimize LTCG bracket selection using binary variables. "
+                "Replaces self-consistent loop for LTCG ordinary income stacking. "
+                "More accurate but slower."
+            )
             ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
-            helpmsg_niit = ("Optimize NIIT (Net Investment Income Tax) within the MIP. "
-                            "Replaces self-consistent loop for NIIT computation. "
-                            "Only effective when Optimize LTCG is also enabled.")
+            helpmsg_niit = (
+                "Optimize NIIT (Net Investment Income Tax) within the MIP. "
+                "Replaces self-consistent loop for NIIT computation. "
+                "Only effective when Optimize LTCG is also enabled."
+            )
             ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
-            decompoff = not (kz.getCaseKey("optimizeMedicare") or kz.getCaseKey("optimizeACA")
-                             or kz.getCaseKey("optimizeLTCG") or kz.getCaseKey("optimizeNIIT"))
+            decompoff = not (
+                kz.getCaseKey("optimizeMedicare")
+                or kz.getCaseKey("optimizeACA")
+                or kz.getCaseKey("optimizeLTCG")
+                or kz.getCaseKey("optimizeNIIT")
+            )
             decomp_choices = ["none", "sequential", "benders"]
             helpmsg_decomp = (
                 "'none': monolithic MIP (default). "
@@ -230,26 +268,38 @@ else:
                 "the MIP gap; slower per iteration but provably correct. "
                 "Only applies when Optimize Medicare or Optimize ACA is active."
             )
-            ret = kz.getRadio("MIP decomposition (expert)", decomp_choices, "useDecomposition",
-                              help=helpmsg_decomp, disabled=decompoff)
+            ret = kz.getRadio(
+                "MIP decomposition (expert)",
+                decomp_choices,
+                "useDecomposition",
+                help=helpmsg_decomp,
+                disabled=decompoff,
+            )
         with col2:
             kz.initCaseKey("amoSurplus", True)
-            helpmsg = ("Enable at-most-one (AMO) exclusive constraints between surplus deposits"
-                       " and withdrawals from taxable or tax-free accounts.")
-            ret = kz.getToggle("Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts",
-                               "amoSurplus", help=helpmsg)
+            helpmsg = (
+                "Enable at-most-one (AMO) exclusive constraints between surplus deposits"
+                " and withdrawals from taxable or tax-free accounts."
+            )
+            ret = kz.getToggle(
+                "Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts",
+                "amoSurplus",
+                help=helpmsg,
+            )
 
             kz.initCaseKey("amoRoth", True)
-            helpmsg = ("Enable at-most-one (AMO) exclusive constraints between"
-                       " Roth conversions and withdrawals from tax-free accounts.")
-            ret = kz.getToggle("Disallow same-year Roth conversions and tax-free withdrawals",
-                               "amoRoth", help=helpmsg)
+            helpmsg = (
+                "Enable at-most-one (AMO) exclusive constraints between"
+                " Roth conversions and withdrawals from tax-free accounts."
+            )
+            ret = kz.getToggle("Disallow same-year Roth conversions and tax-free withdrawals", "amoRoth", help=helpmsg)
 
             kz.initCaseKey("noLateSurplus", False)
-            helpmsg = ("Disallow cash-flow surpluses in the last two years of the plan."
-                       " This avoids sheltering transfers when market goes down in last years.")
-            ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years",
-                               "noLateSurplus", help=helpmsg)
+            helpmsg = (
+                "Disallow cash-flow surpluses in the last two years of the plan."
+                " This avoids sheltering transfers when market goes down in last years."
+            )
+            ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years", "noLateSurplus", help=helpmsg)
 
         st.divider()
         st.markdown("#### :orange[Social Security Taxability]")
@@ -257,19 +307,29 @@ else:
         with col1:
             choices = ["loop", "value", "optimize"]
             kz.initCaseKey("ssTaxabilityMode", "loop")
-            helpmsg = ("’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
-                       "’value’: pin SS taxable fraction to a fixed value (enter in box). "
-                       "’optimize’: solve taxable SS exactly within the LP using binary variables (expert).")
+            helpmsg = (
+                "’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
+                "’value’: pin SS taxable fraction to a fixed value (enter in box). "
+                "’optimize’: solve taxable SS exactly within the LP using binary variables (expert)."
+            )
             ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
         with col2:
             if kz.getCaseKey("ssTaxabilityMode") == "value":
                 kz.initCaseKey("ssTaxabilityValue", 0.85)
-                helpmsg = ("SS taxable fraction \u2208 [0, 0.85]. "
-                           "Use 0.0 (Provisional income (PI) below lower threshold), "
-                           "0.5 (mid-range), or 0.85 (high PI).")
-                ret = kz.getNum("Fixed SS taxable fraction", "ssTaxabilityValue",
-                                min_value=0.0, max_value=0.85, step=0.05, format="%.2f",
-                                help=helpmsg)
+                helpmsg = (
+                    "SS taxable fraction \u2208 [0, 0.85]. "
+                    "Use 0.0 (Provisional income (PI) below lower threshold), "
+                    "0.5 (mid-range), or 0.85 (high PI)."
+                )
+                ret = kz.getNum(
+                    "Fixed SS taxable fraction",
+                    "ssTaxabilityValue",
+                    min_value=0.0,
+                    max_value=0.85,
+                    step=0.05,
+                    format="%.2f",
+                    help=helpmsg,
+                )
 
         st.divider()
         st.markdown("#### :orange[Solver]")
@@ -284,19 +344,24 @@ else:
 
         col1, col2 = st.columns([45, 55], gap="large", vertical_alignment="top")
         with col1:
-            helpmsg = ("Select different solvers for comparison purposes."
-                       " For best performance, use MOSEK if available. Otherwise use HiGHS."
-                       " 'default' automatically picks MOSEK when available, otherwise HiGHS.")
+            helpmsg = (
+                "Select different solvers for comparison purposes."
+                " For best performance, use MOSEK if available. Otherwise use HiGHS."
+                " 'default' automatically picks MOSEK when available, otherwise HiGHS."
+            )
             ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
             if kz.getCaseKey("solver") == "default":
                 resolved = "MOSEK" if owb.hasMOSEK() else "HiGHS"
                 st.caption(f"Will use: **{resolved}**")
         with col2:
-            helpmsg = ("Additional solver options as a dictionary (e.g., '{\"key1\": \"value1\", \"key2\": 123}'). "
-                       "These options will be merged into the solver options dictionary. "
-                       "Leave empty unless experimenting with solver.")
-            ret = kz.getText("Extra solver options (expert)", "xtra_options",
-                             placeholder='{"key": "value"}', help=helpmsg)
+            helpmsg = (
+                'Additional solver options as a dictionary (e.g., \'{"key1": "value1", "key2": 123}\'). '
+                "These options will be merged into the solver options dictionary. "
+                "Leave empty unless experimenting with solver."
+            )
+            ret = kz.getText(
+                "Extra solver options (expert)", "xtra_options", placeholder='{"key": "value"}', help=helpmsg
+            )
 
     st.divider()
     # Show progress bar at bottom (only when case is defined)

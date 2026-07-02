@@ -47,11 +47,13 @@ def test_list_mortality_tables_sorted_by_le():
 
 
 def test_run_longevity_historical_rejected_upfront():
-    result = _run(run_longevity_stochastic(
-        scenario_method="historical",
-        n_scenarios=5,
-        **_SINGLE,
-    ))
+    result = _run(
+        run_longevity_stochastic(
+            scenario_method="historical",
+            n_scenarios=5,
+            **_SINGLE,
+        )
+    )
     data = json.loads(result)
     assert "error" in data
     assert "historical" in data["error"].lower()
@@ -59,13 +61,15 @@ def test_run_longevity_historical_rejected_upfront():
 
 @pytest.mark.toml
 def test_run_longevity_stochastic_mc_smoke():
-    result = _run(run_longevity_stochastic(
-        scenario_method="mc",
-        target_success_rate_pct=70.0,
-        n_scenarios=10,
-        seed=42,
-        **_SINGLE,
-    ))
+    result = _run(
+        run_longevity_stochastic(
+            scenario_method="mc",
+            target_success_rate_pct=70.0,
+            n_scenarios=10,
+            seed=42,
+            **_SINGLE,
+        )
+    )
     data = json.loads(result)
     assert data["status"] == "completed"
     assert data["mortality_table"] == "SSA2025"
@@ -78,13 +82,15 @@ def test_run_longevity_stochastic_mc_smoke():
 
 def test_run_longevity_old_convention_target_returns_error():
     """target_success_rate_pct=0.70 (old 0-1 convention) is rejected with a 'Did you mean' hint."""
-    result = _run(run_longevity_stochastic(
-        scenario_method="mc",
-        target_success_rate_pct=0.70,
-        n_scenarios=10,
-        seed=42,
-        **_SINGLE,
-    ))
+    result = _run(
+        run_longevity_stochastic(
+            scenario_method="mc",
+            target_success_rate_pct=0.70,
+            n_scenarios=10,
+            seed=42,
+            **_SINGLE,
+        )
+    )
     data = json.loads(result)
     assert "error" in data
     assert "(1, 100]" in data["error"]
@@ -92,13 +98,15 @@ def test_run_longevity_old_convention_target_returns_error():
 
 
 def test_run_longevity_target_above_100_returns_error():
-    result = _run(run_longevity_stochastic(
-        scenario_method="mc",
-        target_success_rate_pct=150.0,
-        n_scenarios=10,
-        seed=42,
-        **_SINGLE,
-    ))
+    result = _run(
+        run_longevity_stochastic(
+            scenario_method="mc",
+            target_success_rate_pct=150.0,
+            n_scenarios=10,
+            seed=42,
+            **_SINGLE,
+        )
+    )
     data = json.loads(result)
     assert "error" in data
     assert "(1, 100]" in data["error"]

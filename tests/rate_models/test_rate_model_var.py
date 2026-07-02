@@ -40,6 +40,7 @@ from owlplanner.rate_models.vector_ar import VARRateModel
 # Helpers
 # ------------------------------------------------------------
 
+
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -56,6 +57,7 @@ def _set_var(p, frm=1928, to=2024, shrink=True, seed=None, reverse=False, roll=0
 # Model attributes
 # ------------------------------------------------------------
 
+
 def test_deterministic_flag_is_false():
     assert VARRateModel.deterministic is False
 
@@ -71,6 +73,7 @@ def test_model_name():
 # ------------------------------------------------------------
 # Output shape and sanity
 # ------------------------------------------------------------
+
 
 def test_var_shape():
     """tau_kn should be (4, N_n) after setRates."""
@@ -110,6 +113,7 @@ def test_var_rates_in_plausible_range():
 # ------------------------------------------------------------
 # Reproducibility
 # ------------------------------------------------------------
+
 
 def test_reproducible_same_seed():
     """Two plans with the same seed must produce identical tau_kn."""
@@ -151,7 +155,7 @@ def test_reproducible_regen_does_not_change_output():
     _set_var(p, seed=99)
     tau1 = p.tau_kn.copy()
 
-    p.regenRates()   # reproducible=True, no override → no-op
+    p.regenRates()  # reproducible=True, no override → no-op
     tau2 = p.tau_kn.copy()
 
     assert np.allclose(tau1, tau2)
@@ -160,6 +164,7 @@ def test_reproducible_regen_does_not_change_output():
 # ------------------------------------------------------------
 # Fitting internals
 # ------------------------------------------------------------
+
 
 def test_fitted_matrices_shapes():
     """After fitting, _c should be (4,) and _A should be (4, 4)."""
@@ -192,13 +197,14 @@ def test_shrinkage_applied_on_short_window():
 def test_shrink_false_does_not_raise():
     """shrink=False should not raise even if spectral radius is >= 0.95."""
     config = {"method": "vector_ar", "frm": 1995, "to": 2010, "shrink": False}
-    model = VARRateModel(config)   # should not raise
+    model = VARRateModel(config)  # should not raise
     assert model._A is not None
 
 
 # ------------------------------------------------------------
 # Parameter validation
 # ------------------------------------------------------------
+
 
 def test_invalid_frm_too_low():
     p = _make_plan()
@@ -235,6 +241,7 @@ def test_too_few_observations_raises():
 # Historical window sensitivity
 # ------------------------------------------------------------
 
+
 def test_different_windows_produce_different_output():
     """
     Two VAR models fitted on different historical windows should
@@ -252,6 +259,7 @@ def test_different_windows_produce_different_output():
 # ------------------------------------------------------------
 # Reverse / roll sequence transforms
 # ------------------------------------------------------------
+
 
 def test_reverse_applies():
     """Reversing the sequence should flip tau_kn along the time axis."""
@@ -283,6 +291,7 @@ def test_roll_applies():
 # ------------------------------------------------------------
 # Constrain-mean option
 # ------------------------------------------------------------
+
 
 def test_constrain_mean_declared():
     """The constrain_mean option must be exposed in optional_parameters."""
@@ -326,9 +335,7 @@ def test_constrain_mean_preserves_spread():
     """
     frm, to = 1928, 2024
     base = VARRateModel({"method": "vector_ar", "frm": frm, "to": to}, seed=7).generate(300)
-    shifted = VARRateModel(
-        {"method": "vector_ar", "frm": frm, "to": to, "constrain_mean": True}, seed=7
-    ).generate(300)
+    shifted = VARRateModel({"method": "vector_ar", "frm": frm, "to": to, "constrain_mean": True}, seed=7).generate(300)
     # Equities/bonds/T-notes are shifted additively → identical spread.
     assert np.allclose(base[:, :3].std(axis=0), shifted[:, :3].std(axis=0), atol=1e-9)
 
@@ -336,6 +343,7 @@ def test_constrain_mean_preserves_spread():
 # ------------------------------------------------------------
 # Monte Carlo integration
 # ------------------------------------------------------------
+
 
 def test_runmc_does_not_return_none():
     """

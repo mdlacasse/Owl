@@ -39,6 +39,7 @@ from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_plan(dob1="1970-01-15", le1=85, dob2=None, le2=None, name="ACA Test"):
     """Create a minimal Plan suitable for ACA testing."""
     if dob2 is None:
@@ -70,6 +71,7 @@ def _make_plan(dob1="1970-01-15", le1=85, dob2=None, le2=None, name="ACA Test"):
 # Unit tests for acaCosts()
 # ---------------------------------------------------------------------------
 
+
 class TestAcaCostsFunction:
     """Unit tests for tax_federal.acaCosts() in isolation."""
 
@@ -79,7 +81,7 @@ class TestAcaCostsFunction:
 
     def test_no_eligible_individuals(self):
         """All post-65: ACA costs should be zero."""
-        yobs = np.array([1955])   # age 71 in 2026
+        yobs = np.array([1955])  # age 71 in 2026
         horizons = np.array([20])
         magi_n = np.full(20, 80_000.0)
         gamma_n = self._gamma(20)
@@ -88,7 +90,7 @@ class TestAcaCostsFunction:
 
     def test_zero_slcsp(self):
         """Zero SLCSP premium should yield zero costs."""
-        yobs = np.array([1985])   # age 41 in 2026
+        yobs = np.array([1985])  # age 41 in 2026
         horizons = np.array([20])
         magi_n = np.full(20, 60_000.0)
         gamma_n = self._gamma(20)
@@ -97,7 +99,7 @@ class TestAcaCostsFunction:
 
     def test_high_magi_arp_cap(self):
         """Above 400% FPL (2025 rules): net cost = min(SLCSP, 8.5% * MAGI)."""
-        yobs = np.array([1985])   # pre-65 for all plan years
+        yobs = np.array([1985])  # pre-65 for all plan years
         horizons = np.array([20])
         magi = 100_000.0
         slcsp = 12_000.0
@@ -105,9 +107,7 @@ class TestAcaCostsFunction:
         magi_n = np.full(20, magi)
         gamma_n = self._gamma(20)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20, thisyear=2025)
-        assert np.allclose(costs[0], expected_net, rtol=1e-4), (
-            f"Expected {expected_net}, got {costs[0]}"
-        )
+        assert np.allclose(costs[0], expected_net, rtol=1e-4), f"Expected {expected_net}, got {costs[0]}"
 
     def test_low_magi_partial_subsidy(self):
         """At 200% FPL: cap_pct = 2% (Rev. Proc. 2024-35); contribution < SLCSP → subsidized."""
@@ -171,7 +171,7 @@ class TestAcaCostsFunction:
         yobs = np.array([1985])
         horizons = np.array([20])
         magi = 200_000.0  # above 400% FPL in all years; net = min(slcsp*gamma, 0.085*magi)
-        slcsp = 5_000.0   # low enough that 8.5%*magi always exceeds it
+        slcsp = 5_000.0  # low enough that 8.5%*magi always exceeds it
         # With gamma_n > 1 in later years, inflated SLCSP should match
         inflation_rate = 0.03
         gamma_n = np.array([(1 + inflation_rate) ** n for n in range(21)])
@@ -179,9 +179,7 @@ class TestAcaCostsFunction:
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20, thisyear=2025)
         for n in range(20):
             expected = min(slcsp * gamma_n[n], 0.085 * magi)
-            assert np.isclose(costs[n], expected, rtol=1e-4), (
-                f"Year {n}: expected {expected:.2f}, got {costs[n]:.2f}"
-            )
+            assert np.isclose(costs[n], expected, rtol=1e-4), f"Year {n}: expected {expected:.2f}, got {costs[n]:.2f}"
 
     def test_irs_2025_examples(self):
         """Verify acaCosts() against IRS Rev. Proc. 2024-35 (2025 plan year)."""
@@ -192,21 +190,18 @@ class TestAcaCostsFunction:
 
         # At 150% FPL: cap = 0% (IRS: less than 150% = 0%)
         magi_150 = 1.5 * fpl
-        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_150), gamma_n,
-                            slcsp_annual=10_000, N_n=5, thisyear=2025)
+        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_150), gamma_n, slcsp_annual=10_000, N_n=5, thisyear=2025)
         assert np.isclose(costs[0], 0.0, atol=0.01), "At 150% FPL expect ~0% contribution"
 
         # At 200% FPL: cap = 2% (IRS: 200% is breakpoint)
         magi_200 = 2.0 * fpl
-        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_200), gamma_n,
-                            slcsp_annual=14_000, N_n=5, thisyear=2025)
+        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_200), gamma_n, slcsp_annual=14_000, N_n=5, thisyear=2025)
         expected = min(14_000, 0.02 * magi_200)
         assert np.isclose(costs[0], expected, rtol=1e-3), f"At 200% FPL expect 2%, got {costs[0]}"
 
         # At 400% FPL: cap = 8.5% (IRS: 400%+ under IRA)
         magi_400 = 4.0 * fpl
-        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_400), gamma_n,
-                            slcsp_annual=15_000, N_n=5, thisyear=2025)
+        costs = tx.acaCosts(yobs, horizons, np.full(5, magi_400), gamma_n, slcsp_annual=15_000, N_n=5, thisyear=2025)
         expected = min(15_000, 0.085 * magi_400)
         assert np.isclose(costs[0], expected, rtol=1e-3), f"At 400% FPL expect 8.5%, got {costs[0]}"
 
@@ -218,14 +213,14 @@ class TestAcaCostsFunction:
         magi = 5.0 * fpl_2026  # 500% FPL
         gamma_n = self._gamma(5)
         slcsp = 12_000.0
-        costs = tx.acaCosts(yobs, horizons, np.full(5, magi), gamma_n,
-                            slcsp_annual=slcsp, N_n=5, thisyear=2026)
+        costs = tx.acaCosts(yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026)
         assert np.isclose(costs[0], slcsp, rtol=1e-4), "2026 above 400%: expect full premium"
 
 
 # ---------------------------------------------------------------------------
 # Integration tests using Plan.solve()
 # ---------------------------------------------------------------------------
+
 
 class TestACAIntegration:
     """Integration tests: ACA costs reduce available spending."""
@@ -239,7 +234,7 @@ class TestACAIntegration:
 
         p_aca = _make_plan(dob1="1975-06-15", le1=88)
         p_aca.setSocialSecurity([2000], [67])
-        p_aca.setACA(slcsp=18.0)   # $18k/year benchmark premium
+        p_aca.setACA(slcsp=18.0)  # $18k/year benchmark premium
         p_aca.solve("maxSpending")
         spending_aca = p_aca.g_n[0]
 
@@ -257,12 +252,11 @@ class TestACAIntegration:
         p.solve("maxSpending")
 
         from datetime import date
+
         thisyear = date.today().year
-        n65 = 1965 + 65 - thisyear   # year index when individual turns 65
+        n65 = 1965 + 65 - thisyear  # year index when individual turns 65
         if n65 < p.N_n:
-            assert np.allclose(p.ACA_n[n65:], 0.0), (
-                "ACA costs should be zero from age-65 year onward."
-            )
+            assert np.allclose(p.ACA_n[n65:], 0.0), "ACA costs should be zero from age-65 year onward."
 
     def test_aca_high_magi_scales_with_income(self):
         """Net ACA cost cannot exceed SLCSP (inflation-adjusted)."""
@@ -289,15 +283,12 @@ class TestACAIntegration:
 
         # Check: ACA costs should appear in years where Jordan is pre-65
         from datetime import date
+
         thisyear = date.today().year
         n65_jordan = max(0, 1972 + 65 - thisyear)  # year Jordan turns 65 (born 1972)
         if n65_jordan < p.N_n:
-            assert np.any(p.ACA_n[:n65_jordan] > 0), (
-                "Expected ACA costs while Jordan is pre-65."
-            )
-            assert np.allclose(p.ACA_n[n65_jordan:], 0.0), (
-                "Expected zero ACA costs after Jordan turns 65."
-            )
+            assert np.any(p.ACA_n[:n65_jordan] > 0), "Expected ACA costs while Jordan is pre-65."
+            assert np.allclose(p.ACA_n[n65_jordan:], 0.0), "Expected zero ACA costs after Jordan turns 65."
 
     def test_no_aca_when_not_configured(self):
         """Plan without setACA() should have all-zero ACA_n after solving."""
@@ -309,6 +300,7 @@ class TestACAIntegration:
 # ---------------------------------------------------------------------------
 # ACA optimize mode tests (withACA="optimize")
 # ---------------------------------------------------------------------------
+
 
 class TestACAOptimize:
     """Tests for withACA="optimize" LP/MIP formulation."""
@@ -349,9 +341,7 @@ class TestACAOptimize:
         p.setACA(slcsp=18.0)
         p.solve("maxSpending", options={"withACA": "optimize"})
 
-        assert np.allclose(p.ACA_n, 0.0), (
-            "ACA_n (SC-loop) should be zero in optimize mode; maca_n carries the cost."
-        )
+        assert np.allclose(p.ACA_n, 0.0), "ACA_n (SC-loop) should be zero in optimize mode; maca_n carries the cost."
 
     def test_slcsp_cap_respected(self):
         """In optimize mode, maca_n[n] <= slcsp_annual * gamma_n[n] for all n."""
@@ -391,14 +381,16 @@ class TestACAOptimize:
 # Config round-trip test
 # ---------------------------------------------------------------------------
 
+
 class TestACAConfig:
     """Test TOML config round-trip for ACA settings."""
 
     def test_plan_to_config_serializes_aca(self):
         """plan_to_config should emit aca_settings when slcsp_annual > 0."""
         from owlplanner.config.plan_bridge import plan_to_config
+
         p = _make_plan(dob1="1975-06-15", le1=88)
-        p.setACA(slcsp=16.5)   # $16,500/year
+        p.setACA(slcsp=16.5)  # $16,500/year
         diconf = plan_to_config(p)
         assert "aca_settings" in diconf, "Expected aca_settings in config dict."
         assert diconf["aca_settings"]["slcsp_annual"] == pytest.approx(16.5, rel=1e-3)
@@ -406,6 +398,7 @@ class TestACAConfig:
     def test_plan_to_config_no_aca_section_when_not_set(self):
         """plan_to_config should NOT emit aca_settings when ACA not configured."""
         from owlplanner.config.plan_bridge import plan_to_config
+
         p = _make_plan(dob1="1975-06-15", le1=88)
         diconf = plan_to_config(p)
         assert "aca_settings" not in diconf, "aca_settings should be absent when ACA not configured."
@@ -413,6 +406,7 @@ class TestACAConfig:
     def test_config_to_plan_applies_aca(self):
         """config_to_plan should call setACA() when aca_settings.slcsp_annual > 0."""
         from owlplanner.config.plan_bridge import config_to_plan, plan_to_config
+
         p = _make_plan(dob1="1975-06-15", le1=88)
         p.setACA(slcsp=14.0)
         diconf = plan_to_config(p)
@@ -428,14 +422,16 @@ class TestACAConfig:
 # ACA start year tests
 # ---------------------------------------------------------------------------
 
+
 class TestACAStartYear:
     """Tests for the aca_start_year / n_aca_start zero-fill feature."""
 
     def test_acavals_zeros_before_start(self):
         """acaVals with n_aca_start=3 should produce zero slcsp for nn < 3."""
         from datetime import date
+
         thisyear = date.today().year
-        yobs = [thisyear - 55]   # born 55 years ago → eligible until age 65
+        yobs = [thisyear - 55]  # born 55 years ago → eligible until age 65
         horizons = [20]
         gamma_n = np.ones(25)
         _, _, _, slcsp_n = tx.acaVals(yobs, horizons, gamma_n, 15_000, 20, n_aca_start=3)
@@ -446,6 +442,7 @@ class TestACAStartYear:
     def test_acavals_no_start_unchanged(self):
         """acaVals with n_aca_start=0 (default) should match original behavior."""
         from datetime import date
+
         thisyear = date.today().year
         yobs = [thisyear - 55]
         horizons = [20]
@@ -457,6 +454,7 @@ class TestACAStartYear:
     def test_start_year_defers_aca_costs(self):
         """Plan with ACA start year set to 2 years out should have zero ACA_n in years 0-1."""
         from datetime import date
+
         thisyear = date.today().year
         start_year = thisyear + 2
         p = _make_plan(dob1="1975-06-15", le1=88)
@@ -465,15 +463,14 @@ class TestACAStartYear:
         p.solve("maxSpending")
 
         # Years 0 and 1 (before start_year) should have zero ACA cost
-        assert np.allclose(p.ACA_n[:2], 0.0), (
-            f"ACA_n[:2]={p.ACA_n[:2]} should be zero before start_year."
-        )
+        assert np.allclose(p.ACA_n[:2], 0.0), f"ACA_n[:2]={p.ACA_n[:2]} should be zero before start_year."
         # At least some ACA cost after the start year
         assert np.any(p.ACA_n[2:] > 0), "Expected nonzero ACA costs after start_year."
 
     def test_start_year_raises_spending_vs_immediate(self):
         """Deferring ACA start should give higher spending than immediate ACA."""
         from datetime import date
+
         thisyear = date.today().year
         dob = "1975-06-15"
 
@@ -487,9 +484,7 @@ class TestACAStartYear:
         p_deferred.setACA(slcsp=18.0, start_year=thisyear + 3)
         p_deferred.solve("maxSpending")
 
-        assert p_deferred.g_n[0] >= p_immediate.g_n[0] - 1, (
-            "Deferring ACA should not reduce spending vs immediate ACA."
-        )
+        assert p_deferred.g_n[0] >= p_immediate.g_n[0] - 1, "Deferring ACA should not reduce spending vs immediate ACA."
         assert p_deferred.g_n[0] > p_immediate.g_n[0] - 1000, (
             "Deferred ACA spending should be measurably higher than immediate."
         )
@@ -498,6 +493,7 @@ class TestACAStartYear:
         """aca_start_year should round-trip through plan_to_config / config_to_plan."""
         from datetime import date
         from owlplanner.config.plan_bridge import config_to_plan, plan_to_config
+
         thisyear = date.today().year
         p = _make_plan(dob1="1975-06-15", le1=88)
         p.setACA(slcsp=15.0, start_year=thisyear + 2)
@@ -507,9 +503,7 @@ class TestACAStartYear:
             "plan_to_config should emit aca_start_year."
         )
         p2 = config_to_plan(diconf, verbose=False, loadHFP=False)
-        assert p2.aca_start_year == thisyear + 2, (
-            f"Expected aca_start_year={thisyear + 2}, got {p2.aca_start_year}."
-        )
+        assert p2.aca_start_year == thisyear + 2, f"Expected aca_start_year={thisyear + 2}, got {p2.aca_start_year}."
 
     def test_start_year_offset_raises(self):
         """setACA with a small offset (not a calendar year) should raise ValueError."""
@@ -529,6 +523,7 @@ class TestACAStartYear:
 # ACA couple-to-individual SLCSP scaling tests
 # ---------------------------------------------------------------------------
 
+
 class TestACACoupleSLCSPScaling:
     """Tests for automatic SLCSP scaling when one partner transitions to Medicare."""
 
@@ -547,13 +542,14 @@ class TestACACoupleSLCSPScaling:
     def test_slcsp_scaled_in_transition_year(self):
         """acaCosts should scale SLCSP down when only the younger partner is ACA-eligible."""
         from datetime import date
+
         thisyear = date.today().year
         # Older born thisyear-65: turns 65 this year (n=0)
         # Younger born thisyear-55: age 55 at n=0, still pre-Medicare
         yobs = np.array([thisyear - 65, thisyear - 55])
         horizons = np.array([20, 30])
         slcsp = 20_000.0
-        magi = 300_000.0        # well above 400% FPL → no subsidy; net cost = slcsp cap
+        magi = 300_000.0  # well above 400% FPL → no subsidy; net cost = slcsp cap
         gamma_n = np.ones(30)
         magi_n = np.full(30, magi)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30)
@@ -565,6 +561,7 @@ class TestACACoupleSLCSPScaling:
     def test_slcsp_unscaled_when_both_eligible(self):
         """acaCosts should use full SLCSP when both partners are ACA-eligible."""
         from datetime import date
+
         thisyear = date.today().year
         # Both under 65 throughout the plan
         yobs = np.array([thisyear - 55, thisyear - 50])
@@ -581,6 +578,7 @@ class TestACACoupleSLCSPScaling:
     def test_acavals_slcsp_scaled_in_transition_year(self):
         """acaVals should apply the same age-rating fraction to slcsp_aca_n in transition years."""
         from datetime import date
+
         thisyear = date.today().year
         yobs = [thisyear - 65, thisyear - 55]  # older turns 65 at n=0, younger is 55
         horizons = [20, 30]

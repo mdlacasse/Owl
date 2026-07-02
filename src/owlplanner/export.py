@@ -58,9 +58,7 @@ def _worksheet_age_int_cell(y, plan, i, last_alive_year):
         yi = int(y)
     except (TypeError, ValueError):
         return None
-    v = worksheet_age_on_dec_31_or_blank(
-        yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year
-    )
+    v = worksheet_age_on_dec_31_or_blank(yi, int(plan.yobs[i]), int(plan.mobs[i]), int(plan.tobs[i]), last_alive_year)
     return None if v is None else int(v)
 
 
@@ -278,28 +276,42 @@ def _format_col_sheet(ws, col_formats, default_fmt=None, lowercase=True):
 
 def _format_debts_sheet(ws):
     """Format Debts sheet with appropriate column formatting."""
-    _format_col_sheet(ws, col_formats={
-        "year": "0", "term": "0",
-        "rate": "#,##0.00",
-        "amount": "$#,##0_);[Red]($#,##0)",
-    })
+    _format_col_sheet(
+        ws,
+        col_formats={
+            "year": "0",
+            "term": "0",
+            "rate": "#,##0.00",
+            "amount": "$#,##0_);[Red]($#,##0)",
+        },
+    )
 
 
 def _format_fixed_assets_sheet(ws):
     """Format Fixed Assets sheet with appropriate column formatting."""
-    _format_col_sheet(ws, col_formats={
-        "yod": "0",
-        "rate": "#,##0.00", "commission": "#,##0.00",
-        "basis": "$#,##0_);[Red]($#,##0)", "value": "$#,##0_);[Red]($#,##0)",
-    })
+    _format_col_sheet(
+        ws,
+        col_formats={
+            "yod": "0",
+            "rate": "#,##0.00",
+            "commission": "#,##0.00",
+            "basis": "$#,##0_);[Red]($#,##0)",
+            "value": "$#,##0_);[Red]($#,##0)",
+        },
+    )
 
 
 def _format_income_tax_sheet(ws):
     """Format Taxes sheet: currency for $ columns, percent for SS % taxed."""
-    _format_col_sheet(ws, col_formats={
-        "year": "0",
-        "SS % taxed": "#.0%",
-    }, default_fmt="$#,##0_);[Red]($#,##0)", lowercase=False)
+    _format_col_sheet(
+        ws,
+        col_formats={
+            "year": "0",
+            "SS % taxed": "#.0%",
+        },
+        default_fmt="$#,##0_);[Red]($#,##0)",
+        lowercase=False,
+    )
 
 
 def fixedIncomeStreams(plan, N=None):
@@ -362,18 +374,22 @@ def build_summary_dic(plan, N=None):
         tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
         _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
         labels = [
-            ("ss",        "Social Security"),
-            ("pension",   "Pension"),
-            ("spia",      "SPIA income"),
-            ("wages",     "Wages"),
-            ("other",     "Other income"),
+            ("ss", "Social Security"),
+            ("pension", "Pension"),
+            ("spia", "SPIA income"),
+            ("wages", "Wages"),
+            ("other", "Other income"),
             ("fa_income", "Fixed assets income"),
         ]
         for key, label in labels:
             tot = float(np.sum(streams[key]))
             if tot > 0:
                 _summary_currency_pair(
-                    dic, label, float(np.sum(streams[key] * inv_gamma)), tot, prefix="»  ",
+                    dic,
+                    label,
+                    float(np.sum(streams[key] * inv_gamma)),
+                    tot,
+                    prefix="»  ",
                 )
 
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
@@ -425,8 +441,8 @@ def build_summary_dic(plan, N=None):
     if plan.N_i == 2 and plan.n_d < plan.N_n and N == plan.N_n:
         _summary_section(dic, SUMMARY_SECTION_PARTIAL_BEQUEST)
         p_j = plan.partialEstate_j * (1 - plan.phi_j)
-        p_j[1] *= 1 - plan.nu   # tax-deferred: heirs pay ordinary income tax
-        p_j[3] *= 1 - plan.nu   # HSA: non-spouse heirs include full balance in ordinary income
+        p_j[1] *= 1 - plan.nu  # tax-deferred: heirs pay ordinary income tax
+        p_j[3] *= 1 - plan.nu  # HSA: non-spouse heirs include full balance in ordinary income
         nx = plan.n_d - 1
         ynx = plan.year_n[nx]
         ynxNow = 1.0 / plan.gamma_n[nx + 1]
@@ -438,19 +454,38 @@ def build_summary_dic(plan, N=None):
         dic["Year of partial bequest"] = f"{ynx}"
         _summary_currency_pair(dic, f"Sum of spousal transfer to {iname_s}", ynxNow * totSpousal, totSpousal)
         _summary_currency_pair(
-            dic, f"Spousal transfer to {iname_s} - taxable", ynxNow * q_j[0], q_j[0], prefix="»  ",
+            dic,
+            f"Spousal transfer to {iname_s} - taxable",
+            ynxNow * q_j[0],
+            q_j[0],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, f"Spousal transfer to {iname_s} - tax-def", ynxNow * q_j[1], q_j[1], prefix="»  ",
+            dic,
+            f"Spousal transfer to {iname_s} - tax-def",
+            ynxNow * q_j[1],
+            q_j[1],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, f"Spousal transfer to {iname_s} - tax-free", ynxNow * q_j[2], q_j[2], prefix="»  ",
+            dic,
+            f"Spousal transfer to {iname_s} - tax-free",
+            ynxNow * q_j[2],
+            q_j[2],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, f"Spousal transfer to {iname_s} - HSA", ynxNow * q_j[3], q_j[3], prefix="»  ",
+            dic,
+            f"Spousal transfer to {iname_s} - HSA",
+            ynxNow * q_j[3],
+            q_j[3],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, f"Sum of post-tax non-spousal bequest from {iname_d}", ynxNow * totOthers, totOthers,
+            dic,
+            f"Sum of post-tax non-spousal bequest from {iname_d}",
+            ynxNow * totOthers,
+            totOthers,
         )
         _summary_currency_pair(
             dic,
@@ -500,20 +535,40 @@ def build_summary_dic(plan, N=None):
             prefix="» ",
         )
         _summary_currency_pair(
-            dic, "With heirs assuming tax liability of", lyNow * heirsTaxLiability, heirsTaxLiability, prefix="» ",
+            dic,
+            "With heirs assuming tax liability of",
+            lyNow * heirsTaxLiability,
+            heirsTaxLiability,
+            prefix="» ",
         )
         _summary_currency_pair(dic, "After paying remaining debts of", lyNow * debts, debts, prefix="» ")
         _summary_currency_pair(
-            dic, "Post-tax final bequest account value - taxable", lyNow * estate[0], estate[0], prefix="»  ",
+            dic,
+            "Post-tax final bequest account value - taxable",
+            lyNow * estate[0],
+            estate[0],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, "Post-tax final bequest account value - tax-def", lyNow * estate[1], estate[1], prefix="»  ",
+            dic,
+            "Post-tax final bequest account value - tax-def",
+            lyNow * estate[1],
+            estate[1],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, "Post-tax final bequest account value - tax-free", lyNow * estate[2], estate[2], prefix="»  ",
+            dic,
+            "Post-tax final bequest account value - tax-free",
+            lyNow * estate[2],
+            estate[2],
+            prefix="»  ",
         )
         _summary_currency_pair(
-            dic, "Post-tax final bequest account value - HSA", lyNow * estate[3], estate[3], prefix="»  ",
+            dic,
+            "Post-tax final bequest account value - HSA",
+            lyNow * estate[3],
+            estate[3],
+            prefix="»  ",
         )
 
     _summary_section(dic, SUMMARY_SECTION_PLAN)
@@ -555,19 +610,23 @@ def build_summary_sheet_df(plan, N=None):
             if k2 == base + ln:
                 t_num = _parse_usd_string(v)
                 n_num = _parse_usd_string(v2)
-                rows.append({
-                    "Metric": base,
-                    "Today's $": t_num if t_num is not None else v,
-                    "Nominal $": n_num if n_num is not None else v2,
-                })
+                rows.append(
+                    {
+                        "Metric": base,
+                        "Today's $": t_num if t_num is not None else v,
+                        "Nominal $": n_num if n_num is not None else v2,
+                    }
+                )
                 i += 2
                 continue
         today_cell = _parse_usd_string(v)
-        rows.append({
-            "Metric": k,
-            "Today's $": today_cell if today_cell is not None else v,
-            "Nominal $": "",
-        })
+        rows.append(
+            {
+                "Metric": k,
+                "Today's $": today_cell if today_cell is not None else v,
+                "Nominal $": "",
+            }
+        )
         i += 1
     return pd.DataFrame(rows)
 
@@ -653,7 +712,7 @@ def plan_metrics(plan, N=None) -> dict:
     inv_g = 1.0 / gamma[:N]
 
     streams = fixedIncomeStreams(plan, N)
-    roth_n = np.sum(plan.x_in[:, :N], axis=0)   # per-year total Roth conversions (N_n,)
+    roth_n = np.sum(plan.x_in[:, :N], axis=0)  # per-year total Roth conversions (N_n,)
 
     estate, heirs_tax, savings_estate, total_estate, _ = _compute_estate(plan, N)
 
@@ -668,61 +727,61 @@ def plan_metrics(plan, N=None) -> dict:
 
     m = {
         # Overview
-        "spending_basis":                float(plan.g_n[0] / plan.xi_n[0]) if plan.xi_n[0] else 0.0,
-        "spending_year1":                float(plan.g_n[0]),
-        "effective_tax_rate":            float(plan._actual_effective_tax_rate()),
+        "spending_basis": float(plan.g_n[0] / plan.xi_n[0]) if plan.xi_n[0] else 0.0,
+        "spending_year1": float(plan.g_n[0]),
+        "effective_tax_rate": float(plan._actual_effective_tax_rate()),
         # Spending
-        "total_spending_today":          _st(plan.g_n[:N]),
-        "total_spending_nominal":        _s(plan.g_n[:N]),
+        "total_spending_today": _st(plan.g_n[:N]),
+        "total_spending_nominal": _s(plan.g_n[:N]),
         # Fixed income streams
-        "total_fixed_income_today":      _st(streams["total"]),
-        "total_fixed_income_nominal":    _s(streams["total"]),
-        "ss_income_today":               _st(streams["ss"]),
-        "ss_income_nominal":             _s(streams["ss"]),
-        "pension_income_today":          _st(streams["pension"]),
-        "pension_income_nominal":        _s(streams["pension"]),
-        "spia_income_today":             _st(streams["spia"]),
-        "spia_income_nominal":           _s(streams["spia"]),
-        "wages_today":                   _st(streams["wages"]),
-        "wages_nominal":                 _s(streams["wages"]),
-        "roth_conversions_today":        _st(roth_n),
-        "roth_conversions_nominal":      _s(roth_n),
+        "total_fixed_income_today": _st(streams["total"]),
+        "total_fixed_income_nominal": _s(streams["total"]),
+        "ss_income_today": _st(streams["ss"]),
+        "ss_income_nominal": _s(streams["ss"]),
+        "pension_income_today": _st(streams["pension"]),
+        "pension_income_nominal": _s(streams["pension"]),
+        "spia_income_today": _st(streams["spia"]),
+        "spia_income_nominal": _s(streams["spia"]),
+        "wages_today": _st(streams["wages"]),
+        "wages_nominal": _s(streams["wages"]),
+        "roth_conversions_today": _st(roth_n),
+        "roth_conversions_nominal": _s(roth_n),
         # Taxes & premiums
-        "federal_income_tax_today":      _st(plan.T_n[:N]),
-        "federal_income_tax_nominal":    _s(plan.T_n[:N]),
-        "ltcg_tax_today":                _st(plan.U_n[:N]),
-        "ltcg_tax_nominal":              _s(plan.U_n[:N]),
-        "niit_today":                    _st(plan.J_n[:N]),
-        "niit_nominal":                  _s(plan.J_n[:N]),
-        "state_tax_today":               _st(plan.st_T_n[:N]),
-        "state_tax_nominal":             _s(plan.st_T_n[:N]),
-        "medicare_today":                _st(plan.m_n[:N] + plan.M_n[:N]),
-        "medicare_nominal":              _s(plan.m_n[:N] + plan.M_n[:N]),
-        "aca_today":                     _st(plan.aca_costs_n[:N]),
-        "aca_nominal":                   _s(plan.aca_costs_n[:N]),
-        "debt_payments_today":           _st(plan.debt_payments_n[:N]),
-        "debt_payments_nominal":         _s(plan.debt_payments_n[:N]),
+        "federal_income_tax_today": _st(plan.T_n[:N]),
+        "federal_income_tax_nominal": _s(plan.T_n[:N]),
+        "ltcg_tax_today": _st(plan.U_n[:N]),
+        "ltcg_tax_nominal": _s(plan.U_n[:N]),
+        "niit_today": _st(plan.J_n[:N]),
+        "niit_nominal": _s(plan.J_n[:N]),
+        "state_tax_today": _st(plan.st_T_n[:N]),
+        "state_tax_nominal": _s(plan.st_T_n[:N]),
+        "medicare_today": _st(plan.m_n[:N] + plan.M_n[:N]),
+        "medicare_nominal": _s(plan.m_n[:N] + plan.M_n[:N]),
+        "aca_today": _st(plan.aca_costs_n[:N]),
+        "aca_nominal": _s(plan.aca_costs_n[:N]),
+        "debt_payments_today": _st(plan.debt_payments_n[:N]),
+        "debt_payments_nominal": _s(plan.debt_payments_n[:N]),
         # Final bequest
-        "final_bequest_today":           total_estate / float(gamma[N]),
-        "final_bequest_nominal":         total_estate,
-        "final_bequest_savings_today":   savings_estate / float(gamma[N]),
+        "final_bequest_today": total_estate / float(gamma[N]),
+        "final_bequest_nominal": total_estate,
+        "final_bequest_savings_today": savings_estate / float(gamma[N]),
         "final_bequest_savings_nominal": savings_estate,
-        "heirs_tax_liability_nominal":   heirs_tax,
-        "remaining_debt_balance":        float(plan.remaining_debt_balance),
+        "heirs_tax_liability_nominal": heirs_tax,
+        "remaining_debt_balance": float(plan.remaining_debt_balance),
         # Opening balance sheet (beginning of plan, year 0)
-        "fixed_assets_start_nominal":    float(bs["fixed_assets"][0]),
-        "debt_start_nominal":            float(bs["debt"][0]),
-        "net_worth_start_nominal":       float(bs["net_worth"][0]),
-        "net_worth_start_today":         float(bs["net_worth"][0]) / g0,
+        "fixed_assets_start_nominal": float(bs["fixed_assets"][0]),
+        "debt_start_nominal": float(bs["debt"][0]),
+        "net_worth_start_nominal": float(bs["net_worth"][0]),
+        "net_worth_start_today": float(bs["net_worth"][0]) / g0,
         "liquid_net_worth_start_nominal": float(bs["liquid_net_worth"][0]),
-        "liquid_net_worth_start_today":  float(bs["liquid_net_worth"][0]) / g0,
+        "liquid_net_worth_start_today": float(bs["liquid_net_worth"][0]) / g0,
         "deferred_income_tax_start_nominal": float(bs["deferred_income_tax"][0]),
         # Liquidation assumptions (fractions, 0–1)
-        "liquidation_tax_rate":          float(plan.liquidationTaxRate),
-        "liquidation_capgains_rate":     float(plan.liquidationCapGainsRate),
+        "liquidation_tax_rate": float(plan.liquidationTaxRate),
+        "liquidation_capgains_rate": float(plan.liquidationCapGainsRate),
         # Plan info
-        "time_horizon_years":            float(N),
-        "inflation_factor":              float(gamma[N]),
+        "time_horizon_years": float(N),
+        "inflation_factor": float(gamma[N]),
     }
     return m
 
@@ -734,40 +793,40 @@ _T = SUMMARY_LABEL_TODAY
 _N = SUMMARY_LABEL_NOMINAL
 METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     # key: (display_col_name, format_type)  format_type: "usd" | "pct"
-    "spending_basis":                ("Net yearly spending basis", "usd"),
-    "effective_tax_rate":            ("Effective tax rate (plan average)", "pct"),
-    "spending_year1":                ("Net spending for year ", "usd_skip"),  # dynamic key, skip
-    "total_spending_today":          (f"Total net spending{_T}", "usd"),
-    "total_spending_nominal":        (f"Total net spending{_N}", "usd"),
-    "total_fixed_income_today":      (f"Total fixed income{_T}", "usd"),
-    "total_fixed_income_nominal":    (f"Total fixed income{_N}", "usd"),
-    "ss_income_today":               (f"»  Social Security{_T}", "usd"),
-    "ss_income_nominal":             (f"»  Social Security{_N}", "usd"),
-    "pension_income_today":          (f"»  Pension{_T}", "usd"),
-    "pension_income_nominal":        (f"»  Pension{_N}", "usd"),
-    "spia_income_today":             (f"»  SPIA income{_T}", "usd"),
-    "spia_income_nominal":           (f"»  SPIA income{_N}", "usd"),
-    "wages_today":                   (f"»  Wages{_T}", "usd"),
-    "wages_nominal":                 (f"»  Wages{_N}", "usd"),
-    "roth_conversions_today":        (f"Total Roth conversions{_T}", "usd"),
-    "roth_conversions_nominal":      (f"Total Roth conversions{_N}", "usd"),
-    "federal_income_tax_today":      (f"Total tax paid on ordinary income{_T}", "usd"),
-    "federal_income_tax_nominal":    (f"Total tax paid on ordinary income{_N}", "usd"),
-    "ltcg_tax_today":                (f"Total tax paid on gains and dividends{_T}", "usd"),
-    "ltcg_tax_nominal":              (f"Total tax paid on gains and dividends{_N}", "usd"),
-    "niit_today":                    (f"Total net investment income tax paid{_T}", "usd"),
-    "niit_nominal":                  (f"Total net investment income tax paid{_N}", "usd"),
-    "state_tax_today":               (f"Total state income tax paid{_T}", "usd"),
-    "state_tax_nominal":             (f"Total state income tax paid{_N}", "usd"),
-    "medicare_today":                (f"Total Medicare premiums paid{_T}", "usd"),
-    "medicare_nominal":              (f"Total Medicare premiums paid{_N}", "usd"),
-    "aca_today":                     (f"Total ACA premiums paid{_T}", "usd"),
-    "aca_nominal":                   (f"Total ACA premiums paid{_N}", "usd"),
-    "debt_payments_today":           (f"Total debt payments{_T}", "usd"),
-    "debt_payments_nominal":         (f"Total debt payments{_N}", "usd"),
-    "final_bequest_today":           (f"Total after-tax value of final bequest{_T}", "usd"),
-    "final_bequest_nominal":         (f"Total after-tax value of final bequest{_N}", "usd"),
-    "heirs_tax_liability_nominal":   (f"With heirs assuming tax liability of{_N}", "usd"),
+    "spending_basis": ("Net yearly spending basis", "usd"),
+    "effective_tax_rate": ("Effective tax rate (plan average)", "pct"),
+    "spending_year1": ("Net spending for year ", "usd_skip"),  # dynamic key, skip
+    "total_spending_today": (f"Total net spending{_T}", "usd"),
+    "total_spending_nominal": (f"Total net spending{_N}", "usd"),
+    "total_fixed_income_today": (f"Total fixed income{_T}", "usd"),
+    "total_fixed_income_nominal": (f"Total fixed income{_N}", "usd"),
+    "ss_income_today": (f"»  Social Security{_T}", "usd"),
+    "ss_income_nominal": (f"»  Social Security{_N}", "usd"),
+    "pension_income_today": (f"»  Pension{_T}", "usd"),
+    "pension_income_nominal": (f"»  Pension{_N}", "usd"),
+    "spia_income_today": (f"»  SPIA income{_T}", "usd"),
+    "spia_income_nominal": (f"»  SPIA income{_N}", "usd"),
+    "wages_today": (f"»  Wages{_T}", "usd"),
+    "wages_nominal": (f"»  Wages{_N}", "usd"),
+    "roth_conversions_today": (f"Total Roth conversions{_T}", "usd"),
+    "roth_conversions_nominal": (f"Total Roth conversions{_N}", "usd"),
+    "federal_income_tax_today": (f"Total tax paid on ordinary income{_T}", "usd"),
+    "federal_income_tax_nominal": (f"Total tax paid on ordinary income{_N}", "usd"),
+    "ltcg_tax_today": (f"Total tax paid on gains and dividends{_T}", "usd"),
+    "ltcg_tax_nominal": (f"Total tax paid on gains and dividends{_N}", "usd"),
+    "niit_today": (f"Total net investment income tax paid{_T}", "usd"),
+    "niit_nominal": (f"Total net investment income tax paid{_N}", "usd"),
+    "state_tax_today": (f"Total state income tax paid{_T}", "usd"),
+    "state_tax_nominal": (f"Total state income tax paid{_N}", "usd"),
+    "medicare_today": (f"Total Medicare premiums paid{_T}", "usd"),
+    "medicare_nominal": (f"Total Medicare premiums paid{_N}", "usd"),
+    "aca_today": (f"Total ACA premiums paid{_T}", "usd"),
+    "aca_nominal": (f"Total ACA premiums paid{_N}", "usd"),
+    "debt_payments_today": (f"Total debt payments{_T}", "usd"),
+    "debt_payments_nominal": (f"Total debt payments{_N}", "usd"),
+    "final_bequest_today": (f"Total after-tax value of final bequest{_T}", "usd"),
+    "final_bequest_nominal": (f"Total after-tax value of final bequest{_N}", "usd"),
+    "heirs_tax_liability_nominal": (f"With heirs assuming tax liability of{_N}", "usd"),
 }
 
 
@@ -832,7 +891,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
             ws_config.cell(row=row_idx, column=1, value=line)
 
     real = getattr(plan, "worksheetRealDollars", False)
-    inv_gamma = (1.0 / plan.gamma_n[:plan.N_n]) if real else None
+    inv_gamma = (1.0 / plan.gamma_n[: plan.N_n]) if real else None
 
     def fillsheet(sheet, dic, datatype, op=lambda x: x, scale=None, sheet_name=None):
         rawData = {}
@@ -922,19 +981,19 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
 
     accDic = {
         "taxable bal": plan.b_ijn[:, 0, :-1],
-        "taxable ctrb": plan.kappa_ijn[:, 0, :plan.N_n],
+        "taxable ctrb": plan.kappa_ijn[:, 0, : plan.N_n],
         "taxable dep": plan.d_in,
         "taxable wdrwl": plan.w_ijn[:, 0, :],
         "tax-deferred bal": plan.b_ijn[:, 1, :-1],
-        "tax-deferred ctrb": plan.kappa_ijn[:, 1, :plan.N_n],
+        "tax-deferred ctrb": plan.kappa_ijn[:, 1, : plan.N_n],
         "tax-deferred wdrwl": plan.w_ijn[:, 1, :],
         "(included RMDs)": plan.rmd_in[:, :],
         "Roth conv": plan.x_in,
         "tax-free bal": plan.b_ijn[:, 2, :-1],
-        "tax-free ctrb": plan.kappa_ijn[:, 2, :plan.N_n],
+        "tax-free ctrb": plan.kappa_ijn[:, 2, : plan.N_n],
         "tax-free wdrwl": plan.w_ijn[:, 2, :],
         "HSA bal": plan.b_ijn[:, 3, :-1],
-        "HSA ctrb": plan.kappa_ijn[:, 3, :plan.N_n],
+        "HSA ctrb": plan.kappa_ijn[:, 3, : plan.N_n],
         "HSA wdrwl": plan.w_ijn[:, 3, :],
     }
     for i in range(plan.N_i):
@@ -947,13 +1006,20 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         lastRow = [
             final_year,
             float(u.roundCents(plan.b_ijn[i][0][-1] * scale_final)),
-            0, 0, 0,
+            0,
+            0,
+            0,
             float(u.roundCents(plan.b_ijn[i][1][-1] * scale_final)),
-            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
             float(u.roundCents(plan.b_ijn[i][2][-1] * scale_final)),
-            0, 0,
+            0,
+            0,
             float(u.roundCents(plan.b_ijn[i][3][-1] * scale_final)),
-            0, 0,
+            0,
+            0,
         ]
         if plan.worksheetShowAges:
             last_y = _last_alive_calendar_year(plan, i)
@@ -976,7 +1042,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     for i in range(plan.N_i):
         pname = plan.inames[i]
         hsaDic[f"HSA bal {pname}"] = plan.b_ijn[i, 3, :-1]
-        hsaDic[f"HSA ctrb {pname}"] = plan.kappa_ijn[i, 3, :plan.N_n]
+        hsaDic[f"HSA ctrb {pname}"] = plan.kappa_ijn[i, 3, : plan.N_n]
         hsaDic[f"HSA wdrwl {pname}"] = plan.w_ijn[i, 3, :]
     ws = wb.create_sheet("HSA")
     fillsheet(ws, hsaDic, "currency", scale=inv_gamma, sheet_name="HSA")
@@ -984,7 +1050,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     # --- Balance sheets (traditional and liquid) ---
     # Time-series, beginning-of-year snapshot, plus a final end-of-plan (bequest) row.
     year_bs = np.append(plan.year_n, [plan.year_n[-1] + 1])
-    inv_gamma_bs = (1.0 / plan.gamma_n[:plan.N_n + 1]) if real else None
+    inv_gamma_bs = (1.0 / plan.gamma_n[: plan.N_n + 1]) if real else None
 
     taxable_bs = np.sum(plan.b_ijn[:, 0, :], axis=0)
     taxdef_bs = np.sum(plan.b_ijn[:, 1, :], axis=0)
@@ -1147,15 +1213,15 @@ def plan_to_csv(plan, basename, mylog):
         planData[plan.inames[i] + " txbl dep"] = plan.d_in[i, :]
         planData[plan.inames[i] + " txbl wrdwl"] = plan.w_ijn[i, 0, :]
         planData[plan.inames[i] + " tx-def bal"] = plan.b_ijn[i, 1, :-1]
-        planData[plan.inames[i] + " tx-def ctrb"] = plan.kappa_ijn[i, 1, :plan.N_n]
+        planData[plan.inames[i] + " tx-def ctrb"] = plan.kappa_ijn[i, 1, : plan.N_n]
         planData[plan.inames[i] + " tx-def wdrl"] = plan.w_ijn[i, 1, :]
         planData[plan.inames[i] + " (RMD)"] = plan.rmd_in[i, :]
         planData[plan.inames[i] + " Roth conv"] = plan.x_in[i, :]
         planData[plan.inames[i] + " tx-free bal"] = plan.b_ijn[i, 2, :-1]
-        planData[plan.inames[i] + " tx-free ctrb"] = plan.kappa_ijn[i, 2, :plan.N_n]
+        planData[plan.inames[i] + " tx-free ctrb"] = plan.kappa_ijn[i, 2, : plan.N_n]
         planData[plan.inames[i] + " tax-free wdrwl"] = plan.w_ijn[i, 2, :]
         planData[plan.inames[i] + " HSA bal"] = plan.b_ijn[i, 3, :-1]
-        planData[plan.inames[i] + " HSA ctrb"] = plan.kappa_ijn[i, 3, :plan.N_n]
+        planData[plan.inames[i] + " HSA ctrb"] = plan.kappa_ijn[i, 3, : plan.N_n]
         planData[plan.inames[i] + " HSA wdrwl"] = plan.w_ijn[i, 3, :]
         planData[plan.inames[i] + " big-ticket items"] = plan.Lambda_in[i, :]
 

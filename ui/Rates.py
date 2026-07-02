@@ -113,9 +113,11 @@ forecasts for the next decade can be found
 [here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
     helpVarying = "Select the method used to generate annual rates of return. See the description on the right."
     helpYfrm = "First year of historical data included in the range. Must be at least 2 years before the ending year."
-    helpYto = ("Last year of historical data included in the range. "
-               "For *historical* method, fixed by the starting year and plan horizon. "
-               "At least 2 years of data are required for statistical calculations.")
+    helpYto = (
+        "Last year of historical data included in the range. "
+        "For *historical* method, fixed by the starting year and plan horizon. "
+        "At least 2 years of data are required for statistical calculations."
+    )
     helpBootstrapType = """Resampling strategy used to build synthetic rate sequences:
 
 - **iid**: draw individual years independently at random (no serial structure).
@@ -123,9 +125,11 @@ forecasts for the next decade can be found
 - **circular**: block bootstrap that wraps around the dataset ends to avoid edge effects.
 - **stationary**: variable-length blocks drawn from a geometric distribution, \
 preserving stationarity."""
-    helpCorr = ("Pearson correlation coefficient between the two asset-class returns. "
-                "Ranges from -1 (perfectly inversely correlated) to +1 (perfectly correlated). "
-                "0 means no linear relationship.")
+    helpCorr = (
+        "Pearson correlation coefficient between the two asset-class returns. "
+        "Ranges from -1 (perfectly inversely correlated) to +1 (perfectly correlated). "
+        "0 means no linear relationship."
+    )
 
     st.markdown("#### :orange[Type of Rates]")
     col1, col2, col3 = st.columns([1, 1, 2.07], gap="large", vertical_alignment="bottom")
@@ -139,8 +143,9 @@ preserving stationarity."""
             updateFixedRates(fxType, False)
 
         with col2:
-            fxType = kz.getSelectbox("Select constant rates", fixedChoices, "fixedType", updateFixedRates,
-                                     help=helpFixed)
+            fxType = kz.getSelectbox(
+                "Select constant rates", fixedChoices, "fixedType", updateFixedRates, help=helpFixed
+            )
         with col3:
             st.caption(owb.getMethodDescription(fxType))
 
@@ -155,25 +160,58 @@ preserving stationarity."""
 
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
-            kz.getNum("S&P 500", "fxRate0", disabled=ro, step=1.0, help=helpmsgSP500,
-                      callback=updateRates, min_value=min_rate, max_value=100.0)
+            kz.getNum(
+                "S&P 500",
+                "fxRate0",
+                disabled=ro,
+                step=1.0,
+                help=helpmsgSP500,
+                callback=updateRates,
+                min_value=min_rate,
+                max_value=100.0,
+            )
 
         with col2:
-            kz.getNum("Bonds Baa", "fxRate1", disabled=ro, step=1.0, help=helpmsgBaa,
-                      callback=updateRates, min_value=min_rate, max_value=100.0)
+            kz.getNum(
+                "Bonds Baa",
+                "fxRate1",
+                disabled=ro,
+                step=1.0,
+                help=helpmsgBaa,
+                callback=updateRates,
+                min_value=min_rate,
+                max_value=100.0,
+            )
 
         with col3:
-            kz.getNum("10-y Treasury Notes", "fxRate2", disabled=ro, step=1.0, help=helpmsgTnote,
-                      callback=updateRates, min_value=min_rate, max_value=100.0)
+            kz.getNum(
+                "10-y Treasury Notes",
+                "fxRate2",
+                disabled=ro,
+                step=1.0,
+                help=helpmsgTnote,
+                callback=updateRates,
+                min_value=min_rate,
+                max_value=100.0,
+            )
 
         with col4:
-            kz.getNum("Cash Assets/Inflation", "fxRate3", disabled=ro, step=1.0, help=helpmsgCash,
-                      callback=updateRates, min_value=min_rate, max_value=100.0)
+            kz.getNum(
+                "Cash Assets/Inflation",
+                "fxRate3",
+                disabled=ro,
+                step=1.0,
+                help=helpmsgCash,
+                callback=updateRates,
+                min_value=min_rate,
+                max_value=100.0,
+            )
 
     elif kz.getCaseKey("rateType") == "varying":
         with col2:
-            varyingType = kz.getSelectbox("Select varying rates", varyingChoices, "varyingType",
-                                          callback=updateRates, help=helpVarying)
+            varyingType = kz.getSelectbox(
+                "Select varying rates", varyingChoices, "varyingType", callback=updateRates, help=helpVarying
+            )
         with col3:
             st.caption(owb.getMethodDescription(varyingType))
 
@@ -184,7 +222,7 @@ preserving stationarity."""
         kz.getCaseKey("rateType") == "varying" and kz.getCaseKey("varyingType") in owb.HISTORICAL_RANGE_METHODS
     ):
         vt = kz.getCaseKey("varyingType")
-        is_garch_ui = (kz.getCaseKey("rateType") == "varying" and vt == "garch_dcc")
+        is_garch_ui = kz.getCaseKey("rateType") == "varying" and vt == "garch_dcc"
 
         if is_garch_ui:
             min_year_gap = GARCH_DCC_MIN_OBSERVATIONS - 1
@@ -310,14 +348,22 @@ preserving stationarity."""
         bootstrap_choices = ["iid", "block", "circular", "stationary"]
         col1, col2, col3 = st.columns([2.08, 1, 1], gap="large", vertical_alignment="top")
         with col1:
-            kz.getRadio("Bootstrap type", bootstrap_choices, "bootstrapType", callback=updateRates,
-                        help=helpBootstrapType)
+            kz.getRadio(
+                "Bootstrap type", bootstrap_choices, "bootstrapType", callback=updateRates, help=helpBootstrapType
+            )
         with col2:
             bt = kz.getCaseKey("bootstrapType")
-            kz.getIntNum("Block size", "blockSize", min_value=1, max_value=50, step=1,
-                         disabled=(bt == "iid"), callback=updateRates,
-                         help="Fixed block length for block/circular; expected block length for stationary. "
-                              "All variants collapse to iid when block size is 1.")
+            kz.getIntNum(
+                "Block size",
+                "blockSize",
+                min_value=1,
+                max_value=50,
+                step=1,
+                disabled=(bt == "iid"),
+                callback=updateRates,
+                help="Fixed block length for block/circular; expected block length for stationary. "
+                "All variants collapse to iid when block size is 1.",
+            )
 
     if kz.getCaseKey("rateType") == "varying":
         st.divider()
@@ -327,45 +373,73 @@ preserving stationarity."""
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("mean0", 0)
-            kz.getNum("S&P 500", "mean0", disabled=ro, help=helpmsgSP500,
-                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
+            kz.getNum(
+                "S&P 500",
+                "mean0",
+                disabled=ro,
+                help=helpmsgSP500,
+                step=1.0,
+                min_value=-100.0,
+                max_value=100.0,
+                callback=updateRates,
+            )
 
         with col2:
             kz.initCaseKey("mean1", 0)
-            kz.getNum("Bonds Baa", "mean1", disabled=ro, help=helpmsgBaa,
-                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
+            kz.getNum(
+                "Bonds Baa",
+                "mean1",
+                disabled=ro,
+                help=helpmsgBaa,
+                step=1.0,
+                min_value=-100.0,
+                max_value=100.0,
+                callback=updateRates,
+            )
 
         with col3:
             kz.initCaseKey("mean2", 0)
-            kz.getNum("10-y Treasury Notes", "mean2", disabled=ro, step=1.0, help=helpmsgTnote,
-                      min_value=-100.0, max_value=100.0, callback=updateRates)
+            kz.getNum(
+                "10-y Treasury Notes",
+                "mean2",
+                disabled=ro,
+                step=1.0,
+                help=helpmsgTnote,
+                min_value=-100.0,
+                max_value=100.0,
+                callback=updateRates,
+            )
 
         with col4:
             kz.initCaseKey("mean3", 0)
-            kz.getNum("Cash Assets/Inflation", "mean3", disabled=ro, help=helpmsgCash,
-                      step=1.0, min_value=-100.0, max_value=100.0, callback=updateRates)
+            kz.getNum(
+                "Cash Assets/Inflation",
+                "mean3",
+                disabled=ro,
+                help=helpmsgCash,
+                step=1.0,
+                min_value=-100.0,
+                max_value=100.0,
+                callback=updateRates,
+            )
 
         st.markdown("##### Volatility (%)")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
         with col1:
             kz.initCaseKey("stdev0", 0)
-            kz.getNum("S&P 500", "stdev0", disabled=ro, step=1.0, callback=updateRates,
-                      help=helpmsgSP500)
+            kz.getNum("S&P 500", "stdev0", disabled=ro, step=1.0, callback=updateRates, help=helpmsgSP500)
 
         with col2:
             kz.initCaseKey("stdev1", 0)
-            kz.getNum("Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates,
-                      help=helpmsgBaa)
+            kz.getNum("Bonds Baa", "stdev1", disabled=ro, step=1.0, callback=updateRates, help=helpmsgBaa)
 
         with col3:
             kz.initCaseKey("stdev2", 0)
-            kz.getNum("10-y Treasury Notes", "stdev2", disabled=ro, step=1.0, callback=updateRates,
-                      help=helpmsgTnote)
+            kz.getNum("10-y Treasury Notes", "stdev2", disabled=ro, step=1.0, callback=updateRates, help=helpmsgTnote)
 
         with col4:
             kz.initCaseKey("stdev3", 0)
-            kz.getNum("Cash Assets/Inflation", "stdev3", disabled=ro, step=1.0, callback=updateRates,
-                      help=helpmsgCash)
+            kz.getNum("Cash Assets/Inflation", "stdev3", disabled=ro, step=1.0, callback=updateRates, help=helpmsgCash)
 
         st.markdown("##### Correlation matrix")
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="top")
@@ -375,36 +449,87 @@ preserving stationarity."""
 
         with col2:
             kz.initCaseKey("corr1", 0.0)
-            kz.getNum("(1,2)", "corr1", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(1,2)",
+                "corr1",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("diag2", 1.0)
-            kz.getNum("Bonds Baa", "diag2", disabled=True, format="%.2f",
-                      callback=None)
+            kz.getNum("Bonds Baa", "diag2", disabled=True, format="%.2f", callback=None)
 
         with col3:
             kz.initCaseKey("corr2", 0.0)
-            kz.getNum("(1,3)", "corr2", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(1,3)",
+                "corr2",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("corr4", 0.0)
-            kz.getNum("(2,3)", "corr4", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(2,3)",
+                "corr4",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("diag3", 1.0)
-            kz.getNum("10-y Treasury Notes", "diag3", disabled=True, format="%.2f",
-                      callback=None)
+            kz.getNum("10-y Treasury Notes", "diag3", disabled=True, format="%.2f", callback=None)
 
         with col4:
             kz.initCaseKey("corr3", 0.0)
-            kz.getNum("(1,4)", "corr3", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(1,4)",
+                "corr3",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("corr5", 0.0)
-            kz.getNum("(2,4)", "corr5", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(2,4)",
+                "corr5",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("corr6", 0.0)
-            kz.getNum("(3,4)", "corr6", disabled=ro, step=0.01, format="%.2f",
-                      min_value=-1.0, max_value=1.0, callback=updateRates, help=helpCorr)
+            kz.getNum(
+                "(3,4)",
+                "corr6",
+                disabled=ro,
+                step=0.01,
+                format="%.2f",
+                min_value=-1.0,
+                max_value=1.0,
+                callback=updateRates,
+                help=helpCorr,
+            )
             kz.initCaseKey("diag4", 1.0)
-            kz.getNum("Cash Assets/Inflation", "diag4", disabled=True, format="%.2f",
-                      callback=None)
+            kz.getNum("Cash Assets/Inflation", "diag4", disabled=True, format="%.2f", callback=None)
 
     st.divider()
     varying = kz.getCaseKey("rateType") == "varying"
@@ -432,8 +557,9 @@ preserving stationarity."""
                 kz.initCaseKey("yOBBBA", 2032)
                 thisyear = date.today().year
                 helpmsg = "Year at which the OBBBA tax rates are projected to expire and return to pre-TCJA rates."
-                ret = kz.getIntNum("OBBBA expiration year", "yOBBBA",
-                                   min_value=thisyear, max_value=thisyear+40, help=helpmsg)
+                ret = kz.getIntNum(
+                    "OBBBA expiration year", "yOBBBA", min_value=thisyear, max_value=thisyear + 40, help=helpmsg
+                )
 
             st.markdown("#### :orange[Other Rates]")
             scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
@@ -448,16 +574,21 @@ preserving stationarity."""
             scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
             with scol1:
                 kz.initCaseKey("liquidationTx", 24)
-                helpmsg = ("Assumed ordinary income tax rate applied to tax-deferred and HSA balances "
-                           "on the liquid balance sheet (tax owed if these accounts were liquidated).")
+                helpmsg = (
+                    "Assumed ordinary income tax rate applied to tax-deferred and HSA balances "
+                    "on the liquid balance sheet (tax owed if these accounts were liquidated)."
+                )
                 ret = kz.getNum("Liquidation tax rate (%)", "liquidationTx", max_value=100.0, help=helpmsg, step=1.0)
 
             with scol2:
                 kz.initCaseKey("liquidationCG", 15)
-                helpmsg = ("Assumed capital-gains tax rate applied to fixed-asset disposition (commission plus this "
-                           "rate on the gain) on the liquid balance sheet.")
-                ret = kz.getNum("Liquidation cap-gains rate (%)", "liquidationCG",
-                                max_value=100.0, help=helpmsg, step=1.0)
+                helpmsg = (
+                    "Assumed capital-gains tax rate applied to fixed-asset disposition (commission plus this "
+                    "rate on the gain) on the liquid balance sheet."
+                )
+                ret = kz.getNum(
+                    "Liquidation cap-gains rate (%)", "liquidationCG", max_value=100.0, help=helpmsg, step=1.0
+                )
 
         col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
         with col1:
@@ -489,11 +620,20 @@ other parameters while keeping rates constant."""
                         st.rerun()
 
                 with scol2:
-                    helpmsgSeed = ("Integer seed ≥ 1 for the random number generator. "
-                                   "Change this value to explore different rate sequences while "
-                                   "keeping results reproducible.")
-                    kz.getIntNum("Random seed", "rateSeed", min_value=1, max_value=2**31 - 1,
-                                 callback=updateRates, help=helpmsgSeed, disabled=not reproducible)
+                    helpmsgSeed = (
+                        "Integer seed ≥ 1 for the random number generator. "
+                        "Change this value to explore different rate sequences while "
+                        "keeping results reproducible."
+                    )
+                    kz.getIntNum(
+                        "Random seed",
+                        "rateSeed",
+                        min_value=1,
+                        max_value=2**31 - 1,
+                        callback=updateRates,
+                        help=helpmsgSeed,
+                        disabled=not reproducible,
+                    )
 
         with col2:
             # Rate sequence (reverse / roll) — only for varying (non-fixed) methods
@@ -504,13 +644,26 @@ other parameters while keeping rates constant."""
             scol1, scol2 = st.columns(2, gap="small", vertical_alignment="bottom")
             with scol2:
                 help_reverse = "Reverse the rate sequence along the time axis (e.g. run last year first)."
-                kz.getToggle("Reverse sequence", "reverse_sequence", callback=updateRates,
-                             help=help_reverse, disabled=irreversible)
+                kz.getToggle(
+                    "Reverse sequence",
+                    "reverse_sequence",
+                    callback=updateRates,
+                    help=help_reverse,
+                    disabled=irreversible,
+                )
             with scol1:
                 kz.initCaseKey("roll_sequence", 0)
                 help_roll = "Roll the rate sequence by this many years (0 = no shift)."
-                kz.getIntNum("Roll (years)", "roll_sequence", min_value=0, max_value=N_n,
-                             step=1, callback=updateRates, help=help_roll, disabled=irreversible)
+                kz.getIntNum(
+                    "Roll (years)",
+                    "roll_sequence",
+                    min_value=0,
+                    max_value=N_n,
+                    step=1,
+                    callback=updateRates,
+                    help=help_roll,
+                    disabled=irreversible,
+                )
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

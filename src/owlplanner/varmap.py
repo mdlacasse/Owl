@@ -62,10 +62,7 @@ class VarBlock:
         needed at the call site because the shape is already stored in the block.
         """
         if len(indices) != len(self.shape):
-            raise IndexError(
-                f"VarBlock '{self.name}': expected {len(self.shape)} index/indices, "
-                f"got {len(indices)}"
-            )
+            raise IndexError(f"VarBlock '{self.name}': expected {len(self.shape)} index/indices, got {len(indices)}")
         flat, stride = 0, 1
         for ax in range(len(self.shape) - 1, -1, -1):
             flat += indices[ax] * stride
@@ -79,7 +76,7 @@ class VarBlock:
         The slice boundaries are derived from the stored start/size — they are
         correct regardless of what variable blocks were added *after* this one.
         """
-        return np.array(x[self.start:self.end]).reshape(self.shape)
+        return np.array(x[self.start : self.end]).reshape(self.shape)
 
     def __repr__(self) -> str:
         return f"VarBlock('{self.name}', start={self.start}, shape={self.shape})"

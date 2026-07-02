@@ -46,6 +46,7 @@ from owlplanner.rate_models.loader import list_available_rate_models
 # Helpers
 # ------------------------------------------------------------
 
+
 def _make_plan():
     return Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -67,6 +68,7 @@ def _make_model(frm=1928, to=2025, n_components=3, seed=None, **kwargs):
 # Model attributes
 # ------------------------------------------------------------
 
+
 def test_model_name():
     assert HMMRateModel.model_name == "hmm"
 
@@ -86,6 +88,7 @@ def test_hmm_in_registry():
 # ------------------------------------------------------------
 # Output shape and sanity
 # ------------------------------------------------------------
+
 
 def test_shape_via_plan():
     p = _make_plan()
@@ -122,6 +125,7 @@ def test_output_is_decimal_not_percent():
 # Reproducibility
 # ------------------------------------------------------------
 
+
 def test_reproducible_same_seed():
     p1 = _make_plan()
     _set_hmm(p1, seed=42)
@@ -145,6 +149,7 @@ def test_different_seeds_differ():
 # ------------------------------------------------------------
 # Fitted parameter shapes and validity
 # ------------------------------------------------------------
+
 
 def test_pi_shape():
     model = _make_model(n_components=3)
@@ -198,6 +203,7 @@ def test_covs_positive_definite():
 # Regime persistence (the key HMM property)
 # ------------------------------------------------------------
 
+
 def test_transition_diagonal_dominates():
     """Diagonal entries of the fitted transition matrix should exceed off-diagonal mean."""
     model = _make_model(n_components=3, seed=0)
@@ -244,6 +250,7 @@ def test_regime_runs_exist():
 # Stationary distribution
 # ------------------------------------------------------------
 
+
 def test_stationary_dist_sums_to_one():
     model = _make_model(seed=0)
     stat = model._stationary_dist()
@@ -261,6 +268,7 @@ def test_stationary_dist_is_invariant():
 # ------------------------------------------------------------
 # n_components option
 # ------------------------------------------------------------
+
 
 def test_two_components():
     model = _make_model(n_components=2, seed=7)
@@ -280,6 +288,7 @@ def test_five_components():
 # ------------------------------------------------------------
 # init_regime parameter
 # ------------------------------------------------------------
+
 
 def test_init_regime_valid():
     model = _make_model(n_components=3, seed=0, init_regime=0)
@@ -303,6 +312,7 @@ def test_init_regime_negative_raises():
 # representative_sample
 # ------------------------------------------------------------
 
+
 def test_representative_sample_shape():
     """representative_sample returns N synthetic draws, not the historical pool."""
     model = _make_model(frm=1928, to=2025, seed=0)
@@ -320,6 +330,7 @@ def test_representative_sample_is_decimal():
 # Historical window sensitivity
 # ------------------------------------------------------------
 
+
 def test_different_windows_differ():
     p1 = _make_plan()
     _set_hmm(p1, frm=1928, to=1970, seed=7)
@@ -333,6 +344,7 @@ def test_different_windows_differ():
 # ------------------------------------------------------------
 # Parameter validation
 # ------------------------------------------------------------
+
 
 def test_frm_equals_to_raises():
     config = {"method": "hmm", "frm": 2000, "to": 2000}
@@ -374,6 +386,7 @@ def test_stationary_pi_cached():
 # ------------------------------------------------------------
 # Log-likelihood: HMM should match or exceed GMM on same data
 # ------------------------------------------------------------
+
 
 def test_hmm_ll_not_worse_than_gmm():
     """

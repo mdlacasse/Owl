@@ -34,6 +34,7 @@ from owlplanner import tax_federal as tx
 # Helper: extract OBBBA bonus from taxParams() for a single person aged 65.
 # ---------------------------------------------------------------------------
 
+
 def _obbba_bonus_single(magi):
     """Return the OBBBA $6k bonus added to sigmaBar[0] for a 65-year-old single filer."""
     thisyear = date.today().year
@@ -61,6 +62,7 @@ def _obbba_bonus_mfj_total(magi):
 # ---------------------------------------------------------------------------
 # taxBrackets()
 # ---------------------------------------------------------------------------
+
 
 def test_taxBrackets_returns_dict_with_correct_keys():
     data = tx.taxBrackets(1, 10, 10)
@@ -141,6 +143,7 @@ def test_taxBrackets_past_yobbba_raises():
 # rho_in()
 # ---------------------------------------------------------------------------
 
+
 def test_rho_in_longevity_over_120_raises():
     thisyear = date.today().year
     yobs = [thisyear - 60]
@@ -152,6 +155,7 @@ def test_rho_in_longevity_over_120_raises():
 # rho_in() — Table II (Joint and Last Survivor) vs Table III (Uniform Lifetime)
 # Reference values from IRS Publication 590-B, Appendix B, Table II (2022+).
 # ---------------------------------------------------------------------------
+
 
 def test_rho_in_table_ii_used_when_gap_over_10():
     """Owner with spouse >10 years younger uses Table II (lower RMD fraction)."""
@@ -200,6 +204,7 @@ def test_rho_in_table_ii_spot_check_owner73_spouse58():
     thisyear = date.today().year
     rho = tx.rho_in([thisyear - 73, thisyear - 58], [90, 90], 1)
     from owlplanner.data.irs_590b import JOINT_LIFE_TABLE
+
     expected = 1.0 / JOINT_LIFE_TABLE[73][58]
     assert rho[0][0] == pytest.approx(expected)
 
@@ -231,9 +236,7 @@ def test_rho_in_table_ii_reverts_to_table_iii_after_spouse_dies():
 
     # After spouse dies: owner must switch to Table III.
     rho_table3_after = 1.0 / tx.UNIFORM_LIFETIME_DIVISOR_BY_AGE[73 + spouse_horizon]
-    assert rho[0, spouse_horizon] == pytest.approx(rho_table3_after), (
-        "Expected Table III after spouse death"
-    )
+    assert rho[0, spouse_horizon] == pytest.approx(rho_table3_after), "Expected Table III after spouse death"
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +244,7 @@ def test_rho_in_table_ii_reverts_to_table_iii_after_spouse_dies():
 # Phaseout: $6 per $100 of MAGI above threshold. Full phaseout at threshold + $100k.
 # Single threshold: $75,000. MFJ threshold: $150,000.
 # ---------------------------------------------------------------------------
+
 
 def test_obbba_bonus_at_threshold():
     """Single filer at exactly the $75k threshold receives the full $6,000 bonus."""
@@ -274,6 +278,7 @@ def test_obbba_bonus_mfj_threshold():
 # ages 60-63); IRA $7,500 (+$1,100 catch-up); HSA $4,400 self-only / $8,750
 # family (+$1,000 catch-up at 55+).
 # ---------------------------------------------------------------------------
+
 
 def test_contribution_limits_under_50_no_catchup():
     lim = tx.contributionLimits(1980, tax_year=2026)  # age 46

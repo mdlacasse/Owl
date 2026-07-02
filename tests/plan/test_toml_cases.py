@@ -32,19 +32,20 @@ pytestmark = pytest.mark.toml
 
 def _active_solver():
     """Resolve OWL_TEST_SOLVER (or 'default') to the actual solver that will be used."""
-    env = os.getenv('OWL_TEST_SOLVER', 'default').lower()
-    if env == 'highs':
-        return 'HiGHS'
-    if env == 'mosek':
-        return 'MOSEK'
+    env = os.getenv("OWL_TEST_SOLVER", "default").lower()
+    if env == "highs":
+        return "HiGHS"
+    if env == "mosek":
+        return "MOSEK"
     # This is "default" path.
     try:
         import mosek  # noqa: F401
-        if 'MOSEKLM_LICENSE_FILE' in os.environ:
-            return 'MOSEK'
+
+        if "MOSEKLM_LICENSE_FILE" in os.environ:
+            return "MOSEK"
     except ImportError:
         pass
-    return 'HiGHS'
+    return "HiGHS"
 
 
 def getHFP(exdir, case, check_exists=True):
@@ -175,8 +176,7 @@ elif platform == "win32":
         },
     }
 else:
-    print(f"Unknown platform {platform}")
-    assert False
+    raise RuntimeError(f"Unknown platform {platform!r}: no reference objective values defined")
 
 
 def test_reproducibility():
@@ -192,8 +192,8 @@ def test_reproducibility():
     """
     # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
     # (~103_192 vs HiGHS ~102_881) after the LTCG bracket-partition and state-tax LP fixes.
-    if _active_solver() == 'MOSEK':
-        EXPECTED_OBJECTIVE_VALUES['Case_jack+jill']['net_spending_basis'] = 103_192
+    if _active_solver() == "MOSEK":
+        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 103_192
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
@@ -211,36 +211,26 @@ def test_reproducibility():
         # Get and verify HFP file exists
         hfp = getHFP(exdir, case)
         expected_path = getHFP(exdir, case, check_exists=False)
-        assert hfp != "", (
-            f"Could not find HFP file for {case}. "
-            f"Expected file: {expected_path}"
-        )
-        assert os.path.exists(hfp), (
-            f"HFP file does not exist: {hfp} for case {case}"
-        )
+        assert hfp != "", f"Could not find HFP file for {case}. Expected file: {expected_path}"
+        assert os.path.exists(hfp), f"HFP file does not exist: {hfp} for case {case}"
 
         # Load HFP file and verify it was loaded successfully
         try:
             p.readHFP(hfp)
         except Exception as e:
-            assert False, (
-                f"Failed to load HFP file {hfp} for case {case}: {e}"
-            )
+            raise AssertionError(f"Failed to load HFP file {hfp} for case {case}: {e}") from e
 
         # Verify that HFP data was actually loaded
-        assert hasattr(p, 'timeLists') and p.timeLists is not None, (
+        assert hasattr(p, "timeLists") and p.timeLists is not None, (
             f"HFP file {hfp} was not loaded for case {case}: timeLists is missing"
         )
-        assert hasattr(p, 'houseLists') and p.houseLists is not None, (
+        assert hasattr(p, "houseLists") and p.houseLists is not None, (
             f"HFP file {hfp} was not loaded for case {case}: houseLists is missing"
         )
-        assert len(p.timeLists) > 0, (
-            f"HFP file {hfp} was loaded but contains no time list data "
-            f"for case {case}"
-        )
+        assert len(p.timeLists) > 0, f"HFP file {hfp} was loaded but contains no time list data for case {case}"
 
-        p.solverOptions['absTol'] = 50
-        p.solverOptions['relTol'] = 2e-5
+        p.solverOptions["absTol"] = 50
+        p.solverOptions["relTol"] = 2e-5
 
         # Solve the plan
         p.resolve()
@@ -266,8 +256,7 @@ def test_reproducibility():
                 abs=50,
             )
             assert net_spending_basis == comparison_value, (
-                f"{case}: Net spending basis mismatch — got {net_spending_basis!r}, "
-                f"expected {comparison_value}"
+                f"{case}: Net spending basis mismatch — got {net_spending_basis!r}, expected {comparison_value}"
             )
 
         if expected["bequest"] is not None:

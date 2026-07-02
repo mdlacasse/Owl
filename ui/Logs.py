@@ -42,13 +42,14 @@ try:
 except ValueError:
     default_index = 0
 
-selected_case = st.radio("View logs for case",
-                         case_names,
-                         index=default_index,
-                         horizontal=True,
-                         help="Select which case's logs to view",
-                         key="logs_case_selector"
-                         )
+selected_case = st.radio(
+    "View logs for case",
+    case_names,
+    index=default_index,
+    horizontal=True,
+    help="Select which case's logs to view",
+    key="logs_case_selector",
+)
 
 # -------------------------------
 # Text controls
@@ -60,22 +61,14 @@ kz.initGlobalKey("active_text_filter", "")
 current_filter = kz.getGlobalKey("active_text_filter")
 
 text_input_value = ctrl_cols[0].text_input(
-    "Filter log messages",
-    placeholder="Substring match (e.g., warning)",
-    value=current_filter,
-    key="text_filter_input"
+    "Filter log messages", placeholder="Substring match (e.g., warning)", value=current_filter, key="text_filter_input"
 )
 
 if text_input_value != current_filter:
     kz.storeGlobalKey("active_text_filter", text_input_value)
 
 # ---- Clear log button (resets StringIO) ----
-if ctrl_cols[2].button(
-    "Clear logs",
-    type="secondary",
-    width="stretch",
-    help=":warning: This action cannot be undone."
-):
+if ctrl_cols[2].button("Clear logs", type="secondary", width="stretch", help=":warning: This action cannot be undone."):
     # Clear logs from the selected case
     if selected_case:
         strio = kz.getKeyInCase("logs", selected_case)

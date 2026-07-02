@@ -37,12 +37,11 @@ def _make_couple_plan(name, horizon_years=12):
     """Two-person plan, both with large tax-deferred balances, ample for Roth conversions."""
     age = 65
     yobs = THISYEAR - age
-    expectancy = horizon_years + age - 1   # gives horizons[i] = horizon_years
+    expectancy = horizon_years + age - 1  # gives horizons[i] = horizon_years
     p = owl.Plan(["Jack", "Jill"], [f"{yobs}-06-15", f"{yobs}-06-15"], [expectancy, expectancy], name, verbose=False)
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100, 100], taxDeferred=[1000, 1000], taxFree=[50, 50], startDate="1-1")
-    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]],
-                                                 [[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setSocialSecurity([0, 0], [70, 70])
     p.setRates("historical", 2000)
     return p

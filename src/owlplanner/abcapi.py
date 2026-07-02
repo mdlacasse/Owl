@@ -134,6 +134,7 @@ class ConstraintMatrix:
         where a_start[i] is the index of the first non-zero in row i (length = ncons).
         """
         from itertools import chain
+
         lengths = [len(row) for row in self.Aind]
         num_nz = sum(lengths)
         a_start = np.concatenate([[0], np.cumsum(lengths)[:-1]]).astype(np.int32)
@@ -173,7 +174,7 @@ class Bounds:
         self.ub = []
         self.key = []
         self.integrality = []
-        for ii in range(nvars-nbins, nvars):
+        for ii in range(nvars - nbins, nvars):
             self.setBinary(ii)
 
     def setBinary(self, ii):
@@ -197,7 +198,7 @@ class Bounds:
 
     def keys(self):
         keys = ["lo"] * self.nvars
-        for idx, key in zip(self.ind, self.key):
+        for idx, key in zip(self.ind, self.key, strict=True):
             keys[idx] = key
         return keys
 
