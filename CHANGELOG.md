@@ -1,6 +1,9 @@
 ### Version 2026.7.2
 
+#### Maintenenace
 - Update dependencies due to vulnerabilities identified by GitHub's dependabot.
+
+#### Documentation
 - Improve documentation on how to build HFP file.
 
 ### Version 2026.6.18
@@ -27,7 +30,7 @@ Consistent copyright headers across all source files (GPLv3) and documentation (
 
 ### Version 2026.6.17
 
-#### Fix: CDF comparison year range
+#### Fix: Cumulative Distribution Function (CDF) comparison year range
 The last (latest) year is now included in CDF comparisons, which previously dropped it.
 
 #### Example cases reviewed
@@ -159,10 +162,6 @@ Added `tests/config/test_roundtrip_generic.py`, which introspects the Pydantic s
 verifies every scalar parameter survives both the plan and UI config bridges, with a
 completeness guard so a newly-added field that isn't wired (or consciously skip-listed) fails
 loudly — replacing the need for a hand-written round-trip test per parameter.
-
----
-
-### Version 2026.6.13
 
 ---
 
@@ -425,7 +424,8 @@ so the string is identical across `pyproject.toml`, the wheel metadata, and `uv.
 
 #### Rate CDF plot (`showRatesCDF`)
 
-Adds a new plot showing the empirical CDF of each asset class's generated rates (S&P 500, Bonds Baa, T-Notes, Inflation), one panel per asset class.
+Adds a new plot showing the empirical cumulative distribution function (CDF) of each asset class's generated
+rates (S&P 500, Bonds Baa, T-Notes, Inflation), one panel per asset class.
 For historical methods, the empirical CDF of the selected frm–to window is overlaid as a dashed gray line for goodness-of-fit comparison.
 The y-axis gives cumulative probability directly — no binning artifact — making tail probabilities easy to read.
 Constant-rate methods do not produce a CDF plot.
