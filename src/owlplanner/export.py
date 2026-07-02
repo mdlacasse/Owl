@@ -143,7 +143,7 @@ def _summary_currency_pair(dic, label, val_today, val_nominal, prefix=""):
 
 
 def _save_workbook(wb, basename, overwrite, mylog):
-    """Save workbook to file with overwrite prompt."""
+    """Save workbook to file with overwrite prompt. Return filename on success, None if skipped."""
     if Path(basename).suffixes == []:
         fname = "workbook" + "_" + basename + ".xlsx"
     else:
@@ -160,7 +160,7 @@ def _save_workbook(wb, basename, overwrite, mylog):
         try:
             mylog.vprint(f'Saving plan as "{fname}".')
             wb.save(fname)
-            break
+            return fname
         except PermissionError:
             mylog.print(f'Failed to save "{fname}": Permission denied.')
             key = input("Close file and try again? [Yn] ")

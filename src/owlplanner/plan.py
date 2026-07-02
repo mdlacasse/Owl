@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 from datetime import date, datetime
 from functools import wraps
+from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 import time
@@ -1731,6 +1732,77 @@ class Plan:
             export._format_fixed_assets_sheet(ws)
 
         return wb
+
+    def saveHFP(self, basename=None, overwrite=False):
+        """
+        Save the Household Financial Profile (HFP) as an Excel workbook.
+
+        This is the write counterpart of readHFP(): the workbook contains one
+        sheet per individual (wages, contributions, Roth conversions,
+        big-ticket items) plus the Debts and Fixed Assets sheets, and can be
+        read back with readHFP().
+
+        If the plan's time lists are stale with respect to its internal
+        arrays (e.g., the plan was populated programmatically by writing
+        directly into omega_in, kappa_ijn, etc.), the time lists are first
+        reconstructed from the arrays and stored on the plan. This
+        reconstruction writes tax-deferred contributions to the '401k ctrb'
+        column and tax-free contributions to the 'Roth IRA ctrb' column, as
+        the original column split is not retained internally.
+
+        On success, hfpFileName is updated so that a subsequent saveConfig()
+        references the saved workbook.
+
+        Parameters
+        ----------
+        basename : str, optional
+            Base name for the file. Defaults to the plan name. The file is
+            saved as 'HFP_<basename>.xlsx' unless basename already contains
+            a file extension, in which case it is used verbatim.
+        overwrite : bool, default False
+            When False, prompt for confirmation before overwriting an
+            existing file.
+
+        Returns
+        -------
+        str or None
+            The name of the file saved, or None if saving was skipped.
+        """
+        # Time lists are stale when the plan was populated by writing directly
+        # into the arrays. Keep them when they still agree with the arrays, as
+        # they preserve the 401k/IRA column split that the arrays merge.
+        rebuilt, _ = hfp_io.build_hfp_dataframes(self)
+        compare = self.timeLists
+        if compare and all(iname in compare for iname in self.inames):
+            # setContributions() zeroes HSA contributions past Medicare enrollment
+            # in the arrays only; apply the same clip to a comparison copy so such
+            # rows do not flag the time lists as stale.
+            compare = {iname: compare[iname].copy() for iname in self.inames}
+            for i, iname in enumerate(self.inames):
+                df = compare[iname]
+                n_stop, h = self.n_hsa_i[i], self.horizons[i]
+                if "HSA ctrb" in df.columns and n_stop < h:
+                    df.iloc[5 + n_stop : 5 + h, df.columns.get_loc("HSA ctrb")] = 0.0
+        if not hfp_io.time_lists_agree(compare, rebuilt):
+            self.timeLists = rebuilt
+
+        wb = self.saveContributions()
+
+        if basename is None:
+            basename = self._name
+
+        if Path(basename).suffixes == []:
+            if not basename.startswith("HFP_"):
+                basename = "HFP_" + basename
+            fname = basename + ".xlsx"
+        else:
+            fname = basename
+
+        fname = export._save_workbook(wb, fname, overwrite, self.mylog)
+        if fname is not None:
+            self.hfpFileName = fname
+
+        return fname
 
     def zeroWagesAndContributions(self):
         """

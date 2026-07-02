@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from datetime import date
+import numpy as np
 import pandas as pd
 
 from . import utils as u
@@ -392,6 +393,124 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
         mylog.vprint(f"Found {len(df)} valid row(s) in {tableType} table.")
 
     return df
+
+
+def build_hfp_dataframes(plan):
+    """
+    Reconstruct HFP time lists and household tables from a plan's internal arrays.
+
+    This is used to export an HFP workbook from a Plan that was populated
+    programmatically (i.e., without readHFP or setContributions). Values are
+    read from the plan's arrays (omega_in, other_inc_in, netinv_in, Lambda_in,
+    kappa_ijn, myRothX_in), including the 5 lead-in years preceding the current
+    year that feed the Roth 5-year maturation rule.
+
+    Note that the internal arrays merge '401k ctrb' with 'IRA ctrb'
+    (tax-deferred) and 'Roth 401k ctrb' with 'Roth IRA ctrb' (tax-free);
+    the original column split cannot be recovered. Merged amounts are written
+    to the '401k ctrb' and 'Roth IRA ctrb' columns respectively.
+
+    Parameters
+    ----------
+    plan : Plan
+        The plan to extract HFP data from.
+
+    Returns
+    -------
+    tuple of (dict, dict)
+        (timeLists, houseLists): timeLists maps each individual's name to a
+        DataFrame with _timeHorizonItems columns; houseLists contains the
+        'Debts' and 'Fixed Assets' DataFrames.
+    """
+    # Rows 0..4 are the 5 lead-in years before thisyear; row 5+n = plan year n.
+    # This mirrors the layout produced by read() and consumed by Plan.setContributions().
+    lead_in = 5
+    thisyear = date.today().year
+    timeLists = {}
+    for i, iname in enumerate(plan.inames):
+        h = int(plan.horizons[i])
+        years = list(range(thisyear - lead_in, thisyear + h))
+        df = pd.DataFrame(0.0, index=range(len(years)), columns=_timeHorizonItems)
+        df["year"] = years
+        for n in range(h):
+            row = lead_in + n
+            df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
+            df.at[row, "other inc"] = float(plan.other_inc_in[i, n])
+            df.at[row, "net inv"] = float(plan.netinv_in[i, n])
+            df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
+            df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
+            df.at[row, "401k ctrb"] = float(plan.kappa_ijn[i, 1, n])
+            df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
+            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n])
+            df.at[row, "Roth conv"] = float(plan.myRothX_in[i, n])
+        # Lead-in years live in the last 5 slots of kappa_ijn and myRothX_in.
+        for r in range(lead_in):
+            slot = plan.N_n + r
+            df.at[r, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, slot])
+            df.at[r, "401k ctrb"] = float(plan.kappa_ijn[i, 1, slot])
+            df.at[r, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, slot])
+            df.at[r, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, slot])
+            df.at[r, "Roth conv"] = float(plan.myRothX_in[i, slot])
+        timeLists[iname] = df
+
+    houseLists = {
+        "Debts": plan.houseLists.get("Debts", pd.DataFrame(columns=_debtItems)),
+        "Fixed Assets": plan.houseLists.get("Fixed Assets", pd.DataFrame(columns=_fixedAssetItems)),
+    }
+
+    return timeLists, houseLists
+
+
+def time_lists_agree(a, b):
+    """
+    Check whether two time-list dictionaries represent the same values.
+
+    Columns that are merged in the plan's internal arrays ('401k ctrb' +
+    'IRA ctrb', and 'Roth 401k ctrb' + 'Roth IRA ctrb') are compared as sums.
+    Used by Plan.saveHFP() to detect time lists that are stale with respect
+    to the plan's arrays (e.g., when a plan was populated by writing directly
+    into the arrays).
+
+    Parameters
+    ----------
+    a, b : dict
+        Dictionaries mapping individual names to time-list DataFrames.
+
+    Returns
+    -------
+    bool
+        True if both represent the same values.
+    """
+    if a is None or b is None or set(a.keys()) != set(b.keys()):
+        return False
+
+    plainCols = [
+        "anticipated wages",
+        "other inc",
+        "net inv",
+        "taxable ctrb",
+        "HSA ctrb",
+        "Roth conv",
+        "big-ticket items",
+    ]
+    mergedCols = [("401k ctrb", "IRA ctrb"), ("Roth 401k ctrb", "Roth IRA ctrb")]
+    allCols = plainCols + [col for pair in mergedCols for col in pair] + ["year"]
+    for iname in a:
+        dfa, dfb = a[iname], b[iname]
+        if any(col not in df.columns for df in (dfa, dfb) for col in allCols):
+            return False
+        if len(dfa) != len(dfb) or not np.array_equal(dfa["year"].to_numpy(), dfb["year"].to_numpy()):
+            return False
+        for col in plainCols:
+            if not np.allclose(dfa[col].to_numpy(dtype=float), dfb[col].to_numpy(dtype=float)):
+                return False
+        for col1, col2 in mergedCols:
+            suma = dfa[col1].to_numpy(dtype=float) + dfa[col2].to_numpy(dtype=float)
+            sumb = dfb[col1].to_numpy(dtype=float) + dfb[col2].to_numpy(dtype=float)
+            if not np.allclose(suma, sumb):
+                return False
+
+    return True
 
 
 def getTableTypes(tableType):

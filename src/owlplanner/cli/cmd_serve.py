@@ -47,7 +47,7 @@ from owlplanner.config.plan_bridge import plan_to_config
 from owlplanner.config.toml_io import save_toml
 from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_options
 from owlplanner.export import plan_metrics
-from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF
+from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF, build_hfp_dataframes
 from owlplanner.rate_models.loader import get_all_models_metadata, RATE_MODEL_ALIASES
 from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_TABLE_INFO
 from owlplanner.socialsecurity import getFRAs, getSelfFactor
@@ -944,43 +944,6 @@ def _build_plan_from_params(
     return plan
 
 
-def _build_hfp_dataframes(plan):
-    """Reconstruct timeLists and houseLists DataFrames from plan arrays for HFP export."""
-    from owlplanner.hfp_io import _timeHorizonItems  # noqa: PLC2701
-
-    # Row 0..4 are the 5 lead-in years before thisyear; row 5+n = plan year n.
-    # This mirrors the layout written by hfp_io and read by setContributions.
-    assert _timeHorizonItems[0] == "year", "HFP column layout has changed; update the row-offset logic here to match."
-    _LEAD_IN = 5
-    thisyear = datetime.date.today().year
-    tl = {}
-    for i, iname in enumerate(plan.inames):
-        h = int(plan.horizons[i])
-        years = list(range(thisyear - _LEAD_IN, thisyear + h))
-        n_rows = len(years)
-        df = pd.DataFrame(0.0, index=range(n_rows), columns=_timeHorizonItems)
-        df["year"] = years
-        for n in range(h):
-            row = _LEAD_IN + n
-            df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
-            df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
-            df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
-            df.at[row, "401k ctrb"] = float(plan.kappa_ijn[i, 1, n])
-            df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
-            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n])
-            df.at[row, "Roth conv"] = float(plan.myRothX_in[i, n])
-        tl[iname] = df
-
-    hl = {}
-    from owlplanner.hfp_io import _debtItems, _fixedAssetItems  # noqa: PLC2701
-
-    debts_df = plan.houseLists.get("Debts", pd.DataFrame(columns=_debtItems))
-    fa_df = plan.houseLists.get("Fixed Assets", pd.DataFrame(columns=_fixedAssetItems))
-    hl["Debts"] = debts_df
-    hl["Fixed Assets"] = fa_df
-    return tl, hl
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_from_params
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1711,7 +1674,7 @@ def save_case(
 
     # HFP Excel: one sheet per person (time horizons) + Debts + Fixed Assets
     hfp_path = out / hfp_filename
-    tl, hl = _build_hfp_dataframes(plan)
+    tl, hl = build_hfp_dataframes(plan)
     try:
         with pd.ExcelWriter(str(hfp_path), engine="openpyxl") as writer:
             for iname, df in tl.items():

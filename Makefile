@@ -40,10 +40,10 @@ lock: ## Upgrade uv.lock (owlplanner version is recorded natively)
 
 update: sync-version lock requirements ## Sync version, upgrade uv.lock, and regenerate requirements.txt
 
-test-mosek:
+tests-mosek:
 	OWL_TEST_SOLVER=mosek uv --verbose run pytest -n auto
 
-test-highs:
+tests-highs:
 	OWL_TEST_SOLVER=highs uv --verbose run pytest -n auto
 
-tests: test-mosek test-highs
+tests: tests-mosek tests-highs

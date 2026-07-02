@@ -1,3 +1,13 @@
+### Version 2026.7.3
+
+#### New: save the Household Financial Profile back to a workbook
+`Plan.saveHFP()` writes the HFP currently in effect to an Excel workbook that `readHFP()`
+can read back, making the HFP a bidirectional serialization format (discussion #131).
+Plans populated programmatically (values written from Python) have their time lists
+reconstructed from the plan's arrays; plans loaded from an HFP preserve the original
+401k/IRA column splits. On success, the plan's HFP filename is updated so a subsequent
+`saveConfig()` references the saved workbook.
+
 ### Version 2026.7.2
 
 #### Maintenenace

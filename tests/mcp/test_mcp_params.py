@@ -19,9 +19,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from owlplanner.hfp_io import build_hfp_dataframes
 from owlplanner.cli.cmd_serve import (
     _build_plan_from_params,
-    _build_hfp_dataframes,
     _run_from_params_blocking,
     _ss_ages_opt,
     _swap_roth_converters_value,
@@ -535,7 +535,7 @@ def test_spia_already_purchased_no_premium():
 
 
 # ---------------------------------------------------------------------------
-# _build_hfp_dataframes
+# build_hfp_dataframes (owlplanner.hfp_io)
 # ---------------------------------------------------------------------------
 
 
@@ -548,7 +548,7 @@ def test_build_hfp_dataframes_sheets():
             {"label": "house", "type": "residence", "value": 700_000, "basis": 350_000, "sell_year": THISYEAR + 8}
         ],
     )
-    tl, hl = _build_hfp_dataframes(plan)
+    tl, hl = build_hfp_dataframes(plan)
     assert "Alice" in tl
     assert "Bob" in tl
     assert "Debts" in hl
@@ -557,7 +557,7 @@ def test_build_hfp_dataframes_sheets():
 
 def test_build_hfp_dataframes_wages_roundtrip():
     plan = _single(wages=[{"person": 0, "annual_amount": 90_000, "end_year": THISYEAR + 4}])
-    tl, _ = _build_hfp_dataframes(plan)
+    tl, _ = build_hfp_dataframes(plan)
     df = tl["Martin"]
     # Row 5 = THISYEAR (offset 5 past the 5 preamble years)
     assert df["anticipated wages"].iloc[5] == pytest.approx(90_000)
@@ -572,7 +572,7 @@ def test_build_hfp_dataframes_roth_conv_roundtrip():
             {"person": 0, "year": THISYEAR + 1, "amount": -1},
         ]
     )
-    tl, _ = _build_hfp_dataframes(plan)
+    tl, _ = build_hfp_dataframes(plan)
     df = tl["Martin"]
     # Row 5 = THISYEAR (offset 5 past the 5 preamble years)
     assert df["Roth conv"].iloc[5] == pytest.approx(20_000)
@@ -582,7 +582,7 @@ def test_build_hfp_dataframes_roth_conv_roundtrip():
 
 def test_build_hfp_dataframes_year_column():
     plan = _single()
-    tl, _ = _build_hfp_dataframes(plan)
+    tl, _ = build_hfp_dataframes(plan)
     df = tl["Martin"]
     assert df["year"].iloc[0] == THISYEAR - 5
     assert df["year"].iloc[5] == THISYEAR
