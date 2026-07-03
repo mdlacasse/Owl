@@ -42,7 +42,7 @@ def _make_plan(name, remaining_years=30):
 
 def _make_couple(name, remaining_years=(30, 25)):
     birth_years = [1970, 1972]
-    expectancies = [(thisyear - by) + ry for by, ry in zip(birth_years, remaining_years)]
+    expectancies = [(thisyear - by) + ry for by, ry in zip(birth_years, remaining_years, strict=True)]
     return owl.Plan(["Alice", "Bob"], ["1970-01-15", "1972-06-30"], expectancies, name, verbose=False)
 
 

@@ -31,28 +31,34 @@ import owlplanner as owl
 
 # Updated after HFP dollar conversion ($ not $k) in update_hfp_coverage.py
 # Note: reference values below were established with HiGHS; verify on MOSEK if values diverge.
-# After the MAGI SS-basis fix, jack+jill maxBequest diverges slightly by solver (HiGHS
-# ~951_805, MOSEK ~951_751); BEQUEST1 is set to the midpoint so both pass within ABS_TOL.
+# Updated after removing the explicit HSA deduction: wages are now entered net of all
+# contributions (HSA included), so the jack+jill case no longer gets a phantom HSA deduction.
 if platform == "darwin":
-    SPENDING1 = 89_356
-    BEQUEST1 = 951_778
-    SPENDING2 = 99_493
-    SPENDING1_FIXED = 93_548
+    SPENDING1 = 89_112
+    BEQUEST1 = 939_900
+    SPENDING2 = 99_246
+    SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 89_356
-    BEQUEST1 = 951_778
-    SPENDING2 = 99_493
-    SPENDING1_FIXED = 93_548
+    SPENDING1 = 89_112
+    BEQUEST1 = 939_900
+    SPENDING2 = 99_246
+    SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 89_356
-    BEQUEST1 = 951_778
-    SPENDING2 = 99_493
-    SPENDING1_FIXED = 93_548
+    SPENDING1 = 89_112
+    BEQUEST1 = 939_900
+    SPENDING2 = 99_246
+    SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 else:
     raise RuntimeError(f"Unknown platform {platform!r}: no reference reproducibility values defined")
+
+# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for the
+# jack+jill maxBequest case (939_566 vs 939_900 after the HSA-deduction removal).
+# The conftest session fixture pins the solver to HiGHS unless OWL_TEST_SOLVER=mosek.
+if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek":
+    BEQUEST1 = 939_566
 
 REL_TOL = 3e-5
 ABS_TOL = 50.0  # Widened from 20 to tolerate minor HiGHS version differences across Python releases

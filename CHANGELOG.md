@@ -8,6 +8,30 @@ reconstructed from the plan's arrays; plans loaded from an HFP preserve the orig
 401k/IRA column splits. On success, the plan's HFP filename is updated so a subsequent
 `saveConfig()` references the saved workbook.
 
+#### Behavior change: uniform wages convention — HSA contributions now netted out of wages
+The *anticipated wages* column of the HFP is now defined as earned income net of **all**
+contribution columns, with no exceptions. Previously, HSA contributions were the odd one
+out: wages were entered gross of HSA and **Owl** deducted the contribution from taxable
+income, provisional income, and MAGI itself — while the same dollars also remained counted
+as spendable cash. The explicit deductions have been removed from the optimization model:
+like every other contribution, HSA contributions are now excluded from both cash flow and
+taxable income through the wages entry alone. This makes HSA treatment exact on both sides,
+avoids over-deducting employer HSA contributions (which were never part of wages), and
+brings the implementation in line with the equations of the accompanying paper, which never
+included an explicit HSA deduction term.
+
+**Migration**: if your HFP has nonzero *HSA ctrb* entries, lower *anticipated wages* in
+those years by your own (payroll) HSA contributions. Cases with no HSA contributions are
+unaffected. Expect slightly lower optimized spending/bequest for HSA cases (the former
+deduction was a phantom benefit; all example cases shifted by roughly −0.3%).
+
+The Wages and Contributions documentation was also tightened overall: it now states the
+net-of-all-contributions convention precisely (employer portions in the *ctrb* columns are
+never subtracted from wages), notes that contributions are not re-subtracted from the
+annual cash-flow balance, and documents explicitly that after-tax (non-deductible)
+contributions to tax-deferred accounts are not supported — no cost basis is tracked, so
+every dollar withdrawn or converted is fully taxable.
+
 ### Version 2026.7.2
 
 #### Maintenenace

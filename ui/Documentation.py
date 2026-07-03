@@ -392,10 +392,8 @@ The twelve columns are described below, in the order they appear in the table (f
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
 - *anticipated wages* is the annual employment income you anticipate, entered **net of all
-  contributions** listed in the *ctrb* columns, with one exception: do **not** subtract *HSA ctrb*,
-  which **Owl** deducts from taxable income automatically. In other words, enter gross earned income
-  minus *taxable ctrb*, *401k ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* (the employer
-  portion included in *401k ctrb* was never part of your wages and is therefore not subtracted).
+  contributions** listed in the *ctrb* columns (employer portions included in the *ctrb* columns
+  were never part of your wages and are therefore not subtracted).
   **Owl** uses this single amount both as cash available to the plan and as taxable employment
   income. As a known simplification, income tax on the dollars contributed to Roth and taxable
   accounts is therefore not modeled during the working years. This column is not meant to include
@@ -418,9 +416,9 @@ leave it blank where it does not apply), where:
   above. Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
   supported: amounts entered in *401k ctrb* or *IRA ctrb* are treated as pre-tax, and no cost basis
   is tracked (every dollar later withdrawn or converted is fully taxable).
-- *HSA ctrb* is HSA contributions in nominal dollars; they are pre-tax and reduce AGI. Unlike the
-  other *ctrb* columns, do **not** subtract HSA contributions from *anticipated wages*: **Owl**
-  performs this deduction itself. Values are
+- *HSA ctrb* is HSA contributions in nominal dollars. Like the other *ctrb* columns, subtract them
+  from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
+  taxable income. Values are
   automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
 - *Roth conv* lets you override **Owl**'s Roth conversion optimization on a year-by-year,
   individual-by-individual basis, when the toggle `Use Roth conversion overrides from Wages and

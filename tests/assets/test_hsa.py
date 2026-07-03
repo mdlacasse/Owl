@@ -72,20 +72,27 @@ def test_hsa_increases_spending():
     )
 
 
-def test_hsa_contribution_deduction():
-    """HSA contributions reduce taxable income (e_n)."""
-    p_base = _make_plan()
+def test_hsa_contribution_no_explicit_deduction():
+    """HSA contributions get no explicit deduction: wages are entered net of
+    all contributions, so taxable income must not drop when only kappa changes."""
+    # Younger person so contributions actually occur before Medicare age.
+    young = {"inames": ["TestUser"], "dobs": ["1980-01-15"], "expectancy": [88]}
+    hsa_ctrb = 4.3  # $4,300/yr HSA contributions
+
+    p_base = _make_plan(**young)
     _configure_plan(p_base)
     p_base.solve("maxSpending")
-    avg_e_base = np.mean(p_base.e_n[:10])
 
-    p_hsa = _make_plan()
-    _configure_plan(p_hsa, hsa_ctrb=4.3)  # $4,300/yr HSA contributions
+    p_hsa = _make_plan(**young)
+    _configure_plan(p_hsa, hsa_ctrb=hsa_ctrb)
+    assert p_hsa.n_hsa_i[0] >= 10, "test setup: contributions must occur"
     p_hsa.solve("maxSpending")
-    avg_e_hsa = np.mean(p_hsa.e_n[:10])
 
-    assert avg_e_hsa < avg_e_base + 1.0, (
-        f"HSA contributions should reduce taxable income: {avg_e_hsa:.0f} >= {avg_e_base:.0f}"
+    avg_e_base = np.mean(p_base.e_n[:10])
+    avg_e_hsa = np.mean(p_hsa.e_n[:10])
+    # Old model deducted kappa from taxable income; new model must not.
+    assert avg_e_hsa > avg_e_base - 0.5 * hsa_ctrb * 1000, (
+        f"HSA contributions should not reduce taxable income: {avg_e_hsa:.0f} vs {avg_e_base:.0f}"
     )
 
 

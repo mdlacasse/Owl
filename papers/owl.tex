@@ -258,10 +258,9 @@ Each individual has their own sheet with the following year-indexed columns:
 \begin{itemize}[nosep]
   \item \textit{year} --- calendar year;
   \item \textit{anticipated wages} --- earned income expected for that year,
-    entered net of all amounts listed in the \textit{ctrb} columns, with the
-    exception of \textit{HSA ctrb}, which Owl deducts from taxable income
-    itself (the employer portion included in \textit{401k ctrb} is likewise
-    not subtracted, as it was never part of wages). This single amount serves
+    entered net of all amounts listed in the \textit{ctrb} columns (employer
+    portions included in the \textit{ctrb} columns are not subtracted, as
+    they were never part of wages). This single amount serves
     both as cash available to the plan and as taxable employment income; as a
     known simplification, income tax on the dollars contributed to Roth and
     taxable accounts is therefore not modeled during the working years;
@@ -586,11 +585,12 @@ Because the dominant retiree use is funding qualified medical expenses, all
 HSA withdrawals are treated as tax-free (simplified model); see Limitations below.
 The key modeling choices are as follows.
 \begin{itemize}[nosep]
-  \item \textit{Contributions reduce taxable income.}
-    Annual HSA contributions are deducted from ordinary taxable income, from
-    provisional income used to compute Social Security taxability, and from
-    the modified adjusted gross income (MAGI) used in the two-year Medicare
-    IRMAA lookback.
+  \item \textit{Contributions are pre-tax.}
+    As with all contributions, anticipated wages are entered net of HSA
+    contributions (Section~\ref{sec:cfhfp}), which excludes the contributed
+    dollars from ordinary taxable income, from provisional income used to
+    compute Social Security taxability, and from the modified adjusted gross
+    income (MAGI) used in the two-year Medicare IRMAA lookback.
     Contributions are zeroed automatically at Medicare enrollment age; HFP entries past age~65 are ignored.
   \item \textit{Withdrawals are tax-free and fund any expense.}
     HSA withdrawals enter the annual cash-flow balance at full dollar value,
@@ -1017,8 +1017,8 @@ During the year the following flows are applied:
     starting age;
   \item any spending surplus---income exceeding expenses in a given
     year---is deposited back into the taxable account;
-  \item HSA contributions reduce ordinary income (pre-tax) and cease at
-    Medicare enrollment;
+  \item HSA contributions are pre-tax (netted out of anticipated wages) and
+    cease at Medicare enrollment;
     HSA withdrawals fund qualified medical expenses entirely tax-free and
     are not included in taxable income;
   \item at the death of the first spouse, a user-specified fraction
@@ -1753,14 +1753,15 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
 	as savings account balances are assumed to be rebalanced periodically.
-	For the $(j=3)$ HSA, contributions $\kappa_{i3n}$ are pre-tax: they reduce ordinary
-	taxable income, provisional income for Social Security taxability, and MAGI for
-	Medicare IRMAA purposes in year $n$.
+	For the $(j=3)$ HSA, contributions $\kappa_{i3n}$ are pre-tax: as with all
+	contributions, wages $\omega_{in}$ are entered net of these amounts, which
+	excludes them from taxable income, provisional income for Social Security
+	taxability, and MAGI for Medicare IRMAA purposes in year $n$.
 	HSA contributions are zeroed for $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, when
 	individual $i$ enrolls in Medicare (typically at age~65).
 \item [$\omega_{in}$]
-	Sum of wages earned by individual $i$ during year $n$, net of account
-	contributions other than HSA (see Section~\ref{sec:cfhfp}).
+	Sum of wages earned by individual $i$ during year $n$, net of all account
+	contributions (see Section~\ref{sec:cfhfp}).
 	Do not confuse wages $\omega$ with withdrawals $w$.
 \item [$\upsilon_{in}$]
 	Other ordinary income for individual $i$ in year $n$, beyond wages, pension, and Social Security.

@@ -1524,8 +1524,7 @@ class Plan:
         Missing rows (years) are populated with zero values.
 
         Convention: 'anticipated wages' must be entered net of all
-        contribution columns except 'HSA ctrb', which Owl deducts from
-        taxable income itself. Contributions are deposited into their
+        contribution columns. Contributions are deposited into their
         accounts and are not subtracted from the annual cash flow.
 
         Parameters
@@ -2609,8 +2608,6 @@ class Plan:
                         + self.piBar_in[i, n]
                         + self.spiaBar_in[i, n]
                     )
-                # HSA contributions are pre-tax deductions (reduce ordinary taxable income).
-                rhs -= self.kappa_ijn[i, 3, n]
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
                 # Only positive returns are taxable (interest/dividends); losses don't reduce income.
@@ -2765,7 +2762,6 @@ class Plan:
                     + self.spiaBar_in[i, n]
                     + 0.5 * self.kappa_ijn[i, 0, n] * afac
                 )  # half-period contribution yield
-                rhs_pi -= self.kappa_ijn[i, 3, n]  # HSA contributions reduce provisional income
 
             # Variable index shorthands.
             plo_idx = self.vm["plo"].idx(n)
@@ -3233,7 +3229,6 @@ class Plan:
                 if not ss_lp:
                     sumoni += self.Psi_n[n2] * self.zetaBar_in[i, n2]  # taxable SS (SC-loop param)
                 rhs += sumoni
-                rhs -= self.kappa_ijn[i, 3, n2]  # HSA contributions reduce MAGI
 
             if ss_lp:
                 row.addElem(self.vm["tss"].idx(n2), -1)  # taxable SS (LP var) on LHS
@@ -3338,7 +3333,6 @@ class Plan:
                     + self.spiaBar_in[i, n]
                     + 0.5 * self.kappa_ijn[i, 0, n] * afac
                 )
-                rhs_magi -= self.kappa_ijn[i, 3, n]  # HSA contributions reduce MAGI
 
             for r in range(tx.N_ACA_R):
                 haca_idx = self.vm["haca"].idx(nn, r)

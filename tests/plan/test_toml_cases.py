@@ -94,30 +94,34 @@ def getHFP(exdir, case, check_exists=True):
 # only; ACA and SS-taxability keep full-SS MAGI_aca_n): jack+jill net 102_978 -> 102_880
 # (darwin, verified). linux/win32 received the same -98 delta as a best-effort estimate and
 # should be confirmed by CI / a native run.
+# Updated after removing the explicit HSA deduction (wages are now entered net of all
+# contributions, HSA included): all six cases carry HSA contributions, so every value
+# shifted slightly down (darwin, verified). jack+jill linux/win32 received the same -259
+# delta as a best-effort estimate and should be confirmed by CI.
 if platform == "darwin":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 145_000,
-            "bequest": 92_802,
+            "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_881,
+            "net_spending_basis": 102_622,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_237,
+            "net_spending_basis": 93_044,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 186_663,
+            "net_spending_basis": 186_349,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_987_810,
+            "bequest": 1_963_700,
         },
         "Case_robin": {
-            "net_spending_basis": 44_383,
+            "net_spending_basis": 44_348,
             "bequest": 50_000,
         },
     }
@@ -125,26 +129,26 @@ elif platform == "linux":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 145_000,
-            "bequest": 92_802,
+            "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 103_063,
+            "net_spending_basis": 102_804,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_237,
+            "net_spending_basis": 93_044,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 186_663,
+            "net_spending_basis": 186_349,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_987_810,
+            "bequest": 1_963_700,
         },
         "Case_robin": {
-            "net_spending_basis": 44_383,
+            "net_spending_basis": 44_348,
             "bequest": 50_000,
         },
     }
@@ -152,26 +156,26 @@ elif platform == "win32":
     EXPECTED_OBJECTIVE_VALUES = {
         "Case_john+sally": {
             "net_spending_basis": 145_000,
-            "bequest": 92_802,
+            "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 103_063,
+            "net_spending_basis": 102_804,
             "bequest": 400_000,
         },
         "Case_joe": {
-            "net_spending_basis": 93_237,
+            "net_spending_basis": 93_044,
             "bequest": 300_000,
         },
         "Case_kim+sam-spending": {
-            "net_spending_basis": 186_663,
+            "net_spending_basis": 186_349,
             "bequest": 0,
         },
         "Case_kim+sam-bequest": {
             "net_spending_basis": 145_000,
-            "bequest": 1_987_810,
+            "bequest": 1_963_700,
         },
         "Case_robin": {
-            "net_spending_basis": 44_383,
+            "net_spending_basis": 44_348,
             "bequest": 50_000,
         },
     }
@@ -191,9 +195,10 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # (~103_192 vs HiGHS ~102_881) after the LTCG bracket-partition and state-tax LP fixes.
+    # (~103_129 vs HiGHS ~102_622) after the LTCG bracket-partition and state-tax LP fixes
+    # and the HSA-deduction removal.
     if _active_solver() == "MOSEK":
-        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 103_192
+        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 103_129
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
