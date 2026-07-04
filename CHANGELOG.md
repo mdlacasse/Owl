@@ -1,3 +1,10 @@
+### Version 2026.7.4
+
+#### Bug
+Fix broken imports incorrectly removed by linter that prevented the UI from functioning properly.
+
+---
+
 ### Version 2026.7.3
 
 #### New: save the Household Financial Profile back to a workbook
@@ -32,13 +39,17 @@ annual cash-flow balance, and documents explicitly that after-tax (non-deductibl
 contributions to tax-deferred accounts are not supported — no cost basis is tracked, so
 every dollar withdrawn or converted is fully taxable.
 
+---
+
 ### Version 2026.7.2
 
-#### Maintenenace
+#### Maintenance
 - Update dependencies due to vulnerabilities identified by GitHub's dependabot.
 
 #### Documentation
 - Improve documentation on how to build HFP file.
+
+---
 
 ### Version 2026.6.18
 
@@ -49,7 +60,7 @@ Using URL for images pointing to GitHub brings two benefits:
 - Bypass the caching service, avoiding the race condition
 - Allow pypi.org to display images when re-using the README.md file per default.
 
-But is hasAnd inconvenient:
+But it has an inconvenience:
 - **Owl** needs web access to be able to load images.
 
 If a case surfaces where a user needs to run Owl in airgap mode we can revisit
