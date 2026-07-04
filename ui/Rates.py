@@ -23,7 +23,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 from datetime import date
 
-from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS, GARCH_DCC_MIN_OBSERVATIONS, STOCHASTIC_METHODS
+from owlplanner.rate_models.constants import (
+    CONSTRAIN_MEAN_METHODS,
+    FIXED_TYPE_UI,
+    GARCH_DCC_MIN_OBSERVATIONS,
+    STOCHASTIC_METHODS,
+)
 
 import sskeys as kz
 import owlbridge as owb
@@ -33,7 +38,7 @@ import case_progress as cp
 def _get_fx_rates():
     """Build FXRATES from canonical fixed rate methods. Single source of truth."""
     # Use FIXED_TYPE_UI order; values from owlplanner.rates.get_fixed_rate_values
-    methods = owb.FIXED_TYPE_UI
+    methods = FIXED_TYPE_UI
     result = {}
     for m in methods:
         if m == "historical_average":

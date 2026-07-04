@@ -23,6 +23,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import streamlit as st
 from datetime import date
 
+from owlplanner.hfp_io import getTableTypes
+
 import sskeys as kz
 import owlbridge as owb
 import tomlexamples as tomlex
@@ -156,7 +158,7 @@ For these initial five years, only Roth-related entries are read; all other colu
         st.markdown("#### :orange[Debts]")
 
         # Get debt types from owlbridge to ensure consistency with validation logic
-        debtTypes = owb.getTableTypes("Debts")
+        debtTypes = getTableTypes("Debts")
 
         # Get existing debts or create empty DataFrame
         debtdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListDebts"), "Debts")
@@ -234,7 +236,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
         st.markdown("#### :orange[Fixed Assets]")
 
         # Get fixed asset types from owlbridge to ensure consistency with validation logic
-        fixedTypes = owb.getTableTypes("Fixed Assets")
+        fixedTypes = getTableTypes("Fixed Assets")
 
         # Get existing fixed assets or create empty DataFrame
         fixeddf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")

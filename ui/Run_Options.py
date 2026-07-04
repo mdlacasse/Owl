@@ -26,6 +26,7 @@ from datetime import date
 import sskeys as kz
 import owlbridge as owb
 import case_progress as cp
+from moseklicense import hasMOSEK
 
 
 kz.initCaseKey("computeMedicare", True)
@@ -337,7 +338,7 @@ else:
         kz.initCaseKey("solver", choices[0])
         kz.initCaseKey("xtraOptions", "")
 
-        if owb.hasMOSEK():
+        if hasMOSEK():
             choices += ["MOSEK"]
         elif kz.getCaseKey("solver") == "MOSEK":
             kz.setCaseKey("solver", choices[0])
@@ -351,7 +352,7 @@ else:
             )
             ret = kz.getRadio("Linear programming solver", choices, "solver", help=helpmsg)
             if kz.getCaseKey("solver") == "default":
-                resolved = "MOSEK" if owb.hasMOSEK() else "HiGHS"
+                resolved = "MOSEK" if hasMOSEK() else "HiGHS"
                 st.caption(f"Will use: **{resolved}**")
         with col2:
             helpmsg = (
