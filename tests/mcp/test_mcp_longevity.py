@@ -9,7 +9,7 @@ import json
 
 import pytest
 
-from owlplanner.cli.cmd_serve import list_mortality_tables, run_longevity_stochastic
+from owlplanner.assistant.tools import list_mortality_tables, run_longevity_stochastic
 
 _SINGLE = dict(
     sexes=["F"],

@@ -1,5 +1,23 @@
 ### Version 2026.7.4
 
+#### New: MCP solve tools report their assumptions (`assumed_defaults`)
+The params-driven MCP tools (`run_from_params`, `save_case`, `run_stochastic`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now report the material
+assumptions made for omitted parameters in an `assumed_defaults` field of the response:
+state (assumed TX — no state income tax), fixed `conservative` returns, taxable cost basis
+(current-year appreciation only), missing Social Security benefits or claiming ages,
+default 60/40→40/60 allocation glide, smile spending profile, couple survivor fraction,
+heirs' tax rate, prior-year MAGIs (IRMAA lookback), and un-modeled pre-65 ACA coverage.
+AI clients are instructed to relay these assumptions and ask for true values when they
+matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
+parameters now default to "unspecified" rather than silently assuming values.
+
+#### Refactor: MCP tool implementations moved to `owlplanner.assistant.tools`
+The fourteen MCP tool functions were extracted from `owlplanner/cli/cmd_serve.py` into a
+new `owlplanner/assistant/tools.py` module that imports neither `mcp` nor `click`, so the
+same tools can be reused by other assistant front ends. `cmd_serve.py` now only registers
+the tools with FastMCP and provides the `owlcli serve` entry point. No behavior change.
+
 #### Bug
 Fix broken imports incorrectly removed by linter that prevented the UI from functioning properly.
 

@@ -325,7 +325,7 @@ def test_compare_pct_change_contains_key_metrics():
 
 
 def test_mcp_list_cases_returns_array():
-    from owlplanner.cli.cmd_serve import list_cases
+    from owlplanner.assistant.tools import list_cases
 
     result = json.loads(list_cases("examples"))
     assert isinstance(result, list)
@@ -333,7 +333,7 @@ def test_mcp_list_cases_returns_array():
 
 
 def test_mcp_list_cases_entry_structure():
-    from owlplanner.cli.cmd_serve import list_cases
+    from owlplanner.assistant.tools import list_cases
 
     result = json.loads(list_cases("examples"))
     entry = result[0]
@@ -342,14 +342,14 @@ def test_mcp_list_cases_entry_structure():
 
 
 def test_mcp_list_cases_nonexistent_dir():
-    from owlplanner.cli.cmd_serve import list_cases
+    from owlplanner.assistant.tools import list_cases
 
     result = json.loads(list_cases("nonexistent_dir_xyz"))
     assert "error" in result
 
 
 def test_mcp_explain_case_valid():
-    from owlplanner.cli.cmd_serve import explain_case
+    from owlplanner.assistant.tools import explain_case
 
     result = json.loads(explain_case(JACK_TOML))
     assert result["case_name"] == "jack+jill"
@@ -358,21 +358,21 @@ def test_mcp_explain_case_valid():
 
 
 def test_mcp_explain_case_invalid_file():
-    from owlplanner.cli.cmd_serve import explain_case
+    from owlplanner.assistant.tools import explain_case
 
     result = json.loads(explain_case("nonexistent.toml"))
     assert "error" in result
 
 
 def test_mcp_explain_case_with_override():
-    from owlplanner.cli.cmd_serve import explain_case
+    from owlplanner.assistant.tools import explain_case
 
     result = json.loads(explain_case(JACK_TOML, ["basic_info.state=MN"]))
     assert result["state"] == "MN"
 
 
 def test_mcp_list_rate_models_all():
-    from owlplanner.cli.cmd_serve import list_rate_models
+    from owlplanner.assistant.tools import list_rate_models
 
     result = json.loads(list_rate_models("all"))
     assert len(result["models"]) >= 17
@@ -380,7 +380,7 @@ def test_mcp_list_rate_models_all():
 
 
 def test_mcp_list_rate_models_filtered():
-    from owlplanner.cli.cmd_serve import list_rate_models
+    from owlplanner.assistant.tools import list_rate_models
 
     result = json.loads(list_rate_models("single"))
     for m in result["models"]:
@@ -388,7 +388,7 @@ def test_mcp_list_rate_models_filtered():
 
 
 def test_mcp_list_rate_models_invalid_category():
-    from owlplanner.cli.cmd_serve import list_rate_models
+    from owlplanner.assistant.tools import list_rate_models
 
     result = json.loads(list_rate_models("bogus"))
     assert "error" in result
@@ -414,7 +414,7 @@ def _run_async(coro):
 
 @pytest.mark.toml
 def test_mcp_run_case_solves():
-    from owlplanner.cli.cmd_serve import run_case
+    from owlplanner.assistant.tools import run_case
 
     result = _run_async(run_case(BILL_TOML, overrides=MCP_FAST_OVERRIDES))
     data = json.loads(result)
@@ -424,7 +424,7 @@ def test_mcp_run_case_solves():
 
 @pytest.mark.toml
 def test_mcp_compare_cases_delta():
-    from owlplanner.cli.cmd_serve import compare_cases
+    from owlplanner.assistant.tools import compare_cases
 
     result = _run_async(
         compare_cases(

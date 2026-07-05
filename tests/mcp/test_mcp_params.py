@@ -20,7 +20,7 @@ import pandas as pd
 import pytest
 
 from owlplanner.hfp_io import build_hfp_dataframes
-from owlplanner.cli.cmd_serve import (
+from owlplanner.assistant.tools import (
     _build_plan_from_params,
     _run_from_params_blocking,
     _ss_ages_opt,
@@ -842,6 +842,99 @@ def test_roundtrip_ss_amounts(reloaded_couple):
 
 
 # ---------------------------------------------------------------------------
+# assumed_defaults ledger
+# ---------------------------------------------------------------------------
+
+
+def test_assumed_defaults_flags_material_omissions():
+    assumed = []
+    _build_plan_from_params(
+        names=["Solo"],
+        birth_years=[1962],  # age < 65 → slcsp flagged
+        life_expectancy=[90],
+        state=None,
+        taxable=[100_000],
+        tax_deferred=[500_000],
+        roth=[0],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=None,
+        ss_ages=None,
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        assumed=assumed,
+    )
+    flagged = {e["parameter"] for e in assumed}
+    expected = {
+        "state",
+        "rate_method",
+        "spending_profile",
+        "asset_allocation",
+        "cost_basis",
+        "ss_monthly_pias",
+        "heirs_tax_rate",
+        "slcsp",
+    }
+    assert expected <= flagged
+    assert "survivor_fraction" not in flagged  # single person
+    assert "ss_ages" not in flagged  # no PIAs, so claiming age is moot
+    assert all(e["note"] for e in assumed)
+
+
+def test_assumed_defaults_quiet_when_fully_specified():
+    assumed = []
+    _build_plan_from_params(
+        names=["Solo"],
+        birth_years=[1962],
+        life_expectancy=[90],
+        state="NY",
+        taxable=[100_000],
+        tax_deferred=[500_000],
+        roth=[0],
+        hsa=None,
+        cost_basis=[50_000],
+        ss_monthly_pias=[2500],
+        ss_ages=[67],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="optimistic",
+        survivor_fraction=60.0,
+        initial_allocation=[60, 40, 0, 0],
+        final_allocation=[40, 60, 0, 0],
+        spending_profile="flat",
+        heirs_tax_rate=25,
+        slcsp=12_000,
+        assumed=assumed,
+    )
+    assert assumed == []
+
+
+def test_assumed_defaults_couple_survivor_and_ss_ages():
+    assumed = []
+    _build_plan_from_params(
+        names=["Alice", "Bob"],
+        birth_years=[1963, 1961],
+        life_expectancy=[90, 87],
+        state="CA",
+        taxable=[150_000, 150_000],
+        tax_deferred=[600_000, 600_000],
+        roth=[75_000, 75_000],
+        hsa=None,
+        cost_basis=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667],
+        ss_ages=None,  # PIAs given without claiming ages → flagged
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        assumed=assumed,
+    )
+    flagged = {e["parameter"] for e in assumed}
+    assert "survivor_fraction" in flagged
+    assert "ss_ages" in flagged
+    assert "ss_monthly_pias" not in flagged
+    assert "cost_basis" not in flagged
+
+
+# ---------------------------------------------------------------------------
 # run_from_params — end-to-end solves
 # ---------------------------------------------------------------------------
 
@@ -869,6 +962,12 @@ def test_run_from_params_single_solves():
     data = json.loads(result)
     assert data["status"] == "solved"
     assert data["spending_year1_nominal"] > 0
+    # state and rate_method were given explicitly; the rest of the material
+    # defaults (cost basis, allocation, profile, ...) travel in the ledger.
+    flagged = {e["parameter"] for e in data["assumed_defaults"]}
+    assert "state" not in flagged
+    assert "rate_method" not in flagged
+    assert {"cost_basis", "asset_allocation", "spending_profile"} <= flagged
 
 
 @pytest.mark.toml

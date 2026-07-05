@@ -18,7 +18,7 @@ import json
 import numpy as np
 import pytest
 
-from owlplanner.cli.cmd_serve import (
+from owlplanner.assistant.tools import (
     _build_plan_from_params,
     _build_stochastic_json,
     _stochastic_blocking,
