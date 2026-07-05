@@ -12,6 +12,19 @@ AI clients are instructed to relay these assumptions and ask for true values whe
 matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
 parameters now default to "unspecified" rather than silently assuming values.
 
+#### New: `explain_results` MCP tool — shadow-price explanations of a solved plan
+New solver option `withDuals=True`: after the final solve, the LP is re-solved with the
+binary variables fixed at their solution values (always via HiGHS) to extract constraint
+duals and reduced costs. Key constraint rows are now tagged at construction
+(`bequest_floor`, `cash_flow[n]`, `rmd[i,n]`, `profile_lo/hi[n]`), and a new
+`explain_results` MCP tool turns the duals plus the primal solution into a structured
+explanation: the lifetime-spending cost per dollar of bequest floor, the value of an
+extra dollar of income in each year (the plan's endogenous discount curve), the cost of
+each forced RMD dollar, the Roth conversion schedule with binding-cap values, per-year
+federal bracket fill and headroom (from the `f_tn` bracket variables), and the account
+depletion order. Sensitivities are marginal and hold bracket selections and
+self-consistent quantities fixed at their converged values.
+
 #### New: `compare_to_baseline` MCP tool — the value of optimization in dollars
 New MCP tool that solves the same case twice — fully optimized, and restricted to a
 conventional baseline strategy — and reports the advantage in today's dollars: extra

@@ -1,7 +1,7 @@
 """
 CLI command that starts an MCP (Model Context Protocol) server for Owl.
 
-Exposes fifteen tools over stdio so any MCP-compatible AI client (Claude Desktop,
+Exposes sixteen tools over stdio so any MCP-compatible AI client (Claude Desktop,
 Claude Code, Gemini CLI, etc.) can discover cases, inspect configurations, run optimizations,
 and compare scenarios without touching the filesystem directly.
 
@@ -63,7 +63,7 @@ def modeling_capabilities() -> str:
 def cmd_serve():
     """Start the Owl MCP server (stdio transport).
 
-    Exposes fifteen tools to any MCP-compatible AI client:
+    Exposes sixteen tools to any MCP-compatible AI client:
 
     \b
       list_cases               enumerate .toml case files in a directory
@@ -75,6 +75,7 @@ def cmd_serve():
       run_case                 solve and return JSON results
       compare_cases            run base + variant and return delta metrics
       compare_to_baseline      value of optimization vs conventional baseline strategy
+      explain_results          shadow-price explanation of a solved plan
       run_from_params          build and solve from structured parameters (no TOML needed)
       save_case                save structured parameters to TOML + HFP Excel
       run_stochastic           spending frontier over historical or Monte Carlo scenarios

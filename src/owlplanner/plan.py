@@ -2161,7 +2161,7 @@ class Plan:
                         self.vm["w"].idx(i, 1, n): 1,
                         self.vm["b"].idx(i, 1, n): -self.rho_in[i, n],
                     }
-                    self.A.addNewRow(rowDic, 0, np.inf)
+                    self.A.addNewRow(rowDic, 0, np.inf, tag=("rmd", i, n))
 
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
@@ -2433,7 +2433,7 @@ class Plan:
                 row.addElem(self.vm["b"].idx(i, 1, self.N_n), 1 - self.nu)
                 row.addElem(self.vm["b"].idx(i, 2, self.N_n), 1)
                 row.addElem(self.vm["b"].idx(i, 3, self.N_n), 1 - self.nu)  # HSA: heirs pay ordinary income tax
-            self.A.addRow(row, total_bequest_value, np.inf)
+            self.A.addRow(row, total_bequest_value, np.inf, tag=("bequest_floor",))
         elif objective == "maxBequest":
             spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(self.vm["g"].idx(0), spending, spending)
@@ -2571,16 +2571,16 @@ class Plan:
             if getattr(self, "_niit_lp", False):
                 row.addElem(self.vm["Jn"].idx(n), 1)
 
-            self.A.addRow(row, rhs, rhs)
+            self.A.addRow(row, rhs, rhs, tag=("cash_flow", n))
 
     def _add_income_profile(self, objective):
         spLo = 1 - self.lambdha
         spHi = 1 + self.lambdha
         for n in range(1, self.N_n):
             rowDic = {self.vm["g"].idx(0): spLo * self.xiBar_n[n], self.vm["g"].idx(n): -self.xiBar_n[0]}
-            self.A.addNewRow(rowDic, -np.inf, 0)
+            self.A.addNewRow(rowDic, -np.inf, 0, tag=("profile_lo", n))
             rowDic = {self.vm["g"].idx(0): spHi * self.xiBar_n[n], self.vm["g"].idx(n): -self.xiBar_n[0]}
-            self.A.addNewRow(rowDic, 0, np.inf)
+            self.A.addNewRow(rowDic, 0, np.inf, tag=("profile_hi", n))
 
     def _add_taxable_income(self, options=None):
         ss_lp = options is not None and options.get("withSSTaxability", "loop") == "optimize"
@@ -3637,6 +3637,7 @@ class Plan:
             "withSCLoop",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
+            "withDuals",  # Re-solve final LP with binaries fixed to extract shadow prices
         ]
         options = {} if options is None else options
 
@@ -3708,6 +3709,7 @@ class Plan:
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
+        self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
         # Compute state tax parameters when a state is configured.
         # Note: st_ss_thresh_n (AGI threshold for SS exemption, e.g. KS $75k, MO $100k) is
@@ -4154,6 +4156,8 @@ class Plan:
             if withSCLoop and self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
             self._check_cashflow_balance()
+            if options.get("withDuals", False):
+                self._computeDuals(xx, options)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
@@ -4240,16 +4244,19 @@ class Plan:
 
         return obj_val, xx, success, h.modelStatusToString(ms), float(gap)
 
-    def _run_highs_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
+    def _run_highs_lp_with_duals(self, A, B, c_obj, options, col_overrides=None, return_col_duals=False):
         """
         Solve LP (no integrality) via HiGHS and return primal + row dual variables.
-        Used by Benders decomposition for optimality cut generation.
+        Used by Benders decomposition for optimality cut generation and by
+        _computeDuals for shadow-price reporting.
 
         A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
         col_overrides: optional dict {col_idx: (lb, ub)} to pin specific columns.
 
         Returns (obj, x, row_dual, success) where row_dual[i] is the dual variable
         for row i (positive = lower bound active, negative = upper bound active).
+        With return_col_duals=True, returns (obj, x, row_dual, col_dual, success)
+        where col_dual[j] is the reduced cost of column j.
         Returns (None, zeros, zeros, False) on failure.
         """
         import highspy
@@ -4294,12 +4301,22 @@ class Plan:
         ms = h.getModelStatus()
         if ms == highspy.HighsModelStatus.kOptimal:
             sol = h.getSolution()
+            if return_col_duals:
+                return (
+                    float(h.getObjectiveValue()),
+                    np.array(sol.col_value, dtype=np.float64),
+                    np.array(sol.row_dual, dtype=np.float64),
+                    np.array(sol.col_dual, dtype=np.float64),
+                    True,
+                )
             return (
                 float(h.getObjectiveValue()),
                 np.array(sol.col_value, dtype=np.float64),
                 np.array(sol.row_dual, dtype=np.float64),
                 True,
             )
+        if return_col_duals:
+            return None, np.zeros(len(c)), np.zeros(len(lbvec)), np.zeros(len(c)), False
         return None, np.zeros(len(c)), np.zeros(len(lbvec)), False
 
     def _build_mosek_task(self, A, B, c_obj, col_overrides=None, int_vars=None, verbose=False):
@@ -4435,6 +4452,54 @@ class Plan:
         if getattr(self, "_decomp_use_mosek", False):
             return self._run_mosek_lp_with_duals(A, B, c_obj, options, col_overrides)
         return self._run_highs_lp_with_duals(A, B, c_obj, options, col_overrides)
+
+    def _computeDuals(self, xx, options):
+        """
+        Fix binary variables at their solved values and re-solve the final LP to
+        obtain constraint duals (shadow prices) and reduced costs.
+
+        Always solved with HiGHS (the abcapi objects are solver-neutral), so it
+        works regardless of the solver used for the main MIP. Results reflect
+        marginal values with the self-consistent quantities (SS taxability,
+        IRMAA brackets, LTCG bounds, ...) held at their converged values and the
+        discrete bracket/exclusion choices held fixed.
+
+        Stores results in self._dual_data, consumed by owlplanner.assistant.explain.
+        Row duals are in raw (minimized) objective units; multiply by
+        _dual_data["objFac"] to express sensitivities in reported-objective units
+        (profile-normalized today's-$ lifetime spending for maxSpending,
+        nominal final-year $ of bequest for maxBequest).
+        """
+        nb = int(getattr(self.vm, "nconts", self.nvars))
+        col_overrides = {j: (float(round(xx[j])), float(round(xx[j]))) for j in range(nb, self.nvars)}
+        obj, x_lp, row_dual, col_dual, ok = self._run_highs_lp_with_duals(
+            self.A, self.B, self.c, options, col_overrides=col_overrides, return_col_duals=True
+        )
+        if not ok:
+            self.mylog.vprint("Dual LP re-solve failed; no shadow prices available.", tag="WARNING")
+            self._dual_data = None
+            return
+
+        activity = np.array([float(np.dot(vals, xx[inds])) for inds, vals in zip(self.A.Aind, self.A.Aval)])
+        if self.objective == "maxSpending":
+            objFac = -1.0 / float(self.xi_n[0])
+        else:
+            objFac = -1.0 / float(self.gamma_n[-1])
+        Lb, Ub = self.B.arrays()
+        self._dual_data = {
+            "row_dual": row_dual,
+            "col_dual": col_dual,
+            "row_activity": activity,
+            "row_lb": np.array(self.A.lb, dtype=float),
+            "row_ub": np.array(self.A.ub, dtype=float),
+            "row_tags": list(self.A.tags),
+            "col_lb": Lb,
+            "col_ub": Ub,
+            "col_value": np.array(xx, dtype=float),
+            "objFac": objFac,
+            "lp_obj": obj,
+        }
+        self.mylog.vprint("Computed constraint duals from binaries-fixed LP re-solve.")
 
     def _run_mip(self, A, B, c_obj, options, lp_relax=False, col_overrides=None, update_warm=True):
         """

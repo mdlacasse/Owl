@@ -88,6 +88,7 @@ class ConstraintMatrix:
         self.lb = []
         self.ub = []
         self.key = []
+        self.tags = []
 
     def newRow(self, rowDic=None):
         """
@@ -99,26 +100,28 @@ class ConstraintMatrix:
         row.addElemDic(rowDic)
         return row
 
-    def addRow(self, row, lb, ub):
+    def addRow(self, row, lb, ub, tag=None):
         """
         Add row ``row`` to the constraint matrix with the lower ``lb`` and
-        upper bound ``ub`` provided.
+        upper bound ``ub`` provided. An optional ``tag`` (any hashable, e.g.
+        ("cash_flow", n)) labels the row for dual-value reporting.
         """
         self.Aind.append(row.ind)
         self.Aval.append(row.val)
         self.lb.append(lb)
         self.ub.append(ub)
         self.key.append(_bound_key(lb, ub))
+        self.tags.append(tag)
         self.ncons += 1
 
-    def addNewRow(self, rowDic, lb, ub):
+    def addNewRow(self, rowDic, lb, ub, tag=None):
         """
         Create and add a new row to the constraint matrix with the lower ``lb`` and
         upper bound ``ub`` provided. Row's elements are populated from the provided
         dictionary ``rowDic``.
         """
         row = self.newRow(rowDic)
-        self.addRow(row, lb, ub)
+        self.addRow(row, lb, ub, tag)
 
     def keys(self):
         """

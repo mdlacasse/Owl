@@ -17,6 +17,7 @@ Tools implemented:
   run_case                 — solve a case and return structured JSON results
   compare_cases            — run base + variant and return delta metrics
   compare_to_baseline      — quantify the value of optimization vs a conventional baseline
+  explain_results          — explain a solved plan via LP shadow prices and bracket analysis
   run_from_params          — build and solve from structured parameters (no TOML needed)
   save_case                — save structured parameters to TOML + HFP Excel for reproducibility
   run_stochastic           — spending frontier over historical or Monte Carlo scenarios
@@ -57,6 +58,7 @@ from owlplanner.utils import derive_swap_roth_converters
 
 from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
 
+from owlplanner.assistant.explain import build_explanation
 from owlplanner.cli.cmd_explain import _plan_to_explain
 from owlplanner.cli.cmd_run import _parse_solver_opts
 from owlplanner.cli.formatters import plan_to_dict, _NumpyEncoder, _diff, _pct, KEY_METRICS
@@ -75,6 +77,8 @@ SERVER_INSTRUCTIONS = (
     "run_case to optimize a scenario, compare_cases to evaluate the impact "
     "of a parameter change, compare_to_baseline to quantify in dollars what the "
     "optimization adds over a conventional no-conversion strategy, "
+    "explain_results to answer WHY questions about a solved plan (shadow prices of "
+    "goals and rules, Roth conversion rationale, bracket fill, withdrawal ordering), "
     "run_from_params to solve directly from user-provided "
     "numbers without a TOML file, save_case to persist those parameters, "
     "run_stochastic to compute an efficient spending frontier across historical "
@@ -2196,6 +2200,259 @@ async def compare_to_baseline(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tool: explain_results
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _explain_results_blocking(build_kwargs, opts_kwargs, objective, assumed):
+    """Build plan, solve with withDuals=True, return the solved plan."""
+    plan = _build_plan_from_params(**build_kwargs, assumed=assumed)
+    opts = _build_mcp_opts(**opts_kwargs, inames=plan.inames)
+    opts["withDuals"] = True
+    plan.solve(objective, opts)
+    return plan
+
+
+async def explain_results(
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_years: list[int] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    roth_conversions: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str | None = None,
+    objective: str = "maxSpending",
+    rate_method: str | None = None,
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    rate_params: dict | None = None,
+    survivor_fraction: float | None = None,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str | None = None,
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    net_spending: float | None = None,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    use_roth_conv_overrides: bool | None = None,
+    swap_roth_converters_first: str | None = None,
+    swap_roth_converters_year: int | None = None,
+    bequest: float | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    slcsp: float | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
+    liquidation_tax_rate: float | None = None,
+    liquidation_capgains_rate: float | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
+    constrain_mean: bool = False,
+    solver: str | None = None,
+    max_time: float | None = None,
+) -> str:
+    """Explain WHY the optimized plan looks the way it does, using LP shadow prices.
+
+    Solves the case with dual extraction enabled (a binaries-fixed LP re-solve after
+    the final solution) and returns a structured explanation:
+      - shadow_prices: what each active goal or rule is worth at the margin — the
+        lifetime-spending cost per dollar of bequest floor, the bequest cost per dollar
+        of spending floor, the value of an extra dollar of income in each year (the
+        plan's endogenous discount curve), the cost of each forced RMD dollar, and the
+        years pinned against the spending-profile band.
+      - roth_conversions: the conversion schedule in today's dollars, plus the years
+        where the conversion cap is binding and what one more dollar of cap is worth.
+      - tax_brackets: the top federal bracket reached each year, the headroom left in
+        it, and the years the optimizer deliberately fills the bracket to the boundary.
+      - account_depletion: the order and timing in which accounts are drawn to zero.
+      - binding_constraints: which named constraints are active.
+
+    Use this after run_from_params (or on a saved case via 'filename') when the user
+    asks why the plan converts a given amount, what a goal is costing them, or which
+    constraint to relax.  All sensitivities are marginal and hold bracket selections
+    and self-consistent tax quantities fixed; re-solve to evaluate large changes.
+
+    Accepts either 'filename' (+ optional overrides) or the same flat parameters as
+    run_from_params.  Material defaults assumed for omitted parameters are reported
+    in assumed_defaults (flat-parameter path only).
+    """
+    overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        return json.dumps({"error": msg})
+
+    assumed: list[dict] = []
+    if filename is not None:
+        try:
+            diconf, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf = apply_overrides(diconf, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        diconf.setdefault("solver_options", {})["withDuals"] = True
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None, _solve_blocking, diconf, dirname, solver, max_time, None, []
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Solver error: {e}"})
+    else:
+        if (
+            names is None
+            or birth_years is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
+        build_kwargs = dict(
+            names=names,
+            birth_years=birth_years,
+            life_expectancy=life_expectancy,
+            state=state,
+            taxable=taxable,
+            tax_deferred=tax_deferred,
+            roth=roth,
+            hsa=hsa,
+            cost_basis=cost_basis,
+            ss_monthly_pias=ss_monthly_pias,
+            ss_ages=ss_ages,
+            pension_monthly_amounts=pension_monthly_amounts,
+            pension_ages=pension_ages,
+            pension_indexed=pension_indexed,
+            pension_survivor_fractions=pension_survivor_fractions,
+            wages=wages,
+            contributions=contributions,
+            big_ticket_items=big_ticket_items,
+            roth_conversions=roth_conversions,
+            debts=debts,
+            fixed_assets=fixed_assets,
+            spias=spias,
+            objective=objective,
+            rate_method=rate_method,
+            rate_values=rate_values,
+            rate_frm=rate_frm,
+            rate_to=rate_to,
+            rate_params=rate_params,
+            survivor_fraction=survivor_fraction,
+            initial_allocation=initial_allocation,
+            final_allocation=final_allocation,
+            spending_profile=spending_profile,
+            smile_dip=smile_dip,
+            smile_increase=smile_increase,
+            smile_delay=smile_delay,
+            constrain_mean=constrain_mean,
+            interpolation_method=interpolation_method,
+            interpolation_center=interpolation_center,
+            interpolation_width=interpolation_width,
+            balance_date=balance_date,
+            heirs_tax_rate=heirs_tax_rate,
+            slcsp=slcsp,
+            aca_start_year=aca_start_year,
+            ss_trim_pct=ss_trim_pct,
+            ss_trim_year=ss_trim_year,
+            obbba_expiration_year=obbba_expiration_year,
+            dividend_rate=dividend_rate,
+            liquidation_tax_rate=liquidation_tax_rate,
+            liquidation_capgains_rate=liquidation_capgains_rate,
+        )
+        opts_kwargs = dict(
+            solver=solver,
+            max_time=max_time,
+            net_spending=net_spending,
+            min_taxable_balance=min_taxable_balance,
+            start_roth_year=start_roth_year,
+            no_roth_person=no_roth_person,
+            max_roth_conversion=max_roth_conversion,
+            bequest=bequest,
+            optimize_ss_ages=optimize_ss_ages,
+            previous_magis=previous_magis,
+            with_medicare=with_medicare,
+            with_aca=with_aca,
+            use_roth_conv_overrides=use_roth_conv_overrides,
+            swap_roth_converters_first=swap_roth_converters_first,
+            swap_roth_converters_year=swap_roth_converters_year,
+        )
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None,
+                _explain_results_blocking,
+                build_kwargs,
+                opts_kwargs,
+                objective,
+                assumed,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build/solve error: {e}"})
+
+    if plan.caseStatus != "solved":
+        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+        if assumed:
+            failed["assumed_defaults"] = assumed
+        return json.dumps(failed)
+
+    metrics = plan_metrics(plan)
+    result = {
+        "explanation": build_explanation(plan),
+        "key_metrics": {
+            k: round(metrics[k], 2)
+            for k in (
+                "spending_basis",
+                "total_spending_today",
+                "final_bequest_today",
+                "roth_conversions_today",
+                "effective_tax_rate",
+            )
+            if k in metrics
+        },
+    }
+    if assumed:
+        result["assumed_defaults"] = assumed
+    return json.dumps(result, indent=2, cls=_NumpyEncoder)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_stochastic
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -3816,6 +4073,7 @@ MCP_TOOLS = (
     run_case,
     compare_cases,
     compare_to_baseline,
+    explain_results,
     run_from_params,
     save_case,
     run_stochastic,
