@@ -18,9 +18,9 @@ def _run(coro):
 
 def test_all_tools_registered():
     tools = _run(mcp.list_tools())
-    assert len(tools) == len(MCP_TOOLS) == 14
+    assert len(tools) == len(MCP_TOOLS) == 15
     names = {t.name for t in tools}
-    assert {"run_from_params", "run_stochastic", "save_case", "compare_cases"} <= names
+    assert {"run_from_params", "run_stochastic", "save_case", "compare_cases", "compare_to_baseline"} <= names
 
 
 def test_owl_intake_prompt_registered():

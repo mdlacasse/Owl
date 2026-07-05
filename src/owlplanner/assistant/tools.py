@@ -16,6 +16,7 @@ Tools implemented:
   list_contribution_limits — IRS contribution-limit ceilings (incl. catch-up) by birth year
   run_case                 — solve a case and return structured JSON results
   compare_cases            — run base + variant and return delta metrics
+  compare_to_baseline      — quantify the value of optimization vs a conventional baseline
   run_from_params          — build and solve from structured parameters (no TOML needed)
   save_case                — save structured parameters to TOML + HFP Excel for reproducibility
   run_stochastic           — spending frontier over historical or Monte Carlo scenarios
@@ -72,7 +73,9 @@ SERVER_INSTRUCTIONS = (
     "Use list_cases to discover available scenarios, explain_case to inspect "
     "a configuration, list_rate_models to see return-modeling options, "
     "run_case to optimize a scenario, compare_cases to evaluate the impact "
-    "of a parameter change, run_from_params to solve directly from user-provided "
+    "of a parameter change, compare_to_baseline to quantify in dollars what the "
+    "optimization adds over a conventional no-conversion strategy, "
+    "run_from_params to solve directly from user-provided "
     "numbers without a TOML file, save_case to persist those parameters, "
     "run_stochastic to compute an efficient spending frontier across historical "
     "or Monte Carlo scenarios and answer probability-of-success questions, "
@@ -758,12 +761,17 @@ def _build_plan_from_params(
     liquidation_tax_rate=None,
     liquidation_capgains_rate=None,
     assumed=None,
+    reproducible_seed=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
     When *assumed* is a list, material default assumptions made for omitted
     parameters are appended to it as {"parameter", "assumed", "note"} dicts
     (the assumed_defaults ledger reported back to the caller).
+
+    When *reproducible_seed* is given, it is applied before setRates so that
+    stochastic rate methods draw identical return series across plans built
+    with the same seed (used by compare_to_baseline for fair pairing).
     """
     if assumed is None:
         assumed = []
@@ -810,6 +818,8 @@ def _build_plan_from_params(
     case_name = "+".join(n.lower() for n in names)
 
     plan = Plan(names, dobs, list(life_expectancy), case_name, verbose=False, logstreams=[sys.stderr])
+    if reproducible_seed is not None:
+        plan.setReproducible(True, seed=int(reproducible_seed))
 
     # Account balances: MCP uses full dollars; override Plan API default of $k
     plan.setAccountBalances(
@@ -1817,6 +1827,372 @@ def save_case(
     if assumed:
         saved["assumed_defaults"] = assumed
     return json.dumps(saved, indent=2)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: compare_to_baseline
+# ─────────────────────────────────────────────────────────────────────────────
+
+BASELINE_POLICIES = ("no_roth_conversions", "no_ss_age_optimization")
+
+_BASELINE_POLICY_TEXT = {
+    "no_roth_conversions": "no Roth conversions ever",
+    "no_ss_age_optimization": "Social Security claimed at the stated ages (no claiming-age optimization)",
+}
+
+
+def _apply_baseline_policies_params(build_kwargs, opts_kwargs, policies):
+    """Return baseline copies of the build/opts kwargs with the policy restrictions applied."""
+    base_build = dict(build_kwargs)
+    base_opts = dict(opts_kwargs)
+    if "no_roth_conversions" in policies:
+        base_build["roth_conversions"] = None
+        base_opts.update(
+            max_roth_conversion=0,
+            use_roth_conv_overrides=None,
+            start_roth_year=None,
+            no_roth_person=None,
+            swap_roth_converters_first=None,
+            swap_roth_converters_year=None,
+        )
+    if "no_ss_age_optimization" in policies:
+        base_opts["optimize_ss_ages"] = None
+    return base_build, base_opts
+
+
+def _apply_baseline_policies_config(diconf, policies):
+    """Return a baseline copy of a case config with the policy restrictions applied."""
+    import copy
+
+    base = copy.deepcopy(diconf)
+    so = base.setdefault("solver_options", {})
+    if "no_roth_conversions" in policies:
+        so["maxRothConversion"] = 0
+        so["useRothConvOverrides"] = False  # a pinned override would bypass the cap
+        so.pop("startRothConversions", None)
+        so.pop("swapRothConverters", None)
+    if "no_ss_age_optimization" in policies:
+        so.pop("withSSAges", None)
+    return base
+
+
+def _compare_to_baseline_params_blocking(build_kwargs, opts_kwargs, objective, policies, assumed):
+    """Solve optimized and baseline plans from the same structured parameters."""
+    plan_opt = _build_plan_from_params(**build_kwargs, assumed=assumed)
+    opts = _build_mcp_opts(**opts_kwargs, inames=plan_opt.inames)
+    plan_opt.solve(objective, opts)
+
+    base_build, base_opts = _apply_baseline_policies_params(build_kwargs, opts_kwargs, policies)
+    plan_base = _build_plan_from_params(**base_build)
+    opts_b = _build_mcp_opts(**base_opts, inames=plan_base.inames)
+    plan_base.solve(objective, opts_b)
+    return plan_opt, plan_base
+
+
+def _compare_to_baseline_file_blocking(diconf_opt, diconf_base, dirname, solver, max_time):
+    plan_opt = _solve_blocking(diconf_opt, dirname, solver, max_time, None, [])
+    plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, None, [])
+    return plan_opt, plan_base
+
+
+def _baseline_report(plan_opt, plan_base, policies, seed_used, assumed):
+    """Assemble the comparison JSON from the two solved plans."""
+    m_opt = plan_metrics(plan_opt)
+    m_base = plan_metrics(plan_base)
+    advantage = _diff(m_base, m_opt)  # optimized minus baseline
+    pct = {k: _pct(advantage[k], m_base[k]) for k in KEY_METRICS if advantage.get(k) is not None}
+
+    tax_keys = (
+        "federal_income_tax_today",
+        "state_tax_today",
+        "ltcg_tax_today",
+        "niit_today",
+        "medicare_today",
+        "aca_today",
+    )
+    extra_taxes = sum(advantage[k] for k in tax_keys if advantage.get(k) is not None)
+
+    def _round(d):
+        return {k: round(v, 4) if isinstance(v, float) else v for k, v in d.items()}
+
+    result = {
+        "objective": plan_opt.objective,
+        "baseline_policies": list(policies),
+        "baseline_definition": "Same household, market, and goals, but with "
+        + " and ".join(_BASELINE_POLICY_TEXT[p] for p in policies)
+        + ".",
+        "headline": {
+            "extra_annual_spending_today": advantage.get("spending_basis"),
+            "extra_lifetime_spending_today": advantage.get("total_spending_today"),
+            "extra_final_bequest_today": advantage.get("final_bequest_today"),
+            "extra_taxes_and_premiums_today": round(extra_taxes, 2),
+        },
+        "optimized": _round(m_opt),
+        "baseline": _round(m_base),
+        "advantage": {k: round(v, 4) if isinstance(v, float) else v for k, v in advantage.items() if v is not None},
+        "advantage_pct": pct,
+        "note": "The baseline is a restriction of the optimized problem, so the optimized objective is "
+        "mathematically >= the baseline objective (up to the solver's MIP gap). 'advantage' is "
+        "optimized minus baseline; positive extra_taxes_and_premiums_today means the optimized plan "
+        "pays more tax in exchange for more spending or bequest.",
+    }
+    if seed_used is not None:
+        result["seed_used"] = seed_used
+    if assumed:
+        result["assumed_defaults"] = assumed
+    return result
+
+
+async def compare_to_baseline(
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_years: list[int] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    roth_conversions: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str | None = None,
+    objective: str = "maxSpending",
+    rate_method: str | None = None,
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    rate_params: dict | None = None,
+    survivor_fraction: float | None = None,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str | None = None,
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    net_spending: float | None = None,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    use_roth_conv_overrides: bool | None = None,
+    swap_roth_converters_first: str | None = None,
+    swap_roth_converters_year: int | None = None,
+    bequest: float | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    slcsp: float | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
+    liquidation_tax_rate: float | None = None,
+    liquidation_capgains_rate: float | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
+    constrain_mean: bool = False,
+    baseline_policies: list[str] | None = None,
+    solver: str | None = None,
+    max_time: float | None = None,
+    seed: int | None = None,
+) -> str:
+    """Quantify the dollar value of Owl's joint optimization against a conventional baseline.
+
+    Solves the same case twice — once fully optimized, once with the baseline
+    restrictions applied — and reports the advantage (optimized minus baseline):
+    extra annual and lifetime spending, extra final bequest, and the tax/premium
+    difference, all in today's dollars, plus the full metric tables.
+
+    Baseline policies (default: all of them):
+      - "no_roth_conversions":     the baseline never converts to Roth.
+      - "no_ss_age_optimization":  the baseline claims Social Security at the stated
+                                   ages; only meaningful when optimize_ss_ages is set
+                                   for the optimized run.
+
+    Accepts either 'filename' (+ optional overrides) or the same flat parameters as
+    run_from_params.  Both runs share one rate-series seed, so stochastic rate methods
+    see identical market sequences; deterministic methods (conservative, user, ...)
+    are unaffected.  Material defaults assumed for omitted parameters are reported in
+    assumed_defaults (flat-parameter path only).
+
+    Note: the baseline still optimizes withdrawal order and timing within its
+    restrictions, so the reported advantage is a *lower bound* on the value of the
+    full strategy versus a hand-managed plan.
+    """
+    policies = list(baseline_policies) if baseline_policies is not None else list(BASELINE_POLICIES)
+    bad = [p for p in policies if p not in BASELINE_POLICIES]
+    if bad:
+        return json.dumps({"error": f"Unknown baseline policies {bad}. Choose from: {list(BASELINE_POLICIES)}."})
+    if not policies:
+        return json.dumps({"error": "At least one baseline policy is required to define the baseline."})
+
+    overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        return json.dumps({"error": msg})
+
+    assumed: list[dict] = []
+    seed_used = int(seed) if seed is not None else int(np.random.SeedSequence().entropy % (2**31))
+
+    if filename is not None:
+        try:
+            diconf_opt, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf_opt = apply_overrides(diconf_opt, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        # Shared seed so stochastic rate methods draw identical series in both runs.
+        rates_sec = diconf_opt.setdefault("rates_selection", {})
+        if rates_sec.get("rate_seed") is None:
+            rates_sec["rate_seed"] = seed_used
+            rates_sec["reproducible_rates"] = True
+        else:
+            seed_used = int(rates_sec["rate_seed"])
+            rates_sec["reproducible_rates"] = True
+        diconf_base = _apply_baseline_policies_config(diconf_opt, policies)
+        try:
+            plan_opt, plan_base = await asyncio.get_running_loop().run_in_executor(
+                None,
+                _compare_to_baseline_file_blocking,
+                diconf_opt,
+                diconf_base,
+                dirname,
+                solver,
+                max_time,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Solver error: {e}"})
+    else:
+        if (
+            names is None
+            or birth_years is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
+        build_kwargs = dict(
+            names=names,
+            birth_years=birth_years,
+            life_expectancy=life_expectancy,
+            state=state,
+            taxable=taxable,
+            tax_deferred=tax_deferred,
+            roth=roth,
+            hsa=hsa,
+            cost_basis=cost_basis,
+            ss_monthly_pias=ss_monthly_pias,
+            ss_ages=ss_ages,
+            pension_monthly_amounts=pension_monthly_amounts,
+            pension_ages=pension_ages,
+            pension_indexed=pension_indexed,
+            pension_survivor_fractions=pension_survivor_fractions,
+            wages=wages,
+            contributions=contributions,
+            big_ticket_items=big_ticket_items,
+            roth_conversions=roth_conversions,
+            debts=debts,
+            fixed_assets=fixed_assets,
+            spias=spias,
+            objective=objective,
+            rate_method=rate_method,
+            rate_values=rate_values,
+            rate_frm=rate_frm,
+            rate_to=rate_to,
+            rate_params=rate_params,
+            survivor_fraction=survivor_fraction,
+            initial_allocation=initial_allocation,
+            final_allocation=final_allocation,
+            spending_profile=spending_profile,
+            smile_dip=smile_dip,
+            smile_increase=smile_increase,
+            smile_delay=smile_delay,
+            constrain_mean=constrain_mean,
+            interpolation_method=interpolation_method,
+            interpolation_center=interpolation_center,
+            interpolation_width=interpolation_width,
+            balance_date=balance_date,
+            heirs_tax_rate=heirs_tax_rate,
+            slcsp=slcsp,
+            aca_start_year=aca_start_year,
+            ss_trim_pct=ss_trim_pct,
+            ss_trim_year=ss_trim_year,
+            obbba_expiration_year=obbba_expiration_year,
+            dividend_rate=dividend_rate,
+            liquidation_tax_rate=liquidation_tax_rate,
+            liquidation_capgains_rate=liquidation_capgains_rate,
+            reproducible_seed=seed_used,
+        )
+        opts_kwargs = dict(
+            solver=solver,
+            max_time=max_time,
+            net_spending=net_spending,
+            min_taxable_balance=min_taxable_balance,
+            start_roth_year=start_roth_year,
+            no_roth_person=no_roth_person,
+            max_roth_conversion=max_roth_conversion,
+            bequest=bequest,
+            optimize_ss_ages=optimize_ss_ages,
+            previous_magis=previous_magis,
+            with_medicare=with_medicare,
+            with_aca=with_aca,
+            use_roth_conv_overrides=use_roth_conv_overrides,
+            swap_roth_converters_first=swap_roth_converters_first,
+            swap_roth_converters_year=swap_roth_converters_year,
+        )
+        try:
+            plan_opt, plan_base = await asyncio.get_running_loop().run_in_executor(
+                None,
+                _compare_to_baseline_params_blocking,
+                build_kwargs,
+                opts_kwargs,
+                objective,
+                policies,
+                assumed,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build/solve error: {e}"})
+
+    if plan_opt.caseStatus != "solved" or plan_base.caseStatus != "solved":
+        failed = {
+            "error": "One or both plans did not solve to optimality.",
+            "optimized_status": plan_opt.caseStatus,
+            "baseline_status": plan_base.caseStatus,
+        }
+        if assumed:
+            failed["assumed_defaults"] = assumed
+        return json.dumps(failed)
+
+    result = _baseline_report(plan_opt, plan_base, policies, seed_used, assumed)
+    return json.dumps(result, indent=2, cls=_NumpyEncoder)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -3439,6 +3815,7 @@ MCP_TOOLS = (
     list_contribution_limits,
     run_case,
     compare_cases,
+    compare_to_baseline,
     run_from_params,
     save_case,
     run_stochastic,

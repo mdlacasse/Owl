@@ -12,6 +12,18 @@ AI clients are instructed to relay these assumptions and ask for true values whe
 matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
 parameters now default to "unspecified" rather than silently assuming values.
 
+#### New: `compare_to_baseline` MCP tool — the value of optimization in dollars
+New MCP tool that solves the same case twice — fully optimized, and restricted to a
+conventional baseline strategy — and reports the advantage in today's dollars: extra
+annual and lifetime spending, extra final bequest, and the tax/premium difference.
+Baseline policies (both on by default): `no_roth_conversions` and
+`no_ss_age_optimization` (claim at stated ages). Accepts a TOML case file or the same
+flat parameters as `run_from_params`. Both runs share one rate-series seed so
+stochastic rate methods see identical market sequences (supported by a new
+`reproducible_seed` pass-through in the parameter builder). Since the baseline still
+optimizes withdrawal order within its restrictions, the reported advantage is a lower
+bound on the value versus a hand-managed plan.
+
 #### New: `owl_intake` MCP prompt and reference resources
 The MCP server now exposes an `owl_intake` prompt — an interview script that tells the AI
 client which questions must be asked before building a plan (state, balances, Social
