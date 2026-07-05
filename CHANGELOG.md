@@ -12,6 +12,16 @@ AI clients are instructed to relay these assumptions and ask for true values whe
 matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
 parameters now default to "unspecified" rather than silently assuming values.
 
+#### New: `owl_intake` MCP prompt and reference resources
+The MCP server now exposes an `owl_intake` prompt — an interview script that tells the AI
+client which questions must be asked before building a plan (state, balances, Social
+Security, work status, pre-65 health coverage), which to ask only when applicable, and
+which parameters may be assumed with disclosure — plus unit conventions (monthly vs
+annual, wages net of contributions, corporate bonds vs Treasuries). The same text is
+readable as the `owl://intake-checklist` resource, and `owl://modeling-capabilities`
+serves the modeling-capabilities reference (now packaged in the wheel alongside
+PARAMETERS.md).
+
 #### Refactor: MCP tool implementations moved to `owlplanner.assistant.tools`
 The fourteen MCP tool functions were extracted from `owlplanner/cli/cmd_serve.py` into a
 new `owlplanner/assistant/tools.py` module that imports neither `mcp` nor `click`, so the

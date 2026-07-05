@@ -15,6 +15,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 import click
 from mcp.server.fastmcp import FastMCP
 
+from owlplanner.assistant.intake import INTAKE_PROMPT, modeling_capabilities_text
 from owlplanner.assistant.tools import MCP_TOOLS, SERVER_INSTRUCTIONS
 
 
@@ -22,6 +23,40 @@ mcp = FastMCP("owl", instructions=SERVER_INSTRUCTIONS)
 
 for _tool in MCP_TOOLS:
     mcp.tool()(_tool)
+
+
+@mcp.prompt(
+    name="owl_intake",
+    title="Owl retirement-plan intake",
+    description="Interview script for gathering the data Owl needs to build a plan; "
+    "separates must-ask questions from parameters that may be assumed with disclosure.",
+)
+def owl_intake() -> str:
+    return INTAKE_PROMPT
+
+
+@mcp.resource(
+    "owl://intake-checklist",
+    name="intake-checklist",
+    title="Owl intake checklist",
+    description="Checklist of the questions to ask before building a plan, tiered by "
+    "whether a default assumption is defensible.",
+    mime_type="text/markdown",
+)
+def intake_checklist() -> str:
+    return INTAKE_PROMPT
+
+
+@mcp.resource(
+    "owl://modeling-capabilities",
+    name="modeling-capabilities",
+    title="Owl modeling capabilities",
+    description="Reference table of every modeled component, its approach, and its "
+    "assumptions and limitations.",
+    mime_type="text/markdown",
+)
+def modeling_capabilities() -> str:
+    return modeling_capabilities_text()
 
 
 @click.command(name="serve")

@@ -56,6 +56,23 @@ the check amount someone describes receiving if they claimed before or after FRA
 (e.g. "I'm 65 and I get $2,800/month"). If the user only knows their actual benefit
 at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 
+**Assumed defaults:** the solve tools report material assumptions made for omitted
+parameters (state, cost basis, return model, allocation, Social Security, pre-65 ACA
+coverage, ...) in an `assumed_defaults` field of the response, so the AI can relay
+them and ask for the true values when they matter.
+
+## Prompt and resources
+
+Besides tools, the server exposes an interview script and reference documents for
+clients that support MCP prompts and resources (e.g., Claude Desktop shows prompts
+as commands and lets you attach resources to the conversation):
+
+| Kind | Name / URI | Content |
+|------|------------|---------|
+| Prompt | `owl_intake` | Interview script for gathering plan data: must-ask questions (state, balances, Social Security, work status, pre-65 health coverage), ask-when-applicable items, safe-to-assume defaults, and unit conventions |
+| Resource | `owl://intake-checklist` | The same intake checklist, readable as a document |
+| Resource | `owl://modeling-capabilities` | Reference table of every modeled component with its assumptions and limitations |
+
 **Parameter reference** (all optional unless marked *required*):
 
 | Category | Parameter | Description |

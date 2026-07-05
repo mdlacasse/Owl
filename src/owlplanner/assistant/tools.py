@@ -64,6 +64,11 @@ from owlplanner.cli.set_override import apply_overrides
 
 SERVER_INSTRUCTIONS = (
     "Owl (Optimal Wealth Lab) is a US retirement financial planning tool. "
+    "Before building a plan for a new user, follow the owl_intake prompt "
+    "(also readable as resource owl://intake-checklist): ask for state, balances, "
+    "Social Security, work status, and pre-65 health coverage rather than assuming "
+    "defaults; the owl://modeling-capabilities resource documents what Owl models "
+    "and its limitations. "
     "Use list_cases to discover available scenarios, explain_case to inspect "
     "a configuration, list_rate_models to see return-modeling options, "
     "run_case to optimize a scenario, compare_cases to evaluate the impact "
