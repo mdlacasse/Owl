@@ -66,7 +66,7 @@ But it has an inconvenience:
 If a case surfaces where a user needs to run Owl in airgap mode we can revisit
 this issue with a fallback approach.
 
-#### Add UI doc to table in README.md.
+#### Add UI doc to table in README.md
 
 #### Licensing audit
 Consistent copyright headers across all source files (GPLv3) and documentation (CC-BY-NC-SA-4.0, see `LICENSE-docs`).
