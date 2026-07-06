@@ -44,6 +44,7 @@ STATELESS_TOOLS = (
     "compare_to_baseline",
     "explain_results",
     "run_stochastic",
+    "run_longevity_stochastic",
     "run_historical",
     "run_monte_carlo",
     "save_case",
