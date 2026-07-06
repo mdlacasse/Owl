@@ -278,3 +278,34 @@ def test_get_current_case_with_invalid_config(monkeypatch):
     assert data["status"] == "new"
     # An incomplete case reports a config error instead of raising.
     assert "config" in data or "config_error" in data
+
+
+# ---------------------------------------------------------------------------
+# Greeting and starter prompts
+# ---------------------------------------------------------------------------
+
+
+def test_greeting_no_case(monkeypatch):
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: False)
+    assert "from scratch" in atools.greeting()
+    starters = atools.starter_prompts()
+    assert starters[0].startswith("Help me build")
+
+
+def test_greeting_solved_case(monkeypatch):
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: True)
+    monkeypatch.setattr(atools.kz, "currentCaseName", lambda: "jack+jill")
+    monkeypatch.setattr(atools.kz, "currentCaseDic", lambda: {"caseStatus": "solved"})
+    g = atools.greeting()
+    assert "jack+jill" in g and "solved" in g
+    starters = atools.starter_prompts()
+    assert any("worth in dollars" in s for s in starters)
+    assert any("probability of success" in s for s in starters)
+
+
+def test_greeting_unsolved_case(monkeypatch):
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: True)
+    monkeypatch.setattr(atools.kz, "currentCaseName", lambda: "draft")
+    monkeypatch.setattr(atools.kz, "currentCaseDic", lambda: {"caseStatus": "new"})
+    g = atools.greeting()
+    assert "draft" in g and "Run it" in g

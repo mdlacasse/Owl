@@ -138,6 +138,44 @@ def get_current_case_results() -> str:
     return json.dumps(result, cls=_NumpyEncoder, default=str)
 
 
+def greeting() -> str:
+    """Context-aware welcome bubble shown when the conversation is empty."""
+    if kz.has_current_case():
+        name = kz.currentCaseName()
+        if kz.currentCaseDic().get("caseStatus") == "solved":
+            return (
+                f"Hi — I can see you have **{name}** open and solved. I can explain why the "
+                "plan looks the way it does, quantify what the optimization strategy is worth "
+                "in dollars, stress-test it against a century of market history, or explore "
+                "variants. What would you like to know?"
+            )
+        return (
+            f"Hi — I can see you have **{name}** open. Run it from the app and I can explain "
+            "the results; in the meantime I can solve what-if scenarios for you or answer "
+            "retirement-planning questions."
+        )
+    return (
+        "Hi — no case is open yet. I can build a plan with you from scratch through a short "
+        "interview, or you can create a case in the app first and then ask me about it."
+    )
+
+
+def starter_prompts() -> list[str]:
+    """Canned first questions, phrased to route the model to the right tools."""
+    if kz.has_current_case():
+        return [
+            "Explain my current plan — why does it look the way it does?",
+            "How much is the optimization strategy worth in dollars?",
+            "What's my historical probability of success?",
+            "Help me start a new plan from scratch",
+        ]
+    return [
+        "Help me build a plan from scratch",
+        "What can you help me with?",
+        "What are this year's IRS contribution limits for someone my age?",
+    ]
+
+
 def all_tool_schemas() -> list[dict]:
     return SESSION_TOOL_SCHEMAS + core.stateless_tool_schemas()
 

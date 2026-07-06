@@ -101,6 +101,21 @@ prompt = st.chat_input(
     else "Describe your situation to start a plan, or build a case in the app first…"
 )
 
+# Welcome screen: greeting bubble + starter prompts, only while the chat is empty.
+# The greeting is display-only (the API history must start with a user message);
+# a clicked starter is consumed as if the user had typed it.
+if not st.session_state["assistant_display"]:
+    with st.chat_message("assistant"):
+        st.markdown(atools.greeting())
+    starter = st.pills(
+        "Suggestions",
+        atools.starter_prompts(),
+        key="assistant_starter",
+        label_visibility="collapsed",
+    )
+    if starter and prompt is None:
+        prompt = starter
+
 if prompt:
     st.session_state["assistant_messages"].append({"role": "user", "content": prompt})
     st.session_state["assistant_display"].append(("user", prompt, []))

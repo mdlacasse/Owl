@@ -20,7 +20,9 @@ tool implementations the MCP server exposes, in-process — including the case-f
 (`list_cases`/`run_case`/`compare_cases`), which on a self-hosted install close the loop
 with `save_case` (save a scenario, reload and re-run it in a later conversation). A
 `get_current_case_results` session tool returns the solved year-by-year results the app
-is displaying, so questions about an already-solved plan don't trigger a re-solve.
+is displaying, so questions about an already-solved plan don't trigger a re-solve. The
+page opens with a context-aware greeting and clickable starter prompts (explain my plan,
+value of the strategy, probability of success, start a plan from scratch).
 Strictly opt-in: the page is
 registered only when `OWL_ASSISTANT=1` is set, so the hosted app never exposes it;
 requires `pip install owlplanner[assistant]` (the `anthropic` package) and an
