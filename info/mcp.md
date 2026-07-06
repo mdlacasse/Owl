@@ -86,7 +86,7 @@ as commands and lets you attach resources to the conversation):
 | | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in \$ per person |
 | | `roth` * | Roth account balances in \$ per person |
 | **Balances** | `hsa` | HSA balances in \$ per person |
-| | `cost_basis` | Taxable cost basis in \$ per person (default: 50% of taxable) |
+| | `cost_basis` | Taxable cost basis in \$ per person. If omitted, realized gains are modeled from current-year appreciation only (flagged in `assumed_defaults`) |
 | **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement (\$ per month) |
 | | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
 | **Pensions** | `pension_monthly_amounts` | Monthly pension in \$ per month per person |
@@ -99,14 +99,14 @@ as commands and lets you attach resources to the conversation):
 | **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
 | | `spias` | SPIAs: `{"person","buy_year","premium","monthly_income","indexed","survivor_fraction"}` |
-| **Plan settings** | `state` | Two-letter US state code for income tax (default `"TX"`) |
+| **Plan settings** | `state` | Two-letter US state code for income tax. Strongly recommended; if omitted, TX (no state tax) is assumed and flagged in `assumed_defaults` |
 | | `objective` | `"maxSpending"` (default) or `"maxBequest"` |
 | | `survivor_fraction` | Surviving-spouse spending as % of couple spending (default 60) |
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
 | | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
 | | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
-| **Rate model** | `rate_method` | Return model name (use `list_rate_models`; default `"conservative"`) |
+| **Rate model** | `rate_method` | Return model name (use `list_rate_models`). If omitted, fixed `"conservative"` rates are assumed and flagged in `assumed_defaults` |
 | | `rate_values` | Fixed rates `[equities, corp_bonds, t_notes, inflation]` in % for `rate_method="user"` |
 | | `rate_frm` | First year of historical rate window (e.g. `1966`) |
 | | `rate_to` | Last year of historical rate window |
@@ -127,6 +127,9 @@ as commands and lets you attach resources to the conversation):
 | | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
 | | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
 | | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
+| | `roth_conversions` | Per-cell conversion overrides `[{"person","year","amount"}]`; enforced only with `use_roth_conv_overrides=True` (positive pins, negative forces zero) |
+| | `use_roth_conv_overrides` | Turn the `roth_conversions` entries into hard per-year overrides |
+| | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
 | | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
 | | `with_aca` | ACA premium mode: `"none"`, `"loop"` (default when `slcsp` set), or `"optimize"` |
@@ -144,6 +147,8 @@ as commands and lets you attach resources to the conversation):
 | | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`); ignored in historical mode |
 | | `ystart` / `yend` | Historical window start/end years (historical mode) |
 | | `seed` | Random seed for reproducibility |
+| **`compare_to_baseline` only** | `baseline_policies` | Restrictions defining the baseline (default all): `"no_roth_conversions"`, `"no_ss_age_optimization"`, `"taxable_first_ordering"` |
+| | `seed` | Shared rate-series seed applied to both runs so stochastic methods see identical markets (auto-generated when omitted) |
 | **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
 | | `case_name` | Override the auto-generated filename stem (default: names joined with `+`, e.g. `alice+bob`) |
 
@@ -161,6 +166,23 @@ income tax owed on tax-deferred/HSA balances and the disposition costs (commissi
 capital-gains tax) of fixed assets. `explain_case` reports the same opening
 balance-sheet view from the unsolved inputs, plus the `fixed_assets` and `debts`
 lists read from the HFP workbook.
+
+**Two strategy-analysis tools:**
+
+`compare_to_baseline` answers *"what is the optimization actually worth in dollars?"*
+It solves the same case twice — fully optimized, and restricted to a conventional
+baseline strategy (no Roth conversions, Social Security at the stated ages,
+taxable-first withdrawal ordering; select restrictions via `baseline_policies`) — and
+reports the advantage in today's dollars: extra annual and lifetime spending, extra
+final bequest, and the tax/premium difference. The baseline is a restriction of the
+optimized problem, so the advantage is a certified lower bound (up to solver gap).
+
+`explain_results` answers *"why does the plan look the way it does?"* It solves with
+dual extraction and returns LP shadow prices — the lifetime-spending cost per dollar
+of bequest floor, the value of an extra dollar of income in each year, the cost of
+each forced RMD dollar — plus the Roth conversion schedule with binding-cap values,
+per-year federal bracket fill and headroom, and the account depletion order.
+Sensitivities are marginal and hold bracket selections fixed.
 
 **Three distinct stress-test tools:**
 
@@ -443,6 +465,31 @@ Follow the same `mcpServers` format as [Cursor](#cursor) above.
 
 ---
 
+## Embedded assistant (no MCP client required)
+
+Self-hosted and Docker installations can also chat with an AI **inside the Owl web
+UI**: an *Assistant* page that reuses the same tool implementations as this MCP
+server in-process, and can additionally read the case currently open in the app
+(read-only — it never modifies your session; scenarios are handed back as
+`save_case` files loadable from the Create Case page).
+
+The page is strictly opt-in and never appears on the hosted app. To enable it:
+
+```bash
+pip install "owlplanner[assistant]"      # or: uv sync --extra assistant
+export OWL_ASSISTANT=1
+export ANTHROPIC_API_KEY=sk-ant-...
+streamlit run ui/main.py
+```
+
+Optional environment variables: `OWL_ASSISTANT_MODEL` overrides the default model
+(`claude-opus-4-8`), and `ANTHROPIC_BASE_URL` points the SDK at a gateway or proxy
+(e.g. a LiteLLM front for local models). Conversations — including your case data
+when you ask about it — are sent to the configured AI provider; the optimizer itself
+always runs locally.
+
+---
+
 ## Example interactions
 
 Once connected, you can ask the AI naturally. The AI will pick the right tool,
@@ -541,6 +588,18 @@ translate your description into `--set` overrides, and interpret the results.
 
 > *"What's the tax cost of maximizing my estate vs. maximizing my spending?"*
 > → calls `compare_cases` switching objective between `maxSpending` and `maxBequest`
+
+### Strategy value and explanations
+
+> *"How much is all this optimization actually worth compared to just spending
+> taxable first and never converting?"*
+> → calls `compare_to_baseline`; AI reports the extra annual and lifetime spending
+> in today's dollars
+
+> *"Why does the plan convert exactly \$48k in 2027, and what is my \$400k bequest
+> goal costing me?"*
+> → calls `explain_results`; AI reads the bracket-fill analysis (conversions filling
+> the 12% bracket to the boundary) and the bequest-floor shadow price
 
 ---
 
