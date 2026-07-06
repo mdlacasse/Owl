@@ -60,6 +60,13 @@ def test_page_renders_and_reacts():
     assert not at.exception
 
 
+def test_inspector_command_both_methods():
+    uv = connectai.inspector_command(connectai.METHOD_UV, "/home/me/Owl")
+    assert uv == "npx @modelcontextprotocol/inspector uv run --project /home/me/Owl owlcli serve"
+    path = connectai.inspector_command(connectai.METHOD_PATH, "/ignored")
+    assert path == "npx @modelcontextprotocol/inspector owlcli serve"
+
+
 def test_client_specific_formats():
     path = "/home/me/Owl"
     # Zed uses the nested context_servers format.

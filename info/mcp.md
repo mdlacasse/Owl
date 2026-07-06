@@ -375,16 +375,18 @@ retirement question. As with the other clients, pass **absolute paths** to tools
 
 ## Testing the server (no AI required)
 
-FastMCP ships a browser-based inspector that lets you call tools manually
-without any AI client:
+The official [MCP Inspector](https://github.com/modelcontextprotocol/inspector)
+(requires Node.js) opens a browser UI where you can call the tools manually,
+launching the exact same command your AI client would:
 
 ```bash
-uvx fastmcp dev src/owlplanner/cli/cmd_serve.py
+npx @modelcontextprotocol/inspector uv run --project /path/to/Owl owlcli serve
 ```
 
-This opens a local web UI where you can invoke `list_cases`, `explain_case`,
-`run_case`, etc. directly. Useful for verifying the server before connecting
-it to an AI.
+(or `npx @modelcontextprotocol/inspector owlcli serve` if `owlcli` is on your
+PATH). Open the printed `http://localhost:6274/...` URL and invoke `list_cases`,
+`explain_case`, `run_case`, etc. directly. Useful for verifying the server
+before connecting it to an AI.
 
 ---
 

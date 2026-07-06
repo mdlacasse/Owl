@@ -120,10 +120,12 @@ with st.expander("What the AI can do — 16 tools"):
 """
     )
 
-if method == connectai.METHOD_UV:
-    with st.expander("Test the server without an AI"):
-        st.markdown("FastMCP ships a browser inspector for calling the tools manually:")
-        st.code(f"uvx fastmcp dev {repo_path}/src/owlplanner/cli/cmd_serve.py", language="bash")
+with st.expander("Test the server without an AI"):
+    st.markdown(
+        "The official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) "
+        "(requires Node.js) opens a browser UI where you can call the tools manually:"
+    )
+    st.code(connectai.inspector_command(method, repo_path), language="bash")
 
 st.markdown(
     "Full guide with troubleshooting and more example conversations: "

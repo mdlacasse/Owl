@@ -49,6 +49,12 @@ def _mcp_servers_json(cmd, args):
     return json.dumps({"mcpServers": {"owl": {"command": cmd, "args": args}}}, indent=2)
 
 
+def inspector_command(method, repo_path):
+    """Official MCP Inspector invocation wrapping the same server launch command."""
+    cmd, args = server_command(method, repo_path)
+    return "npx @modelcontextprotocol/inspector " + " ".join([cmd] + args)
+
+
 def client_setup(client, method, repo_path):
     """
     Return the setup recipe for one client as a dict:
