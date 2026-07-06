@@ -24,6 +24,7 @@ import streamlit as st
 
 import sskeys as kz
 import moseklicense
+import assistant_core
 
 # Provision the MOSEK license at app startup (Streamlit Cloud reads it from secrets).
 # Done here explicitly rather than as an import side effect so that merely importing a
@@ -73,6 +74,11 @@ pages = {
         st.Page("About_Owl.py", icon=":material/info:"),
     ],
 }
+
+# The AI assistant chat is opt-in (OWL_ASSISTANT=1) and intended for self-hosted
+# or Docker deployments; the hosted app never sets the variable.
+if assistant_core.assistant_enabled():
+    pages["Tools"].insert(0, st.Page("Assistant.py", icon=":material/forum:"))
 
 pg = st.navigation(pages, position=kz.getGlobalKey("menuLocation"))
 

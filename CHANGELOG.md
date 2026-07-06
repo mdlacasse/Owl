@@ -12,6 +12,20 @@ AI clients are instructed to relay these assumptions and ask for true values whe
 matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
 parameters now default to "unspecified" rather than silently assuming values.
 
+#### New: embedded AI Assistant page (self-hosted/Docker, opt-in)
+New chat page in the web UI that can read the case currently open in the app, run the
+optimizer on variants, quantify strategies (`compare_to_baseline`), explain results
+(`explain_results`), stress-test, and save scenarios as case files — reusing the same
+tool implementations the MCP server exposes, in-process. Strictly opt-in: the page is
+registered only when `OWL_ASSISTANT=1` is set, so the hosted app never exposes it;
+requires `pip install owlplanner[assistant]` (the `anthropic` package) and an
+`ANTHROPIC_API_KEY` (`ANTHROPIC_BASE_URL` is honored for gateways/proxies;
+`OWL_ASSISTANT_MODEL` overrides the default model). Session access is read-only by
+design — the chat serializes the open case through the tested `ui_to_config` path and
+never mutates session state; scenarios are handed back via `save_case` files loadable
+from the Create Case page. Conversations (including case data when asked about) are
+sent to the configured AI provider, which the page discloses.
+
 #### New: "Connect your AI" page in the web UI
 New page under Tools that generates copy-paste MCP configuration for connecting Owl to
 an AI assistant — Claude Desktop, Claude Code, Cursor, Gemini CLI, VS Code (Copilot or
