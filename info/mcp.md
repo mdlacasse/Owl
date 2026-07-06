@@ -522,9 +522,38 @@ Anthropic-SDK program in the same environment, so pointing them at a local proxy
 would also redirect tools like Claude Code launched from that shell. Prefer the
 `OWL_ASSISTANT_*` spelling; it takes precedence when both are set.
 
-Several providers expose Anthropic-compatible endpoints. For **free, fully local**
-inference, put a [LiteLLM](https://docs.litellm.ai) proxy (which serves the Anthropic
-`/v1/messages` format) in front of [Ollama](https://ollama.com) or any other backend:
+Several providers expose Anthropic-compatible endpoints natively. Everything else —
+Google Gemini, OpenAI, Mistral, DeepSeek, local models — works through a
+[LiteLLM](https://docs.litellm.ai) proxy, which serves the Anthropic `/v1/messages`
+format in front of any backend and translates the tool calls.
+
+**Free hosted option — Google Gemini.** Get a key from
+[Google AI Studio](https://aistudio.google.com/apikey) (genuine free tier;
+rate-limited, and on the free tier Google may use your data for training — it will
+see the case numbers you chat about). Run the proxy in one terminal:
+
+```bash
+pip install 'litellm[proxy]'
+export GEMINI_API_KEY=AIza...                   # the AI Studio key
+litellm --model gemini/gemini-2.5-flash --port 4000
+```
+
+and point Owl at it in the shell that launches the app:
+
+```bash
+export OWL_ASSISTANT=1
+export OWL_ASSISTANT_BASE_URL=http://localhost:4000
+export OWL_ASSISTANT_API_KEY=anything           # LiteLLM accepts any key by default
+export OWL_ASSISTANT_MODEL=gemini/gemini-2.5-flash
+```
+
+The `anthropic` package (`owlplanner[assistant]`) is still required — it is the
+client speaking to the proxy — but no `ANTHROPIC_API_KEY` is needed; the Gemini key
+lives with the proxy. `gemini/gemini-2.5-pro` is stronger on multi-step tool work;
+model names evolve, so check the LiteLLM docs if one is rejected.
+
+**Free local option — Ollama.** For fully local inference where nothing leaves your
+machine, put the same proxy in front of [Ollama](https://ollama.com):
 
 ```bash
 pip install 'litellm[proxy]'
@@ -536,8 +565,9 @@ export OWL_ASSISTANT_API_KEY=anything           # LiteLLM accepts any key by def
 export OWL_ASSISTANT_MODEL=ollama/qwen3
 ```
 
-With a local model, nothing ever leaves your machine. **Honest caveat:** small local
-models are markedly weaker at multi-step tool calling than the Claude models — expect
+**Honest caveat:** any proxied provider runs through a protocol-translation layer, so
+tool-calling fidelity is a notch below a native Anthropic connection, and small local
+models are markedly weaker still at multi-step tool calling — expect occasional
 misrouted parameters and shallower explanations, and double-check numbers against the
 app before acting on them.
 
