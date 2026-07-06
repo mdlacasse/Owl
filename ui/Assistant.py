@@ -58,7 +58,9 @@ except ImportError:
 
 @st.cache_resource
 def _client():
-    return anthropic.Anthropic()
+    # Owl-scoped overrides win; otherwise the SDK's normal resolution applies
+    # (ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / an `ant auth login` profile).
+    return anthropic.Anthropic(**core.client_kwargs())
 
 
 @st.cache_resource
@@ -144,13 +146,17 @@ if prompt:
                 )
                 status.update(label="Done", state="complete")
         except anthropic.AuthenticationError:
-            st.error("Invalid or missing API key — check ANTHROPIC_API_KEY.", icon=":material/key_off:")
+            st.error(
+                "Invalid or missing API key — check OWL_ASSISTANT_API_KEY or ANTHROPIC_API_KEY.",
+                icon=":material/key_off:",
+            )
             st.session_state["assistant_messages"].pop()
             st.session_state["assistant_display"].pop()
             st.stop()
         except anthropic.APIConnectionError:
             st.error(
-                "Could not reach the AI provider — check your network or ANTHROPIC_BASE_URL.",
+                "Could not reach the AI provider — check your network or the configured "
+                "base URL (OWL_ASSISTANT_BASE_URL / ANTHROPIC_BASE_URL).",
                 icon=":material/wifi_off:",
             )
             st.session_state["assistant_messages"].pop()

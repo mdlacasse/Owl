@@ -483,7 +483,8 @@ streamlit run ui/main.py
 ```
 
 Optional environment variables: `OWL_ASSISTANT_MODEL` overrides the default model
-(`claude-opus-4-8`), and `ANTHROPIC_BASE_URL` points the SDK at a gateway or proxy.
+(`claude-opus-4-8`); `OWL_ASSISTANT_BASE_URL` and `OWL_ASSISTANT_API_KEY` point the
+assistant at a different endpoint and key (see *Using other or local models* below).
 Conversations — including your case data when you ask about it — are sent to the
 configured AI provider; the optimizer itself always runs locally.
 
@@ -507,10 +508,17 @@ The assistant speaks the Anthropic Messages protocol, so any endpoint that serve
 that format works with three variables:
 
 ```bash
-export ANTHROPIC_BASE_URL=https://provider.example.com/anthropic
-export ANTHROPIC_API_KEY=<that provider's key>
+export OWL_ASSISTANT_BASE_URL=https://provider.example.com/anthropic
+export OWL_ASSISTANT_API_KEY=<that provider's key>
 export OWL_ASSISTANT_MODEL=<that provider's model name>
 ```
+
+The `OWL_ASSISTANT_*` variables are scoped to the assistant only. The SDK's own
+`ANTHROPIC_BASE_URL` / `ANTHROPIC_API_KEY` are also honored (many providers'
+Anthropic-compatible instructions use those names) — but they are global to every
+Anthropic-SDK program in the same environment, so pointing them at a local proxy
+would also redirect tools like Claude Code launched from that shell. Prefer the
+`OWL_ASSISTANT_*` spelling; it takes precedence when both are set.
 
 Several providers expose Anthropic-compatible endpoints. For **free, fully local**
 inference, put a [LiteLLM](https://docs.litellm.ai) proxy (which serves the Anthropic
@@ -521,8 +529,8 @@ pip install 'litellm[proxy]'
 litellm --model ollama/qwen3 --port 4000       # proxy in front of a local Ollama model
 
 export OWL_ASSISTANT=1
-export ANTHROPIC_BASE_URL=http://localhost:4000
-export ANTHROPIC_API_KEY=anything               # LiteLLM accepts any key by default
+export OWL_ASSISTANT_BASE_URL=http://localhost:4000
+export OWL_ASSISTANT_API_KEY=anything           # LiteLLM accepts any key by default
 export OWL_ASSISTANT_MODEL=ollama/qwen3
 ```
 

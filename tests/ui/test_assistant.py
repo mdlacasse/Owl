@@ -38,6 +38,19 @@ def test_model_override(monkeypatch):
     assert core.assistant_model() == "claude-haiku-4-5"
 
 
+def test_client_kwargs_default_empty(monkeypatch):
+    monkeypatch.delenv("OWL_ASSISTANT_BASE_URL", raising=False)
+    monkeypatch.delenv("OWL_ASSISTANT_API_KEY", raising=False)
+    # Empty → the SDK's own resolution chain (ANTHROPIC_* vars, ant profile) applies.
+    assert core.client_kwargs() == {}
+
+
+def test_client_kwargs_owl_scoped_overrides(monkeypatch):
+    monkeypatch.setenv("OWL_ASSISTANT_BASE_URL", "http://localhost:4000")
+    monkeypatch.setenv("OWL_ASSISTANT_API_KEY", "sk-test")
+    assert core.client_kwargs() == {"base_url": "http://localhost:4000", "api_key": "sk-test"}
+
+
 def test_page_hidden_when_disabled(monkeypatch):
     from streamlit.testing.v1 import AppTest
 

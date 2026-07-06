@@ -26,8 +26,10 @@ value of the strategy, probability of success, start a plan from scratch).
 Strictly opt-in: the page is
 registered only when `OWL_ASSISTANT=1` is set, so the hosted app never exposes it;
 requires `pip install owlplanner[assistant]` (the `anthropic` package) and an
-`ANTHROPIC_API_KEY` (`ANTHROPIC_BASE_URL` is honored for gateways/proxies;
-`OWL_ASSISTANT_MODEL` overrides the default model). Session access is read-only by
+`ANTHROPIC_API_KEY` (`OWL_ASSISTANT_MODEL` overrides the default model;
+`OWL_ASSISTANT_BASE_URL` / `OWL_ASSISTANT_API_KEY` point the assistant — without
+affecting other Anthropic-SDK tools in the same shell — at any Anthropic-compatible
+endpoint, e.g. a LiteLLM proxy in front of local models). Session access is read-only by
 design — the chat serializes the open case through the tested `ui_to_config` path and
 never mutates session state; scenarios are handed back via `save_case` files loadable
 from the Create Case page. Conversations (including case data when asked about) are

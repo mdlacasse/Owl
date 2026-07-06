@@ -10,8 +10,10 @@ exposes, called directly without any stdio transport.
 The assistant is opt-in and intended for self-hosted or Docker deployments:
 it activates only when OWL_ASSISTANT=1 is set in the environment, so the
 hosted Streamlit app never exposes it. Conversations are sent to the
-configured LLM provider (Anthropic API by default; ANTHROPIC_BASE_URL is
-honored by the SDK for gateways/proxies).
+configured LLM provider (Anthropic API by default; OWL_ASSISTANT_BASE_URL /
+OWL_ASSISTANT_API_KEY point the assistant — and only the assistant — at a
+gateway, proxy, or other Anthropic-compatible endpoint; the SDK's global
+ANTHROPIC_* variables are also honored).
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -67,6 +69,25 @@ def assistant_enabled() -> bool:
 
 def assistant_model() -> str:
     return os.environ.get("OWL_ASSISTANT_MODEL", DEFAULT_MODEL)
+
+
+def client_kwargs() -> dict:
+    """
+    Owl-scoped client overrides: OWL_ASSISTANT_BASE_URL / OWL_ASSISTANT_API_KEY.
+
+    Unlike the SDK's own ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY (which remain
+    honored through the SDK's normal resolution chain), these apply only to the
+    Owl assistant — pointing it at a local proxy does not redirect other
+    Anthropic-SDK programs (e.g. Claude Code) running in the same environment.
+    """
+    kwargs = {}
+    base_url = os.environ.get("OWL_ASSISTANT_BASE_URL")
+    if base_url:
+        kwargs["base_url"] = base_url
+    api_key = os.environ.get("OWL_ASSISTANT_API_KEY")
+    if api_key:
+        kwargs["api_key"] = api_key
+    return kwargs
 
 
 def stateless_tool_schemas() -> list[dict]:
