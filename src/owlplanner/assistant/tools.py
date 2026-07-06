@@ -168,6 +168,7 @@ def _build_mcp_opts(
     use_roth_conv_overrides=None,
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
+    withdrawal_order=None,
     inames=None,
 ):
     """Build solver opts dict for MCP tools (always full-dollar units)."""
@@ -199,6 +200,8 @@ def _build_mcp_opts(
         opts["withACA"] = with_aca
     if use_roth_conv_overrides is not None:
         opts["useRothConvOverrides"] = bool(use_roth_conv_overrides)
+    if withdrawal_order is not None:
+        opts["withdrawalOrder"] = withdrawal_order
     _swap = _swap_roth_converters_value(inames, swap_roth_converters_first, swap_roth_converters_year)
     if _swap is not None:
         opts["swapRothConverters"] = _swap
@@ -1837,11 +1840,13 @@ def save_case(
 # Tool: compare_to_baseline
 # ─────────────────────────────────────────────────────────────────────────────
 
-BASELINE_POLICIES = ("no_roth_conversions", "no_ss_age_optimization")
+BASELINE_POLICIES = ("no_roth_conversions", "no_ss_age_optimization", "taxable_first_ordering")
 
 _BASELINE_POLICY_TEXT = {
     "no_roth_conversions": "no Roth conversions ever",
     "no_ss_age_optimization": "Social Security claimed at the stated ages (no claiming-age optimization)",
+    "taxable_first_ordering": "the conventional withdrawal order (taxable first, then tax-deferred "
+    "beyond RMDs, then Roth)",
 }
 
 
@@ -1861,6 +1866,8 @@ def _apply_baseline_policies_params(build_kwargs, opts_kwargs, policies):
         )
     if "no_ss_age_optimization" in policies:
         base_opts["optimize_ss_ages"] = None
+    if "taxable_first_ordering" in policies:
+        base_opts["withdrawal_order"] = "taxable_first"
     return base_build, base_opts
 
 
@@ -1877,6 +1884,8 @@ def _apply_baseline_policies_config(diconf, policies):
         so.pop("swapRothConverters", None)
     if "no_ss_age_optimization" in policies:
         so.pop("withSSAges", None)
+    if "taxable_first_ordering" in policies:
+        so["withdrawalOrder"] = "taxable_first"
     return base
 
 
@@ -2029,6 +2038,9 @@ async def compare_to_baseline(
       - "no_ss_age_optimization":  the baseline claims Social Security at the stated
                                    ages; only meaningful when optimize_ss_ages is set
                                    for the optimized run.
+      - "taxable_first_ordering":  the baseline withdraws in the conventional order —
+                                   taxable first, then tax-deferred (RMDs always taken),
+                                   then Roth — instead of optimizing withdrawal order.
 
     Accepts either 'filename' (+ optional overrides) or the same flat parameters as
     run_from_params.  Both runs share one rate-series seed, so stochastic rate methods
@@ -2036,9 +2048,11 @@ async def compare_to_baseline(
     are unaffected.  Material defaults assumed for omitted parameters are reported in
     assumed_defaults (flat-parameter path only).
 
-    Note: the baseline still optimizes withdrawal order and timing within its
-    restrictions, so the reported advantage is a *lower bound* on the value of the
-    full strategy versus a hand-managed plan.
+    The default baseline is a faithful conventional-wisdom strategy; within it the
+    optimizer only sizes withdrawals, so the reported advantage now reflects the value
+    of conversion strategy, claiming strategy, and withdrawal sequencing combined.
+    The baseline remains a restriction of the optimized problem, so the advantage is
+    still a certified lower bound (up to the solver gap).
     """
     policies = list(baseline_policies) if baseline_policies is not None else list(BASELINE_POLICIES)
     bad = [p for p in policies if p not in BASELINE_POLICIES]

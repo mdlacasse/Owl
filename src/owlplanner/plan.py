@@ -1980,6 +1980,7 @@ class Plan:
         aca_lp = options.get("withACA", "loop") == "optimize"
         ltcg_lp = options.get("withLTCG", "loop") == "optimize"
         niit_lp = options.get("withNIIT", "loop") == "optimize"
+        ordering = options.get("withdrawalOrder", "optimal") == "taxable_first"
         # withSSAges: "fixed"/"none" → no opt; "optimize" → all;
         # individual name or list of names → optimize only those individuals.
         _ssa_opt = options.get("withSSAges", "fixed")
@@ -2083,6 +2084,7 @@ class Plan:
         vm.add_if(ltcg_lp, "zl", 2, self.N_n)  # 2×N_n regime binaries (LTCG MILP)
         vm.add_if(niit_lp, "zj", self.N_n)  # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
+        vm.add_if(ordering, "zo", 2, self.N_n)  # withdrawal-ordering gates (taxable_first)
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -2118,6 +2120,7 @@ class Plan:
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
         self._add_withdrawal_limits()
+        self._add_withdrawal_ordering(options)
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
         self._add_surplus_deposit_linking(options)
@@ -2409,6 +2412,57 @@ class Plan:
                 rowDic = {self.vm["w"].idx(i, 3, n): 1 for i in range(self.N_i)}
                 rowDic[self.vm["m"].idx(n)] = -1
                 self.A.addNewRow(rowDic, -np.inf, cap)
+
+    def _add_withdrawal_ordering(self, options):
+        """
+        Enforce the conventional withdrawal order — taxable first, then tax-deferred,
+        then Roth — when options["withdrawalOrder"] == "taxable_first". Models the
+        naive strategy a hand-managed plan would follow (used as a baseline policy by
+        compare_to_baseline); the default "optimal" leaves withdrawal order free.
+
+        Household-level gates, one pair of binaries per year:
+          zo[0,n] = 1  iff household taxable is exhausted at end of year n
+                       (tax-deferred withdrawals beyond the RMD become allowed)
+          zo[1,n] = 1  iff household tax-deferred is also exhausted at end of year n
+                       (Roth withdrawals become allowed)
+        RMDs remain forced by the RMD floor rows regardless of the gates, so when
+        zo[0,n] = 0 the tax-deferred withdrawal is pinned to exactly the RMD.
+        HSA withdrawals (qualified medical) are not gated. Surplus deposits land in
+        taxable at year end, so a year cannot both deposit a surplus and claim the
+        taxable-exhausted gate — closing the drain-and-redeposit loophole.
+        """
+        if "zo" not in self.vm:
+            return
+        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
+        for n in range(self.N_n):
+            Mn = bigM * self.gamma_n[n]
+            z1 = self.vm["zo"].idx(0, n)
+            z2 = self.vm["zo"].idx(1, n)
+            for i in range(self.N_i):
+                if n >= self.horizons[i]:
+                    continue
+                # Tax-deferred beyond the RMD only once taxable is exhausted:
+                # w[i,1,n] - rho*b[i,1,n] - M*z1 <= 0  (mirrors the RMD floor row).
+                self.A.addNewRow(
+                    {
+                        self.vm["w"].idx(i, 1, n): 1,
+                        self.vm["b"].idx(i, 1, n): -self.rho_in[i, n],
+                        z1: -Mn,
+                    },
+                    -np.inf,
+                    0,
+                )
+                # Roth withdrawals only once tax-deferred is also exhausted.
+                self.A.addNewRow({self.vm["w"].idx(i, 2, n): 1, z2: -Mn}, -np.inf, 0)
+            # Gate activation: sum_i b[i,j,n+1] + M*z <= M  (z=1 forces end balance ~ 0).
+            rowDic = {self.vm["b"].idx(i, 0, n + 1): 1 for i in range(self.N_i)}
+            rowDic[z1] = Mn
+            self.A.addNewRow(rowDic, -np.inf, Mn)
+            rowDic = {self.vm["b"].idx(i, 1, n + 1): 1 for i in range(self.N_i)}
+            rowDic[z2] = Mn
+            self.A.addNewRow(rowDic, -np.inf, Mn)
+            # Full ordering: the Roth gate implies the tax-deferred gate.
+            self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0)
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
@@ -3638,6 +3692,7 @@ class Plan:
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
             "withDuals",  # Re-solve final LP with binaries fixed to extract shadow prices
+            "withdrawalOrder",  # "optimal" (default) or "taxable_first" (naive ordering gates)
         ]
         options = {} if options is None else options
 
@@ -3666,6 +3721,10 @@ class Plan:
 
         if objective == "maxSpending" and "bequest" not in myoptions:
             self.mylog.vprint("Using bequest of $1.")
+
+        _worder = myoptions.get("withdrawalOrder", "optimal")
+        if _worder not in ("optimal", "taxable_first"):
+            raise ValueError(f"withdrawalOrder '{_worder}' must be 'optimal' or 'taxable_first'.")
 
         oppCostX = myoptions.get("oppCostX", 0.0)
         self.xnet = 1 - oppCostX / 100.0

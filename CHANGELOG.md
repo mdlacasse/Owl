@@ -29,13 +29,23 @@ self-consistent quantities fixed at their converged values.
 New MCP tool that solves the same case twice — fully optimized, and restricted to a
 conventional baseline strategy — and reports the advantage in today's dollars: extra
 annual and lifetime spending, extra final bequest, and the tax/premium difference.
-Baseline policies (both on by default): `no_roth_conversions` and
-`no_ss_age_optimization` (claim at stated ages). Accepts a TOML case file or the same
-flat parameters as `run_from_params`. Both runs share one rate-series seed so
-stochastic rate methods see identical market sequences (supported by a new
-`reproducible_seed` pass-through in the parameter builder). Since the baseline still
-optimizes withdrawal order within its restrictions, the reported advantage is a lower
-bound on the value versus a hand-managed plan.
+Baseline policies (all on by default): `no_roth_conversions`,
+`no_ss_age_optimization` (claim at stated ages), and `taxable_first_ordering`
+(withdraw taxable first, then tax-deferred beyond RMDs, then Roth). Accepts a TOML
+case file or the same flat parameters as `run_from_params`. Both runs share one
+rate-series seed so stochastic rate methods see identical market sequences (supported
+by a new `reproducible_seed` pass-through in the parameter builder). The baseline is a
+faithful conventional-wisdom strategy in which the optimizer only sizes withdrawals,
+and it remains a restriction of the optimized problem — the reported advantage is a
+certified lower bound (up to the solver gap).
+
+#### New: `withdrawalOrder` solver option — enforce conventional withdrawal sequencing
+New solver option `withdrawalOrder="taxable_first"` adds per-year household-level
+gating binaries (`zo`) enforcing the conventional order: tax-deferred withdrawals
+beyond the RMD are allowed only once the household taxable balance is exhausted, and
+Roth withdrawals only once tax-deferred is also exhausted. RMDs remain forced, HSA
+withdrawals are not gated, and surplus deposits land in taxable — closing the
+drain-and-redeposit loophole. Default `"optimal"` leaves ordering free.
 
 #### New: `owl_intake` MCP prompt and reference resources
 The MCP server now exposes an `owl_intake` prompt — an interview script that tells the AI

@@ -23,7 +23,7 @@ optimizations, and compare scenarios through natural conversation.
 | `list_contribution_limits(birth_years, tax_year)` | IRS contribution-limit ceilings (incl. 50+ and 60-63 catch-up) by birth year | No |
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
-| `compare_to_baseline(filename or params, baseline_policies)` | Quantify the dollar value of optimization vs a conventional baseline (no Roth conversions, Social Security at stated ages) | Yes (×2) |
+| `compare_to_baseline(filename or params, baseline_policies)` | Quantify the dollar value of optimization vs a conventional baseline (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) | Yes (×2) |
 | `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, account depletion order | Yes |
 | `run_from_params(names, birth_years, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
 | `save_case(names, birth_years, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |

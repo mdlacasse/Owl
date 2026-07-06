@@ -348,6 +348,7 @@ class SolverOptions(BaseModel):
     withSSAges: Optional[Union[str, List[str]]] = None
     withSCLoop: Optional[bool] = None
     withDuals: Optional[bool] = None
+    withdrawalOrder: Optional[str] = None
 
     # Other
     previousMAGIs: Optional[List[float]] = None
