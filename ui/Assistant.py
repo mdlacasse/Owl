@@ -75,7 +75,8 @@ MODEL = core.assistant_model()
 
 st.caption(
     f"Conversations (including your case data when you ask about it) are sent to the "
-    f"configured AI provider — model `{MODEL}`. The optimizer itself runs locally. "
+    f"configured AI provider — model `{MODEL}`; set `OWL_ASSISTANT_MODEL` to trade cost "
+    f"for capability (see info/mcp.md). The optimizer itself runs locally. "
     f"Educational and research use only; not financial, tax, or investment advice."
 )
 

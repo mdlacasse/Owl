@@ -483,10 +483,53 @@ streamlit run ui/main.py
 ```
 
 Optional environment variables: `OWL_ASSISTANT_MODEL` overrides the default model
-(`claude-opus-4-8`), and `ANTHROPIC_BASE_URL` points the SDK at a gateway or proxy
-(e.g. a LiteLLM front for local models). Conversations — including your case data
-when you ask about it — are sent to the configured AI provider; the optimizer itself
-always runs locally.
+(`claude-opus-4-8`), and `ANTHROPIC_BASE_URL` points the SDK at a gateway or proxy.
+Conversations — including your case data when you ask about it — are sent to the
+configured AI provider; the optimizer itself always runs locally.
+
+### Choosing a model — cost vs. capability
+
+The assistant is tool-heavy (sixteen tools with large schemas, multi-step chains
+carrying your actual numbers), so model quality directly affects the correctness of
+what it tells you. Approximate Anthropic list prices per million input/output tokens;
+a typical chat turn with a couple of tool calls costs cents (the system prompt is
+cache-marked, so repeat turns are cheaper):
+
+| Model (`OWL_ASSISTANT_MODEL`) | $/MTok in/out | Notes |
+|---|---|---|
+| `claude-opus-4-8` (default) | $5 / $25 | Most capable; best tool use and explanations |
+| `claude-sonnet-5` | $3 / $15 | Near-Opus on tool-driven work; the value pick |
+| `claude-haiku-4-5` | $1 / $5 | Cheapest; fine for casual Q&A, weaker on long tool chains |
+
+### Using other or local models
+
+The assistant speaks the Anthropic Messages protocol, so any endpoint that serves
+that format works with three variables:
+
+```bash
+export ANTHROPIC_BASE_URL=https://provider.example.com/anthropic
+export ANTHROPIC_API_KEY=<that provider's key>
+export OWL_ASSISTANT_MODEL=<that provider's model name>
+```
+
+Several providers expose Anthropic-compatible endpoints. For **free, fully local**
+inference, put a [LiteLLM](https://docs.litellm.ai) proxy (which serves the Anthropic
+`/v1/messages` format) in front of [Ollama](https://ollama.com) or any other backend:
+
+```bash
+pip install 'litellm[proxy]'
+litellm --model ollama/qwen3 --port 4000       # proxy in front of a local Ollama model
+
+export OWL_ASSISTANT=1
+export ANTHROPIC_BASE_URL=http://localhost:4000
+export ANTHROPIC_API_KEY=anything               # LiteLLM accepts any key by default
+export OWL_ASSISTANT_MODEL=ollama/qwen3
+```
+
+With a local model, nothing ever leaves your machine. **Honest caveat:** small local
+models are markedly weaker at multi-step tool calling than the Claude models — expect
+misrouted parameters and shallower explanations, and double-check numbers against the
+app before acting on them.
 
 ---
 
