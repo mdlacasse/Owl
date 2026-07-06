@@ -53,6 +53,8 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 - **Tax optimization** — federal + state income tax (all 50 states + DC), LTCG brackets, NIIT, Medicare IRMAA, and ACA premiums all embedded in the optimizer
 - **Account types** — taxable, tax-deferred (401k/IRA), Roth, and HSA accounts with full contribution and withdrawal rules
 - **Roth conversions** — amounts and timing co-optimized with spending and bequest goals
+- **Value of optimization** — `compare_to_baseline` solves the same plan with and without the strategy (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) and reports the advantage in today's dollars — a mathematical lower bound from the optimizer itself, not a simulation estimate
+- **Explainability** — `explain_results` reads the LP shadow prices to report what each goal and rule costs at the margin, which tax brackets the plan deliberately fills (and why), and the order in which accounts are drawn down
 - **Social Security** — own, spousal, and survivor benefits; optional MILP co-optimization of claiming age (monthly resolution, 62–70)
 - **Pension & SPIA** — pension income with survivor fractions; IRA-funded SPIA with optional CPI indexing and joint-and-survivor benefit
 - **Two objectives** — maximize net spending subject to a bequest floor, or maximize after-tax bequest subject to a spending floor
@@ -60,8 +62,10 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 - **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes (equities, corporate bonds, T-notes, cash); per-account, per-individual, or household-wide
 - **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
 - **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
-- **AI assistant** — MCP server lets Claude Desktop, Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, and compare scenarios through natural conversation — no TOML files required:
+- **AI assistant** — MCP server lets Claude Desktop, Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, quantify and explain strategies, and compare scenarios through natural conversation — sixteen tools plus a guided `owl_intake` interview prompt, with every assumption made for omitted inputs disclosed in the response (`assumed_defaults`). No TOML files required:
   > *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
+
+  Self-hosted installs can also enable a built-in **Assistant** chat page that reads the case open in the app (`OWL_ASSISTANT=1`); the **Connect your AI** page in the web UI generates the client configuration either way.
 
 Among open-source retirement planning tools, Owl stands out for the breadth and rigor of its financial modeling. While the full API rewards those willing to invest time, the Streamlit web interface provides an accessible entry point for all users.
 
@@ -85,6 +89,8 @@ Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot or Cline), or any
 The AI can discover cases, run optimizations, compute probability-of-success frontiers,
 and compare scenarios through natural conversation — no TOML files required.
 Requires a local installation; see <a href="https://github.com/mdlacasse/Owl/blob/main/info/mcp.md" target="_blank" rel="noopener noreferrer">info/mcp.md</a> for setup.
+The *Connect your AI* page (under Tools in the web UI) generates the copy-paste
+configuration for Claude Desktop, Claude Code, Cursor, Gemini CLI, VS Code, and Zed.
 
 
 ## Documentation
@@ -117,6 +123,11 @@ This app does not store or forward any information. All data entered is lost
 after a session is closed. However, you can choose to download selected parts of your
 own data to your computer before closing the session. These data will be stored strictly on
 your computer and can be used to reproduce a case at a later time.
+
+The optional self-hosted **Assistant** page is disabled by default and never available
+on the hosted app; when you explicitly enable it, your conversation — including case
+data you ask about — is sent to the AI provider you configure. The optimizer itself
+always runs locally.
 
 
 ## Licensing
