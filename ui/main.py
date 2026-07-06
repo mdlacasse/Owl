@@ -62,6 +62,7 @@ pages = {
         st.Page("Spending_Optimization.py", icon=":material/query_stats:"),
     ],
     "Tools": [
+        st.Page("Connect_your_AI.py", icon=":material/smart_toy:"),
         st.Page("Settings.py", icon=":material/settings:"),
         st.Page("Logs.py", icon=":material/error:"),
     ],

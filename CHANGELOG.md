@@ -12,6 +12,16 @@ AI clients are instructed to relay these assumptions and ask for true values whe
 matter. Accordingly, `state`, `spending_profile`, `survivor_fraction`, and the allocation
 parameters now default to "unspecified" rather than silently assuming values.
 
+#### New: "Connect your AI" page in the web UI
+New page under Tools that generates copy-paste MCP configuration for connecting Owl to
+an AI assistant — Claude Desktop, Claude Code, Cursor, Gemini CLI, VS Code (Copilot or
+Cline), Zed, and other MCP-compatible clients. Pick the client and install method
+(uv checkout or `owlcli` on PATH), enter the repository path, and copy the generated
+snippet, with per-client file locations and verification steps. The page is safe on the
+hosted app: the MCP server itself always runs on the user's own computer, and the page
+states the privacy boundary explicitly. Config-generation logic lives in
+`ui/connectai.py` with unit tests plus an AppTest rendering test.
+
 #### New: `explain_results` MCP tool — shadow-price explanations of a solved plan
 New solver option `withDuals=True`: after the final solve, the LP is re-solved with the
 binary variables fixed at their solution values (always via HiGHS) to extract constraint
