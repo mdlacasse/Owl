@@ -1,4 +1,4 @@
-### Version 2026.7.4
+### Version 2026.7.5
 
 #### New: MCP solve tools report their assumptions (`assumed_defaults`)
 The params-driven MCP tools (`run_from_params`, `save_case`, `run_stochastic`,
@@ -95,6 +95,10 @@ The fourteen MCP tool functions were extracted from `owlplanner/cli/cmd_serve.py
 new `owlplanner/assistant/tools.py` module that imports neither `mcp` nor `click`, so the
 same tools can be reused by other assistant front ends. `cmd_serve.py` now only registers
 the tools with FastMCP and provides the `owlcli serve` entry point. No behavior change.
+
+---
+
+### Version 2026.7.4
 
 #### Bug
 Fix broken imports incorrectly removed by linter that prevented the UI from functioning properly.

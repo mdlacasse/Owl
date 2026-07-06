@@ -70,7 +70,7 @@ def _shadow_prices(plan, dd):
     sp = {}
 
     # Bequest floor (maxSpending): cost of each extra today's-$ the estate must retain.
-    for t, i in _tagged_rows(dd, "bequest_floor"):
+    for _t, i in _tagged_rows(dd, "bequest_floor"):
         sens = dual[i] * objFac * gamma[plan.N_n]  # row rhs is in nominal year-N dollars
         if abs(sens) > _TOL:
             sp["bequest_floor"] = {
@@ -98,7 +98,7 @@ def _shadow_prices(plan, dd):
         cf.sort()
         vals = [_round(d * objFac * gamma[n], 4) for n, d in cf]
         yrs = [int(years[n]) for n, _ in cf]
-        top = sorted(zip(yrs, vals), key=lambda p: -p[1])[:3]
+        top = sorted(zip(yrs, vals, strict=True), key=lambda p: -p[1])[:3]
         sp["value_of_extra_income_by_year"] = {
             "years": yrs,
             "value_per_today_dollar": vals,

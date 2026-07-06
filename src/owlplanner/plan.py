@@ -4539,7 +4539,8 @@ class Plan:
             self._dual_data = None
             return
 
-        activity = np.array([float(np.dot(vals, xx[inds])) for inds, vals in zip(self.A.Aind, self.A.Aval)])
+        activity = np.array([float(np.dot(vals, xx[inds]))
+                            for inds, vals in zip(self.A.Aind, self.A.Aval, strict=True)])
         if self.objective == "maxSpending":
             objFac = -1.0 / float(self.xi_n[0])
         else:
