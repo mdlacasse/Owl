@@ -46,6 +46,15 @@ SESSION_TOOL_SCHEMAS = [
         "one is active.",
         "input_schema": _NO_PROPS,
     },
+    {
+        "name": "get_current_case_results",
+        "description": "Return the full solved results of the case currently open in the Owl "
+        "app — the same summary and year-by-year detail run_case returns, for the exact "
+        "solution the app is displaying. Use this instead of re-solving when the user asks "
+        "about their already-solved plan (e.g. 'what do I withdraw in 2032?'). Fails if the "
+        "case has not been solved yet.",
+        "input_schema": _NO_PROPS,
+    },
 ]
 
 _METRIC_KEYS = (
@@ -110,6 +119,25 @@ def list_open_cases() -> str:
     return json.dumps({"open_cases": names, "active_case": current})
 
 
+def get_current_case_results() -> str:
+    if not kz.has_current_case():
+        return json.dumps({"error": "No case is currently open in the app."})
+    dic = kz.currentCaseDic()
+    plan = dic.get("plan")
+    if dic.get("caseStatus") != "solved" or plan is None:
+        return json.dumps(
+            {
+                "error": "The current case has not been solved yet. Ask the user to run it "
+                "from the app, or solve a copy yourself with run_from_params."
+            }
+        )
+    from owlplanner.cli.formatters import plan_to_dict, _NumpyEncoder
+
+    result = plan_to_dict(plan)
+    result["case_name"] = kz.currentCaseName()
+    return json.dumps(result, cls=_NumpyEncoder, default=str)
+
+
 def all_tool_schemas() -> list[dict]:
     return SESSION_TOOL_SCHEMAS + core.stateless_tool_schemas()
 
@@ -119,4 +147,6 @@ def execute_tool(name: str, args: dict) -> str:
         return get_current_case()
     if name == "list_open_cases":
         return list_open_cases()
+    if name == "get_current_case_results":
+        return get_current_case_results()
     return core.call_stateless_tool(name, args)

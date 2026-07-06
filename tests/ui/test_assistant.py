@@ -65,12 +65,12 @@ def test_stateless_tool_schemas_match_whitelist():
 
 def test_all_tool_schemas_include_session_tools():
     names = {s["name"] for s in atools.all_tool_schemas()}
-    assert {"get_current_case", "list_open_cases"} <= names
+    assert {"get_current_case", "list_open_cases", "get_current_case_results"} <= names
 
 
 def test_call_stateless_tool_rejects_non_whitelisted():
     with pytest.raises(ValueError):
-        core.call_stateless_tool("run_case", {"filename": "x.toml"})
+        core.call_stateless_tool("delete_all_cases", {})
 
 
 def test_call_stateless_tool_executes():
@@ -221,6 +221,52 @@ def test_list_open_cases(monkeypatch):
     monkeypatch.setattr(atools.kz, "currentCaseName", lambda: "beta")
     data = json.loads(atools.list_open_cases())
     assert data == {"open_cases": ["alpha", "beta"], "active_case": "beta"}
+
+
+def test_get_current_case_results_no_case(monkeypatch):
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: False)
+    data = json.loads(atools.get_current_case_results())
+    assert "error" in data
+
+
+def test_get_current_case_results_unsolved(monkeypatch):
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: True)
+    monkeypatch.setattr(atools.kz, "currentCaseDic", lambda: {"caseStatus": "new", "plan": None})
+    data = json.loads(atools.get_current_case_results())
+    assert "not been solved" in data["error"]
+
+
+@pytest.mark.toml
+def test_get_current_case_results_solved(monkeypatch):
+    from owlplanner.assistant.tools import _build_plan_from_params
+
+    plan = _build_plan_from_params(
+        names=["Pat"],
+        birth_years=[1960],
+        life_expectancy=[88],
+        state="TX",
+        taxable=[200_000],
+        tax_deferred=[800_000],
+        roth=[100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500],
+        ss_ages=[67],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+    )
+    plan.solve("maxSpending", {"units": "1"})
+    assert plan.caseStatus == "solved"
+
+    monkeypatch.setattr(atools.kz, "has_current_case", lambda: True)
+    monkeypatch.setattr(atools.kz, "currentCaseName", lambda: "pat")
+    monkeypatch.setattr(atools.kz, "currentCaseDic", lambda: {"caseStatus": "solved", "plan": plan})
+    data = json.loads(atools.get_current_case_results())
+    assert data["case_name"] == "pat"
+    assert data["status"] == "solved"
+    assert data["spending_year1_nominal"] > 0
+    assert len(data["by_year"]) == plan.N_n
 
 
 def test_get_current_case_with_invalid_config(monkeypatch):

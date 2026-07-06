@@ -16,7 +16,12 @@ parameters now default to "unspecified" rather than silently assuming values.
 New chat page in the web UI that can read the case currently open in the app, run the
 optimizer on variants, quantify strategies (`compare_to_baseline`), explain results
 (`explain_results`), stress-test, and save scenarios as case files — reusing the same
-tool implementations the MCP server exposes, in-process. Strictly opt-in: the page is
+tool implementations the MCP server exposes, in-process — including the case-file tools
+(`list_cases`/`run_case`/`compare_cases`), which on a self-hosted install close the loop
+with `save_case` (save a scenario, reload and re-run it in a later conversation). A
+`get_current_case_results` session tool returns the solved year-by-year results the app
+is displaying, so questions about an already-solved plan don't trigger a re-solve.
+Strictly opt-in: the page is
 registered only when `OWL_ASSISTANT=1` is set, so the hosted app never exposes it;
 requires `pip install owlplanner[assistant]` (the `anthropic` package) and an
 `ANTHROPIC_API_KEY` (`ANTHROPIC_BASE_URL` is honored for gateways/proxies;

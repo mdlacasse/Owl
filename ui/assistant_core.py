@@ -36,9 +36,10 @@ import os
 DEFAULT_MODEL = "claude-opus-4-8"
 MAX_ITERATIONS = 12  # tool-use round trips per user turn
 
-# Stateless solver tools reused from the MCP registry. File-discovery tools
-# (list_cases, run_case, compare_cases) are omitted: the chat works from the
-# live session and from structured parameters, not from TOML paths.
+# Stateless solver tools reused from the MCP registry. The file-path tools
+# (list_cases, explain_case, run_case, compare_cases) are included: the chat
+# runs on the same machine as the case files on a self-hosted install, and
+# they close the loop with save_case (save a scenario, reload it later).
 STATELESS_TOOLS = (
     "run_from_params",
     "compare_to_baseline",
@@ -48,6 +49,10 @@ STATELESS_TOOLS = (
     "run_historical",
     "run_monte_carlo",
     "save_case",
+    "list_cases",
+    "explain_case",
+    "run_case",
+    "compare_cases",
     "convert_ss_benefit",
     "list_contribution_limits",
     "list_rate_models",
@@ -97,13 +102,16 @@ def build_system_prompt() -> str:
         "it.\n\n"
         "When the user refers to 'my case', 'my plan', or their current numbers, call "
         "get_current_case first — it returns the configuration of the case currently "
-        "open in the app (and key results when it has been solved). Use those values "
-        "verbatim as inputs to the solver tools; never invent or round balances, ages, "
-        "or benefits. To explore variants, translate the case configuration into the "
-        "flat parameters of run_from_params / compare_to_baseline / explain_results. "
+        "open in the app (and key results when it has been solved). For the detailed "
+        "year-by-year solution the app is displaying, call get_current_case_results "
+        "instead of re-solving. Use those values verbatim as inputs to the solver "
+        "tools; never invent or round balances, ages, or benefits. To explore "
+        "variants, translate the case configuration into the flat parameters of "
+        "run_from_params / compare_to_baseline / explain_results. "
         "Chat tools cannot modify the case open in the app; to hand a scenario back to "
         "the user, offer save_case, which writes a TOML case file they can load from "
-        "the app's Create Case page.\n\n"
+        "the app's Create Case page — and which you can rediscover and re-run later "
+        "with list_cases / run_case / compare_cases (use absolute paths).\n\n"
         "Conventions: balances are in full dollars; Social Security and pensions are "
         "$/month (Social Security as the PIA at full retirement age — use "
         "convert_ss_benefit when the user quotes an actual check amount); wages, "
