@@ -28,7 +28,6 @@ import sskeys as kz
 import connectai
 
 st.markdown("# :material/smart_toy: Connect your AI")
-st.markdown("### **Owl** - *Optimal wealth lab*")
 kz.divider("orange")
 
 st.markdown(
