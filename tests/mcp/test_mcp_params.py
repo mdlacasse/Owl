@@ -909,6 +909,51 @@ def test_assumed_defaults_quiet_when_fully_specified():
     assert assumed == []
 
 
+def test_scrub_optimized_ss_ages_semantics():
+    from owlplanner.assistant.tools import _scrub_optimized_ss_ages
+
+    entry = {"parameter": "ss_ages", "assumed": 67, "note": "..."}
+    other = {"parameter": "state", "assumed": "TX", "note": "..."}
+
+    # Full optimization: the ss_ages note is spurious and must be dropped.
+    assumed = [other, dict(entry)]
+    _scrub_optimized_ss_ages(assumed, {"withSSAges": "optimize"})
+    assert assumed == [other]
+
+    # Partial optimization (one spouse): default still applies to the other — keep.
+    assumed = [dict(entry)]
+    _scrub_optimized_ss_ages(assumed, {"withSSAges": ["Jack"]})
+    assert len(assumed) == 1
+
+    # No optimization: keep.
+    assumed = [dict(entry)]
+    _scrub_optimized_ss_ages(assumed, {})
+    assert len(assumed) == 1
+
+
+@pytest.mark.toml
+def test_assumed_defaults_no_ss_ages_note_when_optimized():
+    """Regression: optimize_ss_ages=True with ss_ages omitted must not flag 'assumed 67'."""
+    result = _run(
+        run_from_params(
+            names=["Martin"],
+            birth_years=[1960],
+            life_expectancy=[85],
+            taxable=[200_000],
+            tax_deferred=[800_000],
+            roth=[100_000],
+            ss_monthly_pias=[2500],
+            optimize_ss_ages=True,
+            state="TX",
+            rate_method="conservative",
+        )
+    )
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    flagged = {e["parameter"] for e in data.get("assumed_defaults", [])}
+    assert "ss_ages" not in flagged
+
+
 def test_assumed_defaults_couple_survivor_and_ss_ages():
     assumed = []
     _build_plan_from_params(

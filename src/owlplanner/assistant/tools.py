@@ -208,6 +208,19 @@ def _build_mcp_opts(
     return opts
 
 
+def _scrub_optimized_ss_ages(assumed, opts):
+    """Drop the ss_ages assumed-default entry when claiming ages are fully optimized.
+
+    The builder flags omitted ss_ages as 'assumed 67', but with
+    withSSAges="optimize" the MIP chooses the ages and 67 is only a starting
+    value — the note would be spurious. Partial optimization (a name or list
+    of names) keeps the entry, since the default still applies to the
+    non-optimized individual(s).
+    """
+    if assumed and opts.get("withSSAges") == "optimize":
+        assumed[:] = [e for e in assumed if e["parameter"] != "ss_ages"]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: list_cases
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1200,6 +1213,7 @@ def _run_from_params_blocking(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
     )
+    _scrub_optimized_ss_ages(assumed, opts)
     plan.solve(objective, opts)
     return plan
 
@@ -1797,6 +1811,7 @@ def save_case(
     _ssa = _ss_ages_opt(optimize_ss_ages)
     if _ssa is not None:
         plan.solverOptions["withSSAges"] = _ssa
+    _scrub_optimized_ss_ages(assumed, plan.solverOptions)
 
     stem = (case_name or plan._name).replace(" ", "_")
     out = Path(output_dir)
@@ -1893,6 +1908,7 @@ def _compare_to_baseline_params_blocking(build_kwargs, opts_kwargs, objective, p
     """Solve optimized and baseline plans from the same structured parameters."""
     plan_opt = _build_plan_from_params(**build_kwargs, assumed=assumed)
     opts = _build_mcp_opts(**opts_kwargs, inames=plan_opt.inames)
+    _scrub_optimized_ss_ages(assumed, opts)
     plan_opt.solve(objective, opts)
 
     base_build, base_opts = _apply_baseline_policies_params(build_kwargs, opts_kwargs, policies)
@@ -2223,6 +2239,7 @@ def _explain_results_blocking(build_kwargs, opts_kwargs, objective, assumed):
     plan = _build_plan_from_params(**build_kwargs, assumed=assumed)
     opts = _build_mcp_opts(**opts_kwargs, inames=plan.inames)
     opts["withDuals"] = True
+    _scrub_optimized_ss_ages(assumed, opts)
     plan.solve(objective, opts)
     return plan
 
@@ -2980,6 +2997,7 @@ async def run_stochastic(
         inames=plan.inames,
     )
 
+    _scrub_optimized_ss_ages(assumed, opts)
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -3130,6 +3148,7 @@ def _longevity_stochastic_blocking(
         dividend_rate=dividend_rate,
         assumed=assumed,
     )
+    _scrub_optimized_ss_ages(assumed, opts)
 
     plan.setSexes(list(sexes))
     if mortality_table:
@@ -3736,6 +3755,7 @@ async def run_historical(
         inames=plan.inames,
     )
 
+    _scrub_optimized_ss_ages(assumed, opts)
     try:
         plan, n_attempted, results, ystart_actual, yend_actual = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -4050,6 +4070,7 @@ async def run_monte_carlo(
         inames=plan.inames,
     )
 
+    _scrub_optimized_ss_ages(assumed, opts)
     try:
         plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
             None,
