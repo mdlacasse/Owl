@@ -454,9 +454,10 @@ def convert_ss_benefit(
         equivalent PIA, which can then be passed as ss_monthly_pias (with
         ss_ages=[claiming_age]) to the run_* tools.
 
-    Provide exactly one of pia or actual_benefit. birth_month/birth_day default to
-    Owl's internal convention (July 1) and only matter for FRA-transition birth years
-    (1955-1959) and for the exact early/delayed-claiming reduction near month boundaries.
+    Provide exactly one of pia or actual_benefit. Pass the person's real birth_month
+    and birth_day (matching the birth_dates given to the run_* tools): they matter for
+    FRA-transition birth years (1955-1959) and for the exact early/delayed-claiming
+    reduction near month boundaries.
     """
     if (pia is None) == (actual_benefit is None):
         return json.dumps({"error": "Provide exactly one of 'pia' or 'actual_benefit'."})
@@ -732,7 +733,7 @@ def _get_field(d: dict, canonical: str, default=None):
 
 def _build_plan_from_params(
     names,
-    birth_years,
+    birth_dates,
     life_expectancy,
     state,
     taxable,
@@ -834,7 +835,15 @@ def _build_plan_from_params(
                 60,
                 "Household spending assumed to drop to 60% of the profile after the first spouse dies.",
             )
-    dobs = [f"{by}-07-01" for by in birth_years]
+    for d in birth_dates:
+        try:
+            datetime.datetime.strptime(str(d), "%Y-%m-%d")
+        except ValueError:
+            raise ValueError(
+                f'birth_dates entries must be full dates "YYYY-MM-DD" (the month matters for '
+                f"Social Security claiming math); got {d!r}."
+            ) from None
+    dobs = [str(d) for d in birth_dates]
     case_name = "+".join(n.lower() for n in names)
 
     plan = Plan(names, dobs, list(life_expectancy), case_name, verbose=False, logstreams=[sys.stderr])
@@ -1040,7 +1049,7 @@ def _build_plan_from_params(
 
     if slcsp is not None and float(slcsp) > 0:
         plan.setACA(float(slcsp), units="1", start_year=aca_start_year)
-    elif slcsp is None and any(thisyear - by < 65 for by in birth_years):
+    elif slcsp is None and any(thisyear - int(str(d)[:4]) < 65 for d in birth_dates):
         _assume(
             "slcsp",
             "no ACA modeling",
@@ -1067,7 +1076,7 @@ def _build_plan_from_params(
 
 def _run_from_params_blocking(
     names,
-    birth_years,
+    birth_dates,
     life_expectancy,
     state,
     taxable,
@@ -1133,7 +1142,7 @@ def _run_from_params_blocking(
 ):
     plan = _build_plan_from_params(
         names,
-        birth_years,
+        birth_dates,
         life_expectancy,
         state,
         taxable,
@@ -1185,7 +1194,7 @@ def _run_from_params_blocking(
     if (
         assumed is not None
         and previous_magis is None
-        and any(datetime.date.today().year - by >= 63 for by in birth_years)
+        and any(datetime.date.today().year - int(str(d)[:4]) >= 63 for d in birth_dates)
     ):
         assumed.append(
             {
@@ -1220,7 +1229,14 @@ def _run_from_params_blocking(
 
 async def run_from_params(
     names: Annotated[list[str], Field(description='Person names, e.g. ["Alice", "Bob"].')],
-    birth_years: Annotated[list[int], Field(description="Birth years, e.g. [1963, 1961].")],
+    birth_dates: Annotated[
+        list[str],
+        Field(
+            description='Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"]. Ask for the '
+            "full date: SS benefit factors are monthly, and SSA treats people born on the 1st or 2nd "
+            "of a month as attaining each age earlier, shifting eligibility by a month."
+        ),
+    ],
     life_expectancy: Annotated[list[int], Field(description="Life expectancy in years per person, e.g. [90, 87].")],
     taxable: Annotated[list[float], Field(description="Taxable account balances in $ per person.")],
     tax_deferred: Annotated[list[float], Field(description="Tax-deferred (401k/IRA/403b) balances in $ per person.")],
@@ -1323,7 +1339,11 @@ async def run_from_params(
 
     Args:
         names:          List of names, e.g. ["Alice", "Bob"] or ["Martin"].
-        birth_years:    List of birth years, e.g. [1963, 1961].
+        birth_dates:    Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"].
+                        Ask for the full date: SS benefit factors are computed by the
+                        month, and SSA applies special rules to people born on the 1st
+                        or 2nd day of a month (they attain each age earlier, shifting
+                        eligibility and FRA by a month).
         life_expectancy: Life expectancy in years for each person, e.g. [90, 87].
         taxable:        Taxable account balances in $ per person, e.g. [150000, 150000].
         tax_deferred:   Tax-deferred (401k/IRA) balances in $ per person.
@@ -1565,7 +1585,7 @@ async def run_from_params(
             None,
             _run_from_params_blocking,
             names,
-            birth_years,
+            birth_dates,
             life_expectancy,
             state,
             taxable,
@@ -1651,7 +1671,7 @@ async def run_from_params(
 
 def save_case(
     names: list[str],
-    birth_years: list[int],
+    birth_dates: list[str],
     life_expectancy: list[int],
     taxable: list[float],
     tax_deferred: list[float],
@@ -1732,7 +1752,7 @@ def save_case(
     try:
         plan = _build_plan_from_params(
             names,
-            birth_years,
+            birth_dates,
             life_expectancy,
             state,
             taxable,
@@ -1976,7 +1996,7 @@ async def compare_to_baseline(
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
-    birth_years: list[int] | None = None,
+    birth_dates: list[str] | None = None,
     life_expectancy: list[int] | None = None,
     taxable: list[float] | None = None,
     tax_deferred: list[float] | None = None,
@@ -2079,7 +2099,7 @@ async def compare_to_baseline(
 
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:
-        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
         return json.dumps({"error": msg})
 
     assumed: list[dict] = []
@@ -2119,7 +2139,7 @@ async def compare_to_baseline(
     else:
         if (
             names is None
-            or birth_years is None
+            or birth_dates is None
             or life_expectancy is None
             or taxable is None
             or tax_deferred is None
@@ -2129,13 +2149,13 @@ async def compare_to_baseline(
                 {
                     "error": (
                         "Provide either 'filename' or flat parameters: "
-                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
                     )
                 }
             )
         build_kwargs = dict(
             names=names,
-            birth_years=birth_years,
+            birth_dates=birth_dates,
             life_expectancy=life_expectancy,
             state=state,
             taxable=taxable,
@@ -2248,7 +2268,7 @@ async def explain_results(
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
-    birth_years: list[int] | None = None,
+    birth_dates: list[str] | None = None,
     life_expectancy: list[int] | None = None,
     taxable: list[float] | None = None,
     tax_deferred: list[float] | None = None,
@@ -2339,7 +2359,7 @@ async def explain_results(
     """
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:
-        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
         return json.dumps({"error": msg})
 
     assumed: list[dict] = []
@@ -2363,7 +2383,7 @@ async def explain_results(
     else:
         if (
             names is None
-            or birth_years is None
+            or birth_dates is None
             or life_expectancy is None
             or taxable is None
             or tax_deferred is None
@@ -2373,13 +2393,13 @@ async def explain_results(
                 {
                     "error": (
                         "Provide either 'filename' or flat parameters: "
-                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
                     )
                 }
             )
         build_kwargs = dict(
             names=names,
-            birth_years=birth_years,
+            birth_dates=birth_dates,
             life_expectancy=life_expectancy,
             state=state,
             taxable=taxable,
@@ -2703,7 +2723,7 @@ async def run_stochastic(
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
-    birth_years: list[int] | None = None,
+    birth_dates: list[str] | None = None,
     life_expectancy: list[int] | None = None,
     taxable: list[float] | None = None,
     tax_deferred: list[float] | None = None,
@@ -2776,7 +2796,7 @@ async def run_stochastic(
     spending level that achieves a given probability of success and the full frontier.
 
     Provide the plan either as a saved TOML file (filename=) or directly via flat
-    parameters (names=, birth_years=, ...) — the same set accepted by run_from_params.
+    parameters (names=, birth_dates=, ...) — the same set accepted by run_from_params.
 
     Args:
         scenario_method:      "historical" (sweep 1928–present, default) or "mc" (Monte Carlo).
@@ -2788,7 +2808,7 @@ async def run_stochastic(
         filename:             Path to a .toml case file (alternative to flat params).
         overrides:            KEY.PATH=VALUE overrides when using filename=.
         names:                Person names, e.g. ["Alice", "Bob"].
-        birth_years:          Birth years, e.g. [1963, 1961].
+        birth_dates:          Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"].
         life_expectancy:      Life expectancy in years per person.
         taxable:              Taxable account balances in $ per person.
         tax_deferred:         Tax-deferred (401k/IRA) balances in $ per person.
@@ -2887,7 +2907,7 @@ async def run_stochastic(
     assumed: list[dict] = []
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:
-        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
         return json.dumps({"error": msg})
     # Build or load plan
     if filename is not None:
@@ -2910,7 +2930,7 @@ async def run_stochastic(
     else:
         if (
             names is None
-            or birth_years is None
+            or birth_dates is None
             or life_expectancy is None
             or taxable is None
             or tax_deferred is None
@@ -2920,14 +2940,14 @@ async def run_stochastic(
                 {
                     "error": (
                         "Provide either 'filename' or flat parameters: "
-                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
                     )
                 }
             )
         try:
             plan = _build_plan_from_params(
                 names,
-                birth_years,
+                birth_dates,
                 life_expectancy,
                 state,
                 taxable,
@@ -3038,7 +3058,7 @@ async def run_stochastic(
 
 def _longevity_stochastic_blocking(
     names,
-    birth_years,
+    birth_dates,
     life_expectancy,
     state,
     taxable,
@@ -3100,7 +3120,7 @@ def _longevity_stochastic_blocking(
 
     plan = _build_plan_from_params(
         names,
-        birth_years,
+        birth_dates,
         life_expectancy,
         state,
         taxable,
@@ -3198,7 +3218,7 @@ def _longevity_stochastic_blocking(
 async def run_longevity_stochastic(
     sexes: list[str],
     names: list[str],
-    birth_years: list[int],
+    birth_dates: list[str],
     life_expectancy: list[int],
     taxable: list[float],
     tax_deferred: list[float],
@@ -3291,7 +3311,7 @@ async def run_longevity_stochastic(
                           (default 90). Like other percent-valued parameters, this is on a
                           0-100 scale, not 0-1.
         names:            Person names, e.g. ["Alice", "Bob"].
-        birth_years:      Birth years, e.g. [1963, 1961].
+        birth_dates:      Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"].
         life_expectancy:  Deterministic life expectancy used for the base solve (years per
                           person).  Longevity sampling overrides this per scenario, but the
                           base solve still uses this value.
@@ -3409,7 +3429,7 @@ async def run_longevity_stochastic(
             None,
             _longevity_stochastic_blocking,
             names,
-            birth_years,
+            birth_dates,
             life_expectancy,
             state,
             taxable,
@@ -3484,7 +3504,7 @@ async def run_historical(
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
-    birth_years: list[int] | None = None,
+    birth_dates: list[str] | None = None,
     life_expectancy: list[int] | None = None,
     taxable: list[float] | None = None,
     tax_deferred: list[float] | None = None,
@@ -3567,7 +3587,7 @@ async def run_historical(
         filename:         Path to a .toml case file (alternative to flat params).
         overrides:        KEY.PATH=VALUE overrides when using filename=.
         names:            Person names, e.g. ["Alice", "Bob"].
-        birth_years:      Birth years, e.g. [1963, 1961].
+        birth_dates:      Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"].
         life_expectancy:  Life expectancy in years per person.
         taxable:          Taxable account balances in $ per person.
         tax_deferred:     Tax-deferred (401k/IRA) balances in $ per person.
@@ -3646,7 +3666,7 @@ async def run_historical(
     assumed: list[dict] = []
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:
-        msg = "Provide either 'filename' or flat parameters (names, birth_years, ...) — not both."
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
         return json.dumps({"error": msg})
 
     if filename is not None:
@@ -3669,7 +3689,7 @@ async def run_historical(
     else:
         if (
             names is None
-            or birth_years is None
+            or birth_dates is None
             or life_expectancy is None
             or taxable is None
             or tax_deferred is None
@@ -3679,14 +3699,14 @@ async def run_historical(
                 {
                     "error": (
                         "Provide either 'filename' or flat parameters: "
-                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
                     )
                 }
             )
         try:
             plan = _build_plan_from_params(
                 names,
-                birth_years,
+                birth_dates,
                 life_expectancy,
                 state,
                 taxable,
@@ -3788,7 +3808,7 @@ async def run_monte_carlo(
     filename: str | None = None,
     overrides: list[str] | None = None,
     names: list[str] | None = None,
-    birth_years: list[int] | None = None,
+    birth_dates: list[str] | None = None,
     life_expectancy: list[int] | None = None,
     taxable: list[float] | None = None,
     tax_deferred: list[float] | None = None,
@@ -3875,7 +3895,7 @@ async def run_monte_carlo(
         filename:         Path to a .toml case file (alternative to flat params).
         overrides:        KEY.PATH=VALUE overrides when using filename=.
         names:            Person names, e.g. ["Alice", "Bob"].
-        birth_years:      Birth years, e.g. [1963, 1961].
+        birth_dates:      Dates of birth "YYYY-MM-DD", e.g. ["1963-03-15", "1961-11-02"].
         life_expectancy:  Life expectancy in years per person.
         taxable:          Taxable account balances in $ per person.
         tax_deferred:     Tax-deferred (401k/IRA) balances in $ per person.
@@ -3988,19 +4008,19 @@ async def run_monte_carlo(
         except Exception as e:
             return json.dumps({"error": f"Failed to set rate model '{rate_method}': {e}"})
     else:
-        if names is None or birth_years is None or life_expectancy is None:
+        if names is None or birth_dates is None or life_expectancy is None:
             return json.dumps(
                 {
                     "error": (
                         "Provide either 'filename' or flat parameters: "
-                        "names, birth_years, life_expectancy, taxable, tax_deferred, roth are required."
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
                     )
                 }
             )
         try:
             plan = _build_plan_from_params(
                 names,
-                birth_years,
+                birth_dates,
                 life_expectancy,
                 state,
                 taxable,

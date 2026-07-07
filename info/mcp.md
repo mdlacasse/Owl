@@ -25,8 +25,8 @@ optimizations, and compare scenarios through natural conversation.
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `compare_to_baseline(filename or params, baseline_policies)` | Quantify the dollar value of optimization vs a conventional baseline (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) | Yes (×2) |
 | `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, account depletion order | Yes |
-| `run_from_params(names, birth_years, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
-| `save_case(names, birth_years, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
+| `run_from_params(names, birth_dates, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
+| `save_case(names, birth_dates, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
 | `run_stochastic(scenario_method, ...)` | Spending efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
 | `run_longevity_stochastic(sexes, ...)` | Spending frontier with joint market + random lifespan sampling | Yes (×N) |
 | `run_historical(ystart, yend, ...)` | Backtest across historical sequences — distribution of optimal outcomes | Yes (×N) |
@@ -80,7 +80,7 @@ as commands and lets you attach resources to the conversation):
 | Category | Parameter | Description |
 |----------|-----------|-------------|
 | **Required** | `names` * | Person names, e.g. `["Alice", "Bob"]` |
-| | `birth_years` * | Birth years, e.g. `[1963, 1961]` |
+| | `birth_dates` * | Dates of birth `"YYYY-MM-DD"`, e.g. `["1963-03-15", "1961-11-02"]` — SS benefit factors are monthly, and SSA treats people born on the 1st or 2nd of a month as attaining each age earlier |
 | | `life_expectancy` * | Life expectancy in years per person, e.g. `[90, 87]` |
 | | `taxable` * | Taxable account balances in \$ per person |
 | | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in \$ per person |
@@ -596,7 +596,7 @@ translate your description into `--set` overrides, and interpret the results.
 
 ### Running a case from scratch
 
-> *"I'm Martin, born in 1960, expecting to live to 90. I have \$200k in a
+> *"I'm Martin, born March 15, 1960, expecting to live to 90. I have \$200k in a
 > taxable account, \$800k in a 401(k), and \$100k in a Roth IRA. My Social
 > Security PIA is \$2,500/month and I'm claiming at 67. What's my optimal
 > annual spending?"*

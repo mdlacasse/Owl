@@ -1,5 +1,18 @@
 ### Version 2026.7.5
 
+#### Breaking (MCP): `birth_years` replaced by `birth_dates` in the params tools
+The params-driven MCP tools (`run_from_params`, `save_case`, `compare_to_baseline`,
+`explain_results`, and the stochastic/backtest tools) now take full dates of birth
+(`birth_dates=["1963-03-15", ...]`) instead of `birth_years`. The engine has always
+been month-and-day precise — FRA, the monthly claiming-age factors, and the SSA
+born-on-the-1st rule all use the full date — but the MCP layer previously collapsed
+input to a July-1 assumption, introducing up to six months of error in Social
+Security claiming math (material when `optimize_ss_ages` selects a claiming month)
+and possible off-by-one calendar years for benefit, Medicare, and RMD starts. The
+`owl_intake` interview now asks for dates of birth. `list_contribution_limits`
+retains `birth_years` (IRS limits are year-based), and `convert_ss_benefit` already
+accepted `birth_month`/`birth_day`.
+
 #### New: MCP solve tools report their assumptions (`assumed_defaults`)
 The params-driven MCP tools (`run_from_params`, `save_case`, `run_stochastic`,
 `run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now report the material

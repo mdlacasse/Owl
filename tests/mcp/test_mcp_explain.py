@@ -22,7 +22,7 @@ def _run(coro):
 def _solved_plan(**opts):
     plan = _build_plan_from_params(
         names=["Pat"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[88],
         state="CA",
         taxable=[200_000],
@@ -101,7 +101,7 @@ def test_build_explanation_structure_and_consistency():
 
 def test_build_explanation_requires_duals():
     plan = _build_plan_from_params(
-        names=["Q"], birth_years=[1965], life_expectancy=[85], state=None,
+        names=["Q"], birth_dates=["1965-07-01"], life_expectancy=[85], state=None,
         taxable=[10_000], tax_deferred=[10_000], roth=[0], hsa=None, cost_basis=None,
         ss_monthly_pias=None, ss_ages=None, pension_monthly_amounts=None, pension_ages=None,
     )
@@ -114,7 +114,7 @@ def test_explain_results_tool_params_path():
     result = _run(
         explain_results(
             names=["Pat"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],

@@ -46,7 +46,7 @@ def _single(**kwargs):
     """Minimal single-person _build_plan_from_params call; kwargs override defaults."""
     defaults = dict(
         names=["Martin"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[90],
         state="TX",
         taxable=[200_000],
@@ -79,7 +79,7 @@ def _couple(**kwargs):
     """Minimal couple _build_plan_from_params call; kwargs override defaults."""
     defaults = dict(
         names=["Alice", "Bob"],
-        birth_years=[1963, 1961],
+        birth_dates=["1963-07-01", "1961-07-01"],
         life_expectancy=[90, 87],
         state="TX",
         taxable=[150_000, 150_000],
@@ -598,7 +598,7 @@ def saved_single(tmp_path_factory):
     out = str(tmp_path_factory.mktemp("single"))
     save_case(
         names=["Martin"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[90],
         taxable=[200_000],
         tax_deferred=[800_000],
@@ -618,7 +618,7 @@ def saved_couple(tmp_path_factory):
     out = str(tmp_path_factory.mktemp("couple"))
     save_case(
         names=["Alice", "Bob"],
-        birth_years=[1963, 1961],
+        birth_dates=["1963-07-01", "1961-07-01"],
         life_expectancy=[90, 87],
         taxable=[150_000, 150_000],
         tax_deferred=[600_000, 600_000],
@@ -669,7 +669,7 @@ def test_save_case_returns_json():
     with tempfile.TemporaryDirectory() as td:
         result = save_case(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -690,7 +690,7 @@ def test_save_case_custom_name():
     with tempfile.TemporaryDirectory() as td:
         result = save_case(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -715,7 +715,7 @@ def test_save_case_use_roth_conv_overrides_written():
     with tempfile.TemporaryDirectory() as td:
         result = save_case(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -739,7 +739,7 @@ def test_save_case_swap_roth_converters_first_spouse_positive():
     with tempfile.TemporaryDirectory() as td:
         result = save_case(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1961],
+            birth_dates=["1963-07-01", "1961-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -763,7 +763,7 @@ def test_save_case_swap_roth_converters_second_spouse_negative():
     with tempfile.TemporaryDirectory() as td:
         result = save_case(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1961],
+            birth_dates=["1963-07-01", "1961-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -850,7 +850,7 @@ def test_assumed_defaults_flags_material_omissions():
     assumed = []
     _build_plan_from_params(
         names=["Solo"],
-        birth_years=[1962],  # age < 65 → slcsp flagged
+        birth_dates=["1962-07-01"],  # age < 65 → slcsp flagged
         life_expectancy=[90],
         state=None,
         taxable=[100_000],
@@ -885,7 +885,7 @@ def test_assumed_defaults_quiet_when_fully_specified():
     assumed = []
     _build_plan_from_params(
         names=["Solo"],
-        birth_years=[1962],
+        birth_dates=["1962-07-01"],
         life_expectancy=[90],
         state="NY",
         taxable=[100_000],
@@ -907,6 +907,19 @@ def test_assumed_defaults_quiet_when_fully_specified():
         assumed=assumed,
     )
     assert assumed == []
+
+
+def test_birth_dates_require_full_dates():
+    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+        _single(birth_dates=[1960])
+    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+        _single(birth_dates=["1960"])
+
+
+def test_birth_dates_flow_to_plan_exactly():
+    plan = _single(birth_dates=["1960-03-15"])
+    assert plan.dobs == ["1960-03-15"]
+    assert plan.yobs[0] == 1960 and plan.mobs[0] == 3 and plan.tobs[0] == 15
 
 
 def test_scrub_optimized_ss_ages_semantics():
@@ -937,7 +950,7 @@ def test_assumed_defaults_no_ss_ages_note_when_optimized():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[85],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -958,7 +971,7 @@ def test_assumed_defaults_couple_survivor_and_ss_ages():
     assumed = []
     _build_plan_from_params(
         names=["Alice", "Bob"],
-        birth_years=[1963, 1961],
+        birth_dates=["1963-07-01", "1961-07-01"],
         life_expectancy=[90, 87],
         state="CA",
         taxable=[150_000, 150_000],
@@ -993,7 +1006,7 @@ def test_run_from_params_single_solves():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1020,7 +1033,7 @@ def test_run_from_params_couple_solves():
     result = _run(
         run_from_params(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1961],
+            birth_dates=["1963-07-01", "1961-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -1041,7 +1054,7 @@ def test_run_from_params_with_wages_and_debt():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1063,7 +1076,7 @@ def test_run_from_params_with_fixed_asset():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1093,7 +1106,7 @@ def test_run_from_params_json_structure():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1116,7 +1129,7 @@ def test_run_from_params_error_returns_json():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1137,7 +1150,7 @@ def test_run_from_params_max_bequest_net_spending_dollars():
     result = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1162,7 +1175,7 @@ def test_run_from_params_min_taxable_balance_full_dollars():
     no_floor = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1176,7 +1189,7 @@ def test_run_from_params_min_taxable_balance_full_dollars():
     with_floor = _run(
         run_from_params(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1202,7 +1215,7 @@ def test_run_from_params_min_taxable_balance_full_dollars():
 
 _ROTH_OVERRIDE_PARAMS = dict(
     names=["Martin"],
-    birth_years=[1960],
+    birth_dates=["1960-07-01"],
     life_expectancy=[88],
     taxable=[200_000],
     tax_deferred=[800_000],
@@ -1263,7 +1276,7 @@ def test_run_from_params_swap_roth_converters_couple():
     swap_year = THISYEAR + 3
     plan = _run_from_params_blocking(
         names=["Alice", "Bob"],
-        birth_years=[1963, 1961],
+        birth_dates=["1963-07-01", "1961-07-01"],
         life_expectancy=[90, 87],
         taxable=[150_000, 150_000],
         tax_deferred=[600_000, 600_000],
@@ -1303,7 +1316,7 @@ def test_run_from_params_with_aca():
     result = _run(
         run_from_params(
             names=["Sam"],
-            birth_years=[1966],
+            birth_dates=["1966-07-01"],
             life_expectancy=[88],
             taxable=[100_000],
             tax_deferred=[400_000],
@@ -1387,7 +1400,7 @@ def test_run_from_params_optimize_ss_ages_single_name():
     result = _run(
         run_from_params(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1961],
+            birth_dates=["1963-07-01", "1961-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -1410,7 +1423,7 @@ def test_run_from_params_optimize_ss_ages_all():
     result = _run(
         run_from_params(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1961],
+            birth_dates=["1963-07-01", "1961-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -1434,7 +1447,7 @@ def test_run_from_params_optimize_ss_ages_already_claimed():
     result = _run(
         run_from_params(
             names=["Alice", "Bob"],
-            birth_years=[1963, 1955],
+            birth_dates=["1963-07-01", "1955-07-01"],
             life_expectancy=[90, 87],
             taxable=[150_000, 150_000],
             tax_deferred=[600_000, 600_000],
@@ -1501,7 +1514,7 @@ def test_run_historical_from_params_solves():
     result = _run(
         run_historical(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1546,7 +1559,7 @@ def test_run_historical_by_year_coverage():
     result = _run(
         run_historical(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1576,7 +1589,7 @@ def test_run_monte_carlo_solves():
     result = _run(
         run_monte_carlo(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1603,7 +1616,7 @@ def test_run_monte_carlo_deterministic_method_fails():
     result = _run(
         run_monte_carlo(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1625,7 +1638,7 @@ def test_run_monte_carlo_bootstrap():
     result = _run(
         run_monte_carlo(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -1677,7 +1690,7 @@ def test_run_monte_carlo_from_file_deterministic_toml():
 
 _SCENARIO_PARAMS = dict(
     names=["Martin"],
-    birth_years=[1960],
+    birth_dates=["1960-07-01"],
     life_expectancy=[88],
     taxable=[200_000],
     tax_deferred=[800_000],

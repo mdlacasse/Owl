@@ -26,7 +26,7 @@ def _run(coro):
 def _single_plan():
     return _build_plan_from_params(
         names=["Pat"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[88],
         state="CA",
         taxable=[200_000],
@@ -72,7 +72,7 @@ def test_unknown_policy_rejected():
     result = _run(
         compare_to_baseline(
             names=["X"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[1],
             tax_deferred=[1],
@@ -88,7 +88,7 @@ def test_empty_policies_rejected():
     result = _run(
         compare_to_baseline(
             names=["X"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[1],
             tax_deferred=[1],
@@ -125,7 +125,7 @@ def test_compare_to_baseline_params_end_to_end():
     result = _run(
         compare_to_baseline(
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             taxable=[200_000],
             tax_deferred=[800_000],
@@ -157,7 +157,7 @@ def test_ordering_policy_tightens_baseline():
     """Adding taxable_first_ordering must not raise the baseline (monotone restriction)."""
     kwargs = dict(
         names=["Martin"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[88],
         taxable=[200_000],
         tax_deferred=[800_000],

@@ -192,7 +192,7 @@ def test_agent_turn_scripted_llm_real_tools():
     """Fake only the LLM; the tool dispatch and solver run for real."""
     params = {
         "names": ["Pat"],
-        "birth_years": [1960],
+        "birth_dates": ["1960-07-01"],
         "life_expectancy": [88],
         "taxable": [200_000],
         "tax_deferred": [800_000],
@@ -255,7 +255,7 @@ def test_get_current_case_results_solved(monkeypatch):
 
     plan = _build_plan_from_params(
         names=["Pat"],
-        birth_years=[1960],
+        birth_dates=["1960-07-01"],
         life_expectancy=[88],
         state="TX",
         taxable=[200_000],

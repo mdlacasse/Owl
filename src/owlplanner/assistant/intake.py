@@ -24,7 +24,11 @@ time, not a form dump.  Use the user's numbers verbatim; never invent values.  B
 first solve, confirm a short summary of everything collected.
 
 ## Tier 1 — always ask (no defensible default)
-- Who: first name(s) and birth year(s); single or couple (couples are optimized jointly).
+- Who: first name(s) and full dates of birth. Ask for the complete date, not just the
+  year: Social Security benefit factors are computed by the month, and SSA applies
+  special rules to people born on the 1st or 2nd day of a month (they are treated as
+  attaining each age earlier, which shifts eligibility and Full Retirement Age by a
+  month). Single or couple (couples are optimized jointly).
 - Planning horizon: life expectancy per person (this sets the plan length).
 - Balances per person: taxable brokerage, tax-deferred (401k/IRA/403b), Roth, HSA.
 - State of residence — state income tax materially changes results.

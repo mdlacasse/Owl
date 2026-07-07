@@ -34,7 +34,7 @@ HIST_YEND = 2005  # 14 scenarios for a 23-year plan
 # Minimal flat params shared across tests
 _SINGLE = dict(
     names=["Martin"],
-    birth_years=[1960],
+    birth_dates=["1960-07-01"],
     life_expectancy=[88],
     state="TX",
     taxable=[200_000],
@@ -48,7 +48,7 @@ _SINGLE = dict(
 
 _COUPLE = dict(
     names=["Alice", "Bob"],
-    birth_years=[1963, 1961],
+    birth_dates=["1963-07-01", "1961-07-01"],
     life_expectancy=[90, 87],
     state="TX",
     taxable=[150_000, 150_000],
@@ -323,7 +323,7 @@ def test_run_stochastic_mc_single():
             n_scenarios=20,
             seed=42,
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             state="TX",
             taxable=[200_000],
@@ -467,7 +467,7 @@ def test_run_stochastic_mc_deterministic_rate_returns_error():
             scenario_method="mc",
             n_scenarios=10,
             names=["Martin"],
-            birth_years=[1960],
+            birth_dates=["1960-07-01"],
             life_expectancy=[88],
             state="TX",
             taxable=[200_000],

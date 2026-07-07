@@ -14,7 +14,7 @@ from owlplanner.assistant.tools import list_mortality_tables, run_longevity_stoc
 _SINGLE = dict(
     sexes=["F"],
     names=["Sam"],
-    birth_years=[1962],
+    birth_dates=["1962-07-01"],
     life_expectancy=[87],
     state="TX",
     taxable=[0.0],
