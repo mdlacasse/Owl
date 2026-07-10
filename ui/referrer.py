@@ -87,6 +87,10 @@ def logReferrerDomain():
     st.session_state["_referrerLogged"] = True
     try:
         userAgent = st.context.headers.get("User-Agent", "")
+        # Timezone/locale spread separates a human audience (US timezones,
+        # en-US) from proxy-fleet automation (uniform or incoherent values).
+        tzLocale = f"{getattr(st.context, 'timezone', None)}/{getattr(st.context, 'locale', None)}"
     except Exception:
         userAgent = ""
-    _emit(referrer, st.query_params.get("ref", ""), userAgent)
+        tzLocale = ""
+    _emit(referrer, st.query_params.get("ref", ""), f"{userAgent} | tz={tzLocale}")
