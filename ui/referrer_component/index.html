@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+Minimal Streamlit custom component (no external libraries) that reports the
+parent page's document.referrer back to Python. The HTTP Referer header does
+not survive the WebSocket handshake that st.context.headers reflects, so the
+referring page can only be observed in the browser.
+
+The component iframe is served by the app itself (same origin), which is what
+permits reading window.parent.document.referrer.
+
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+Licensed under the GNU General Public License v3 or later.
+-->
+<html>
+<body>
+<script>
+function send(type, data) {
+  window.parent.postMessage(Object.assign({isStreamlitMessage: true, type: type}, data || {}), "*");
+}
+window.addEventListener("message", function (event) {
+  if (!event.data || event.data.type !== "streamlit:render") return;
+  var referrer;
+  try {
+    referrer = window.parent.document.referrer || "";
+  } catch (err) {
+    referrer = "";
+  }
+  send("streamlit:setComponentValue", {value: referrer, dataType: "json"});
+  send("streamlit:setFrameHeight", {height: 0});
+});
+send("streamlit:componentReady", {apiVersion: 1});
+</script>
+</body>
+</html>
