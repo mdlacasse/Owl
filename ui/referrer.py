@@ -61,13 +61,15 @@ def _getBrowserReferrer():
     return _component_func(default=None)
 
 
-def _emit(referrer, refParam=""):
+def _emit(referrer, refParam="", userAgent=""):
     domain = urlparse(referrer).netloc or "direct-or-email"
     # Internal navigation within the app is not an external referrer.
     if domain.endswith("streamlit.app"):
         return
     suffix = f" ref={refParam}" if refParam else ""
-    print(f"[owl-referrer] {domain}{suffix}", flush=True)
+    # The User-Agent distinguishes in-app webviews (FB_IAB, WhatsApp, ...) and
+    # headless automation from ordinary browsers when the referrer is absent.
+    print(f"[owl-referrer] {domain}{suffix} | ua={userAgent}", flush=True)
 
 
 def logReferrerDomain():
@@ -83,4 +85,8 @@ def logReferrerDomain():
         return
 
     st.session_state["_referrerLogged"] = True
-    _emit(referrer, st.query_params.get("ref", ""))
+    try:
+        userAgent = st.context.headers.get("User-Agent", "")
+    except Exception:
+        userAgent = ""
+    _emit(referrer, st.query_params.get("ref", ""), userAgent)
