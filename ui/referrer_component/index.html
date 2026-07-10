@@ -19,11 +19,19 @@ function send(type, data) {
 }
 window.addEventListener("message", function (event) {
   if (!event.data || event.data.type !== "streamlit:render") return;
+  // On Community Cloud the app itself runs in an iframe (/~/+/) inside a
+  // platform shell page, so the external referrer is on window.top; the
+  // parent iframe's referrer is just the shell URL. All frames are
+  // same-origin there. window.top === window.parent when self-hosted.
   var referrer;
   try {
-    referrer = window.parent.document.referrer || "";
+    referrer = window.top.document.referrer || "";
   } catch (err) {
-    referrer = "";
+    try {
+      referrer = window.parent.document.referrer || "";
+    } catch (err2) {
+      referrer = "";
+    }
   }
   send("streamlit:setComponentValue", {value: referrer, dataType: "json"});
   send("streamlit:setFrameHeight", {height: 0});
