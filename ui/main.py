@@ -25,6 +25,7 @@ import streamlit as st
 import sskeys as kz
 import moseklicense
 import assistant_core
+import referrer
 
 # Provision the MOSEK license at app startup (Streamlit Cloud reads it from secrets).
 # Done here explicitly rather than as an import side effect so that merely importing a
@@ -37,6 +38,10 @@ st.set_page_config(layout="wide", page_title="Owl — Optimal wealth lab")
 # st.set_page_config(layout="centered", page_title="Owl — Optimal wealth lab")
 
 kz.init()
+
+# One anonymous log line per new session with the referring domain only;
+# active solely on the Community Cloud deployment (no-op when self-hosted).
+referrer.logReferrerDomain()
 
 # Logo path is centralized in sskeys (single source of truth, repo-root /assets).
 st.logo(kz.FAVICONFILE, size="large")
