@@ -90,7 +90,12 @@ def logReferrerDomain():
         # Timezone/locale spread separates a human audience (US timezones,
         # en-US) from proxy-fleet automation (uniform or incoherent values).
         tzLocale = f"{getattr(st.context, 'timezone', None)}/{getattr(st.context, 'locale', None)}"
+        details = f"{userAgent} | tz={tzLocale}"
+        # For self-identified automation only (no privacy claim), add the IP
+        # so the operator can be looked up (whois/ASN).
+        if "HeadlessChrome" in userAgent or "Prerender" in userAgent:
+            ip = getattr(st.context, "ip_address", None) or st.context.headers.get("X-Forwarded-For", "?")
+            details += f" | ip={ip}"
     except Exception:
-        userAgent = ""
-        tzLocale = ""
-    _emit(referrer, st.query_params.get("ref", ""), f"{userAgent} | tz={tzLocale}")
+        details = ""
+    _emit(referrer, st.query_params.get("ref", ""), details)
