@@ -544,6 +544,7 @@ this limitation.
 Roth conversions are also disallowed in the last two years of the plan horizon.
 
 \section{Health Savings Accounts}
+\label{Sec:HSA}
 \label{sec:hsa}
 
 \subsection*{Rules}
@@ -937,7 +938,7 @@ Reference: \cite{irs17,secure2,obbba2025}.
 
 \subsection*{Limitations and assumptions}
 
-State income taxes are not modeled.
+State income taxes are modeled separately; see the next section.
 Itemized deductions are not modeled; only the standard deduction (plus the
 65+ and OBBBA bonus deductions) is applied.
 The OBBBA~65+ bonus deduction phaseout is computed outside the LP (as a
@@ -946,6 +947,45 @@ The IRS Uniform Lifetime Table III is used for standard cases.
 When the spouse is the sole designated beneficiary and more than ten years younger
 than the account owner, IRS Table II (Joint and Last Survivor, Pub.\ 590-B) is applied instead.
 Inherited IRA and beneficiary RMD rules are not modeled.
+
+\section{State Income Tax}
+
+\subsection*{Rules}
+Most US states levy a personal income tax on top of the federal tax, each with
+its own bracket structure, standard deduction, and filing statuses.
+The treatment of retirement income varies widely: the majority of states exempt
+Social Security benefits, several exempt all retirement income, and many others
+offer capped exclusions for pension or retirement-account income.
+A few states exempt Social Security only below an income threshold.
+
+\subsection*{Implementation in Owl}
+A plan may specify a two-letter state code.
+Bracket rates and widths, standard deductions, Social Security treatment, and
+retirement-income and pension exemption caps for all 50 states and the District
+of Columbia are read from a data table (\code{data/taxes_state.toml}) with
+separate entries for Single and Married Filing Jointly filers; the filing
+status switches to Single at the passing of a spouse, and bracket widths and
+deductions are indexed to inflation through $\gamma_n$.
+State taxable income is derived from quantities already present in the model:
+federal ordinary taxable income, plus capital gains (which most states tax as
+ordinary income), minus the exempted portion of Social Security, pension
+exemptions, the state standard deduction, and any capped retirement-income
+exemption.
+The resulting state tax joins the cash-flow constraint alongside its federal
+counterpart.
+The LP formulation is given in Sec.~(\ref{Sec:StateTax}).
+States without an income tax simply generate no state-tax variables.
+
+\subsection*{Limitations and assumptions}
+State AGI is approximated from federal quantities; state-specific additions and
+subtractions beyond those listed above are not modeled.
+Capital gains are taxed as ordinary income, which is accurate for most but not
+all states.
+States that exempt Social Security only below an AGI threshold (e.g., Kansas,
+Missouri) are treated with a fixed exempt-or-taxed status rather than the
+threshold rule.
+Local and county income taxes, state tax credits, and itemized deductions are
+not modeled.
 
 \chapter{Model Architecture and Solution Approach}
 
@@ -1218,6 +1258,7 @@ separate license, is also supported and generally provides faster solution
 times for large MIP problems.
 
 \section{MIP Decomposition}
+\label{Sec:MIPDecomp}
 \label{sec:decomposition}
 
 When multiple \code{"optimize"} flags are active simultaneously---for example,
@@ -2129,6 +2170,7 @@ add the market returns to the savings balances.
 	income is smaller than the standard exemption.
 
 \subsection{Withdrawal limits}
+\label{Sec:WithdrawalLimits}
 	We introduce another set of constraints that might look unnecessary, but can help
 	convergence, and prevent overdrafts during the year of passing of spouse $i_d$.
 	As withdrawals and conversions are at the beginning of the year 
@@ -2137,6 +2179,45 @@ add the market returns to the savings balances.
 		w_{ijn} + \delta_{j, 1} x_{in} \le b_{ijn},
 	\end{equation}
 	which just states that account balances need to be at least as large as withdrawals and possible Roth conversions.
+
+\subsection{Withdrawal ordering}
+\label{Sec:WithdrawalOrdering}
+	By default, the optimizer is free to choose the order in which accounts are
+	drawn down.
+	When \texttt{withdrawalOrder="taxable\_first"} is selected, the conventional
+	ordering --- taxable first, then tax-deferred, then Roth --- is enforced
+	instead, modeling the naive strategy a hand-managed plan would follow; it
+	serves as a baseline policy when quantifying the value added by the
+	optimization.
+	Two household-level binary gates per year, $z^o_{0n}$ and $z^o_{1n}$,
+	indicate that the taxable and the tax-deferred balances, respectively, are
+	exhausted at the end of year $n$.
+	Withdrawals beyond what the gates allow are blocked through
+	\begin{eqnarray}
+		\label{Eq:WdOrderGates}
+		w_{i1n} - \rho_{in}\,b_{i1n} &\le& \mathcal{M}\gamma_n\, z^o_{0n}, \nonumber \\
+		w_{i2n} &\le& \mathcal{M}\gamma_n\, z^o_{1n},
+	\end{eqnarray}
+	so that, while the taxable gate is closed ($z^o_{0n}=0$), the tax-deferred
+	withdrawal is pinned to exactly the required minimum distribution by
+	Eq.~(\ref{Eq:C1}), and no Roth withdrawal can occur while the tax-deferred
+	gate is closed.
+	A gate may open only when the corresponding household balance is exhausted
+	at the end of the year,
+	\begin{eqnarray}
+		\label{Eq:WdOrderExhaust}
+		\sum_i b_{i0(n+1)} &\le& \mathcal{M}\gamma_n\,(1 - z^o_{0n}), \nonumber \\
+		\sum_i b_{i1(n+1)} &\le& \mathcal{M}\gamma_n\,(1 - z^o_{1n}),
+	\end{eqnarray}
+	and the full ordering follows from the monotonicity condition
+	\begin{equation}
+		\label{Eq:WdOrderMono}
+		z^o_{1n} \le z^o_{0n}.
+	\end{equation}
+	HSA withdrawals (qualified medical expenses) are not gated.
+	Because surplus deposits land in the taxable account at year end, a year
+	cannot both deposit a surplus and claim the taxable-exhausted gate, which
+	closes the loophole of draining an account and immediately redepositing.
 
 \subsection{Posthumous account activities}
 	For cases with spouses, no withdrawal, Roth conversion, or deposit should
@@ -2193,6 +2274,7 @@ add the market returns to the savings balances.
 	allocation ratios $\alpha_{ijk0}$.
 
 \subsection{Roth 5-year maturation and conversion ladder}
+\label{Sec:RothMaturation}
 	Two IRS rules govern penalty-free access to Roth funds.
 	(1) Roth \emph{contributions} can always be withdrawn tax- and penalty-free.
 	(2) Roth \emph{conversions} can be withdrawn penalty-free only after a 5-year holding period,
@@ -2420,6 +2502,7 @@ When using slack variable $\lambda$, the spending profile is then implemented as
 In this case, the objective function will need to consider the sum over all years when optimizing net spending.
 
 \subsection{LTCG bracket constraints}
+\label{Sec:LTCG}
 	The LTCG tax $U_n = 0.15\,q_{1n} + 0.20\,q_{2n}$ is determined by three LP bracket
 	allocation variables $q_{pn}$ ($p \in \{0,1,2\}$).
 	The partition constraint
@@ -2568,6 +2651,43 @@ In this case, the objective function will need to consider the sum over all year
 		\nonumber \\
 		&& 		+ 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
 	\end{eqnarray}
+
+\subsection{State income tax}
+\label{Sec:StateTax}
+	When the configured state levies an income tax, state ordinary income is
+	allocated across the $N_s$ state brackets through variables $f^{s}_{tn}$,
+	in direct analogy with Eq.~(\ref{Eq:C2}),
+	\begin{equation}
+		0 \le f^{s}_{tn} \le \bar{\Delta}^{s}_{tn},
+	\end{equation}
+	where $\bar{\Delta}^{s}_{tn}$ are the inflation-adjusted state bracket widths.
+	Variable $e^{s}_n$ absorbs the state standard deduction through
+	$0 \le e^{s}_n \le \bar{\sigma}^{s}_n$ and, when the state offers a
+	retirement-income exemption, variable $r^{s}_n$, bounded by the
+	inflation-adjusted per-person cap $\bar{c}^{\,r}_n$ as
+	$0 \le r^{s}_n \le \bar{c}^{\,r}_n$, exempts eligible retirement income.
+	State taxable income is tied to the federal quantities through the equality
+	\begin{equation}
+		\label{Eq:StateTI}
+		\sum_{t=0}^{N_s-1} f^{s}_{tn} + e^{s}_n + r^{s}_n
+		- \sum_{t=0}^{N_t-1} f_{tn} - \sum_{p=0}^{2} q_{pn}
+		= -E^{\sigma}_n - E^{\pi}_n,
+	\end{equation}
+	where $E^{\sigma}_n = R_n\sum_i \bar\zeta_{in}$ when the state does not tax
+	Social Security --- removing the federally taxable portion embedded in
+	Eq.~(\ref{Eq:C6}), with $R_n$ the self-consistent taxability ratio --- and
+	$E^{\sigma}_n = 0$ otherwise, and where
+	$E^{\pi}_n = \min\left(\sum_i \bar{\pi}_{in},\; N_i\,\bar{c}^{\,\pi}_n\right)$
+	applies the state pension exemption with per-person cap $\bar{c}^{\,\pi}_n$.
+	The retirement-income exemption cannot exceed the tax-deferred income
+	actually received,
+	\begin{equation}
+		\label{Eq:StateREcap}
+		r^{s}_n \le \sum_i w_{i1n}.
+	\end{equation}
+	Finally, the state tax $\sum_t \theta^{s}_{tn} f^{s}_{tn}$, with
+	$\theta^{s}_{tn}$ the state marginal rates, is added to the tax terms of the
+	cash-flow constraint Eq.~(\ref{Eq:C4}).
 
 \subsection{Social Security taxability}
 	Under IRS Publication~915, the fraction of Social Security benefits subject to income
@@ -2836,6 +2956,7 @@ In this case, the objective function will need to consider the sum over all year
 	constraints directly on $z^m_{q0}$ and possibly $z^m_{q1}$.
 
 \subsection{ACA marketplace premium constraints}
+\label{Sec:ACA}
 	When \code{withACA="optimize"} and ACA is enabled (SLCSP $> 0$, $n_{\mathrm{aca}} > 0$),
 	ACA bracket selection and net premium cost are modeled within the optimization.
 	ACA uses \emph{current-year} MAGI $\mathbb{G}_n$ (no two-year lag like Medicare).
@@ -3535,6 +3656,144 @@ A similar spousal ratio can be imposed on withdrawals from tax-deferred accounts
 \end{equation}
 but this can cause drawing from an empty account while the other spousal account is not.
 Only the deposit scheme has currently been implemented in Owl.
+
+\section{Constraint tags and the explanation engine}
+\label{Sec:ConstraintTags}
+Every row added to the constraint matrices carries a machine-readable
+\emph{tag}: a tuple whose first element names the constraint \emph{family} and
+whose remaining elements are the row's indices, e.g.\ \code{("rmd", i, n)} for
+the RMD floor of individual $i$ in year $n$.
+Tags are inert during optimization; they exist so that the solution can be
+\emph{explained}.
+When a plan is solved with \code{withDuals=True}, Owl re-solves the final
+linear program with all binary variables fixed at their solved values and
+extracts the row duals (shadow prices), row activities, and column reduced
+costs.
+The tags map each dual back to the constraint it prices, letting the
+explanation engine (\code{owlplanner.assistant.explain}, surfaced through the
+\code{explain_results} tool) answer questions such as ``what does the bequest
+requirement cost in lifetime spending?''\ or ``which years do RMDs force
+withdrawals?''\ directly from the mathematics of the optimization.
+
+Each family is classified in one of three classes:
+\begin{description}
+	\item[Policy] User goals and legal rules (Table~\ref{Tab:TagsPolicy}).
+	A binding row of this class is reported to the user together with the
+	marginal value of relaxing it, expressed in today's dollars of the
+	reported objective.
+	\item[Structural] Accounting identities and definitions
+	(Table~\ref{Tab:TagsStructural}).
+	These rows are binding by construction; their duals are valuation
+	information --- for instance, the duals of the cash-flow balances form the
+	plan's endogenous discount curve --- and are used selectively by the
+	explanation engine.
+	\item[Artifact] Big-$\mathcal{M}$ linkings, at-most-one selectors,
+	convexification rows, and decomposition machinery
+	(Table~\ref{Tab:TagsArtifact}).
+	These encode formulation technique rather than financial meaning and are
+	excluded from user-facing output.
+	Threshold (cliff) effects that the underlying binaries model --- IRMAA
+	tiers, ACA brackets, Social Security taxability --- are instead reported as
+	primal \emph{headroom} to the next threshold, since marginal prices cannot
+	express discrete jumps.
+\end{description}
+The authoritative family-to-class table is
+\code{CONSTRAINT_FAMILIES} in \code{owlplanner/assistant/explain.py}; it must
+be kept in synchrony with the tags emitted in \code{plan.py} and with the
+tables below.
+Year indices of the Medicare and ACA families are offsets from the first
+Medicare- or ACA-eligible year, respectively.
+
+\begin{table}[hbt!]
+\centering\small
+\begin{tabular}{lll}
+\hline
+Tag family & Indices & Formulation \\
+\hline
+\code{rmd} & $(i,n)$ & Eq.~(\ref{Eq:C1}) \\
+\code{bequest_floor} & --- & Eq.~(\ref{Eq:Bequest}) \\
+\code{profile_lo}, \code{profile_hi} & $(n)$ & Eqs.~(\ref{Eq:C5a})--(\ref{Eq:lambda}) \\
+\code{roth_maturation} & $(i,n)$ & Sec.~(\ref{Sec:RothMaturation}) \\
+\code{hsa_medical_cap} & $(n)$ & Sec.~(\ref{Sec:HSA}) \\
+\code{state_ret_exempt_cap} & $(n)$ & Eq.~(\ref{Eq:StateREcap}) \\
+\code{ltcg_room20} & $(n)$ & Eq.~(\ref{Eq:LTCG3}) \\
+\hline
+\end{tabular}
+\caption{Policy-class constraint tags: user goals and legal rules.}
+\label{Tab:TagsPolicy}
+\end{table}
+
+\begin{table}[hbt!]
+\centering\small
+\begin{tabular}{lll}
+\hline
+Tag family & Indices & Formulation \\
+\hline
+\code{cash_flow} & $(n)$ & Eq.~(\ref{Eq:C4}) \\
+\code{taxable_income} & $(n)$ & Eq.~(\ref{Eq:C6}) \\
+\code{state_taxable_income} & $(n)$ & Eq.~(\ref{Eq:StateTI}) \\
+\code{account_carryover} & $(i,j,n)$ & Eqs.~(\ref{Eq:C3a})--(\ref{Eq:C3b}) \\
+\code{withdrawal_limit} & $(i,j,n)$ & Sec.~(\ref{Sec:WithdrawalLimits}) \\
+\code{surplus_deposit} & $(i,n)$ & Eq.~(\ref{Eq:eta2}) \\
+\code{ss_age_benefit} & $(i,n)$ & Chapter~\ref{Chap:SSAges} \\
+\code{ltcg_gn_def} & $(n)$ & Sec.~(\ref{Sec:LTCG}) \\
+\code{ltcg_partition_lo} & $(n)$ & Eq.~(\ref{Eq:LTCG_partition}) \\
+\code{niit_magi_def} & $(n)$ & Eq.~(\ref{Eq:MAGI}) \\
+\code{irmaa_magi_def} & $(n)$ & Eqs.~(\ref{Eq:MedDecomp3}), (\ref{Eq:MedDecomp4}) \\
+\code{irmaa_cost_def} & $(n)$ & Eq.~(\ref{Eq:MediCosts}) \\
+\code{aca_magi_def} & $(n)$ & Sec.~(\ref{Sec:ACA}) \\
+\code{aca_cost_def} & $(n)$ & Sec.~(\ref{Sec:ACA}) \\
+\hline
+\end{tabular}
+\caption{Structural-class constraint tags: accounting identities and definitions.}
+\label{Tab:TagsStructural}
+\end{table}
+
+\begin{table}[hbt!]
+\centering\footnotesize
+\begin{tabular}{lll}
+\hline
+Tag family & Indices & Formulation \\
+\hline
+\code{amo_surplus_wdraw} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
+\code{amo_surplus_gate} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
+\code{amo_surplus_excl} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
+\code{amo_roth_conv} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
+\code{amo_roth_wdraw} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
+\code{amo_roth_excl} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
+\code{wdorder_txdef_gate} & $(i,n)$ & Eq.~(\ref{Eq:WdOrderGates}) \\
+\code{wdorder_roth_gate} & $(i,n)$ & Eq.~(\ref{Eq:WdOrderGates}) \\
+\code{wdorder_taxable_exhausted} & $(n)$ & Eq.~(\ref{Eq:WdOrderExhaust}) \\
+\code{wdorder_txdef_exhausted} & $(n)$ & Eq.~(\ref{Eq:WdOrderExhaust}) \\
+\code{wdorder_gate_monotone} & $(n)$ & Eq.~(\ref{Eq:WdOrderMono}) \\
+\code{ss_tax_plo}, \code{ss_tax_phi} & $(n)$ & Eq.~(\ref{Eq:plo_phi}) \\
+\code{ss_tax_pmin_ub}, \code{ss_tax_pmin_lb_cap} & $(n)$ & Eq.~(\ref{Eq:BinQ}) \\
+\code{ss_tax_pmin_lb_plo} & $(n)$ & Eq.~(\ref{Eq:BinQ}) \\
+\code{ss_tax_tss_ub}, \code{ss_tax_tss_lb_cap} & $(n)$ & Eq.~(\ref{Eq:BinT}) \\
+\code{ss_tax_tss_lb_formula} & $(n)$ & Eq.~(\ref{Eq:BinT}) \\
+\code{ss_age_amo} & $(i)$ & Chapter~\ref{Chap:SSAges} \\
+\code{ltcg_zl15_link}, \code{ltcg_zl20_link} & $(n)$ & Eqs.~(\ref{Eq:LTCGm1})--(\ref{Eq:LTCGm2}) \\
+\code{ltcg_room15_mip}, \code{ltcg_q0_zero} & $(n)$ & Eq.~(\ref{Eq:LTCGmq1}) \\
+\code{ltcg_room20_mip}, \code{ltcg_q01_zero} & $(n)$ & Eq.~(\ref{Eq:LTCGmq2}) \\
+\code{ltcg_zl_monotone} & $(n)$ & Sec.~(\ref{Sec:LTCG}) \\
+\code{ltcg_partition_hi} & $(n)$ & Eq.~(\ref{Eq:LTCG_partition}) \\
+\code{niit_floor} & $(n)$ & Eq.~(\ref{Eq:NIIT_lb}) \\
+\code{niit_j_zero} & $(n)$ & Eq.~(\ref{Eq:NIIT_Jub}) \\
+\code{niit_magi_cap} & $(n)$ & Eq.~(\ref{Eq:NIIT_Mub}) \\
+\code{niit_surplus_cap} & $(n)$ & Eq.~(\ref{Eq:NIIT_cap}) \\
+\code{irmaa_amo} & $(n)$ & Eq.~(\ref{Eq:SOS1}) \\
+\code{irmaa_bracket_lb}, \code{irmaa_bracket_ub} & $(n,q)$ & Eq.~(\ref{Eq:MedDecomph}) \\
+\code{aca_amo} & $(n)$ & Sec.~(\ref{Sec:ACA}) \\
+\code{aca_bracket_lb}, \code{aca_bracket_ub} & $(n,r)$ & Sec.~(\ref{Sec:ACA}) \\
+\code{benders_cut} & --- & Sec.~(\ref{Sec:MIPDecomp}) \\
+\hline
+\end{tabular}
+\caption{Artifact-class constraint tags: formulation machinery, excluded from
+user-facing explanations. The withdrawal-ordering gates implement the
+\texttt{withdrawalOrder="taxable\_first"} baseline policy of
+Sec.~(\ref{Sec:WithdrawalOrdering}).}
+\label{Tab:TagsArtifact}
+\end{table}
 
 \chapter{Objective Functions and Their Formulation}
 The objective function is a simple scalar defined as $c\cdot y$ that will be minimized.
@@ -4702,6 +4961,7 @@ The \code{run_stochastic_spending} call returns a dictionary with keys
 \end{itemize}
 
 \chapter{Optimization of Social Security Claiming Ages}
+\label{Chap:SSAges}
 \label{chap:ss-ages}
 
 The age at which an individual claims Social Security retirement benefits is one of
@@ -4947,13 +5207,21 @@ Also implements the efficient-frontier LP, CVaR computation, and the Retirement
 Efficiency Score (RES).
 \code{Plan} exposes these as methods by delegation (mixin pattern).
 
-\item[tax2026.py]
+\item[tax\_federal.py]
 Federal tax calculations: ordinary income brackets and standard deductions,
 LTCG tax thresholds, SS taxability formula, NIIT, ACA Premium Tax Credit
 (with \texttt{acaCosts} and \texttt{acaVals}), and Medicare IRMAA premiums and bracket thresholds.
 Also computes RMD fractions from the IRS Uniform Lifetime Table.
 Implements the OBBBA (2025) tax schedule, the 65+ bonus deduction phaseout,
 and the future-law reversion scenario (\code{yOBBBA} parameter).
+
+\item[tax\_state.py]
+State income tax parameters for all 50 states and the District of Columbia.
+Loads per-state, per-filing-status bracket structures, standard deductions,
+Social Security treatment, and retirement-income and pension exemption caps
+from \code{data/taxes_state.toml}, and converts them into the
+inflation-indexed LP parameter arrays used by the state-tax constraints
+(Sec.~(\ref{Sec:StateTax})).
 
 \item[socialsecurity.py]
 Social Security benefit modeling: FRA schedules, own-benefit and spousal
@@ -5011,6 +5279,15 @@ A Click-based command-line interface registered as the \code{owlcli}
 entry point.
 Supports \code{list} (enumerate available case files) and \code{run}
 (solve a case from a TOML file) commands.
+
+\item[assistant/]
+AI-assistant integration layer shared by the MCP server and the chat page.
+\code{tools.py} implements the MCP tool functions (case solving, comparison,
+stochastic frontiers, \code{explain_results}, \ldots);
+\code{explain.py} classifies the constraint tags
+(Sec.~(\ref{Sec:ConstraintTags})) and turns a solved plan's shadow prices and
+primal solution into a structured, JSON-ready explanation;
+\code{intake.py} provides the guided intake prompt and resources.
 
 \end{description}
 \end{sloppypar}
