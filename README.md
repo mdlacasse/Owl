@@ -54,7 +54,7 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 - **Account types** — taxable, tax-deferred (401k/IRA), Roth, and HSA accounts with full contribution and withdrawal rules
 - **Roth conversions** — amounts and timing co-optimized with spending and bequest goals
 - **Value of optimization** — `compare_to_baseline` solves the same plan with and without the strategy (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) and reports the advantage in today's dollars — a mathematical lower bound from the optimizer itself, not a simulation estimate
-- **Explainability** — `explain_results` reads the LP shadow prices to report what each goal and rule costs at the margin, which tax brackets the plan deliberately fills (and why), and the order in which accounts are drawn down
+- **Explainability** — `explain_results` reads the LP shadow prices to report what each goal and rule costs at the margin, which tax brackets the plan deliberately fills (and why), and the order in which accounts are drawn down. Every recommendation is explained using the mathematics of the optimization itself: the AI interprets and narrates quantities computed by the solver — it does not find the answer
 - **Social Security** — own, spousal, and survivor benefits; optional MILP co-optimization of claiming age (monthly resolution, 62–70)
 - **Pension & SPIA** — pension income with survivor fractions; IRA-funded SPIA with optional CPI indexing and joint-and-survivor benefit
 - **Two objectives** — maximize net spending subject to a bequest floor, or maximize after-tax bequest subject to a spending floor

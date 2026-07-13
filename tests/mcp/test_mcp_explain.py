@@ -71,8 +71,8 @@ def test_with_duals_populates_dual_data():
 def test_build_explanation_structure_and_consistency():
     plan = _solved_plan(maxRothConversion=50_000)
     ex = build_explanation(plan)
-    for section in ("shadow_prices", "binding_constraints", "roth_conversions", "tax_brackets",
-                    "account_depletion", "caveats"):
+    for section in ("this_year", "shadow_prices", "binding_constraints", "roth_conversions",
+                    "tax_brackets", "account_depletion", "caveats"):
         assert section in ex
 
     # Conversion schedule matches the primal solution (today's dollars).
@@ -83,6 +83,8 @@ def test_build_explanation_structure_and_consistency():
     # The $50k nominal cap must bind in year 1 and be reported.
     binding = ex["roth_conversions"].get("cap_binding_years", [])
     assert any(b["year"] == int(plan.year_n[0]) for b in binding)
+    # Relaxing an upper bound can never hurt: cap values must be non-negative.
+    assert all(b["value_per_dollar_of_extra_cap_today"] >= 0 for b in binding)
 
     # Bracket analysis reports plausible top rates and non-negative headroom.
     by_year = ex["tax_brackets"]["by_year"]
@@ -143,3 +145,57 @@ def test_explain_results_tool_file_path():
     assert "error" not in data
     assert "shadow_prices" in data["explanation"]
     assert "tax_brackets" in data["explanation"]
+
+
+@pytest.mark.toml
+def test_this_year_section_leads_and_matches_primal():
+    plan = _solved_plan()
+    ex = build_explanation(plan)
+    ty = ex["this_year"]
+    assert ty["year"] == int(plan.year_n[0])
+
+    # this_year comes before the multi-year sections so the narration leads with it.
+    keys = list(ex.keys())
+    assert keys.index("this_year") < keys.index("shadow_prices")
+
+    # Actions match the primal solution (year-0 nominal ~ today's dollars).
+    pat = ty["actions"]["per_person"][0]
+    assert pat["person"] == "Pat"
+    assert pat["roth_conversion"] == pytest.approx(float(plan.x_in[0, 0]), rel=1e-6, abs=0.01)
+    assert pat["withdrawals"]["tax_deferred"] == pytest.approx(float(plan.w_ijn[0, 1, 0]), rel=1e-6, abs=0.01)
+    assert ty["actions"]["net_spending"] == pytest.approx(float(plan.g_n[0]), rel=1e-6, abs=0.01)
+
+    # Threshold proximity reports the NIIT headroom for a single filer.
+    niit = ty["threshold_proximity"]["niit"]
+    assert niit["threshold"] == 200_000.0
+    assert niit["headroom"] == pytest.approx(200_000.0 - float(plan.MAGI_n[0]), abs=1.0)
+
+    # A dollar now is worth more than a dollar of lifetime spending.
+    assert ty["marginal_values"]["value_of_extra_dollar_now"] > 1.0
+
+
+@pytest.mark.toml
+def test_explain_results_downgrades_milp_tax_modes():
+    result = _run(
+        explain_results(
+            names=["Pat"],
+            birth_dates=["1960-07-01"],
+            life_expectancy=[88],
+            taxable=[200_000],
+            tax_deferred=[800_000],
+            roth=[100_000],
+            ss_monthly_pias=[2500],
+            ss_ages=[67],
+            state="CA",
+            rate_method="conservative",
+            bequest=400_000,
+            with_medicare="optimize",
+        )
+    )
+    data = json.loads(result)
+    assert "error" not in data
+    caveats = data["explanation"]["caveats"]
+    assert any("withMedicare" in c and "downgraded" in c for c in caveats)
+    # The loop-mode solve still produces the full explanation.
+    assert "this_year" in data["explanation"]
+    assert "bequest_floor" in data["explanation"]["shadow_prices"]

@@ -2219,7 +2219,7 @@ class Plan:
                 row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal ordinary income)
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
-            self.A.addRow(row, rhs, rhs)
+            self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # IRA withdrawal cap: can't exempt more IRA income than actually withdrawn.
         if "st_re" in vm:
@@ -2227,7 +2227,7 @@ class Plan:
                 row = self.A.newRow({vm["st_re"].idx(n): 1})
                 for i in range(self.N_i):
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                self.A.addRow(row, -np.inf, 0)
+                self.A.addRow(row, -np.inf, 0, tag=("state_ret_exempt_cap", n))
 
     def _add_defunct_constraints(self):
         if self.N_i == 2:
@@ -2284,7 +2284,7 @@ class Plan:
                         # Past years are stored at the end of arrays, accessed via negative indexing
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
 
-                self.A.addRow(row, rhs, np.inf)
+                self.A.addRow(row, rhs, np.inf, tag=("roth_maturation", i, n))
 
     def _add_roth_conversion_constraints(self, options):
         """
@@ -2395,10 +2395,10 @@ class Plan:
             # for n in range(self.N_n):
             for n in range(self.horizons[i]):
                 rowDic = {self.vm["w"].idx(i, 1, n): -1, self.vm["x"].idx(i, n): -1, self.vm["b"].idx(i, 1, n): 1}
-                self.A.addNewRow(rowDic, 0, np.inf)
+                self.A.addNewRow(rowDic, 0, np.inf, tag=("withdrawal_limit", i, 1, n))
                 for j in [0, 2, 3]:
                     rowDic = {self.vm["w"].idx(i, j, n): -1, self.vm["b"].idx(i, j, n): 1}
-                    self.A.addNewRow(rowDic, 0, np.inf)
+                    self.A.addNewRow(rowDic, 0, np.inf, tag=("withdrawal_limit", i, j, n))
 
         # HSA qualified medical expense cap: sum_i w[i,3,n] - m_n <= M_n[n] + other_medical_n[n]
         # m_n is the Medicare LP variable; fixed to loop-computed value in SC-loop mode.
@@ -2411,7 +2411,7 @@ class Plan:
                 cap = self.M_n[n] + self.other_medical_n[n]
                 rowDic = {self.vm["w"].idx(i, 3, n): 1 for i in range(self.N_i)}
                 rowDic[self.vm["m"].idx(n)] = -1
-                self.A.addNewRow(rowDic, -np.inf, cap)
+                self.A.addNewRow(rowDic, -np.inf, cap, tag=("hsa_medical_cap", n))
 
     def _add_withdrawal_ordering(self, options):
         """
@@ -2451,18 +2451,19 @@ class Plan:
                     },
                     -np.inf,
                     0,
+                    tag=("wdorder_txdef_gate", i, n),
                 )
                 # Roth withdrawals only once tax-deferred is also exhausted.
-                self.A.addNewRow({self.vm["w"].idx(i, 2, n): 1, z2: -Mn}, -np.inf, 0)
+                self.A.addNewRow({self.vm["w"].idx(i, 2, n): 1, z2: -Mn}, -np.inf, 0, tag=("wdorder_roth_gate", i, n))
             # Gate activation: sum_i b[i,j,n+1] + M*z <= M  (z=1 forces end balance ~ 0).
             rowDic = {self.vm["b"].idx(i, 0, n + 1): 1 for i in range(self.N_i)}
             rowDic[z1] = Mn
-            self.A.addNewRow(rowDic, -np.inf, Mn)
+            self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_taxable_exhausted", n))
             rowDic = {self.vm["b"].idx(i, 1, n + 1): 1 for i in range(self.N_i)}
             rowDic[z2] = Mn
-            self.A.addNewRow(rowDic, -np.inf, Mn)
+            self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_txdef_exhausted", n))
             # Full ordering: the Roth gate implies the tax-deferred gate.
-            self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0)
+            self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0, tag=("wdorder_gate_monotone", n))
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
@@ -2507,11 +2508,11 @@ class Plan:
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
             for n in range(self.n_d):
                 rowDic = {self.vm["d"].idx(i, n): 1, self.vm["s"].idx(n): -fac1}
-                self.A.addNewRow(rowDic, 0, 0)
+                self.A.addNewRow(rowDic, 0, 0, tag=("surplus_deposit", i, n))
             fac2 = u.krond(self.i_s, i)
             for n in range(self.n_d, self.N_n):
                 rowDic = {self.vm["d"].idx(i, n): 1, self.vm["s"].idx(n): -fac2}
-                self.A.addNewRow(rowDic, 0, 0)
+                self.A.addNewRow(rowDic, 0, 0, tag=("surplus_deposit", i, n))
 
         # Prevent surplus on two last year as they have little tax and/or growth consequence.
         disallow = options.get("noLateSurplus", False)
@@ -2563,7 +2564,7 @@ class Plan:
                             self.vm["x"].idx(self.i_d, n),
                             -fac2 * (self.xnet * u.krond(j, 2) - u.krond(j, 1)) * Tau1_ijn[self.i_d, j, n],
                         )
-                    self.A.addRow(row, rhs, rhs)
+                    self.A.addRow(row, rhs, rhs, tag=("account_carryover", i, j, n))
 
     def _add_net_cash_flow(self, options=None):
         tau_0prev = np.roll(self.tau_kn[0, :], 1)
@@ -2678,7 +2679,7 @@ class Plan:
                 # t^σ_n = taxable SS LP variable replaces Psi_n*zetaBar_n in the constraint:
                 # e_n - t^σ_n + sum_t(f_tn) = non_SS_ordinary_income
                 row.addElem(self.vm["tss"].idx(n), -1)
-            self.A.addRow(row, rhs, rhs)
+            self.A.addRow(row, rhs, rhs, tag=("taxable_income", n))
 
     def _configure_exclusion_binary_variables(self, options):
         if not options.get("amoConstraints", True):
@@ -2699,12 +2700,19 @@ class Plan:
                     dic1 = {self.vm["w"].idx(1, 0, n): -1, self.vm["w"].idx(1, 2, n): -1}
                     dic0.update(dic1)
 
-                self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_surplus_wdraw", n))
 
-                self.A.addNewRow({self.vm["zx"].idx(n, 1): bigM * self.gamma_n[n], self.vm["s"].idx(n): -1}, 0, np.inf)
+                self.A.addNewRow(
+                    {self.vm["zx"].idx(n, 1): bigM * self.gamma_n[n], self.vm["s"].idx(n): -1},
+                    0,
+                    np.inf,
+                    tag=("amo_surplus_gate", n),
+                )
 
                 # As both can be zero, bound as z_0 + z_1 <= 1
-                self.A.addNewRow({self.vm["zx"].idx(n, 0): +1, self.vm["zx"].idx(n, 1): +1}, 0, 1)
+                self.A.addNewRow(
+                    {self.vm["zx"].idx(n, 0): +1, self.vm["zx"].idx(n, 1): +1}, 0, 1, tag=("amo_surplus_excl", n)
+                )
 
         if "maxRothConversion" in options:
             rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
@@ -2724,16 +2732,18 @@ class Plan:
                     dic1 = {self.vm["x"].idx(1, n): -1}
                     dic0.update(dic1)
 
-                self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_roth_conv", n))
 
                 dic0 = {self.vm["zx"].idx(n, 3): bigM * self.gamma_n[n], self.vm["w"].idx(0, 2, n): -1}
                 if self.N_i == 2:
                     dic1 = {self.vm["w"].idx(1, 2, n): -1}
                     dic0.update(dic1)
 
-                self.A.addNewRow(dic0, 0, np.inf)
+                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_roth_wdraw", n))
 
-                self.A.addNewRow({self.vm["zx"].idx(n, 2): +1, self.vm["zx"].idx(n, 3): +1}, 0, 1)
+                self.A.addNewRow(
+                    {self.vm["zx"].idx(n, 2): +1, self.vm["zx"].idx(n, 3): +1}, 0, 1, tag=("amo_roth_excl", n)
+                )
 
     def _configure_ss_taxability_lp(self, options):
         """
@@ -2831,32 +2841,39 @@ class Plan:
             # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo_n
             row_plo = dict(pi_row)
             row_plo[plo_idx] = row_plo.get(plo_idx, 0) + 1
-            self.A.addNewRow(row_plo, rhs_pi - ss_lo_n, np.inf)
+            self.A.addNewRow(row_plo, rhs_pi - ss_lo_n, np.inf, tag=("ss_tax_plo", n))
 
             # === p^hi_n = max(0, Π_n − 𝒫^hi) ===
             row_phi = dict(pi_row)
             row_phi[phi_idx] = row_phi.get(phi_idx, 0) + 1
-            self.A.addNewRow(row_phi, rhs_pi - ss_hi_n, np.inf)
+            self.A.addNewRow(row_phi, rhs_pi - ss_hi_n, np.inf, tag=("ss_tax_phi", n))
 
             # === p^{σ,min}_n = min(Δ𝒫_n, ζ̄_n, p^lo_n) via binary z^σ_{0n} ===
             # Upper bounds: p^{σ,min}_n ≤ min(Δ𝒫_n, ζ̄_n) (setRange) and ≤ p^lo_n (constraint).
             # When ζ̄_n < Δ𝒫_n, the effective upper bound on pmin is ζ̄_n; using Δ𝒫_n in the big-M
             # lower bound of constraint (3b) would force pmin ≥ Δ𝒫_n > ζ̄_n, causing infeasibility.
             p_ub = min(delta_p_n, zetaBar_n)
-            self.A.addNewRow({pmin_idx: 1, plo_idx: -1}, -np.inf, 0)  # pmin ≤ p^lo
+            self.A.addNewRow({pmin_idx: 1, plo_idx: -1}, -np.inf, 0, tag=("ss_tax_pmin_ub", n))  # pmin ≤ p^lo
             # p^{σ,min}_n ≥ min(Δ𝒫_n, ζ̄_n) − M·(1 − z0)  →  pmin − M·z0 ≥ p_ub − M
-            self.A.addNewRow({pmin_idx: 1, z0_idx: -bigMBar}, p_ub - bigMBar, np.inf)
+            self.A.addNewRow({pmin_idx: 1, z0_idx: -bigMBar}, p_ub - bigMBar, np.inf, tag=("ss_tax_pmin_lb_cap", n))
             # p^{σ,min}_n ≥ p^lo_n − M·z0  →  pmin − p^lo + M·z0 ≥ 0
-            self.A.addNewRow({pmin_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf)
+            self.A.addNewRow({pmin_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf, tag=("ss_tax_pmin_lb_plo", n))
             self.B.setRange(pmin_idx, 0, p_ub)  # pmin ≤ min(Δ𝒫_n, ζ̄_n)
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·p^{σ,min}_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
             # Upper bound t^σ_n ≤ 0.5·p^{σ,min}_n + 0.85·p^hi_n.
-            self.A.addNewRow({tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85}, -np.inf, 0)
+            self.A.addNewRow({tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85}, -np.inf, 0, tag=("ss_tax_tss_ub", n))
             # t^σ_n ≥ 0.85·ζ̄_n − M·(1 − z1)  →  t^σ_n − M·z1 ≥ 0.85·ζ̄_n − M
-            self.A.addNewRow({tss_idx: 1, z1_idx: -bigMBar}, 0.85 * zetaBar_n - bigMBar, np.inf)
+            self.A.addNewRow(
+                {tss_idx: 1, z1_idx: -bigMBar}, 0.85 * zetaBar_n - bigMBar, np.inf, tag=("ss_tax_tss_lb_cap", n)
+            )
             # t^σ_n ≥ 0.5·p^{σ,min}_n + 0.85·p^hi_n − M·z1  →  tss − 0.5·pmin − 0.85·phi + M·z1 ≥ 0
-            self.A.addNewRow({tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar}, 0, np.inf)
+            self.A.addNewRow(
+                {tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar},
+                0,
+                np.inf,
+                tag=("ss_tax_tss_lb_formula", n),
+            )
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)  # t^σ ≤ 0.85·ζ̄
 
     def _configure_ss_age_variables(self):
@@ -2912,7 +2929,7 @@ class Plan:
 
             # a) AMO: exactly one claiming month per individual.
             amo_row = {vm["zssa"].idx(i, k): 1 for k in range(N_K)}
-            self.A.addNewRow(amo_row, 1, 1)
+            self.A.addNewRow(amo_row, 1, 1, tag=("ss_age_amo", i))
 
             # b) Benefit definition: ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k]
             for n in range(self.N_n):
@@ -2922,7 +2939,8 @@ class Plan:
                     b_val = float(B_own[i, k, n])
                     if b_val != 0.0:
                         row[vm["zssa"].idx(i, k)] = row.get(vm["zssa"].idx(i, k), 0) - b_val
-                self.A.addNewRow(row, 0, 0)  # equality: ssb[i,n] - sum_k B_own * zssa = 0
+                # equality: ssb[i,n] - sum_k B_own * zssa = 0
+                self.A.addNewRow(row, 0, 0, tag=("ss_age_benefit", i, n))
 
     def _configure_ltcg_constraints(self):
         """
@@ -2987,7 +3005,7 @@ class Plan:
                 row_gn = {gn_idx: 1}
                 for t in range(self.N_t):
                     row_gn[self.vm["f"].idx(t, n)] = row_gn.get(self.vm["f"].idx(t, n), 0) - 1
-                self.A.addNewRow(row_gn, 0, 0)
+                self.A.addNewRow(row_gn, 0, 0, tag=("ltcg_gn_def", n))
 
                 # Big-M link for zl15: G_n + M*zl15 in [T15, T15+M]
                 # Equivalent to: if zl15=0 then G_n = T15 (exactly), if zl15=1 then G_n <= T15+M
@@ -2999,23 +3017,30 @@ class Plan:
                 # Simplified: G_n + M*zl15 >= T15  (if zl15=0 → G_n >= T15)
                 #             G_n + M*zl15 <= T15+M (always feasible)
                 # Better: addNewRow({gn_idx:1, zl15_idx:M_ltcg}, T15_n, T15_n+M_ltcg)
-                self.A.addNewRow({gn_idx: 1, zl15_idx: M_ltcg}, T15_n, T15_n + M_ltcg)
-                self.A.addNewRow({gn_idx: 1, zl20_idx: M_ltcg}, T20_n, T20_n + M_ltcg)
+                self.A.addNewRow({gn_idx: 1, zl15_idx: M_ltcg}, T15_n, T15_n + M_ltcg, tag=("ltcg_zl15_link", n))
+                self.A.addNewRow({gn_idx: 1, zl20_idx: M_ltcg}, T20_n, T20_n + M_ltcg, tag=("ltcg_zl20_link", n))
 
                 # q[0] room15 upper bound: q0 + G_n + M*zl15 <= T15 + M
                 # → q0 <= T15 - G_n + M*(1-zl15) (unlimited when zl15=1, i.e. G_n>=T15)
-                self.A.addNewRow({q0_idx: 1, gn_idx: 1, zl15_idx: M_ltcg}, -np.inf, T15_n + M_ltcg)
+                self.A.addNewRow(
+                    {q0_idx: 1, gn_idx: 1, zl15_idx: M_ltcg}, -np.inf, T15_n + M_ltcg, tag=("ltcg_room15_mip", n)
+                )
                 # q[0] forced zero when G_n >= T15 (zl15=1): q0 - M*zl15 <= 0
-                self.A.addNewRow({q0_idx: 1, zl15_idx: -M_ltcg}, -np.inf, 0)
+                self.A.addNewRow({q0_idx: 1, zl15_idx: -M_ltcg}, -np.inf, 0, tag=("ltcg_q0_zero", n))
 
                 # q[0]+q[1] room20 upper bound: q0+q1 + G_n + M*zl20 <= T20 + M
-                self.A.addNewRow({q0_idx: 1, q1_idx: 1, gn_idx: 1, zl20_idx: M_ltcg}, -np.inf, T20_n + M_ltcg)
+                self.A.addNewRow(
+                    {q0_idx: 1, q1_idx: 1, gn_idx: 1, zl20_idx: M_ltcg},
+                    -np.inf,
+                    T20_n + M_ltcg,
+                    tag=("ltcg_room20_mip", n),
+                )
                 # q[0]+q[1] forced zero when G_n >= T20 (zl20=1): q0+q1 - M*zl20 <= 0
-                self.A.addNewRow({q0_idx: 1, q1_idx: 1, zl20_idx: -M_ltcg}, -np.inf, 0)
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1, zl20_idx: -M_ltcg}, -np.inf, 0, tag=("ltcg_q01_zero", n))
 
                 # Monotonicity: zl15 <= zl20 (if G_n <= T15 then G_n <= T20, so room for 0% implies room for 15%)
                 # zl15 - zl20 <= 0  →  addNewRow({zl15:1, zl20:-1}, -inf, 0)
-                self.A.addNewRow({zl15_idx: 1, zl20_idx: -1}, -np.inf, 0)
+                self.A.addNewRow({zl15_idx: 1, zl20_idx: -1}, -np.inf, 0, tag=("ltcg_zl_monotone", n))
 
             else:
                 # =========================================================
@@ -3029,7 +3054,7 @@ class Plan:
                 # (1) q[0,n] ≤ room15_n (enforced via variable upper bound)
                 self.B.setRange(q0_idx, 0, room15_n)
                 # (2) q[0,n] + q[1,n] ≤ room20_n
-                self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n)
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n, tag=("ltcg_room20", n))
                 # q[1] upper bound = remaining 15% bracket width after stacking ordinary income.
                 self.B.setRange(q1_idx, 0, max(0.0, room20_n - room15_n))
                 # q[2] is unbounded above (the 20% bracket has no cap).
@@ -3055,7 +3080,7 @@ class Plan:
                 rhs_q += alpha * 0.5 * self.mu * self.kappa_ijn[i, 0, n]
 
             # (3) q[0]+q[1]+q[2] − Q_portfolio_LP_vars ≥ Q_fixed + kappa_correction
-            self.A.addNewRow(row_q, rhs_q, np.inf)
+            self.A.addNewRow(row_q, rhs_q, np.inf, tag=("ltcg_partition_lo", n))
 
             # (3') Companion upper bound on the same row: prevents q[1,n]/q[2,n] from being
             # inflated along the flat direction shared with f_tn's per-bracket split (q[2,n]
@@ -3071,7 +3096,7 @@ class Plan:
             prevQ = getattr(self, "Q_n", None)
             prev_loss = 0.0 if prevQ is None else max(0.0, -float(prevQ[n]))
             loss_buf = max(fixed_loss, prev_loss) + tol
-            self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf)
+            self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf, tag=("ltcg_partition_hi", n))
 
     def _add_magi_lp(self, options):
         """
@@ -3121,7 +3146,7 @@ class Plan:
             row[q2_idx] = row.get(q2_idx, 0) - 1
 
             # No SS term: taxable SS is already embedded in e_n + G_n (AGI basis).
-            self.A.addNewRow(row, 0.0, 0.0)
+            self.A.addNewRow(row, 0.0, 0.0, tag=("niit_magi_def", n))
 
     def _configure_NIIT_binary_variables(self, options):
         """
@@ -3183,14 +3208,17 @@ class Plan:
             # (1') J_n + 0.038*niis_n >= 0.038*(MAGI_n - T) - M*(1-zj)
             #   → J_n + 0.038*niis_n - 0.038*magi_n - M*zj >= -0.038*T - M
             self.A.addNewRow(
-                {Jn_idx: 1, niis_idx: 0.038, magi_idx: -0.038, zj_idx: -M_niit}, -0.038 * T_niit - M_niit, np.inf
+                {Jn_idx: 1, niis_idx: 0.038, magi_idx: -0.038, zj_idx: -M_niit},
+                -0.038 * T_niit - M_niit,
+                np.inf,
+                tag=("niit_floor", n),
             )
 
             # (2) J_n <= M*zj  →  J_n - M*zj <= 0
-            self.A.addNewRow({Jn_idx: 1, zj_idx: -M_niit}, -np.inf, 0)
+            self.A.addNewRow({Jn_idx: 1, zj_idx: -M_niit}, -np.inf, 0, tag=("niit_j_zero", n))
 
             # (3) MAGI_n <= T + M*zj  →  MAGI_n - M*zj <= T
-            self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit)
+            self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit, tag=("niit_magi_cap", n))
 
             # (4) niis_n <= (MAGI_n - T) - (I_n + Q_n) + M*(1-zj)
             # With the AGI-basis MAGI = G_n + e_n + Q_n, both Q_n and the SS terms cancel:
@@ -3205,7 +3233,7 @@ class Plan:
                 for t in range(self.N_t):
                     f_idx = self.vm["f"].idx(t, n)
                     row4[f_idx] = row4.get(f_idx, 0) - 1
-            self.A.addNewRow(row4, -np.inf, rhs4)
+            self.A.addNewRow(row4, -np.inf, rhs4, tag=("niit_surplus_cap", n))
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -3218,7 +3246,7 @@ class Plan:
             row = self.A.newRow()
             for q in range(self.N_irmaa):
                 row.addElem(self.vm["zm"].idx(nn, q), 1)
-            self.A.addRow(row, 1, 1)
+            self.A.addRow(row, 1, 1, tag=("irmaa_amo", nn))
 
         # MAGI decomposition into bracket portions: sum_q h_{q} = MAGI.
         for nn in range(Nmed):
@@ -3229,7 +3257,7 @@ class Plan:
 
             if n < 2:
                 # MAGI for the first two plan years is known (prevMAGI from user-supplied data).
-                self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n])
+                self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n], tag=("irmaa_magi_def", nn))
                 # Pre-fix the bracket to match the known MAGI in all solver modes, including
                 # Benders.  The correct bracket is deterministic; pre-fixing (Lb == Ub) causes
                 # _benders_solve to exclude these zm columns from master_cols automatically.
@@ -3287,7 +3315,7 @@ class Plan:
             if ss_lp:
                 row.addElem(self.vm["tss"].idx(n2), -1)  # taxable SS (LP var) on LHS
 
-            self.A.addRow(row, rhs, rhs)
+            self.A.addRow(row, rhs, rhs, tag=("irmaa_magi_def", nn))
 
         # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q.
         for nn in range(Nmed):
@@ -3297,15 +3325,14 @@ class Plan:
 
                 lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1]
                 if lower > 0:
-                    self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf)
+                    self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf, tag=("irmaa_bracket_lb", nn, q))
 
                 if q < self.N_irmaa - 1:
                     upper = self.Lbar_nq[nn, q]
-                    self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0)
                 else:
                     # Upper bound for last bracket so h_qn = 0 when z_q = 0.
                     upper = bigM * self.gamma_n[self.nm + nn]
-                    self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0)
+                self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0, tag=("irmaa_bracket_ub", nn, q))
 
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -3325,7 +3352,7 @@ class Plan:
             row.addElem(self.vm["m"].idx(n), 1)
             for q in range(self.N_irmaa):
                 row.addElem(self.vm["zm"].idx(nn, q), -self.Cbar_nq[nn, q])
-            self.A.addRow(row, 0, 0)
+            self.A.addRow(row, 0, 0, tag=("irmaa_cost_def", nn))
 
     def _configure_ACA_binary_variables(self, options):
         """
@@ -3350,7 +3377,7 @@ class Plan:
             row = self.A.newRow()
             for r in range(tx.N_ACA_R):
                 row.addElem(self.vm["za"].idx(nn, r), 1)
-            self.A.addRow(row, 1, 1)
+            self.A.addRow(row, 1, 1, tag=("aca_amo", nn))
 
         # b) MAGI decomposition: sum_r haca[nn, r] = current-year MAGI.
         for nn in range(self.n_aca):
@@ -3392,7 +3419,7 @@ class Plan:
                 haca_idx = self.vm["haca"].idx(nn, r)
                 row_magi[haca_idx] = row_magi.get(haca_idx, 0) + 1
 
-            self.A.addNewRow(row_magi, rhs_magi, rhs_magi)
+            self.A.addNewRow(row_magi, rhs_magi, rhs_magi, tag=("aca_magi_def", nn))
 
         # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r].
         for nn in range(self.n_aca):
@@ -3402,15 +3429,14 @@ class Plan:
 
                 lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1]
                 if lower > 0:
-                    self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf)
+                    self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf, tag=("aca_bracket_lb", nn, r))
 
                 if r < tx.N_ACA_R - 1:
                     upper = self.Lbar_aca_nr[nn, r]
-                    self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
                 else:
                     # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
                     upper = bigM * self.gamma_n[nn]
-                    self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0)
+                self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0, tag=("aca_bracket_ub", nn, r))
 
     def _add_ACA_costs(self, options):
         """
@@ -3434,7 +3460,7 @@ class Plan:
             for r in range(tx.N_ACA_R - 1):  # r=0..5 only; bracket 6 uses fixed SLCSP
                 row.addElem(self.vm["haca"].idx(nn, r), -self.cap_pct_aca_r[r])
             row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
-            self.A.addRow(row, 0, 0)
+            self.A.addRow(row, 0, 0, tag=("aca_cost_def", nn))
             self.B.setRange(self.vm["maca"].idx(nn), 0, self.slcsp_aca_n[nn])
 
     def _build_objective_vector(self, objective, options):
@@ -4777,19 +4803,19 @@ class Plan:
         mp_A_static_rows = []
         for i in master_only_rows:
             rowDic = {master_col_to_pos[j]: v for j, v in zip(self.A.Aind[i], self.A.Aval[i], strict=True)}
-            mp_A_static_rows.append((rowDic, self.A.lb[i], self.A.ub[i]))
+            mp_A_static_rows.append((rowDic, self.A.lb[i], self.A.ub[i], self.A.tags[i]))
 
         def _build_master_A(cuts):
             mp_A = abc.ConstraintMatrix(mp_nvars)
-            for rowDic, lb, ub in mp_A_static_rows:
-                mp_A.addNewRow(rowDic, lb, ub)
+            for rowDic, lb, ub, tag in mp_A_static_rows:
+                mp_A.addNewRow(rowDic, lb, ub, tag=tag)
             for alpha, beta in cuts:
                 cut_dic = {eta_pos: 1.0}
                 for pos in range(n_master):
                     b = float(beta[pos])
                     if b != 0.0:
                         cut_dic[pos] = -b
-                mp_A.addNewRow(cut_dic, float(alpha), np.inf)
+                mp_A.addNewRow(cut_dic, float(alpha), np.inf, tag=("benders_cut",))
             return mp_A
 
         # Benders parameters.

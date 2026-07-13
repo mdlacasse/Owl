@@ -221,6 +221,29 @@ def _scrub_optimized_ss_ages(assumed, opts):
         assumed[:] = [e for e in assumed if e["parameter"] != "ss_ages"]
 
 
+_MILP_TAX_MODES = ("withMedicare", "withACA", "withSSTaxability", "withLTCG", "withNIIT")
+
+
+def _downgrade_milp_tax_modes(opts):
+    """Downgrade MILP tax modes to the SC loop for explanation solves.
+
+    An explanation never needs a MIP: shadow prices always come from an LP with the
+    discrete choices fixed, and the SC loop converges to essentially the same primal
+    solution for the tax features at a fraction of the MIP cost. Threshold (cliff)
+    effects are reported as primal headroom, which duals cannot express either way.
+    withSSAges is deliberately left as requested — loop mode cannot reproduce an
+    optimized claiming age, so downgrading it would explain a different plan.
+
+    Returns the list of downgraded option names (empty when nothing changed).
+    """
+    downgraded = []
+    for key in _MILP_TAX_MODES:
+        if opts.get(key) == "optimize":
+            opts[key] = "loop"
+            downgraded.append(key)
+    return downgraded
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: list_cases
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2255,13 +2278,14 @@ async def compare_to_baseline(
 
 
 def _explain_results_blocking(build_kwargs, opts_kwargs, objective, assumed):
-    """Build plan, solve with withDuals=True, return the solved plan."""
+    """Build plan, solve with withDuals=True, return (plan, downgraded MILP modes)."""
     plan = _build_plan_from_params(**build_kwargs, assumed=assumed)
     opts = _build_mcp_opts(**opts_kwargs, inames=plan.inames)
     opts["withDuals"] = True
+    downgraded = _downgrade_milp_tax_modes(opts)
     _scrub_optimized_ss_ages(assumed, opts)
     plan.solve(objective, opts)
-    return plan
+    return plan, downgraded
 
 
 async def explain_results(
@@ -2336,6 +2360,12 @@ async def explain_results(
 
     Solves the case with dual extraction enabled (a binaries-fixed LP re-solve after
     the final solution) and returns a structured explanation:
+      - this_year: the first plan year's decisions — the only ones that are executed.
+        Per-person Roth conversion, withdrawals by account, and RMD due; the bracket
+        the optimizer fills and the headroom left in it; proximity to tax thresholds
+        (NIIT, IRMAA with its two-year lookback, ACA, SS taxability); and the marginal
+        value of a dollar now. Lead the narration with this section — later years are
+        projections under current law and assumed returns, re-optimized every year.
       - shadow_prices: what each active goal or rule is worth at the margin — the
         lifetime-spending cost per dollar of bequest floor, the bequest cost per dollar
         of spending floor, the value of an extra dollar of income in each year (the
@@ -2352,6 +2382,12 @@ async def explain_results(
     asks why the plan converts a given amount, what a goal is costing them, or which
     constraint to relax.  All sensitivities are marginal and hold bracket selections
     and self-consistent tax quantities fixed; re-solve to evaluate large changes.
+
+    Explanations never require a MIP: MILP tax modes (withMedicare/withACA/
+    withSSTaxability/withLTCG/withNIIT set to "optimize") are downgraded to the
+    self-consistent loop for the explanation solve — same shadow prices, a fraction
+    of the cost — and a caveat records the downgrade.  withSSAges is honored as
+    given, since loop mode cannot reproduce an optimized claiming age.
 
     Accepts either 'filename' (+ optional overrides) or the same flat parameters as
     run_from_params.  Material defaults assumed for omitted parameters are reported
@@ -2374,6 +2410,7 @@ async def explain_results(
             except Exception as e:
                 return json.dumps({"error": f"Invalid override: {e}"})
         diconf.setdefault("solver_options", {})["withDuals"] = True
+        downgraded = _downgrade_milp_tax_modes(diconf["solver_options"])
         try:
             plan = await asyncio.get_running_loop().run_in_executor(
                 None, _solve_blocking, diconf, dirname, solver, max_time, None, []
@@ -2466,7 +2503,7 @@ async def explain_results(
             swap_roth_converters_year=swap_roth_converters_year,
         )
         try:
-            plan = await asyncio.get_running_loop().run_in_executor(
+            plan, downgraded = await asyncio.get_running_loop().run_in_executor(
                 None,
                 _explain_results_blocking,
                 build_kwargs,
@@ -2483,9 +2520,16 @@ async def explain_results(
             failed["assumed_defaults"] = assumed
         return json.dumps(failed)
 
+    explanation = build_explanation(plan)
+    if downgraded and "caveats" in explanation:
+        explanation["caveats"].append(
+            f"{', '.join(downgraded)} downgraded from 'optimize' to 'loop' for this explanation: "
+            "shadow prices come from an LP with discrete choices fixed either way, and threshold "
+            "effects are reported as headroom in this_year rather than as marginal prices."
+        )
     metrics = plan_metrics(plan)
     result = {
-        "explanation": build_explanation(plan),
+        "explanation": explanation,
         "key_metrics": {
             k: round(metrics[k], 2)
             for k in (
