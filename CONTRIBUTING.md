@@ -137,9 +137,16 @@ It lints with flake8 and runs the full pytest suite across Python 3.11, 3.12, 3.
 Bug fixes and new features should include at least one test that fails before
 the change and passes after.
 
-Changes merged to `dev` are automatically deployed to
+Changes merged to `dev` are automatically synced to
 [owlplanner-dev.streamlit.app](https://owlplanner-dev.streamlit.app), so you
-can verify the live effect without running locally.
+can verify the live effect without running locally. Note, however, that
+syncing alone does not activate Python changes: `.streamlit/config.toml`
+deliberately sets `fileWatcherType = "none"`, because hot-reloading would
+update the UI scripts while the previously imported `owlplanner` package
+remains loaded in memory, mixing versions and causing unpredictable
+behavior. A maintainer must reboot the app from the Streamlit Cloud console
+for `.py` changes to take effect; only static assets are picked up
+immediately on sync.
 
 ---
 
