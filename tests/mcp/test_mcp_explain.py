@@ -10,6 +10,7 @@ import json
 import pytest
 
 from owlplanner.assistant.explain import build_explanation
+from owlplanner.assistant.explain_schema import SCHEMA_VERSION, PlanExplanation
 from owlplanner.assistant.tools import _build_plan_from_params, explain_results
 
 BILL_TOML = "examples/Case_bill.toml"
@@ -172,6 +173,48 @@ def test_this_year_section_leads_and_matches_primal():
 
     # A dollar now is worth more than a dollar of lifetime spending.
     assert ty["marginal_values"]["value_of_extra_dollar_now"] > 1.0
+
+
+@pytest.mark.toml
+def test_explanation_validates_against_schema():
+    plan = _solved_plan(maxRothConversion=50_000, minTaxableBalance=[150_000])
+    ex = build_explanation(plan)
+    assert ex["schema_version"] == SCHEMA_VERSION
+    model = PlanExplanation.model_validate(ex)  # round-trips without error
+    assert model.this_year.year == int(plan.year_n[0])
+    # Registry-added shadow-price families survive the schema round-trip (extra="allow"):
+    # taxable_balance_floor is not a typed field, so it rides through model_extra.
+    assert "taxable_balance_floor" in ex["shadow_prices"]
+
+
+@pytest.mark.toml
+def test_taxable_balance_floor_binding():
+    # A safety net high enough to bind: taxable would otherwise be drawn down early.
+    plan = _solved_plan(minTaxableBalance=[150_000])
+    ex = build_explanation(plan)
+    floor = ex["shadow_prices"]["taxable_balance_floor"]
+    assert floor["binding_bounds"]
+    assert all(e["gain_per_dollar_of_relaxation_today"] > 0 for e in floor["binding_bounds"])
+    # Primal consistency: the balance actually sits at the (inflation-indexed) floor.
+    years = {e["year"] for e in floor["binding_bounds"]}
+    n0 = int(plan.year_n[0])
+    assert any(
+        abs(plan.b_ijn[0, 0, y - n0] - 150_000 * plan.gamma_n[y - n0]) < 1.0 for y in years
+    )
+
+
+@pytest.mark.toml
+def test_disallowed_conversions_priced():
+    # Baseline converts (cap test above); pinning conversions to zero must surface
+    # the forgone value as reduced costs on the zero-fixed x variables.
+    plan = _solved_plan(noRothConversions="Pat")
+    assert float(plan.x_in.sum()) < 1.0
+    ex = build_explanation(plan)
+    disallowed = ex["shadow_prices"]["roth_conversion_disallowed"]["binding_bounds"]
+    assert disallowed
+    assert all(e["value_per_dollar_if_allowed_today"] > 0 for e in disallowed)
+    # Early years are where conversions are most valuable for this case.
+    assert any(e["year"] == int(plan.year_n[0]) for e in disallowed)
 
 
 @pytest.mark.toml

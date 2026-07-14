@@ -29,6 +29,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 import numpy as np
 
 from .. import tax_federal as tx
+from .explain_schema import PlanExplanation
 
 _TOL = 1e-9  # dual significance
 _BIND_TOL = 1.0  # $ slack below which a constraint counts as binding
@@ -162,6 +163,7 @@ def build_explanation(plan) -> dict:
     if dd is None:
         return {"error": "No dual data on this plan. Solve with options={'withDuals': True} first."}
 
+    cols = _binding_columns(plan, dd)
     out = {
         "objective": plan.objective,
         "sensitivity_units": (
@@ -169,10 +171,10 @@ def build_explanation(plan) -> dict:
             if plan.objective == "maxSpending"
             else "today's dollars of final after-tax bequest"
         ),
-        "this_year": _this_year(plan, dd),
-        "shadow_prices": _shadow_prices(plan, dd),
+        "this_year": _this_year(plan, dd, cols),
+        "shadow_prices": _shadow_prices(plan, dd, cols),
         "binding_constraints": _binding_constraints(plan, dd),
-        "roth_conversions": _roth_analysis(plan, dd),
+        "roth_conversions": _roth_analysis(plan, cols),
         "tax_brackets": _bracket_analysis(plan),
         "account_depletion": _depletion(plan),
         "caveats": [
@@ -185,7 +187,8 @@ def build_explanation(plan) -> dict:
             "Large parameter changes can switch brackets or binaries; re-solve to evaluate them.",
         ],
     }
-    return out
+    # Validate against the versioned contract; fail fast on schema drift.
+    return PlanExplanation.model_validate(out).model_dump(exclude_none=True)
 
 
 def _tagged_rows(dd, family):
@@ -193,6 +196,124 @@ def _tagged_rows(dd, family):
     for i, t in enumerate(dd["row_tags"]):
         if t is not None and t[0] == family:
             yield t, i
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Column-side registry: policy-meaningful variable bounds, priced by reduced
+# costs.  Mirrors the row-tag registry — structural bounds (bracket widths,
+# standard deductions, big-M caps) are deliberately not registered; bracket
+# fill is conveyed by _bracket_analysis instead.
+#
+# Sign convention (verified by finite difference): d(reported objective)/d(ub)
+# = col_dual * objFac >= 0 at a binding upper bound; at a binding lower bound
+# the gain from lowering the floor is -col_dual * objFac >= 0.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _iter_x_cols(plan):
+    """Roth conversion variables: ({labels}, column, year-index) per (i, n)."""
+    for i in range(plan.N_i):
+        for n in range(plan.N_n):
+            yield {"person": plan.inames[i], "year": int(plan.year_n[n])}, plan.vm["x"].idx(i, n), n
+
+
+def _iter_x_cols_alive(plan):
+    """Same as _iter_x_cols but skips the deceased spouse's pinned years (structural, not policy)."""
+    for i in range(plan.N_i):
+        for n in range(plan.N_n):
+            if plan.N_i == 2 and i == plan.i_d and n >= plan.n_d:
+                continue
+            yield {"person": plan.inames[i], "year": int(plan.year_n[n])}, plan.vm["x"].idx(i, n), n
+
+
+def _iter_taxable_floor_cols(plan):
+    """Taxable balances (j=0) from year 1 on: floors come from minTaxableBalance."""
+    for i in range(plan.N_i):
+        for n in range(1, plan.N_n):
+            yield {"person": plan.inames[i], "year": int(plan.year_n[n])}, plan.vm["b"].idx(i, 0, n), n
+
+
+def _iter_ltcg_room_cols(plan):
+    """LTCG bracket-allocation variables q[0]/q[1]: caps are loop-mode bracket room."""
+    for p, name in ((0, "0%"), (1, "15%")):
+        for n in range(plan.N_n):
+            yield {"bracket": name, "year": int(plan.year_n[n])}, plan.vm["q"].idx(p, n), n
+
+
+# side: which bound is policy-meaningful. "upper"/"lower" require a genuine range
+# (lb != ub); "fixed_zero" prices variables pinned to zero (lb == ub == 0).
+COLUMN_FAMILIES = {
+    "roth_conversion_cap": {
+        "iter": _iter_x_cols,
+        "side": "upper",
+        "value_key": "value_per_dollar_of_extra_cap_today",
+        "note": "Years where the Roth conversion cap is binding; the value shows what one more "
+        "dollar of allowed conversion would add to the objective.",
+    },
+    "roth_conversion_disallowed": {
+        "iter": _iter_x_cols_alive,
+        "side": "fixed_zero",
+        "value_key": "value_per_dollar_if_allowed_today",
+        "note": "Years where Roth conversions are disallowed (noRothConversions, "
+        "startRothConversions, per-cell overrides, or the last-two-years rule) but the "
+        "optimizer would use them; the value is the gain per dollar of conversion allowed.",
+    },
+    "taxable_balance_floor": {
+        "iter": _iter_taxable_floor_cols,
+        "side": "lower",
+        "value_key": "gain_per_dollar_of_relaxation_today",
+        "note": "Years where the minTaxableBalance safety net forces money to stay in the "
+        "taxable account; the value is the objective gain per dollar of lower floor.",
+    },
+    "ltcg_bracket_room": {
+        "iter": _iter_ltcg_room_cols,
+        "side": "upper",
+        "when": lambda plan: not getattr(plan, "_ltcg_lp", False),
+        "value_key": "gain_per_dollar_of_relaxation_today",
+        "note": "Years where realized capital gains completely fill the 0% or 15% LTCG "
+        "bracket room left by ordinary income (loop mode); the value is the gain per "
+        "dollar of extra room.",
+    },
+}
+
+
+def _binding_columns(plan, dd):
+    """Scan COLUMN_FAMILIES for variables priced at a policy-meaningful bound.
+
+    Returns {family: [entry, ...]} where each entry carries the iterator's labels
+    plus the family's value_key with the today's-$ relaxation value (always >= 0).
+    """
+    out = {}
+    for key, spec in COLUMN_FAMILIES.items():
+        if "when" in spec and not spec["when"](plan):
+            continue
+        side = spec["side"]
+        entries = []
+        for labels, j, n in spec["iter"](plan):
+            lb, ub = dd["col_lb"][j], dd["col_ub"][j]
+            v, rc = dd["col_value"][j], dd["col_dual"][j]
+            if abs(rc) <= _TOL:
+                continue
+            if side == "upper":
+                if not (np.isfinite(ub) and lb != ub and abs(v - ub) < _BIND_TOL):
+                    continue
+                sens = rc * dd["objFac"] * plan.gamma_n[n]
+            elif side == "lower":
+                if not (np.isfinite(lb) and lb > 0 and lb != ub and abs(v - lb) < _BIND_TOL):
+                    continue
+                sens = -rc * dd["objFac"] * plan.gamma_n[n]
+            else:  # fixed_zero
+                if not (lb == 0 and ub == 0):
+                    continue
+                sens = rc * dd["objFac"] * plan.gamma_n[n]
+            if sens <= _TOL:
+                continue  # relaxation values are non-negative; drop numerical noise
+            entry = dict(labels)
+            entry[spec["value_key"]] = _round(sens, 4)
+            entries.append(entry)
+        if entries:
+            out[key] = entries
+    return out
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -270,7 +391,7 @@ def _year0_thresholds(plan):
     return prox
 
 
-def _this_year(plan, dd):
+def _this_year(plan, dd, cols):
     """The first plan year's decisions — the only ones that are executed."""
     thisyear = int(plan.year_n[0])
     g0 = plan.gamma_n[0]
@@ -315,15 +436,10 @@ def _this_year(plan, dd):
         if t[1] == 0:
             marginal["value_of_extra_dollar_now"] = _round(dd["row_dual"][i] * dd["objFac"] * g0, 4)
             break
-    if "x" in plan.vm:
-        for i in range(plan.N_i):
-            j = plan.vm["x"].idx(i, 0)
-            cap = dd["col_ub"][j]
-            if np.isfinite(cap) and cap > 0 and abs(plan.x_in[i, 0] - cap) < _BIND_TOL:
-                # d(reported objective)/d(column ub) = col_dual * objFac, always >= 0.
-                marginal["value_per_dollar_of_extra_conversion_cap"] = _round(
-                    dd["col_dual"][j] * dd["objFac"] * g0, 4
-                )
+    for entry in cols.get("roth_conversion_cap", []):
+        if entry["year"] == thisyear:
+            marginal["value_per_dollar_of_extra_conversion_cap"] = entry["value_per_dollar_of_extra_cap_today"]
+            break
     if marginal:
         out["marginal_values"] = marginal
 
@@ -350,7 +466,7 @@ def _shadow_explainer(key, families=()):
     return register
 
 
-def _shadow_prices(plan, dd):
+def _shadow_prices(plan, dd, cols):
     sp = {}
     handled = set()
     for key, families, handler in _SHADOW_EXPLAINERS:
@@ -364,6 +480,12 @@ def _shadow_prices(plan, dd):
         payload = _generic_binding_rows(plan, dd, family, spec)
         if payload:
             sp[family] = payload
+    # Column-side families (reduced costs on policy-meaningful variable bounds);
+    # the conversion cap is reported in the roth_conversions section instead.
+    for key, entries in cols.items():
+        if key == "roth_conversion_cap":
+            continue
+        sp[key] = {"binding_bounds": entries, "note": COLUMN_FAMILIES[key]["note"]}
     return sp
 
 
@@ -535,45 +657,31 @@ def _binding_constraints(plan, dd):
     return out
 
 
-def _roth_analysis(plan, dd):
-    """Conversion schedule plus binding-cap detection from column bounds and reduced costs."""
-    objFac = dd["objFac"]
+def _roth_analysis(plan, cols):
+    """Conversion schedule (primal) plus the binding-cap entries from the column registry."""
     gamma = plan.gamma_n
     years = plan.year_n
     schedule = []
-    binding = []
     for i in range(plan.N_i):
         for n in range(plan.N_n):
             amt = float(plan.x_in[i, n])
             if amt < 1.0:
                 continue
-            entry = {
-                "person": plan.inames[i],
-                "year": int(years[n]),
-                "amount_today": _round(amt / gamma[n]),
-            }
-            schedule.append(entry)
-            j = plan.vm["x"].idx(i, n)
-            cap = dd["col_ub"][j]
-            if np.isfinite(cap) and cap > 0 and abs(amt - cap) < _BIND_TOL:
-                # d(reported objective)/d(column ub) = col_dual * objFac, always >= 0
-                # (relaxing an upper bound cannot hurt the LP objective).
-                sens = dd["col_dual"][j] * objFac * gamma[n]
-                binding.append(
-                    {
-                        "person": plan.inames[i],
-                        "year": int(years[n]),
-                        "value_per_dollar_of_extra_cap_today": _round(sens, 4),
-                    }
-                )
+            schedule.append(
+                {
+                    "person": plan.inames[i],
+                    "year": int(years[n]),
+                    "amount_today": _round(amt / gamma[n]),
+                }
+            )
     result = {
         "schedule_today_dollars": schedule,
         "total_converted_today": _round(sum(e["amount_today"] for e in schedule)),
     }
+    binding = cols.get("roth_conversion_cap")
     if binding:
         result["cap_binding_years"] = binding
-        result["note"] = "Years where the conversion cap is binding; the value shows what one more "
-        result["note"] += "dollar of allowed conversion would add to the objective."
+        result["note"] = COLUMN_FAMILIES["roth_conversion_cap"]["note"]
     return result
 
 

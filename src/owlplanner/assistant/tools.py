@@ -2370,7 +2370,10 @@ async def explain_results(
         lifetime-spending cost per dollar of bequest floor, the bequest cost per dollar
         of spending floor, the value of an extra dollar of income in each year (the
         plan's endogenous discount curve), the cost of each forced RMD dollar, and the
-        years pinned against the spending-profile band.
+        years pinned against the spending-profile band.  Policy-meaningful variable
+        bounds are priced too, from reduced costs: conversions disallowed by rule
+        (roth_conversion_disallowed), the minTaxableBalance safety net
+        (taxable_balance_floor), and LTCG bracket room (ltcg_bracket_room).
       - roth_conversions: the conversion schedule in today's dollars, plus the years
         where the conversion cap is binding and what one more dollar of cap is worth.
       - tax_brackets: the top federal bracket reached each year, the headroom left in
@@ -2392,6 +2395,9 @@ async def explain_results(
     Accepts either 'filename' (+ optional overrides) or the same flat parameters as
     run_from_params.  Material defaults assumed for omitted parameters are reported
     in assumed_defaults (flat-parameter path only).
+
+    The explanation payload is validated against the versioned PlanExplanation schema
+    (owlplanner.assistant.explain_schema); schema_version identifies the contract.
     """
     overrides = _norm_overrides(overrides)
     if filename is not None and names is not None:

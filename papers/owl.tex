@@ -58,7 +58,7 @@
    {2026 Edition}\\[0.8cm]
   {\color{gray}\rule{\linewidth}{1.2pt}}\\[1.7cm]
   {\large Martin-D.\ Lacasse}\\[0.4cm]
-  {June 21, 2026}
+  {July 13, 2026}
   \vfill
   {\small\color{gray}\copyright\ 2024--2026\ Martin-D.\ Lacasse}
 \end{titlepage}
@@ -3703,6 +3703,27 @@ be kept in synchrony with the tags emitted in \code{plan.py} and with the
 tables below.
 Year indices of the Medicare and ACA families are offsets from the first
 Medicare- or ACA-eligible year, respectively.
+
+Constraint rows are only half of the sensitivity picture: policy also enters
+the model as \emph{bounds on decision variables}, priced by their reduced
+costs rather than by row duals.
+A companion registry (\code{COLUMN_FAMILIES}, same module) prices variables
+sitting at a policy-meaningful bound: the \code{maxRothConversion} cap on
+$x_{in}$, conversions pinned to zero by rule (\code{noRothConversions},
+\code{startRothConversions}, the last-two-years rule), the
+\code{minTaxableBalance} safety-net floor on
+$b_{i0n}$, and the loop-mode LTCG bracket room bounds on $q_{0n}$ and
+$q_{1n}$ of Eqs.~(\ref{Eq:LTCG2})--(\ref{Eq:LTCG3}).
+At a binding upper bound, the value of one more dollar of allowance is the
+reduced cost converted to reported-objective units; at a binding lower bound,
+the same conversion prices each dollar of relaxation of the floor.
+Structural bounds --- bracket widths $\bar{\Delta}_{tn}$, standard deductions,
+big-$\mathcal{M}$ caps --- are deliberately not registered; bracket fill is
+reported through the primal bracket analysis instead.
+The resulting explanation payload is validated against a versioned Pydantic
+schema (\code{PlanExplanation} in
+\code{owlplanner/assistant/explain_schema.py}), which constitutes the
+machine-readable contract consumed by AI assistants.
 
 \begin{table}[hbt!]
 \centering\small
