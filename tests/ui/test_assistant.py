@@ -76,6 +76,15 @@ def test_stateless_tool_schemas_match_whitelist():
         assert s["input_schema"]["type"] == "object"
 
 
+def test_stateless_whitelist_covers_all_mcp_tools():
+    # The chat page exposes the full MCP registry (phase-3b decision). This guards
+    # against forgetting to whitelist a newly added MCP tool: if the sets diverge
+    # intentionally some day, update this test with the reason.
+    from owlplanner.assistant.tools import MCP_TOOLS
+
+    assert set(core.STATELESS_TOOLS) == {t.__name__ for t in MCP_TOOLS}
+
+
 def test_all_tool_schemas_include_session_tools():
     names = {s["name"] for s in atools.all_tool_schemas()}
     assert {"get_current_case", "list_open_cases", "get_current_case_results"} <= names
