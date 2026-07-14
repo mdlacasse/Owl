@@ -168,6 +168,13 @@ def test_scenario_worker_historical_applies_reverse_roll():
             self.caseStatus = "unknown"
             self.basis = 123.0
             self.bequest = 456.0
+            # Minimal primal arrays for the year-1 snapshot taken after solve.
+            self.N_i = 1
+            self.f_tn = np.zeros((7, 1))
+            self.x_in = np.zeros((1, 1))
+            self.w_ijn = np.zeros((1, 4, 1))
+            self.g_n = np.array([100.0])
+            self.s_n = np.array([0.0])
 
         def setRates(self, method, year, reverse=False, roll=0):
             self.calls.append((method, year, reverse, roll))
@@ -177,8 +184,10 @@ def test_scenario_worker_historical_applies_reverse_roll():
             self.caseStatus = "solved"
 
     p = _DummyPlan()
-    out = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
-    assert out == 123.0
+    basis, year1 = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
+    assert basis == 123.0
+    assert year1["g0"] == 100.0
+    assert year1["top_bracket_pct"] is None  # no bracket filled in the dummy
     assert p.calls == [("historical", 1975, True, 2)]
 
 

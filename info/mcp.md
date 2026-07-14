@@ -28,6 +28,7 @@ optimizations, and compare scenarios through natural conversation.
 | `run_from_params(names, birth_dates, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
 | `save_case(names, birth_dates, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
 | `run_stochastic(scenario_method, ...)` | Spending efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
+| `run_year1_robustness(scenario_method, ...)` | Distribution of first-year decisions (Roth conversion, withdrawals, bracket) across scenarios — how robust is this year's recommendation | Yes (×N) |
 | `run_longevity_stochastic(sexes, ...)` | Spending frontier with joint market + random lifespan sampling | Yes (×N) |
 | `run_historical(ystart, yend, ...)` | Backtest across historical sequences — distribution of optimal outcomes | Yes (×N) |
 | `run_monte_carlo(n_scenarios, ...)` | Monte Carlo simulations — distribution of optimal outcomes | Yes (×N) |
@@ -41,9 +42,10 @@ JSON-parsed).
 **File paths:** The MCP server runs in its own working directory. Use **absolute
 paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/examples/`).
 
-`run_from_params`, `save_case`, `run_stochastic`, `run_longevity_stochastic`,
-`run_historical`, and `run_monte_carlo` accept the full set of plan parameters
-directly, eliminating the need to write a TOML file first.
+`run_from_params`, `save_case`, `run_stochastic`, `run_year1_robustness`,
+`run_longevity_stochastic`, `run_historical`, and `run_monte_carlo` accept the
+full set of plan parameters directly, eliminating the need to write a TOML file
+first.
 
 **Unit conventions:** All monetary balances and solver limits are in full dollars (\$);
 time-series amounts (wages, contributions, big-ticket items) are in \$ per year; Social
@@ -492,7 +494,7 @@ configured AI provider; the optimizer itself always runs locally.
 
 ### Choosing a model — cost vs. capability
 
-The assistant is tool-heavy (sixteen tools with large schemas, multi-step chains
+The assistant is tool-heavy (seventeen tools with large schemas, multi-step chains
 carrying your actual numbers), so model quality directly affects the correctness of
 what it tells you. Approximate Anthropic list prices per million input/output tokens;
 a typical chat turn with a couple of tool calls costs cents (the system prompt is

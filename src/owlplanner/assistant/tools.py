@@ -83,6 +83,9 @@ SERVER_INSTRUCTIONS = (
     "numbers without a TOML file, save_case to persist those parameters, "
     "run_stochastic to compute an efficient spending frontier across historical "
     "or Monte Carlo scenarios and answer probability-of-success questions, "
+    "run_year1_robustness to report how the first year's decisions (Roth "
+    "conversion, withdrawals, bracket) vary across those scenarios — use it when "
+    "the user asks how confident they should be in this year's recommendation, "
     "run_longevity_stochastic for a frontier that jointly samples market sequences "
     "and random lifespans (use list_mortality_tables to select the right actuarial "
     "table based on the user's occupation and smoking status). "
@@ -2385,6 +2388,8 @@ async def explain_results(
     asks why the plan converts a given amount, what a goal is costing them, or which
     constraint to relax.  All sensitivities are marginal and hold bracket selections
     and self-consistent tax quantities fixed; re-solve to evaluate large changes.
+    For "how confident should I be in this year's numbers?" use run_year1_robustness,
+    which reports the distribution of first-year decisions across return scenarios.
 
     Explanations never require a MIP: MILP tax modes (withMedicare/withACA/
     withSSTaxability/withLTCG/withNIIT set to "optimize") are downgraded to the
@@ -3096,6 +3101,323 @@ async def run_stochastic(
             "Use scenario_method='mc' to control the scenario count via n_scenarios."
         )
 
+    if assumed:
+        out["assumed_defaults"] = assumed
+    return json.dumps(out, indent=2, cls=_NumpyEncoder)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: run_year1_robustness
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _year1_robustness_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
+    """Solve base plan (capturing its year-1 decisions), then run scenarios. Runs in a thread."""
+    from owlplanner.stresstests import run_stochastic_spending, _year1_snapshot
+    from owlplanner.rates import FROM, TO
+
+    plan.solve(plan.objective, opts)
+    if plan.caseStatus != "solved":
+        raise RuntimeError(f"Base deterministic plan did not solve (status: {plan.caseStatus}).")
+    det_year1 = _year1_snapshot(plan)
+
+    if seed is not None:
+        plan.setReproducible(True, seed=seed)
+
+    if scenario_method == "historical":
+        _ystart = ystart if ystart is not None else FROM
+        _yend = yend if yend is not None else TO
+        result = run_stochastic_spending(plan, opts, "historical", ystart=_ystart, yend=_yend)
+    elif scenario_method == "mc":
+        if getattr(plan, "rateModel", None) is None or getattr(plan.rateModel, "deterministic", True):
+            raise ValueError(
+                "Monte Carlo requires a stochastic rate method "
+                "(e.g. 'historical_gaussian', 'lognormal', 'historical_bootstrap'). "
+                "Current rate method is deterministic."
+            )
+        result = run_stochastic_spending(plan, opts, "mc", N=n_scenarios)
+    else:
+        raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
+
+    return plan, result, det_year1
+
+
+def _build_year1_json(plan, result, det_year1, scenario_method):
+    """Distil the year-1 decision distribution into a JSON-ready dict."""
+    from owlplanner.stresstests import summarize_year1
+
+    jnames = ("taxable", "tax_deferred", "roth", "hsa")
+    summary = summarize_year1(result["year1_decisions"], plan.inames)
+    deterministic = {
+        "per_person": [
+            {
+                "person": plan.inames[i],
+                "roth_conversion": round(det_year1["x"][i], 2),
+                "withdrawals": {
+                    jnames[j]: round(det_year1["w"][i][j], 2) for j in range(len(det_year1["w"][i]))
+                },
+            }
+            for i in range(plan.N_i)
+        ],
+        "net_spending": round(det_year1["g0"], 2),
+        "top_bracket_pct": det_year1["top_bracket_pct"],
+    }
+    return {
+        "status": "completed",
+        "case_name": plan._name,
+        "scenario_method": scenario_method,
+        "year": int(plan.year_n[0]),
+        "year1_robustness": summary,
+        "deterministic_year1": deterministic,
+        "notes": [
+            "Only the first year's decisions are executed; the spread across scenarios shows how "
+            "sensitive this year's recommendation is to the future return path. A narrow spread "
+            "(high share_within_10pct_of_median) means the recommendation is robust.",
+            "Each scenario is solved with perfect foresight of its own return path, so the spread "
+            "understates true decision uncertainty; a two-stage formulation committing year-1 "
+            "decisions across scenarios would price it exactly (future work).",
+            "Residual spread can reflect alternate optima rather than scenario signal; the "
+            "optimizer's tie-break canonicalizes conversion schedules, but ties can remain.",
+        ],
+    }
+
+
+async def run_year1_robustness(
+    scenario_method: str = "historical",
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_dates: list[str] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    roth_conversions: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str | None = None,
+    objective: str = "maxSpending",
+    rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    survivor_fraction: float | None = None,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str | None = None,
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    net_spending: float | None = None,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    use_roth_conv_overrides: bool | None = None,
+    swap_roth_converters_first: str | None = None,
+    swap_roth_converters_year: int | None = None,
+    bequest: float | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
+    constrain_mean: bool = False,
+    slcsp: float | None = None,
+    rate_params: dict | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
+    n_scenarios: int = 200,
+    ystart: int | None = None,
+    yend: int | None = None,
+    solver: str | None = None,
+    max_time: float | None = None,
+    seed: int | None = None,
+) -> str:
+    """Quantify how robust the FIRST YEAR's decisions are across return scenarios.
+
+    Solves the plan once deterministically, then across many historical or Monte
+    Carlo scenarios (same machinery as run_stochastic), and reports the distribution
+    of the first-year decisions — per-person Roth conversion percentiles with
+    share_converting and an agreement metric, withdrawals by account, net spending,
+    and the modal top tax bracket — alongside the deterministic base-case decisions
+    for comparison.  Use it to answer "should I really convert $X this year?" with
+    "convert $45k-$60k in 87% of scenarios" instead of a single-path number.
+
+    Only the first year's decisions are executed; later years are re-optimized as
+    returns realize, so this tool intentionally does not report their spread.
+
+    Accepts either 'filename' (+ optional overrides) or the same flat parameters as
+    run_from_params / run_stochastic — see run_stochastic for the full parameter
+    documentation.  scenario_method is "historical" (one scenario per start year,
+    ystart/yend, default the full 1928-present range) or "mc" (n_scenarios Monte
+    Carlo draws; requires a stochastic rate_method; seed for reproducibility).
+    MILP tax modes are downgraded to the self-consistent loop for the scenario
+    solves (never a MIP per scenario), recorded in the notes.
+    """
+    assumed: list[dict] = []
+    overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
+        return json.dumps({"error": msg})
+    if filename is not None:
+        try:
+            diconf, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf = apply_overrides(diconf, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True),
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
+    else:
+        if (
+            names is None
+            or birth_dates is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
+        try:
+            plan = _build_plan_from_params(
+                names,
+                birth_dates,
+                life_expectancy,
+                state,
+                taxable,
+                tax_deferred,
+                roth,
+                hsa,
+                cost_basis,
+                ss_monthly_pias,
+                ss_ages,
+                pension_monthly_amounts,
+                pension_ages,
+                pension_indexed,
+                pension_survivor_fractions,
+                wages,
+                contributions,
+                big_ticket_items,
+                roth_conversions,
+                debts,
+                fixed_assets,
+                spias,
+                objective,
+                rate_method,
+                rate_values,
+                rate_frm,
+                rate_to,
+                survivor_fraction,
+                initial_allocation,
+                final_allocation,
+                spending_profile,
+                smile_dip,
+                smile_increase,
+                smile_delay,
+                constrain_mean,
+                interpolation_method,
+                interpolation_center,
+                interpolation_width,
+                balance_date,
+                heirs_tax_rate=heirs_tax_rate,
+                slcsp=slcsp,
+                aca_start_year=aca_start_year,
+                rate_params=rate_params,
+                ss_trim_pct=ss_trim_pct,
+                ss_trim_year=ss_trim_year,
+                obbba_expiration_year=obbba_expiration_year,
+                dividend_rate=dividend_rate,
+                assumed=assumed,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build error: {e}"})
+
+    opts = _build_mcp_opts(
+        solver=solver,
+        max_time=max_time,
+        net_spending=net_spending,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        bequest=bequest,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
+        use_roth_conv_overrides=use_roth_conv_overrides,
+        swap_roth_converters_first=swap_roth_converters_first,
+        swap_roth_converters_year=swap_roth_converters_year,
+        inames=plan.inames,
+    )
+    downgraded = _downgrade_milp_tax_modes(opts)
+    _scrub_optimized_ss_ages(assumed, opts)
+
+    try:
+        plan, result, det_year1 = await asyncio.get_running_loop().run_in_executor(
+            None,
+            _year1_robustness_blocking,
+            plan,
+            scenario_method,
+            ystart,
+            yend,
+            n_scenarios,
+            opts,
+            seed,
+        )
+    except Exception as e:
+        return json.dumps({"error": f"Year-1 robustness run error: {e}"})
+
+    try:
+        out = _build_year1_json(plan, result, det_year1, scenario_method)
+    except Exception as e:
+        return json.dumps({"error": f"Result processing error: {e}"})
+
+    if downgraded:
+        out["notes"].append(
+            f"{', '.join(downgraded)} downgraded from 'optimize' to 'loop' for the scenario solves."
+        )
+    if scenario_method == "historical" and n_scenarios != 200:
+        out["notes"].append(
+            f"n_scenarios={n_scenarios} was ignored: 'historical' mode ran "
+            f"{out['year1_robustness']['n_scenarios']} scenarios, one per historical start year "
+            "(controlled by ystart/yend). Use scenario_method='mc' for n_scenarios."
+        )
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -4182,6 +4504,7 @@ MCP_TOOLS = (
     run_from_params,
     save_case,
     run_stochastic,
+    run_year1_robustness,
     run_longevity_stochastic,
     run_historical,
     run_monte_carlo,

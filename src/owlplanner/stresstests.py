@@ -39,6 +39,25 @@ from .data.mortality_tables import sample_lifespans
 ###############################################################################
 
 
+def _year1_snapshot(p):
+    """
+    Extract the first plan year's primal decisions from a solved plan.
+
+    Year-0 nominal dollars are today's dollars (gamma_n[0] = 1).  Kept as a plain
+    dict of floats so the ThreadPool result stays small and pickling-free.
+    """
+    filled = [t for t in range(p.f_tn.shape[0]) if p.f_tn[t, 0] > 1.0]
+    top = max(filled) if filled else None
+    return {
+        "x": [float(v) for v in p.x_in[:, 0]],
+        "w": [[float(v) for v in p.w_ijn[i, :, 0]] for i in range(p.N_i)],
+        "g0": float(p.g_n[0]),
+        "s0": float(p.s_n[0]),
+        "top_bracket_pct": None if top is None else float(np.round(p.theta_tn[top, 0] * 100, 1)),
+        "filled_to_boundary": None if top is None else bool((p.DeltaBar_tn[top, 0] - p.f_tn[top, 0]) < 1.0),
+    }
+
+
 def _scenario_worker(args):
     """
     Solve one scenario in a worker thread.
@@ -49,7 +68,8 @@ def _scenario_worker(args):
       gamma_n       — unused placeholder for compatibility (None in current calls)
       options       — solver options dict
 
-    Returns float (basis) or None on solver failure.
+    Returns (basis, year1) where year1 is the _year1_snapshot dict, or
+    (None, None) on solver failure.
     """
     p, tau_kn_or_year, gamma_n, options = args
 
@@ -72,8 +92,8 @@ def _scenario_worker(args):
 
     p.solve("maxSpending", options)
     if p.caseStatus == "solved":
-        return p.basis
-    return None
+        return p.basis, _year1_snapshot(p)
+    return None, None
 
 
 ###############################################################################
@@ -273,6 +293,86 @@ def compute_res(frontier_g, frontier_prob, frontier_cvar, floor, target_success_
 ###############################################################################
 # Batch stress tests (Plan delegates from runHistoricalRange / runMC / runStochasticSpending)
 ###############################################################################
+
+
+def summarize_year1(year1_list, inames):
+    """
+    Summarize the distribution of first-year decisions across scenarios.
+
+    Consumes the "year1_decisions" list returned by run_stochastic_spending and
+    produces a JSON-ready dict: per-person Roth-conversion and withdrawal
+    distributions, household net-spending percentiles, and the modal top tax
+    bracket. Only the first plan year is summarized — it holds the only decisions
+    that are executed; later years are re-optimized as returns realize.
+
+    Parameters
+    ----------
+    year1_list : list of dict or None
+        Per-scenario first-year snapshots (None = infeasible/short-horizon).
+    inames : list of str
+        Individuals' names, in plan order.
+
+    Returns
+    -------
+    dict with keys "n_scenarios", "n_infeasible", "per_person" (list),
+    "net_spending", "top_bracket", "share_filled_to_boundary".
+    """
+    jnames = ("taxable", "tax_deferred", "roth", "hsa")
+    feasible = [y for y in year1_list if y is not None]
+    out = {
+        "n_scenarios": len(year1_list),
+        "n_infeasible": len(year1_list) - len(feasible),
+        "per_person": [],
+    }
+    if not feasible:
+        return out
+
+    def _pctiles(a, digits=2):
+        p10, p25, p50, p75, p90 = (float(np.round(v, digits)) for v in np.percentile(a, [10, 25, 50, 75, 90]))
+        return {"p10": p10, "p25": p25, "median": p50, "p75": p75, "p90": p90,
+                "mean": float(np.round(np.mean(a), digits))}
+
+    for i, name in enumerate(inames):
+        x = np.array([y["x"][i] for y in feasible])
+        med = float(np.median(x))
+        if med > 1.0:
+            agreement = float(np.mean(np.abs(x - med) <= 0.10 * med))
+        else:
+            agreement = float(np.mean(x <= 1.0))  # agreement on "do not convert"
+        n_j = len(feasible[0]["w"][i])
+        wd = {}
+        for j in range(min(n_j, len(jnames))):
+            wj = np.array([y["w"][i][j] for y in feasible])
+            wd[jnames[j]] = {
+                "median": float(np.round(np.median(wj), 2)),
+                "p10": float(np.round(np.percentile(wj, 10), 2)),
+                "p90": float(np.round(np.percentile(wj, 90), 2)),
+            }
+        out["per_person"].append(
+            {
+                "person": name,
+                "roth_conversion": {
+                    **_pctiles(x),
+                    "share_converting": float(np.round(np.mean(x > 1.0), 4)),
+                    "share_within_10pct_of_median": float(np.round(agreement, 4)),
+                },
+                "withdrawals": wd,
+            }
+        )
+
+    out["net_spending"] = _pctiles(np.array([y["g0"] for y in feasible]))
+    tb = [y["top_bracket_pct"] for y in feasible if y["top_bracket_pct"] is not None]
+    if tb:
+        vals, counts = np.unique(np.array(tb), return_counts=True)
+        k = int(np.argmax(counts))
+        out["top_bracket"] = {
+            "modal_rate_pct": float(vals[k]),
+            "frequency": float(np.round(counts[k] / len(tb), 4)),
+        }
+    fb = [y["filled_to_boundary"] for y in feasible if y["filled_to_boundary"] is not None]
+    if fb:
+        out["share_filled_to_boundary"] = float(np.round(np.mean(fb), 4))
+    return out
 
 
 def run_historical_range(
@@ -507,6 +607,9 @@ def run_stochastic_spending(
         "year_n"             : ndarray — plan calendar years
         "n_d"                : int — death year index (for unit labeling)
         "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
+        "year1_decisions"    : list (S,) of dict or None — first-year primal decisions per
+                               scenario (see _year1_snapshot); None for infeasible or
+                               short-horizon scenarios. Summarize with summarize_year1().
     """
     if with_longevity and scenario_method == "historical":
         raise ValueError(
@@ -530,6 +633,7 @@ def run_stochastic_spending(
         progcall = progress.Progress(plan.mylog)
 
     bases_list = []
+    year1_list = []
     start_years_list = []
     drawn_lifespans_list = []
 
@@ -574,7 +678,7 @@ def run_stochastic_spending(
             else:
                 horizon = plan.N_n
             if horizon <= 1:
-                results_map[i] = 0.0
+                results_map[i] = (0.0, None)
                 n_short_horizon += 1
             else:
                 args_list.append(
@@ -633,7 +737,7 @@ def run_stochastic_spending(
         for n, tau_kn in enumerate(rate_data):
             horizon = horizons[n] if with_longevity else plan.N_n
             if horizon <= 1:
-                results_map[n] = 0.0
+                results_map[n] = (0.0, None)
                 n_short_horizon += 1
             else:
                 args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options)))
@@ -676,10 +780,12 @@ def run_stochastic_spending(
     n_infeasible = 0
     for i in sorted(results_map):
         val = results_map[i]
-        if val is None:
+        basis, year1 = (None, None) if val is None else val
+        if basis is None:
             n_infeasible += 1
-            val = 0.0
-        bases_list.append(val)
+            basis = 0.0
+        bases_list.append(basis)
+        year1_list.append(year1)
         if scenario_method == "historical":
             start_years_list.append(years[i])
         if with_longevity:
@@ -718,4 +824,5 @@ def run_stochastic_spending(
         "n_d": plan.n_d,
         "drawn_lifespans": drawn_lifespans,
         "n_infeasible": n_infeasible,
+        "year1_decisions": year1_list,
     }

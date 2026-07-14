@@ -4753,6 +4753,25 @@ result histogram while still using only observed historical returns.
 Reverse and roll (see \S\,\ref{sec:historical-data}) alter the ordering of
 the same returns; augmented mode systematically explores all such orderings.
 
+\paragraph*{Robustness of first-year decisions}
+Only the first year's decisions of a plan are executed; later years are
+re-optimized as returns realize.
+Owl therefore also reports, across the same scenario set, the distribution of
+the \emph{first-year} decisions: per-person Roth conversion percentiles with
+the fraction of scenarios recommending a conversion and an agreement metric
+(share of scenarios within 10\% of the median), withdrawals by account, net
+spending, and the modal top ordinary-income bracket
+(\code{summarize_year1} in \code{stresstests.py}, surfaced through the
+\code{run_year1_robustness} assistant tool).
+A statement such as ``convert \$45k--\$60k this year in 87\% of scenarios''
+is more decision-relevant than any single-scenario schedule.
+Each scenario is solved with perfect foresight of its own return path, so the
+spread \emph{understates} true decision uncertainty; a two-stage stochastic
+formulation committing the first-year decisions across scenarios --- the
+natural extension on top of the existing Benders infrastructure of
+Sec.~(\ref{Sec:MIPDecomp}) --- would price that uncertainty exactly and is
+left as future work.
+
 \chapter{Stochastic Spending Optimization and Longevity Risk}
 \label{chap:stochastic-spending}
 
