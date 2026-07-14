@@ -1,3 +1,59 @@
+### Version 2026.7.14
+
+#### New: year-1 robustness — how confident should you be in this year's numbers? (`run_year1_robustness`)
+Only the first year's decisions of a plan are executed; later years are re-optimized
+as returns realize. The new `run_year1_robustness` MCP tool (the seventeenth, also
+exposed on the Assistant page) solves the plan across historical or Monte Carlo
+scenarios and reports the distribution of the first-year decisions: per-person Roth
+conversion percentiles with the share of scenarios recommending a conversion and an
+agreement metric (share within 10% of the median), withdrawals by account, net
+spending, and the modal top tax bracket — next to the deterministic base-case
+decisions for comparison. Answers "should I really convert $X this year?" with
+"convert $45k–$60k in 87% of scenarios" instead of a single-path number. The
+underlying per-scenario decisions are available programmatically via the
+`year1_decisions` key of `runStochasticSpending()` and the new `summarize_year1()`
+helper exported from `owlplanner`.
+
+#### New: explanations lead with this year and are grounded in every constraint
+`explain_results` output now begins with a `this_year` section — the decisions to
+execute now (per-person conversion, withdrawals, RMD due), the tax bracket being
+filled and the headroom left in it, proximity to tax thresholds (NIIT, Medicare
+IRMAA with its two-year lookback, ACA, Social Security taxability), and the marginal
+value of a dollar today. Every constraint row in the optimization now carries a
+machine-readable tag classified as user policy, accounting structure, or formulation
+machinery, so binding-constraint reporting covers the full model and never leaks
+internal big-M constructs. Policy-meaningful variable bounds are priced from reduced
+costs as well: conversions disallowed by rule, the `minTaxableBalance` safety net,
+and capital-gains bracket room. The payload is validated against a versioned schema
+(`schema_version`) that documents every field. Explanations never require a MIP:
+MILP tax modes are downgraded to the self-consistent loop for the explanation solve
+(same shadow prices, a fraction of the cost), recorded in the caveats.
+
+#### Fixed
+- The reported value of relaxing a binding Roth-conversion cap had the wrong sign
+  (it could show as negative; relaxing a cap can never hurt). Verified against
+  finite differences.
+- A seed set with `setReproducible()` after the rate model was constructed — the
+  ordering used by the `seed` parameter of `run_stochastic` and
+  `run_year1_robustness` — was silently ignored, making Monte Carlo runs
+  non-reproducible. The scenario RNG now resets from the plan's authoritative seed.
+- The Assistant chat page was missing the new `run_year1_robustness` tool; a test
+  now pins the page's tool whitelist to the MCP registry so future tools cannot be
+  silently skipped.
+
+#### Documentation
+The Mathematical Foundations paper (owl.pdf) now documents the state income tax
+model and its LP formulation (the paper previously claimed state taxes were not
+modeled), the `taxable_first` withdrawal-ordering gates, the constraint-tag taxonomy
+behind the explanation engine, and the year-1 robustness measure with its
+perfect-foresight caveat.
+
+#### Maintenance
+Dependencies refreshed to current releases (`make update`): streamlit 1.59.2,
+plotly 6.9.0, uvicorn 0.51.0, websockets 16.1, cffi 2.1.0, and others; this also
+moves off the yanked charset-normalizer 3.4.8. Full test suite passes on both
+solvers against the upgraded environment.
+
 ### Version 2026.7.5
 
 #### Breaking (MCP): `birth_years` replaced by `birth_dates` in the params tools
