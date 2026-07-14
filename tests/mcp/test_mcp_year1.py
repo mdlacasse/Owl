@@ -112,8 +112,7 @@ def test_year1_decisions_aligned_with_bases_historical():
 
 @pytest.mark.toml
 def test_year1_mc_reproducible_with_seed():
-    # reproducible_seed applies the seed BEFORE setRates (the supported ordering);
-    # calling plan.setReproducible() after the build would not reach the rate model.
+    # Seed applied at build time (before setRates), the original supported ordering.
     plan = _build_plan_from_params(
         **{**_SINGLE, "rate_method": "historical_gaussian", "rate_frm": 1928}, reproducible_seed=42
     )
@@ -123,6 +122,24 @@ def test_year1_mc_reproducible_with_seed():
         g0 = np.array([y["g0"] for y in result["year1_decisions"] if y is not None])
         medians.append(float(np.median(g0)))
     assert medians[0] == pytest.approx(medians[1], rel=1e-9)
+
+
+@pytest.mark.toml
+def test_mc_seed_effective_after_build():
+    # Regression: setReproducible() AFTER the plan is built (the ordering used by the
+    # run_stochastic and run_year1_robustness MCP tools' seed parameter) must reach
+    # the scenario RNG. Previously the reset read the rate model's stale
+    # construction-time seed and the runs were not reproducible.
+    def _bases(seed):
+        plan = _build_plan_from_params(
+            **{**_SINGLE, "rate_method": "historical_gaussian", "rate_frm": 1928}
+        )
+        plan.setReproducible(True, seed=seed)
+        return run_stochastic_spending(plan, {"units": "1"}, "mc", N=8)["bases"]
+
+    b1, b2, b3 = _bases(7), _bases(7), _bases(11)
+    assert np.allclose(b1, b2, atol=1e-6)  # same seed reproduces
+    assert not np.allclose(b1, b3, atol=1e-6)  # different seed differs
 
 
 @pytest.mark.toml

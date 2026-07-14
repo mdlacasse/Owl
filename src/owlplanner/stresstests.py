@@ -39,6 +39,21 @@ from .data.mortality_tables import sample_lifespans
 ###############################################################################
 
 
+def _reset_scenario_rng(plan):
+    """
+    Reset the rate-model RNG from the plan's authoritative seed so that repeated
+    Monte Carlo runs are reproducible when seeded.
+
+    plan.rateSeed is what setReproducible() maintains and may be updated after
+    the rate model was constructed; rateModel.seed is the copy captured at
+    setRates() time and can be stale, so it must not be used here.  The model's
+    copy is re-synced for anything else that reads it.
+    """
+    if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
+        plan.rateModel.seed = plan.rateSeed
+        plan.rateModel._rng = np.random.default_rng(plan.rateSeed)
+
+
 def _year1_snapshot(p):
     """
     Extract the first plan year's primal decisions from a solved plan.
@@ -521,8 +536,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     if not verbose:
         progcall.start()
 
-    if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
-        plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+    _reset_scenario_rng(plan)
 
     for n in range(N):
         plan.regenRates(override_reproducible=True)
@@ -695,8 +709,7 @@ def run_stochastic_spending(
             + (" (with longevity sampling)." if with_longevity else ".")
         )
         # Reset the rate RNG so repeated calls are reproducible when seeded
-        if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
-            plan.rateModel._rng = np.random.default_rng(plan.rateModel.seed)
+        _reset_scenario_rng(plan)
 
         # Pre-draw longevity
         drawn_list = []
