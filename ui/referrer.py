@@ -13,11 +13,11 @@ st.context.headers reflects, so the referring page is read in the browser
 sent back to Python. An optional ?ref= query parameter (e.g., a link tagged
 ?ref=readme) is logged alongside the domain when present.
 
-Self-identified automation (HeadlessChrome, Prerender) makes no privacy
-claim: for those sessions only, the log line additionally carries the client
-IP taken from the proxy forwarding headers, the landing URL with its query
-parameters, and the full (Cookie/Authorization-redacted) handshake headers,
-so the bot operator can be identified (whois/ASN).
+Self-identified automation (HeadlessChrome, Prerender) was traced in July
+2026 to the Community Cloud's own internal prerender pool (all-private
+X-Forwarded-For chains), which renders pages on behalf of external crawlers
+and link unfurlers. No client IP is reachable from those sessions, so no
+extra forensics are logged; the User-Agent alone marks them.
 
 Logging is active only on the Streamlit Community Cloud, detected by the
 platform-specific /mount/src directory under which it mounts the app
@@ -40,7 +40,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import ipaddress
 import os
 from urllib.parse import urlparse
 
@@ -66,54 +65,6 @@ def _getBrowserReferrer():
     if _component_func is None:
         _component_func = components.declare_component("owl_referrer", path=_COMPONENT_DIR)
     return _component_func(default=None)
-
-
-def _routableIp(candidate):
-    """Return the candidate as a public IP string, or None if absent, unparsable, or non-routable."""
-    candidate = (candidate or "").strip()
-    # The platform proxy reports IPv4 clients as IPv4-mapped IPv6 (::ffff:a.b.c.d).
-    if candidate.lower().startswith("::ffff:"):
-        candidate = candidate[7:]
-    try:
-        parsed = ipaddress.ip_address(candidate)
-    except ValueError:
-        return None
-    if parsed.is_loopback or parsed.is_private or parsed.is_unspecified:
-        return None
-    return candidate
-
-
-def _clientIp():
-    """Best guess at the real client IP from behind the Community Cloud reverse proxy.
-
-    st.context.ip_address sees only the proxy's loopback address, so the
-    forwarding headers of the WebSocket handshake are consulted first.
-    """
-    headers = st.context.headers
-    # Leftmost routable address in X-Forwarded-For is the originating client.
-    for hop in headers.get("X-Forwarded-For", "").split(","):
-        ip = _routableIp(hop)
-        if ip:
-            return ip
-    ip = _routableIp(headers.get("X-Real-Ip", ""))
-    if ip:
-        return ip
-    forwarded = headers.get("Forwarded", "")
-    if forwarded:
-        # Raw RFC 7239 value; not parsed, but it still names the client.
-        return forwarded
-    return _routableIp(getattr(st.context, "ip_address", None)) or "?"
-
-
-def _botForensics():
-    """Identifying detail appended for self-identified automation only (no privacy claim)."""
-    redacted = ("cookie", "authorization")
-    headerDict = {k: v for k, v in st.context.headers.to_dict().items() if k.lower() not in redacted}
-    detail = f" | ip={_clientIp()} | url={getattr(st.context, 'url', None)}"
-    queryParams = dict(st.query_params)
-    if queryParams:
-        detail += f" | qs={queryParams}"
-    return detail + f" | headers={headerDict}"
 
 
 def _emit(referrer, refParam="", userAgent=""):
@@ -146,11 +97,6 @@ def logReferrerDomain():
         # en-US) from proxy-fleet automation (uniform or incoherent values).
         tzLocale = f"{getattr(st.context, 'timezone', None)}/{getattr(st.context, 'locale', None)}"
         details = f"{userAgent} | tz={tzLocale}"
-        # For self-identified automation only (no privacy claim), add the
-        # client IP, landing URL, and handshake headers so the operator can
-        # be looked up (whois/ASN).
-        if "HeadlessChrome" in userAgent or "Prerender" in userAgent:
-            details += _botForensics()
     except Exception:
         details = ""
     _emit(referrer, st.query_params.get("ref", ""), details)
