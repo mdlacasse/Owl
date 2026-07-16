@@ -1,3 +1,35 @@
+### Version 2026.7.15
+
+#### Breaking (MCP): `base_plan_year1` replaces `deterministic_year1` in `run_year1_robustness`
+The single-path comparator in the `run_year1_robustness` output is now reported under
+`base_plan_year1` and carries a `rate_method` key identifying what that comparator is:
+the case's configured rate method. The old name oversold determinism — the base solve
+need not be deterministic (a seeded stochastic method yields one reproducible draw);
+with a fixed-rate method such as `historical_average`, the base plan is the
+conventional average-return plan, the natural single-number benchmark to contrast with
+the scenario distribution.
+
+#### Fixed
+- The `filename=` path of the scenario MCP tools (`run_stochastic`,
+  `run_year1_robustness`, `run_historical`, `run_monte_carlo`) silently dropped the
+  case file's `[solver_options]` — bequest, maxRothConversion, previousMAGIs,
+  startRothConversions, and the rest — and solved with defaults instead (a $1 bequest,
+  uncapped conversions), so results could differ materially from `run_case` on the
+  same file. The case's options are now the base, rescaled from the file's $k units to
+  the MCP tools' full dollars, with explicit MCP arguments overriding
+  (`_merge_case_opts`); regression tests pin the behavior. `run_case`,
+  `explain_results`, and `compare_to_baseline` were already correct.
+
+#### New: example case `dana`
+`examples/Case_dana.toml` (+ `HFP_dana.xlsx`): a single Californian at the retirement
+threshold — retired at the end of last year at 65, ≈$1M of after-tax savings
+concentrated in a $937k traditional IRA, Social Security at 70, RMDs at 75, a $400k
+bequest target beside a home left to heirs. Designed for first-year
+decision-robustness studies: plan year 1 is the first retirement year, so every
+scenario shares one information set at the moment of the conversion decision;
+conversions are deliberately uncapped and the base plan uses `historical_average`
+rates.
+
 ### Version 2026.7.14
 
 #### New: year-1 robustness — how confident should you be in this year's numbers? (`run_year1_robustness`)

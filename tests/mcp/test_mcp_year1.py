@@ -158,10 +158,55 @@ def test_run_year1_robustness_tool():
     rb = data["year1_robustness"]
     assert rb["n_scenarios"] == HIST_YEND - HIST_YSTART + 1
     assert rb["per_person"][0]["person"] == "Martin"
-    det = data["deterministic_year1"]
-    assert det["net_spending"] > 0
-    assert det["per_person"][0]["withdrawals"]["taxable"] >= 0
+    base = data["base_plan_year1"]
+    assert base["net_spending"] > 0
+    assert base["per_person"][0]["withdrawals"]["taxable"] >= 0
     assert data["notes"]  # honest-interpretation contract present
     assert any("perfect foresight" in n for n in data["notes"])
     flagged = {e["parameter"] for e in data.get("assumed_defaults", [])}
     assert "cost_basis" in flagged
+
+
+# ---------------------------------------------------------------------------
+# Case-file solver options must reach the scenario solves (filename path)
+# ---------------------------------------------------------------------------
+
+CHRIS_PAT_TOML = "examples/Case_chris+pat.toml"
+
+
+def test_merge_case_opts_scales_and_overrides():
+    from owlplanner.assistant.tools import _merge_case_opts
+
+    class _P:
+        solverOptions = {
+            "maxRothConversion": 100,
+            "bequest": 400.0,
+            "previousMAGIs": [170.0, 150.0],
+            "spendingSlack": 0,
+            "withMedicare": "loop",
+        }
+
+    merged = _merge_case_opts(_P(), {"units": "1", "bequest": 250_000.0})
+    assert merged["maxRothConversion"] == 100_000.0  # file $k scaled to full dollars
+    assert merged["bequest"] == 250_000.0  # explicit MCP argument wins over the file
+    assert merged["previousMAGIs"] == [170_000.0, 150_000.0]
+    assert merged["withMedicare"] == "loop"
+    assert merged["units"] == "1"
+
+
+def test_year1_filename_path_merges_case_solver_options(monkeypatch):
+    """The filename path must not silently drop the case's [solver_options]."""
+    import owlplanner.assistant.tools as tools
+
+    captured = {}
+
+    def _stub(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
+        captured.update(opts)
+        raise RuntimeError("stop after capturing opts")
+
+    monkeypatch.setattr(tools, "_year1_robustness_blocking", _stub)
+    result = json.loads(_run(tools.run_year1_robustness(filename=CHRIS_PAT_TOML)))
+    assert "error" in result
+    assert captured["bequest"] == 400_000.0
+    assert captured["maxRothConversion"] == 100_000.0
+    assert captured["units"] == "1"

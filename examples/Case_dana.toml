@@ -1,0 +1,72 @@
+case_name = "dana"
+description = "Dana is a single retiree standing at the retirement threshold: retired at the end of last year at 65, living in California. Dana claims Social Security at 70 to maximize the inflation-protected benefit, owns a home outright that will go to heirs, and targets a $400,000 bequest on top of it.\n\nDana's savings match Chris and Pat's household totals: tax-deferred assets of $937,000 at a 20% effective tax rate yield $750,000 after tax, plus $100,000 in Roth and $150,000 in taxable - approximately $1,000,000 of after-tax savings, aligned with Bill's stylized $1,000,000 benchmark. The bulk sits in a traditional IRA, reflecting decades of 401(k) contributions.\n\nThis case is designed for studying first-year decision robustness: the plan starts at the retirement threshold, so every scenario shares the same information set at the moment Dana must commit to the first-year Roth conversion, withdrawal, and spending decisions - the year the conversion window opens, before Social Security at 70 and RMDs at 75. As a single filer with one account of each type, the conversion decision is a single scalar, free of the spousal-allocation degeneracy of two-IRA couples. Conversions are deliberately uncapped so the full decision distribution is visible.\n"
+
+[basic_info]
+status = "single"
+names = [ "Dana",]
+date_of_birth = [ "1960-01-15",]
+life_expectancy = [ 92,]
+start_date = "2026-01-01"
+state = "CA"
+
+[savings_assets]
+taxable_savings_balances = [ 150.0,]
+tax_deferred_savings_balances = [ 937.0,]
+tax_free_savings_balances = [ 100.0,]
+hsa_savings_balances = [ 0.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "HFP_dana.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0,]
+pension_ages = [ 65.0,]
+pension_indexed = [ false,]
+pension_survivor_fraction = [ 0.0,]
+social_security_pia_amounts = [ 2_000,]
+social_security_ages = [ 70.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.7
+obbba_expiration_year = 2032
+method = "historical_average"
+to = 2025
+from = 1928
+reverse_sequence = false
+roll_sequence = 0
+
+[asset_allocation]
+interpolation_method = "s-curve"
+type = "individual"
+interpolation_center = 15.0
+interpolation_width = 5.0
+generic = [ [ [ 60.0, 40.0, 0.0, 0.0,], [ 60.0, 40.0, 0.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+objective = "maxSpending"
+
+[solver_options]
+noRothConversions = "none"
+startRothConversions = 2026
+bequest = 400
+previousMAGIs = [ 100.0, 95.0,]
+solver = "default"
+spendingSlack = 0
+withSCLoop = true
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "none"
+withSSTaxability = "loop"
+withSSAges = "fixed"
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = false
+worksheet_real_dollars = false

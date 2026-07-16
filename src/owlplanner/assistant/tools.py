@@ -54,6 +54,7 @@ from owlplanner.rate_models.loader import get_all_models_metadata, RATE_MODEL_AL
 from owlplanner.data.mortality_tables import MORTALITY_TABLE_KEYS, MORTALITY_TABLE_INFO
 from owlplanner.socialsecurity import getFRAs, getSelfFactor
 from owlplanner.tax_federal import contributionLimits
+from owlplanner.utils import getUnits
 from owlplanner.utils import derive_swap_roth_converters
 
 from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
@@ -209,6 +210,31 @@ def _build_mcp_opts(
     if _swap is not None:
         opts["swapRothConverters"] = _swap
     return opts
+
+
+_MONETARY_OPTS = ("maxRothConversion", "netSpending", "fixedSpending", "bequest")
+_MONETARY_LIST_OPTS = ("minTaxableBalance", "previousMAGIs")
+
+
+def _merge_case_opts(plan, opts):
+    """Overlay MCP opts onto the case file's solver options.
+
+    In the filename path, the case's [solver_options] (bequest, maxRothConversion,
+    previousMAGIs, ...) must carry through to the solve; explicit MCP arguments
+    override them.  File options are expressed in the file's units (default $k)
+    while MCP opts are full dollars, so monetary entries are rescaled before the
+    overlay.
+    """
+    base = dict(getattr(plan, "solverOptions", None) or {})
+    fac = getUnits(base.pop("units", "k"))
+    for key in _MONETARY_OPTS:
+        if base.get(key) is not None:
+            base[key] = float(base[key]) * fac
+    for key in _MONETARY_LIST_OPTS:
+        if base.get(key) is not None:
+            base[key] = [float(v) * fac for v in base[key]]
+    base.update(opts)
+    return base
 
 
 def _scrub_optimized_ss_ages(assumed, opts):
@@ -2570,7 +2596,7 @@ def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts,
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base deterministic plan did not solve (status: {plan.caseStatus}).")
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)
@@ -3071,6 +3097,8 @@ async def run_stochastic(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
     )
+    if filename is not None:
+        opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
     try:
@@ -3118,8 +3146,8 @@ def _year1_robustness_blocking(plan, scenario_method, ystart, yend, n_scenarios,
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base deterministic plan did not solve (status: {plan.caseStatus}).")
-    det_year1 = _year1_snapshot(plan)
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
+    base_year1 = _year1_snapshot(plan)
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)
@@ -3139,28 +3167,29 @@ def _year1_robustness_blocking(plan, scenario_method, ystart, yend, n_scenarios,
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
 
-    return plan, result, det_year1
+    return plan, result, base_year1
 
 
-def _build_year1_json(plan, result, det_year1, scenario_method):
+def _build_year1_json(plan, result, base_year1, scenario_method):
     """Distil the year-1 decision distribution into a JSON-ready dict."""
     from owlplanner.stresstests import summarize_year1
 
     jnames = ("taxable", "tax_deferred", "roth", "hsa")
     summary = summarize_year1(result["year1_decisions"], plan.inames)
-    deterministic = {
+    base_plan = {
+        "rate_method": getattr(plan, "rateMethod", None),
         "per_person": [
             {
                 "person": plan.inames[i],
-                "roth_conversion": round(det_year1["x"][i], 2),
+                "roth_conversion": round(base_year1["x"][i], 2),
                 "withdrawals": {
-                    jnames[j]: round(det_year1["w"][i][j], 2) for j in range(len(det_year1["w"][i]))
+                    jnames[j]: round(base_year1["w"][i][j], 2) for j in range(len(base_year1["w"][i]))
                 },
             }
             for i in range(plan.N_i)
         ],
-        "net_spending": round(det_year1["g0"], 2),
-        "top_bracket_pct": det_year1["top_bracket_pct"],
+        "net_spending": round(base_year1["g0"], 2),
+        "top_bracket_pct": base_year1["top_bracket_pct"],
     }
     return {
         "status": "completed",
@@ -3168,7 +3197,7 @@ def _build_year1_json(plan, result, det_year1, scenario_method):
         "scenario_method": scenario_method,
         "year": int(plan.year_n[0]),
         "year1_robustness": summary,
-        "deterministic_year1": deterministic,
+        "base_plan_year1": base_plan,
         "notes": [
             "Only the first year's decisions are executed; the spread across scenarios shows how "
             "sensitive this year's recommendation is to the future return path. A narrow spread "
@@ -3255,13 +3284,16 @@ async def run_year1_robustness(
 ) -> str:
     """Quantify how robust the FIRST YEAR's decisions are across return scenarios.
 
-    Solves the plan once deterministically, then across many historical or Monte
+    Solves the base plan once, then across many historical or Monte
     Carlo scenarios (same machinery as run_stochastic), and reports the distribution
     of the first-year decisions — per-person Roth conversion percentiles with
     share_converting and an agreement metric, withdrawals by account, net spending,
-    and the modal top tax bracket — alongside the deterministic base-case decisions
-    for comparison.  Use it to answer "should I really convert $X this year?" with
-    "convert $45k-$60k in 87% of scenarios" instead of a single-path number.
+    and the modal top tax bracket — alongside the base plan's decisions for
+    comparison ('base_plan_year1': a single solve on the case's configured rate
+    method, reported in its 'rate_method' key; with a fixed-rate method such as
+    'historical_average' this is the conventional single-path plan).  Use it to
+    answer "should I really convert $X this year?" with "convert $45k-$60k in
+    87% of scenarios" instead of a single-path number.
 
     Only the first year's decisions are executed; later years are re-optimized as
     returns realize, so this tool intentionally does not report their spread.
@@ -3385,11 +3417,13 @@ async def run_year1_robustness(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
     )
+    if filename is not None:
+        opts = _merge_case_opts(plan, opts)
     downgraded = _downgrade_milp_tax_modes(opts)
     _scrub_optimized_ss_ages(assumed, opts)
 
     try:
-        plan, result, det_year1 = await asyncio.get_running_loop().run_in_executor(
+        plan, result, base_year1 = await asyncio.get_running_loop().run_in_executor(
             None,
             _year1_robustness_blocking,
             plan,
@@ -3404,7 +3438,7 @@ async def run_year1_robustness(
         return json.dumps({"error": f"Year-1 robustness run error: {e}"})
 
     try:
-        out = _build_year1_json(plan, result, det_year1, scenario_method)
+        out = _build_year1_json(plan, result, base_year1, scenario_method)
     except Exception as e:
         return json.dumps({"error": f"Result processing error: {e}"})
 
@@ -3548,7 +3582,7 @@ def _longevity_stochastic_blocking(
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base deterministic plan did not solve (status: {plan.caseStatus}).")
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)
@@ -4146,6 +4180,8 @@ async def run_historical(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
     )
+    if filename is not None:
+        opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
     try:
@@ -4461,6 +4497,8 @@ async def run_monte_carlo(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
     )
+    if filename is not None:
+        opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
     try:
