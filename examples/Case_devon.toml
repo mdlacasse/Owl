@@ -1,0 +1,70 @@
+case_name = "devon"
+description = "Devon is a single Californian at the retirement threshold - retired at the end of last year at 65 - with a high-net-worth version of Dana's balance sheet: the same account structure scaled four-fold, about $4.75M of savings concentrated in a $3.75M traditional IRA after a career of earnings at or above the Social Security wage cap. Devon claims the near-maximum Social Security benefit at 70 (PIA $4,000/month), owns a home outright that goes to heirs, and targets a $1.6M bequest beyond it.\n\nDevon is the wealth-axis companion to the dana case, designed to test how the first-year Roth conversion decision changes when the tax terrain does: at this asset level the conversion conversation moves from the 12-22% brackets into 24-32-35%, the plan sits astride multiple Medicare IRMAA tiers (cliffs, not slopes), the net investment income tax engages, and required minimum distributions alone push income high enough that doing nothing is expensive. Everything else - single filer, California, retirement threshold, fixed 60/40 allocation, uncapped conversions, historical-average base rates - matches dana, so wealth is the only moving part.\n"
+
+[basic_info]
+status = "single"
+names = [ "Devon",]
+date_of_birth = [ "1960-01-15",]
+life_expectancy = [ 92,]
+start_date = "2026-01-01"
+state = "CA"
+
+[savings_assets]
+taxable_savings_balances = [ 600.0,]
+tax_deferred_savings_balances = [ 3_750.0,]
+tax_free_savings_balances = [ 400.0,]
+hsa_savings_balances = [ 0.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "HFP_devon.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0,]
+pension_ages = [ 65.0,]
+pension_indexed = [ false,]
+pension_survivor_fraction = [ 0.0,]
+social_security_pia_amounts = [ 4_000,]
+social_security_ages = [ 70.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.7
+obbba_expiration_year = 2032
+method = "historical_average"
+to = 2025
+from = 1928
+
+[asset_allocation]
+interpolation_method = "s-curve"
+type = "individual"
+interpolation_center = 15.0
+interpolation_width = 5.0
+generic = [ [ [ 60.0, 40.0, 0.0, 0.0,], [ 60.0, 40.0, 0.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+objective = "maxSpending"
+
+[solver_options]
+noRothConversions = "none"
+startRothConversions = 2026
+bequest = 1_600
+previousMAGIs = [ 400.0, 350.0,]
+solver = "default"
+spendingSlack = 0
+withSCLoop = true
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "none"
+withSSTaxability = "loop"
+withSSAges = "fixed"
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = false
+worksheet_real_dollars = false
