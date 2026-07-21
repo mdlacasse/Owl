@@ -585,6 +585,16 @@ def build_summary_dic(plan, N=None):
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)
     dic["Convergence"] = plan.convergenceType
+    # Residual uncertainty from a self-consistent loop that did not settle: the accepted
+    # objective sits inside the oscillation band, so report an error bar in the units of
+    # the final modified objective (today's dollars: spending basis for maxSpending,
+    # bequest otherwise) — half the peak-to-peak spread each way. Exactly zero means the
+    # loop converged within tolerance. Accessed directly (always set by solve()) so a
+    # genuinely missing attribute raises rather than silently reporting "no uncertainty".
+    obj_kind = "spending basis" if plan.objective == "maxSpending" else "bequest"
+    half = plan.oscillationAbs / 2.0
+    rel_half = plan.oscillationRel / 2.0
+    dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
     dic["Case executed on"] = str(plan._timestamp)
 
     return dic

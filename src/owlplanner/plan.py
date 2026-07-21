@@ -356,6 +356,16 @@ class Plan:
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
+        # Achieved MIP gap of the accepted solution (0 when solved to optimality,
+        # larger when a time limit truncated the search; -1 before any solve)
+        self.solverGap = -1.0
+        # Relative amplitude (max-min)/max of the SC-loop oscillation cycle; 0 when
+        # the loop converged monotonically (no fixed-point ambiguity)
+        self.oscillationRel = 0.0
+        # Absolute amplitude (max-min) of the same cycle, in the units of the final
+        # modified objective (today's dollars: spending basis or bequest); 0 when
+        # the loop converged. This is the error bar reported in the summary.
+        self.oscillationAbs = 0.0
         self.rateMethod = None
         self.reproducibleRates = False
         self.rateSeed = None
@@ -3671,6 +3681,9 @@ class Plan:
         # Assume unsuccessful until problem solved.
         self.caseStatus = "unsuccessful"
         self.convergenceType = "undefined"
+        self.solverGap = -1.0
+        self.oscillationRel = 0.0
+        self.oscillationAbs = 0.0
 
         # Check objective and required options.
         knownObjectives = ["maxBequest", "maxSpending"]
@@ -3702,6 +3715,7 @@ class Plan:
             "swapRothConverters",
             "useRothConvOverrides",
             "maxTime",
+            "numThreads",  # cap MOSEK threads/solve (0=all cores) for matched parallelism
             "units",
             "verbose",
             "withACA",  # ACA handling: "loop" (default) or "optimize"
@@ -4107,6 +4121,9 @@ class Plan:
             ACA_n_lp = self.ACA_n.copy()
             J_n_lp = self.J_n.copy()
             objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
+            # Achieved MIP gap of the accepted solution (-1 for pure LP solves);
+            # corrected below when a best-of-cycle iterate is accepted instead.
+            self.solverGap = solgap
 
             if not solverSuccess or objfn is None:
                 self.mylog.print("Solver failed:", solverMsg, solverSuccess)
@@ -4163,6 +4180,21 @@ class Plan:
 
             if decision is not None:
                 self.convergenceType = decision["convergenceType"]
+                # Oscillation amplitude for the error bar: relative spread (max-min)/max of
+                # the recent scaled objectives when the loop did NOT converge — i.e. it is
+                # genuinely stuck cycling (reason "cycle") or never settled ("stagnation"/
+                # "max_iter"). A "converged" result (monotonic OR oscillatory-approach) has
+                # settled within tolerance, so its amplitude is ~0; only unresolved fixed-
+                # point ambiguity gets an error bar. Cross-solver cannot see this within-run
+                # source. Uses the detected cycle length when available.
+                if decision["reason"] != "converged":
+                    _win = max(int(decision.get("cycleLength", 4)), 2)
+                    _recent = trace["scaledObjectives"][-_win:]
+                    _lo, _hi = float(min(_recent)), float(max(_recent))
+                    # scaledObjectives are objfn*objFac, i.e. the modified objective in
+                    # today's dollars; the raw spread is the error bar in those units.
+                    self.oscillationAbs = _hi - _lo
+                    self.oscillationRel = self.oscillationAbs / max(abs(_hi), 1e-9)
                 best_idx = None
                 if decision["reason"] == "cycle":
                     cycle_len = decision["cycleLength"]
@@ -4176,6 +4208,7 @@ class Plan:
                     M_n_lp = trace["M_n_lp"][best_idx]
                     ACA_n_lp = trace["ACA_n_lp"][best_idx]
                     J_n_lp = trace["J_n_lp"][best_idx]
+                    self.solverGap = trace["gaps"][best_idx]
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                 elif decision["reason"] in ("stagnation", "max_iter"):
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
@@ -4186,6 +4219,7 @@ class Plan:
                         M_n_lp = trace["M_n_lp"][best_idx]
                         ACA_n_lp = trace["ACA_n_lp"][best_idx]
                         J_n_lp = trace["J_n_lp"][best_idx]
+                        self.solverGap = trace["gaps"][best_idx]
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
@@ -4456,6 +4490,22 @@ class Plan:
 
         return task, ncons, nvars
 
+    @staticmethod
+    def _apply_mosek_threads(task, options):
+        """Cap MOSEK's thread count when the 'numThreads' option is set.
+
+        MOSEK's MIP optimizer is internally multi-threaded and grabs all cores by
+        default (numThreads=0). Setting a small positive value lets several solves
+        run in parallel without oversubscribing the machine (e.g. 5 solves x 2
+        threads on 10 cores), which otherwise causes heavy contention. Unset/0
+        preserves the default all-core behavior.
+        """
+        import mosek
+
+        nthreads = int(u.get_numeric_option(options, "numThreads", 0, min_value=0))
+        if nthreads > 0:
+            task.putintparam(mosek.iparam.num_threads, nthreads)
+
     def _run_mosek_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
         """
         Solve LP via MOSEK using abcapi objects; return primal + row dual variables.
@@ -4469,6 +4519,7 @@ class Plan:
         time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
         task, ncons, nvars = self._build_mosek_task(A, B, c_obj, col_overrides=col_overrides)
         task.putdouparam(mosek.dparam.optimizer_max_time, float(time_limit))
+        self._apply_mosek_threads(task, options)
 
         try:
             task.optimize()
@@ -4505,6 +4556,7 @@ class Plan:
         )
         task.putdouparam(mosek.dparam.mio_max_time, float(time_limit))
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
+        self._apply_mosek_threads(task, options)
 
         try:
             task.optimize()
@@ -4979,6 +5031,7 @@ class Plan:
         task.putdouparam(mosek.dparam.mio_max_time, time_limit)  # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)  # Default 1e-4
+        self._apply_mosek_threads(task, options)
         # task.putdouparam(mosek.dparam.mio_tol_abs_relax_int, 2e-5)   # Default 1e-5
         # task.putdouparam(mosek.iparam.mio_heuristic_level, 3)        # Default -1
 

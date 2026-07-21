@@ -22,6 +22,7 @@ from owlplanner.config.plan_bridge import clone  # noqa: F401
 from owlplanner.config import readConfig, saveConfig  # noqa: F401
 from owlplanner.rates import getRatesDistributions, RatesDistribution  # noqa: F401
 from owlplanner.stresstests import g_for_success_rate, compute_cvar, compute_res, summarize_year1  # noqa: F401
+from owlplanner.stresstests import run_conversion_regret_sweep, summarize_conversion_regret  # noqa: F401
 from owlplanner.export import fixedIncomeStreams  # noqa: F401
 from owlplanner.version import __version__  # noqa: F401
 
@@ -36,6 +37,8 @@ __all__ = [
     "compute_cvar",
     "compute_res",
     "summarize_year1",
+    "run_conversion_regret_sweep",
+    "summarize_conversion_regret",
     "fixedIncomeStreams",
     "__version__",
 ]

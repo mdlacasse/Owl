@@ -1,3 +1,45 @@
+### Version 2026.7.20
+
+#### New: example case `devon`
+`examples/Case_devon.toml` (+ `HFP_devon.xlsx`): the wealth-axis companion to `dana` — a
+single Californian at the retirement threshold with the same balance sheet scaled four-fold,
+≈$4.75M of savings concentrated in a $3.75M traditional IRA ($600k taxable, $400k Roth), a
+near-maximum Social Security benefit (PIA $4,000/month) at 70 from a career at the earnings
+cap, RMDs at 75, and a $1.6M bequest target beside a home left to heirs. Everything else —
+single filer, California, fixed 60/40 allocation, uncapped conversions, `historical_average`
+base rates — matches `dana`, so wealth is the only moving part: at this level the conversion
+moves from the 12–22% brackets into 24–32–35%, straddles multiple Medicare IRMAA tiers,
+engages the net investment income tax, and RMDs alone push income high enough that doing
+nothing is expensive. Paired with `dana` for studying how the first-year conversion decision
+scales with wealth; both cases are now selectable in the Streamlit UI's example-case list
+(`ui/tomlexamples.py`).
+
+#### New: commitment-regret sweep for the first-year Roth conversion
+`run_conversion_regret_sweep` and `summarize_conversion_regret` (in `stresstests.py`, exported
+from `owlplanner`) price the cost of committing to a fixed first-year Roth conversion. For each
+historical (or supplied) scenario the tool pins the first-year conversion to each value on a
+grid, lets every later year re-optimize with full knowledge of that scenario, and returns the
+regret `R = V* − V(x)` against the clairvoyant optimum; where the self-consistent tax loop does
+not settle cleanly, it also records the residual oscillation amplitude of each end (`v_star_osc`
+for `V*`, `v_at_osc` for `V(x)`). The summary reports the dispersion of scenario-optimal
+conversions, the valley (lowest-mean-regret commitment), the over- versus under-conversion
+asymmetry at ±$15k/$30k/$45k (under-conversion floored at zero, since a conversion cannot be
+negative), infeasible-scenario counts, and the never-convert cost.
+
+#### New: objective error bar for unsettled self-consistent solves
+Every solve now tracks the amplitude of any residual oscillation in its objective when the
+self-consistent tax loop cannot settle on a single fixed point — `plan.oscillationAbs` and
+`oscillationRel`, in the units of the modified objective (today's dollars). It is exactly zero
+when the loop converges within tolerance and nonzero only when a near-threshold bracket
+ambiguity leaves the accepted objective sitting inside an oscillation band, so a genuinely
+missing value would raise rather than silently read as "no uncertainty." The plan summary
+(`export.py`, `build_summary_dic`) now reports it per solve as
+`Objective error bar (…, today's $)` — half the peak-to-peak spread each way — beside the
+convergence type. The regret sweep aggregates the same quantity across scenarios: because the
+`V*` and `V(x)` ends oscillate independently their amplitudes add, and
+`summarize_conversion_regret` reports the mean per grid point as `regret_osc_bar`. This is a
+genuine within-run uncertainty, distinct from and invisible to a cross-solver comparison.
+
 ### Version 2026.7.15
 
 #### Breaking (MCP): `base_plan_year1` replaces `deterministic_year1` in `run_year1_robustness`

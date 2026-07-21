@@ -29,6 +29,8 @@ CASES = [
     "alex+jamie",
     "bill",
     "chris+pat",
+    "dana",
+    "devon",
     "helen+ruth",
     "jack+jill",
     "joe",

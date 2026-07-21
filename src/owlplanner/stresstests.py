@@ -390,6 +390,379 @@ def summarize_year1(year1_list, inames):
     return out
 
 
+###############################################################################
+# Commitment regret sweep
+###############################################################################
+
+
+def _regret_objective_value(p, objective):
+    """Scenario outcome in the objective's natural units (today's $).
+
+    maxSpending: the first-year spending basis ($/yr). maxBequest: the after-tax
+    value of the final savings estate (excludes fixed assets such as a home,
+    which are invariant to the decisions under study).
+    """
+    if objective == "maxSpending":
+        return float(p.basis)
+    from .export import plan_metrics  # local import; export pulls heavy deps
+
+    return float(plan_metrics(p)["final_bequest_savings_today"])
+
+
+def _regret_worker(args):
+    """
+    Solve one scenario's baseline, grid, and never-convert solves in a worker thread.
+
+    args tuple: (clone, year, objective, options, grid, person, include_never_convert)
+
+    Returns (year, payload) where payload is None if the unconstrained baseline
+    fails, else a dict with:
+      v_star   — unconstrained optimum (clairvoyant benchmark)
+      x_star   — the baseline's first-year Roth conversion for `person`, $
+      v_at     — list aligned with grid; None where the pinned solve is infeasible
+      v_noconv — optimum with conversions disallowed for `person` (or None)
+      max_gap  — largest achieved MIP gap across this scenario's solves (-1 if
+                 no MIP was involved); flags certificates degraded by maxTime
+    """
+    import time as _time
+
+    p, year, objective, options, grid, person, include_never_convert = args
+    p.setRates("historical", year)
+    _t0 = _time.time()
+
+    max_gap = -1.0
+    # Track SC-loop convergence: monotonic solves land in the interior of the
+    # bracket structure (trustworthy, idempotent); non-monotonic (oscillatory /
+    # max-iter) solves sit on a tax cliff where the fixed point is ambiguous and
+    # the result carries a genuine error bar. n_nonmonotonic counts such solves
+    # across the window; v_star_conv is the clairvoyant baseline's own verdict.
+    n_nonmonotonic = 0
+
+    def _note_conv():
+        nonlocal n_nonmonotonic
+        if getattr(p, "convergenceType", "undefined") != "monotonic":
+            n_nonmonotonic += 1
+
+    p.solve(objective, options)
+    max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+    v_star_conv = getattr(p, "convergenceType", "undefined")
+    v_star_rel = getattr(p, "oscillationRel", 0.0)
+    _note_conv()
+    if p.caseStatus != "solved":
+        return year, None
+    v_star = _regret_objective_value(p, objective)
+    # Dollar amplitude of the clairvoyant optimum's SC-loop oscillation (0 if monotonic).
+    v_star_osc = abs(v_star) * v_star_rel
+    x_star = float(p.x_in[person, 0])
+
+    # Pin the first-year conversion at each grid value. myRothX_in holds dollar
+    # amounts; a positive value pins x[person, 0] exactly, a negative value
+    # forces it to zero (see _add_roth_conversion_constraints).
+    opts_pin = dict(options)
+    opts_pin["useRothConvOverrides"] = True
+    v_at = []
+    v_at_osc = []
+    for x in grid:
+        p.myRothX_in[person, 0] = float(x) if x > 0 else -1.0
+        p.solve(objective, opts_pin)
+        max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+        _note_conv()
+        if p.caseStatus == "solved":
+            val = _regret_objective_value(p, objective)
+            v_at.append(val)
+            v_at_osc.append(abs(val) * getattr(p, "oscillationRel", 0.0))
+        else:
+            v_at.append(None)
+            v_at_osc.append(None)
+    p.myRothX_in[person, 0] = 0.0
+
+    v_noconv = None
+    if include_never_convert:
+        opts_nc = dict(options)
+        opts_nc.pop("useRothConvOverrides", None)
+        opts_nc["noRothConversions"] = p.inames[person]
+        p.solve(objective, opts_nc)
+        max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+        _note_conv()
+        if p.caseStatus == "solved":
+            v_noconv = _regret_objective_value(p, objective)
+
+    p.mylog.print(
+        f"window {year}: {_time.time() - _t0:.1f}s, {v_star_conv}, "
+        f"{n_nonmonotonic} non-monotonic solve(s), osc ${v_star_osc:,.0f}"
+    )
+    return year, {"v_star": v_star, "x_star": x_star, "v_at": v_at, "v_noconv": v_noconv,
+                  "max_gap": max_gap, "v_star_conv": v_star_conv, "n_nonmonotonic": n_nonmonotonic,
+                  "v_star_osc": v_star_osc, "v_at_osc": v_at_osc}
+
+
+def run_conversion_regret_sweep(
+    plan,
+    objective,
+    options,
+    grid,
+    ystart,
+    yend,
+    *,
+    person=0,
+    include_never_convert=True,
+    progcall=None,
+):
+    """
+    Measure the regret of committing to a fixed first-year Roth conversion.
+
+    For each historical starting year in [ystart, yend], the plan is first solved
+    unconstrained (the clairvoyant benchmark v*_s and its first-year conversion
+    x*_s), then re-solved with the first-year conversion of individual `person`
+    pinned at each value of `grid` (dollars), leaving all later decisions free to
+    re-optimize within the scenario. The regret of committing to x in scenario s
+    is v*_s - v_s(x) >= 0. Optionally, a never-convert solve (conversions
+    disallowed for `person` in all years) measures the value of the entire
+    conversion strategy.
+
+    Outcomes are in the objective's natural units, today's dollars: first-year
+    spending basis ($/yr) for maxSpending, after-tax final savings estate for
+    maxBequest (which requires options["netSpending"]). For a couple, only
+    `person`'s conversion is pinned; the spouse's remains free.
+
+    Returns a dict:
+      "grid"        — list of committed amounts ($)
+      "start_years" — ndarray (S,) of scenario starting years
+      "v_star"      — ndarray (S,) clairvoyant optima; NaN if baseline failed
+      "x_star"      — ndarray (S,) baseline first-year conversions ($)
+      "v_at"        — ndarray (S, X); NaN where pinned solve was infeasible
+      "v_noconv"    — ndarray (S,) or None
+      "max_gap"     — ndarray (S,) largest achieved MIP gap per scenario (-1 when
+                      no MIP was involved; values above the requested gap flag
+                      solves whose certificate was degraded by the time limit)
+      "person"      — the pinned individual's index
+
+    Summarize with summarize_conversion_regret().
+    """
+    if yend + plan.N_n > plan.year_n[0]:
+        yend = plan.year_n[0] - plan.N_n
+        plan.mylog.print(f"Upper bound for year range re-adjusted to {yend}.", tag="WARNING")
+    if yend < ystart:
+        raise ValueError(f"Starting year is too large to support a lifespan of {plan.N_n} years.")
+    if not (0 <= person < plan.N_i):
+        raise ValueError(f"person={person} out of range for {plan.N_i} individual(s).")
+    grid = [float(x) for x in grid]
+    if not grid or any(x < 0 for x in grid):
+        raise ValueError("grid must be a non-empty list of non-negative dollar amounts.")
+
+    plan.mylog.setVerbose(False)
+    if progcall is None:
+        progcall = progress.Progress(plan.mylog)
+
+    years = list(range(ystart, yend + 1))
+    total = len(years)
+    args_list = [
+        (clone(plan, verbose=False), year, objective, options, grid, person, include_never_convert)
+        for year in years
+    ]
+    n_workers = min(os.cpu_count() or 1, total)
+    plan.mylog.print(
+        f"Regret sweep: {total} scenarios x {len(grid)} grid points using {n_workers} parallel worker thread(s)."
+    )
+    progcall.start()
+
+    results_map = {}
+    completed = 0
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = {executor.submit(_regret_worker, args): args[1] for args in args_list}
+        for fut in as_completed(futures):
+            year = futures[fut]
+            try:
+                results_map[year] = fut.result()[1]
+            except Exception as exc:
+                plan.mylog.print(
+                    f"scenario {year} raised {type(exc).__name__}: {exc}; treating as failed baseline.",
+                    tag="WARNING",
+                )
+                results_map[year] = None
+            completed += 1
+            progcall.show(completed, total)
+
+    progcall.finish()
+    plan.mylog.resetVerbose()
+
+    S, X = total, len(grid)
+    v_star = np.full(S, np.nan)
+    x_star = np.full(S, np.nan)
+    v_at = np.full((S, X), np.nan)
+    v_noconv = np.full(S, np.nan) if include_never_convert else None
+    max_gap = np.full(S, -1.0)
+    n_nonmonotonic = np.zeros(S, dtype=int)
+    v_star_conv = ["undefined"] * S
+    v_star_osc = np.zeros(S)
+    v_at_osc = np.full((S, X), np.nan)
+    for i, year in enumerate(years):
+        r = results_map.get(year)
+        if r is None:
+            continue
+        max_gap[i] = r.get("max_gap", -1.0)
+        n_nonmonotonic[i] = r.get("n_nonmonotonic", 0)
+        v_star_conv[i] = r.get("v_star_conv", "undefined")
+        v_star_osc[i] = r.get("v_star_osc", 0.0)
+        v_star[i] = r["v_star"]
+        x_star[i] = r["x_star"]
+        for j, v in enumerate(r["v_at"]):
+            if v is not None:
+                v_at[i, j] = v
+        for j, o in enumerate(r.get("v_at_osc", [])):
+            if o is not None:
+                v_at_osc[i, j] = o
+        if include_never_convert and r["v_noconv"] is not None:
+            v_noconv[i] = r["v_noconv"]
+
+    n_failed = int(np.isnan(v_star).sum())
+    if n_failed:
+        plan.mylog.print(f"{n_failed} of {total} scenario baselines failed to solve.", tag="WARNING")
+
+    return {
+        "grid": grid,
+        "start_years": np.array(years),
+        "v_star": v_star,
+        "x_star": x_star,
+        "v_at": v_at,
+        "v_noconv": v_noconv,
+        "max_gap": max_gap,
+        "n_nonmonotonic": n_nonmonotonic,
+        "v_star_conv": v_star_conv,
+        "v_star_osc": v_star_osc,
+        "v_at_osc": v_at_osc,
+        "person": person,
+    }
+
+
+def summarize_conversion_regret(result, *, asymmetry_deltas=(15_000, 30_000, 45_000)):
+    """
+    Summarize a run_conversion_regret_sweep() result into a JSON-ready dict.
+
+    Reports, per grid point, the distribution of regret R_s(x) = v*_s - v_s(x)
+    across scenarios (mean, median, p90, max, and the count of scenarios where
+    the commitment is infeasible), the valley (grid argmin of mean regret), the
+    value of the entire conversion strategy (regret of never converting), and
+    the over/under asymmetry: mean regret of committing delta above vs below
+    each scenario's own optimum x*_s, interpolated on the grid.
+    """
+    grid = np.array(result["grid"])
+    v_star = result["v_star"]
+    ok = ~np.isnan(v_star)
+    R = v_star[ok, None] - result["v_at"][ok, :]
+    x_star = result["x_star"][ok]
+    n_scenarios = int(ok.sum())
+
+    def _stats(r):
+        good = r[~np.isnan(r)]
+        if good.size == 0:
+            return {"mean": None, "median": None, "p90": None, "max": None,
+                    "n_infeasible": int(np.isnan(r).sum())}
+        return {
+            "mean": float(np.round(good.mean(), 2)),
+            "median": float(np.round(np.median(good), 2)),
+            "p90": float(np.round(np.percentile(good, 90), 2)),
+            "max": float(np.round(good.max(), 2)),
+            "n_infeasible": int(np.isnan(r).sum()),
+        }
+
+    # Oscillation error bar on the regret at each grid point. R = v* - v(x); both
+    # ends oscillate independently under the SC loop, so the per-scenario amplitude
+    # is the sum of their dollar amplitudes. Report the mean across scenarios — a
+    # genuine intrinsic error bar, distinct from (and invisible to) cross-solver.
+    vso = result.get("v_star_osc")
+    vao = result.get("v_at_osc")
+    by_grid = []
+    for j, x in enumerate(grid):
+        entry = {"x": float(x), **_stats(R[:, j])}
+        if vso is not None and vao is not None:
+            amp = np.asarray(vso)[ok] + np.asarray(vao)[ok, j]
+            entry["regret_osc_bar"] = float(np.round(np.nanmean(amp), 2))
+        by_grid.append(entry)
+    means = np.array([g["mean"] if g["mean"] is not None else np.inf for g in by_grid])
+    j_valley = int(np.argmin(means))
+
+    # Asymmetry around each scenario's own optimum, via linear interpolation of
+    # that scenario's regret curve. Under-conversion is floored at x=0; deltas
+    # that fall beyond the grid's right edge are skipped (not extrapolated).
+    asymmetry = []
+    for delta in asymmetry_deltas:
+        over, under = [], []
+        for s in range(n_scenarios):
+            r = R[s, :]
+            if np.isnan(r).any():
+                # Interpolate only across the feasible prefix of the curve.
+                feas = ~np.isnan(r)
+                gr, rr = grid[feas], r[feas]
+            else:
+                gr, rr = grid, r
+            if gr.size < 2:
+                continue
+            if x_star[s] + delta <= gr[-1]:
+                over.append(np.interp(x_star[s] + delta, gr, rr))
+            under.append(np.interp(max(x_star[s] - delta, 0.0), gr, rr))
+        entry = {"delta": float(delta), "n_over": len(over), "n_under": len(under)}
+        entry["mean_regret_over"] = float(np.round(np.mean(over), 2)) if over else None
+        entry["mean_regret_under"] = float(np.round(np.mean(under), 2)) if under else None
+        if over and under and np.mean(under) > 0:
+            entry["over_under_ratio"] = float(np.round(np.mean(over) / np.mean(under), 1))
+        else:
+            entry["over_under_ratio"] = None
+        asymmetry.append(entry)
+
+    gaps = result.get("max_gap")
+    nnm = result.get("n_nonmonotonic")
+    vsc = result.get("v_star_conv")
+    convergence = None
+    if nnm is not None and vsc is not None:
+        nnm_ok = np.asarray(nnm)[ok]
+        vsc_ok = [c for c, k in zip(vsc, ok) if k]
+        convergence = {
+            # windows whose clairvoyant baseline converged monotonically (interior of
+            # the bracket structure — cleanest)
+            "n_monotonic_baselines": int(sum(c == "monotonic" for c in vsc_ok)),
+            # windows with any non-monotonic-APPROACH solve (wiggled during the loop but
+            # may still have settled within tolerance — NOT necessarily an error bar)
+            "n_windows_nonmonotonic": int(np.sum(nnm_ok > 0)),
+            "share_clean": float(np.round(np.mean([c == "monotonic" for c in vsc_ok]), 4)) if vsc_ok else None,
+        }
+        # Every window carries a within-run oscillation bar; most are exactly 0 (the loop
+        # settled). This counts how many are NON-ZERO (material) and summarizes their size.
+        vso = result.get("v_star_osc")
+        vao = result.get("v_at_osc")
+        if vso is not None:
+            osc = np.asarray(vso)[ok]
+            nonzero = osc > 1.0
+            if vao is not None:
+                nonzero = nonzero | (np.nanmax(np.asarray(vao)[ok], axis=1) > 1.0)
+            osc_nz = osc[osc > 1.0]
+            convergence["n_windows_nonzero_bar"] = int(np.sum(nonzero))
+            convergence["v_star_osc_median_nonzero"] = float(np.round(np.median(osc_nz), 2)) if osc_nz.size else 0.0
+            convergence["v_star_osc_p90_nonzero"] = (
+                float(np.round(np.percentile(osc_nz, 90), 2)) if osc_nz.size else 0.0
+            )
+            convergence["v_star_osc_max"] = float(np.round(osc.max(), 2))
+    out = {
+        "n_scenarios": n_scenarios,
+        "n_failed_baselines": int((~ok).sum()),
+        "max_achieved_gap": None if gaps is None else float(np.max(gaps)),
+        "convergence": convergence,
+        "x_star": {
+            "p10": float(np.round(np.percentile(x_star, 10), 2)),
+            "median": float(np.round(np.median(x_star), 2)),
+            "p90": float(np.round(np.percentile(x_star, 90), 2)),
+            "share_converting": float(np.round(np.mean(x_star > 1.0), 4)),
+        },
+        "regret_by_grid": by_grid,
+        "valley": {"x": float(grid[j_valley]), "mean_regret": by_grid[j_valley]["mean"]},
+        "asymmetry": asymmetry,
+    }
+    if result["v_noconv"] is not None:
+        r_nc = v_star[ok] - result["v_noconv"][ok]
+        out["never_convert_regret"] = _stats(r_nc)
+    return out
+
+
 def run_historical_range(
     plan,
     objective,
