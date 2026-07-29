@@ -3,7 +3,7 @@ Core logic for the embedded AI assistant (Assistant page).
 
 Streamlit-free: gating, tool-schema assembly, and the tool-use agent loop.
 The chat page (Assistant.py) provides the UI; assistant_tools.py provides the
-session-aware tools. Solver tools are reused in-process from the FastMCP
+session-aware tools. Solver tools are reused in-process from the MCPServer
 registry in owlplanner.cli.cmd_serve — same implementations the MCP server
 exposes, called directly without any stdio transport.
 
@@ -97,7 +97,7 @@ def stateless_tool_schemas() -> list[dict]:
 
     tools = asyncio.run(mcp.list_tools())
     return [
-        {"name": t.name, "description": t.description, "input_schema": t.inputSchema}
+        {"name": t.name, "description": t.description, "input_schema": t.input_schema}
         for t in tools
         if t.name in STATELESS_TOOLS
     ]
@@ -110,8 +110,7 @@ def call_stateless_tool(name: str, args: dict) -> str:
     from owlplanner.cli.cmd_serve import mcp
 
     result = asyncio.run(mcp.call_tool(name, args or {}))
-    content = result[0] if isinstance(result, tuple) else result
-    return "".join(getattr(block, "text", "") for block in content)
+    return "".join(getattr(block, "text", "") for block in result.content)
 
 
 def build_system_prompt() -> str:

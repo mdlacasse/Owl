@@ -7,19 +7,19 @@ and compare scenarios without touching the filesystem directly.
 
 The tool implementations live in owlplanner.assistant.tools so they can be
 reused by other assistant front ends; this module only registers them with
-FastMCP and provides the click entry point.
+MCPServer and provides the click entry point.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import click
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from owlplanner.assistant.intake import INTAKE_PROMPT, modeling_capabilities_text
 from owlplanner.assistant.tools import MCP_TOOLS, SERVER_INSTRUCTIONS
 
 
-mcp = FastMCP("owl", instructions=SERVER_INSTRUCTIONS)
+mcp = MCPServer("owl", instructions=SERVER_INSTRUCTIONS)
 
 for _tool in MCP_TOOLS:
     mcp.tool()(_tool)

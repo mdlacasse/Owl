@@ -23,6 +23,15 @@ def test_all_tools_registered():
     assert {"run_from_params", "save_case", "compare_to_baseline", "explain_results"} <= names
 
 
+def test_call_tool_returns_extractable_text():
+    # Guards the return-shape contract consumed by ui/assistant_core.call_stateless_tool:
+    # result.content is a list of blocks whose .text join reproduces the tool's JSON output.
+    result = _run(mcp.call_tool("list_rate_models", {}))
+    text = "".join(getattr(block, "text", "") for block in result.content)
+    assert len(text) > 100
+    assert "models" in text
+
+
 def test_owl_intake_prompt_registered():
     prompts = _run(mcp.list_prompts())
     assert [p.name for p in prompts] == ["owl_intake"]

@@ -4,7 +4,7 @@ Shared assistant tool layer for Owl.
 Implements the tool functions exposed by the MCP server (owlcli serve) so they
 can also be reused by other assistant front ends (e.g., an embedded chat page)
 without importing the MCP or click machinery.  This module deliberately does
-not import mcp or click; registration with FastMCP happens in
+not import mcp or click; registration with MCPServer happens in
 owlplanner.cli.cmd_serve.
 
 Tools implemented:

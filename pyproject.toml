@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
 # via `make sync-version` (enforced by tests/utils/test_version.py).
-version = "2026.7.20"
+version = "2026.7.27"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -45,7 +45,7 @@ dependencies = [
     "click>=8.3.1",
     "mosek",
     "loguru>=0.7.3",
-    "mcp>=1.27.2",
+    "mcp>=2,<3",
 ]
 license = {file = "LICENSE"}
 
