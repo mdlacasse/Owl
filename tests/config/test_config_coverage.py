@@ -118,6 +118,67 @@ default_plots = "nominal"
     assert p.inames == ["Joe"]
 
 
+def test_ss_claiming_age_snaps_to_months_on_load():
+    """A SS claiming age that has round-tripped through TOML as a truncated decimal
+    (e.g. 62.083333 for 62 y 1 m) must snap to the exact 62 + 1/12 on load, matching
+    the years+months precision used by the UI. Regression: the sub-cent benefit
+    difference otherwise gets amplified by the MILP into dollar-level discrepancies
+    between config-loaded and UI-built plans.
+    """
+    toml_content = """
+case_name = "ss_snap"
+description = "SS age snap"
+
+[basic_info]
+status = "single"
+names = ["Joe"]
+sexes = ["M"]
+date_of_birth = ["1963-01-15"]
+life_expectancy = [90]
+start_date = "today"
+
+[savings_assets]
+taxable_savings_balances = [100.0]
+tax_deferred_savings_balances = [200.0]
+tax_free_savings_balances = [50.0]
+
+[fixed_income]
+pension_monthly_amounts = [0]
+pension_ages = [65]
+pension_indexed = [false]
+social_security_pia_amounts = [2000]
+social_security_ages = [62.083333]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 35.0
+dividend_rate = 2.0
+obbba_expiration_year = 2032
+method = "trailing_30"
+from = 1926
+to = 2023
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
+generic = [[[60, 40, 0, 0], [60, 40, 0, 0]]]
+
+[optimization_parameters]
+spending_profile = "flat"
+objective = "maxSpending"
+
+[solver_options]
+"""
+    p = config.readConfig(StringIO(toml_content), verbose=False)
+    snapped = float(p.ssecAges[0])
+    # Snaps to the nearest whole month: 62.083333 -> 62 y 1 m (745 months), not the
+    # truncated decimal. Rounding to the month integer is exact regardless of tiny
+    # float noise, so this is robust without a brittle absolute tolerance.
+    assert round(snapped * 12.0) == 62 * 12 + 1
+    assert abs(snapped * 12.0 - round(snapped * 12.0)) < 1e-9
+
+
 def test_read_config_bytesio():
     """Test readConfig with BytesIO."""
     toml_content = """

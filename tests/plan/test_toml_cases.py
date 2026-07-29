@@ -105,7 +105,7 @@ if platform == "darwin":
             "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_622,
+            "net_spending_basis": 102_632,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -132,7 +132,7 @@ elif platform == "linux":
             "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_618,
+            "net_spending_basis": 102_632,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -159,7 +159,7 @@ elif platform == "win32":
             "bequest": 82_934,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_804,
+            "net_spending_basis": 102_814,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -198,7 +198,7 @@ def test_reproducibility():
     # (~103_129 vs HiGHS ~102_622) after the LTCG bracket-partition and state-tax LP fixes
     # and the HSA-deduction removal.
     if _active_solver() == "MOSEK":
-        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 103_129
+        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 103_028
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version

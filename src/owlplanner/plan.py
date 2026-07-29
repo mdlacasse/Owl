@@ -801,6 +801,11 @@ class Plan:
             [int(ages[i]) for i in range(self.N_i)],
         )
 
+        # Snap commencement ages to whole months (1/12-year granularity), for the
+        # same reason as SS claiming ages: keep TOML round-trips consistent with
+        # the UI's years+months input and avoid MILP-amplified precision drift.
+        ages = np.round(np.asarray(ages, dtype=float) * 12.0) / 12.0
+
         thisyear = date.today().year
         self.pi_in = pension.compute_pension_benefits(
             amounts, ages, self.yobs, self.mobs, self.horizons, self.N_i, self.N_n, thisyear=thisyear
@@ -891,6 +896,12 @@ class Plan:
 
         pias = np.array(pias, dtype=np.int32)
         ages = np.array(ages)
+        # Snap claiming ages to whole months (1/12-year granularity). Claiming ages
+        # carry month precision (e.g. 62 y 1 m = 62 + 1/12); a value that has
+        # round-tripped through TOML as 62.083333 must resolve to the exact
+        # 62 + 1/12 used everywhere else (e.g. the UI's years+months input),
+        # otherwise a sub-cent benefit difference is amplified by the MILP.
+        ages = np.round(np.asarray(ages, dtype=float) * 12.0) / 12.0
         ages_orig = ages.copy()
 
         fras = socsec.getFRAs(self.yobs, self.mobs, self.tobs)

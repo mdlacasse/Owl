@@ -1,3 +1,17 @@
+### Version 2026.7.29
+
+#### Bugfix: Social Security and pension claiming ages snap to whole months
+Claiming ages carry month precision (e.g. 62 years 1 month = 62 + 1/12 = 62.08333…). A value
+that had round-tripped through a TOML case file as a truncated decimal (`62.083333`) was used
+verbatim by `readConfig`, while the Streamlit UI (which enters ages as years + months) used the
+exact `62 + 1/12`. The resulting sub-cent difference in the computed benefit stream could be
+amplified by the mixed-integer program into dollar-level differences between a config-loaded plan
+and a UI-built one. `setSocialSecurity` and `setPension` now snap claiming/commencement ages to
+the nearest whole month (`round(age * 12) / 12`) on entry, so the API, the UI, and case files all
+agree. A regression test was added in `tests/config/test_config_coverage.py`, and the reference
+objective values for example cases with fractional claiming ages were updated accordingly.
+
+
 ### Version 2026.7.27
 
 #### Maintenance: mcp update to v 2.x
