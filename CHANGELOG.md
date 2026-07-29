@@ -1,3 +1,12 @@
+### Version 2026.7.27
+
+#### Maintenance: mcp update to v 2.x
+Update MCP package to latest version. This change broke a few imports.
+
+#### Maintenance: Update gitpython
+Update gitpython due to vulnerability identified by GitHub bots.
+
+
 ### Version 2026.7.20
 
 #### New: example case `devon`
