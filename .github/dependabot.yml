@@ -1,29 +1,20 @@
 # Dependabot configuration.
 # See https://docs.github.com/code-security/dependabot/dependabot-version-updates
 #
-# uv.lock is the source of truth for dependencies; requirements.txt is a derived
-# export (`make requirements`). Dependabot updates the lockfile only -- run
-# `make requirements` after merging so the exported file and CI stay in sync.
+# No "uv" version-update entry here, deliberately. uv.lock is the source of
+# truth and requirements.txt is a derived export (`make requirements`), but
+# Dependabot reads the export as a hand-maintained pin list and bumps single
+# lines in it without re-resolving -- producing pins that contradict their own
+# parents (e.g. pyarrow 25 against streamlit's pyarrow<25) and leaving uv.lock
+# untouched. See dependabot/dependabot-core#13912. There is no path-exclusion
+# option to hide the export from it.
+#
+# Python upgrades are done with `make update`, which re-resolves through
+# `uv lock` and regenerates the export in one step. Dependabot security alerts
+# and security-update PRs are unaffected by this file and remain enabled.
 
 version: 2
 updates:
-  - package-ecosystem: "uv"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "[maint]"
-    groups:
-      # Batch routine minor/patch bumps into a single PR; majors stay separate
-      # so they can be reviewed against the solver and Streamlit stacks.
-      python-minor-patch:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
