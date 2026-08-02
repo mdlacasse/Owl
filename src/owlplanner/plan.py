@@ -861,23 +861,16 @@ class Plan:
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None, tax_fraction=None):
+    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None):
         """
         Set value of social security for each individual and claiming age.
 
         Note: Social Security benefits are paid in arrears (one month after eligibility).
         The zeta_in array represents when checks actually arrive, not when eligibility starts.
 
-        Args:
-            tax_fraction: Optional fixed SS taxability fraction in [0, 1] (default None).
-                If provided, this overrides the self-consistent-loop computation of Psi_n
-                and forces a constant value throughout the planning horizon.
-                Useful for testing and for households whose provisional income (PI) is
-                well within a single IRS bracket:
-                  - 0.0  if PI < $32k (MFJ) / $25k (single) — benefits fully non-taxable
-                  - 0.5  if PI is in the $32k–$44k (MFJ) / $25k–$34k (single) range
-                  - 0.85 if PI > $44k (MFJ) / $34k (single) — up to 85% taxable (default)
-                When None (default), Psi_n is computed dynamically each SC-loop iteration.
+        The taxable fraction of benefits (Psi_n) is computed by the self-consistent loop
+        from provisional income. To pin it instead, pass a numeric ``withSSTaxability``
+        in the solver options; see :meth:`solve`.
         """
         u.require_list(pias, "pias", self.N_i)
         u.require_list(ages, "ages", self.N_i)
@@ -889,10 +882,6 @@ class Plan:
                 raise ValueError("trim_year required when trim_pct > 0.")
             if not isinstance(trim_year, int):
                 raise ValueError("trim_year must be an integer.")
-
-        if tax_fraction is not None:
-            if not (0 <= tax_fraction <= 1):
-                raise ValueError(f"tax_fraction {tax_fraction} outside range [0, 1].")
 
         pias = np.array(pias, dtype=np.int32)
         ages = np.array(ages)
@@ -937,7 +926,6 @@ class Plan:
         self.ssecAges = ages
         self.ssecTrimPct = trim_pct
         self.ssecTrimYear = trim_year
-        self.ssecTaxFraction = tax_fraction
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
@@ -5081,13 +5069,9 @@ class Plan:
         computation. A 30% damping blend is applied here to damp potential oscillation
         near threshold boundaries and ensure SC-loop convergence.
 
-        If setSocialSecurity() was called with a tax_fraction override, this method
-        returns immediately without modifying Psi_n (the fixed value set on reset is used).
+        When a numeric ``withSSTaxability`` is supplied, Psi_n is pinned on reset in
+        _computeNLstuff() and this method is not called, so no override check is needed here.
         """
-        # Honor explicit override: skip dynamic computation.
-        if getattr(self, "ssecTaxFraction", None) is not None:
-            return
-
         ss_n = np.sum(self.zetaBar_in, axis=0)
         new_Psi_n = tx.compute_social_security_taxability(
             self.N_i, self.MAGI_aca_n, ss_n, ssec_tax_fraction=None, n_d=self.n_d

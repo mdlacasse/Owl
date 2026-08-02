@@ -65,7 +65,7 @@ def _make_couple_plan(
     else:
         p.setPension([0, 0], [65, 65])
 
-    p.setSocialSecurity(ss_pias, ss_ages)  # No tax_fraction → dynamic SC-loop computation
+    p.setSocialSecurity(ss_pias, ss_ages)  # Psi_n computed by the SC loop
     p.setRates("historical", rate_year)
     return p
 
@@ -200,9 +200,9 @@ def test_compute_social_security_taxability_zero_ss():
 
 def test_ss_dynamic_psi_varies():
     """
-    Confirm that dynamic SC-loop SS taxability is active when tax_fraction is not set:
-      - p.ssecTaxFraction is None
-      - Psi_n values vary (not uniformly fixed at the 0.85 default)
+    Confirm that dynamic SC-loop SS taxability is active when no numeric
+    withSSTaxability is supplied: Psi_n values vary, rather than sitting uniformly
+    at the 0.85 default.
     """
     p = _make_couple_plan(
         "ss_dynamic",
@@ -212,7 +212,6 @@ def test_ss_dynamic_psi_varies():
         ss_pias=[2_333, 2_083],
         ss_ages=[67, 70],
     )
-    assert p.ssecTaxFraction is None, "Expected dynamic SC-loop mode (no tax_fraction)"
     p.solve("maxSpending", {"withMedicare": "None"})
     assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
     ss_mask = np.sum(p.zetaBar_in, axis=0) > 0
@@ -436,3 +435,73 @@ def test_ss_fixed_fraction_zero():
     assert np.allclose(p.Psi_n, 0.0, atol=1e-6), (
         f"Psi_n not pinned to 0.0: min={p.Psi_n.min():.4f}, max={p.Psi_n.max():.4f}"
     )
+
+
+def test_ss_fixed_fraction_full():
+    """
+    Numeric withSSTaxability=1.0 should pin Psi_n to exactly 1.0 for all years.
+
+    1.0 is outside the range the IRS formula can ever produce -- at most 85% of a benefit is
+    taxable -- so it is reachable only as an explicit override. It is the setting that makes a
+    benefit behave, federally, like a fully taxable income stream, and nothing else exercises
+    the upper end of the accepted [0, 1] range.
+    """
+    p = _make_couple_plan(
+        "ss_fixed_full",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+    )
+    p.solve("maxSpending", {"withSSTaxability": 0.85, "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver failed at 0.85: {p.caseStatus}"
+    obj_085 = p.g_n[0]
+
+    p.solve("maxSpending", {"withSSTaxability": 1.0, "withMedicare": "None"})
+    assert p.caseStatus == "solved", f"Solver failed at 1.0: {p.caseStatus}"
+
+    assert np.allclose(p.Psi_n, 1.0, atol=1e-6), (
+        f"Psi_n not pinned to 1.0: min={p.Psi_n.min():.4f}, max={p.Psi_n.max():.4f}"
+    )
+
+    # Taxing the whole benefit rather than 85% of it must reduce sustainable spending.
+    assert p.g_n[0] < obj_085, (
+        f"Expected less spending at Psi=1.0 than at 0.85, got {p.g_n[0]:,.0f} vs {obj_085:,.0f}"
+    )
+
+
+def test_ss_fixed_fraction_distinct_levels():
+    """
+    Distinct numeric withSSTaxability values must produce distinct solutions.
+
+    Regression guard: an override can be accepted and recorded while never reaching the solve,
+    in which case every value silently collapses onto the same default and the runs are
+    indistinguishable. Comparing two levels catches that; asserting on Psi_n alone would not,
+    if Psi_n were set from the option but ignored downstream.
+    """
+    p = _make_couple_plan(
+        "ss_levels",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+    )
+    objectives = {}
+    for frac in (0.0, 0.5, 0.85, 1.0):
+        p.solve("maxSpending", {"withSSTaxability": frac, "withMedicare": "None"})
+        assert p.caseStatus == "solved", f"Solver failed at {frac}: {p.caseStatus}"
+        assert np.allclose(p.Psi_n, frac, atol=1e-6), f"Psi_n not pinned to {frac}"
+        objectives[frac] = p.g_n[0]
+
+    assert len(set(round(v, 2) for v in objectives.values())) == len(objectives), (
+        f"Different taxable shares gave indistinguishable results: {objectives}"
+    )
+    # More of the benefit taxed can only reduce what is sustainable.
+    levels = sorted(objectives)
+    for lo, hi in zip(levels, levels[1:]):
+        assert objectives[hi] < objectives[lo], (
+            f"Spending did not fall from Psi={lo} to Psi={hi}: "
+            f"{objectives[lo]:,.0f} -> {objectives[hi]:,.0f}"
+        )

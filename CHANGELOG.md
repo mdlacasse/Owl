@@ -1,3 +1,17 @@
+### Version 2026.8.2
+
+#### Removal: vestigial `tax_fraction` argument to `setSocialSecurity()`
+`withSSTaxability` replaced `tax_fraction` as the way to pin the Social Security taxable
+fraction, but the old argument was left in place and had since fallen out of sync with the code
+that consumes it. It was validated against [0, 1] and recorded on the plan, and it suppressed
+the self-consistent update of `Psi_n` — but never set the level, which fell back to the
+hardcoded 0.85 default. Every value therefore behaved as 0.85, silently: `tax_fraction=0.0`
+and `tax_fraction=1.0` produced bit-identical results. The argument is now removed; pass a
+numeric `withSSTaxability` in the solver options instead, which does set the level. Two
+regression tests were added covering `withSSTaxability=1.0` (previously untested, and
+unreachable through the IRS formula, which caps at 85%) and asserting that distinct fractions
+yield distinct solutions — the property whose absence hid the defect.
+
 ### Version 2026.7.29
 
 #### Bugfix: Social Security and pension claiming ages snap to whole months
