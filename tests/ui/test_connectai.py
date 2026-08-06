@@ -5,8 +5,13 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json
+from pathlib import Path
 
 import connectai
+
+# Streamlit resolves a relative AppTest path against the calling file, so point
+# at the page script from the repository root.
+UI_DIR = Path(__file__).resolve().parents[2] / "ui"
 
 
 def test_server_command_uv():
@@ -45,7 +50,7 @@ def test_page_renders_and_reacts():
     """Smoke-test the page script itself via Streamlit's AppTest harness."""
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file("ui/Connect_your_AI.py", default_timeout=30)
+    at = AppTest.from_file(str(UI_DIR / "Connect_your_AI.py"), default_timeout=30)
     at.run()
     assert not at.exception
     assert any("Connect your AI" in str(m.value) for m in at.markdown)

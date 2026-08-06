@@ -9,12 +9,17 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import assistant_core as core
 import assistant_tools as atools
+
+# Streamlit resolves a relative AppTest path against the calling file, so point
+# at the page script from the repository root.
+UI_DIR = Path(__file__).resolve().parents[2] / "ui"
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +60,7 @@ def test_page_hidden_when_disabled(monkeypatch):
     from streamlit.testing.v1 import AppTest
 
     monkeypatch.delenv("OWL_ASSISTANT", raising=False)
-    at = AppTest.from_file("ui/Assistant.py", default_timeout=30)
+    at = AppTest.from_file(str(UI_DIR / "Assistant.py"), default_timeout=30)
     at.run()
     assert not at.exception
     assert any("disabled" in str(i.value) for i in at.info)
