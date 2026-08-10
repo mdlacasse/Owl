@@ -1,5 +1,14 @@
 ### Version 2026.8.10
 
+#### New: survivor Social Security claiming age in the MCP tools
+`ss_survivor_claim_age` is now a parameter on every MCP solve tool — `run_from_params`,
+`save_case`, `compare_to_baseline`, `explain_results`, `run_stochastic`, `run_year1_robustness`,
+`run_longevity_stochastic`, `run_historical`, and `run_monte_carlo` — accepting `"immediate"`
+(default), `"FRA"`, or an age in 60–70. `save_case` persists it to the generated TOML only when
+it differs from the default, and `compare_to_baseline` applies the same value to both sides,
+since the survivor claiming date is a household input rather than one of the strategies under
+comparison.
+
 #### New: survivor Social Security claiming age
 The date at which a surviving spouse claims the survivor benefit is now a setting rather than a
 fixed assumption. `setSocialSecurity()` takes a `survivor_claim_age` argument, case files take

@@ -91,6 +91,7 @@ as commands and lets you attach resources to the conversation):
 | | `cost_basis` | Taxable cost basis in \$ per person. If omitted, realized gains are modeled from current-year appreciation only (flagged in `assumed_defaults`) |
 | **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement (\$ per month) |
 | | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
+| | `ss_survivor_claim_age` | Couples only — when the surviving spouse claims the survivor benefit: `"immediate"` (default), `"FRA"`, or an age in 60–70. SSA pays the larger of their own benefit and the survivor benefit, so deferring can pay off while their own is still growing. Never starts before age 60 or the first passing; an age past the survivor FRA is capped there |
 | **Pensions** | `pension_monthly_amounts` | Monthly pension in \$ per month per person |
 | | `pension_ages` | Pension commencement ages per person |
 | | `pension_indexed` | CPI-linked flags per person, e.g. `[True, False]` |

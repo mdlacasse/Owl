@@ -829,6 +829,7 @@ def _build_plan_from_params(
     rate_params=None,
     ss_trim_pct=None,
     ss_trim_year=None,
+    ss_survivor_claim_age=None,
     obbba_expiration_year=None,
     dividend_rate=None,
     liquidation_tax_rate=None,
@@ -939,6 +940,7 @@ def _build_plan_from_params(
         ss_claim_ages,
         trim_pct=int(ss_trim_pct) if ss_trim_pct is not None else 0,
         trim_year=int(ss_trim_year) if ss_trim_year is not None else None,
+        survivor_claim_age=ss_survivor_claim_age if ss_survivor_claim_age is not None else "immediate",
     )
 
     # Pensions (monthly $/month, matching Plan API)
@@ -1186,6 +1188,7 @@ def _run_from_params_blocking(
     slcsp=None,
     ss_trim_pct=None,
     ss_trim_year=None,
+    ss_survivor_claim_age=None,
     obbba_expiration_year=None,
     dividend_rate=None,
     liquidation_tax_rate=None,
@@ -1237,6 +1240,7 @@ def _run_from_params_blocking(
         aca_start_year=aca_start_year,
         ss_trim_pct=ss_trim_pct,
         ss_trim_year=ss_trim_year,
+        ss_survivor_claim_age=ss_survivor_claim_age,
         obbba_expiration_year=obbba_expiration_year,
         dividend_rate=dividend_rate,
         liquidation_tax_rate=liquidation_tax_rate,
@@ -1364,6 +1368,7 @@ async def run_from_params(
     ] = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     liquidation_tax_rate: Annotated[
@@ -1610,6 +1615,12 @@ async def run_from_params(
                         baseline scenario.  Default 0 (no reduction).
         ss_trim_year:   Year when the SS benefit reduction begins (e.g. 2033).  Only
                         effective when ss_trim_pct > 0.
+        ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
+                        'immediate' (default, as soon as eligible), 'FRA' (at their
+                        survivor full retirement age), or an explicit age in [60, 70].
+                        SSA pays the larger of the survivor's own benefit and the
+                        survivor benefit, so deferring can pay off when their own
+                        benefit is still growing.  Couples only.
         obbba_expiration_year: Year OBBBA (2025 Tax Reform) rates are assumed to sunset
                         and revert to pre-TCJA levels (default 2032).  Adjusting this
                         models different Congressional scenarios.
@@ -1695,6 +1706,7 @@ async def run_from_params(
             slcsp,
             ss_trim_pct,
             ss_trim_year,
+            ss_survivor_claim_age,
             obbba_expiration_year,
             dividend_rate,
             liquidation_tax_rate,
@@ -1779,6 +1791,7 @@ def save_case(
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     liquidation_tax_rate: float | None = None,
@@ -1847,6 +1860,7 @@ def save_case(
             aca_start_year=aca_start_year,
             ss_trim_pct=ss_trim_pct,
             ss_trim_year=ss_trim_year,
+            ss_survivor_claim_age=ss_survivor_claim_age,
             obbba_expiration_year=obbba_expiration_year,
             dividend_rate=dividend_rate,
             liquidation_tax_rate=liquidation_tax_rate,
@@ -2103,6 +2117,7 @@ async def compare_to_baseline(
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     liquidation_tax_rate: float | None = None,
@@ -2251,6 +2266,7 @@ async def compare_to_baseline(
             aca_start_year=aca_start_year,
             ss_trim_pct=ss_trim_pct,
             ss_trim_year=ss_trim_year,
+            ss_survivor_claim_age=ss_survivor_claim_age,
             obbba_expiration_year=obbba_expiration_year,
             dividend_rate=dividend_rate,
             liquidation_tax_rate=liquidation_tax_rate,
@@ -2376,6 +2392,7 @@ async def explain_results(
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     liquidation_tax_rate: float | None = None,
@@ -2517,6 +2534,7 @@ async def explain_results(
             aca_start_year=aca_start_year,
             ss_trim_pct=ss_trim_pct,
             ss_trim_year=ss_trim_year,
+            ss_survivor_claim_age=ss_survivor_claim_age,
             obbba_expiration_year=obbba_expiration_year,
             dividend_rate=dividend_rate,
             liquidation_tax_rate=liquidation_tax_rate,
@@ -2861,6 +2879,7 @@ async def run_stochastic(
     rate_params: dict | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     n_scenarios: int = 200,
@@ -2971,6 +2990,9 @@ async def run_stochastic(
         ss_trim_pct:          SS trust fund haircut — percent reduction in SS benefits (0–100).
                               Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:         Year when the SS benefit reduction begins (e.g. 2033).
+        ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
+                              'immediate' (default), 'FRA', or an age in [60, 70].
+                              Couples only.
         obbba_expiration_year: Year OBBBA (2025 Tax Reform) rates sunset to pre-TCJA levels
                               (default 2032).
         dividend_rate:        Annual dividend yield for taxable accounts in % (default 1.8).
@@ -3072,6 +3094,7 @@ async def run_stochastic(
                 rate_params=rate_params,
                 ss_trim_pct=ss_trim_pct,
                 ss_trim_year=ss_trim_year,
+                ss_survivor_claim_age=ss_survivor_claim_age,
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
@@ -3273,6 +3296,7 @@ async def run_year1_robustness(
     rate_params: dict | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     n_scenarios: int = 200,
@@ -3392,6 +3416,7 @@ async def run_year1_robustness(
                 rate_params=rate_params,
                 ss_trim_pct=ss_trim_pct,
                 ss_trim_year=ss_trim_year,
+                ss_survivor_claim_age=ss_survivor_claim_age,
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
@@ -3516,6 +3541,7 @@ def _longevity_stochastic_blocking(
     rate_params=None,
     ss_trim_pct=None,
     ss_trim_year=None,
+    ss_survivor_claim_age=None,
     obbba_expiration_year=None,
     dividend_rate=None,
     assumed=None,
@@ -3570,6 +3596,7 @@ def _longevity_stochastic_blocking(
         rate_params=rate_params,
         ss_trim_pct=ss_trim_pct,
         ss_trim_year=ss_trim_year,
+        ss_survivor_claim_age=ss_survivor_claim_age,
         obbba_expiration_year=obbba_expiration_year,
         dividend_rate=dividend_rate,
         assumed=assumed,
@@ -3681,6 +3708,7 @@ async def run_longevity_stochastic(
     rate_params: dict | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     mortality_table: str = "SSA2025",
@@ -3783,6 +3811,9 @@ async def run_longevity_stochastic(
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
+                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         n_scenarios:      Number of Monte Carlo scenarios (mc mode only, default 200).
@@ -3887,6 +3918,7 @@ async def run_longevity_stochastic(
             rate_params,
             ss_trim_pct,
             ss_trim_year,
+            ss_survivor_claim_age,
             obbba_expiration_year,
             dividend_rate,
             assumed,
@@ -3964,6 +3996,7 @@ async def run_historical(
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
@@ -4056,6 +4089,9 @@ async def run_historical(
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
+                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         ystart:           First historical start year to test (default: earliest available, 1928).
@@ -4155,6 +4191,7 @@ async def run_historical(
                 aca_start_year=aca_start_year,
                 ss_trim_pct=ss_trim_pct,
                 ss_trim_year=ss_trim_year,
+                ss_survivor_claim_age=ss_survivor_claim_age,
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
@@ -4273,6 +4310,7 @@ async def run_monte_carlo(
     rate_params: dict | None = None,
     ss_trim_pct: int | None = None,
     ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
     obbba_expiration_year: int | None = None,
     dividend_rate: float | None = None,
     n_scenarios: int = 200,
@@ -4379,6 +4417,9 @@ async def run_monte_carlo(
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
+        ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
+                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
         n_scenarios:      Number of Monte Carlo trials (default 200).
@@ -4472,6 +4513,7 @@ async def run_monte_carlo(
                 rate_params=rate_params,
                 ss_trim_pct=ss_trim_pct,
                 ss_trim_year=ss_trim_year,
+                ss_survivor_claim_age=ss_survivor_claim_age,
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,

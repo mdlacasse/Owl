@@ -1733,3 +1733,99 @@ def test_run_from_params_dividend_rate_accepted():
     r = json.loads(_run(run_from_params(**_SCENARIO_PARAMS, dividend_rate=3.0)))
     assert r["status"] == "solved"
     assert r["summary"]["spending_basis_today_dollars"] > 0
+
+
+# ---------------------------------------------------------------------------
+# ss_survivor_claim_age through the MCP surface
+# ---------------------------------------------------------------------------
+
+# Alice (older) dies while Bob is 62.5 — between age 60 and his survivor FRA of 67 —
+# which is the only configuration where the claiming date changes anything.
+_SURVIVOR_DATES = dict(
+    birth_dates=["1958-07-01", "1970-07-01"],
+    life_expectancy=[74, 95],
+    ss_monthly_pias=[3000, 1500],
+)
+
+
+def _survivor_couple(**kwargs):
+    return _couple(**_SURVIVOR_DATES, **kwargs)
+
+
+def test_build_plan_from_params_defaults_survivor_claim_age():
+    """Omitting the parameter reproduces the previous behavior."""
+    assert _survivor_couple().ssecSurvivorClaimAge == "immediate"
+
+
+@pytest.mark.parametrize("value,expected", [("immediate", "immediate"), ("FRA", "FRA"), ("fra", "FRA"), (63, 63.0)])
+def test_build_plan_from_params_accepts_survivor_claim_age(value, expected):
+    """Every accepted form reaches the Plan, normalized."""
+    assert _survivor_couple(ss_survivor_claim_age=value).ssecSurvivorClaimAge == expected
+
+
+def test_survivor_claim_age_changes_the_benefit_stream():
+    """Deferring to FRA moves the modeled benefits, not just the stored setting."""
+    import numpy as np
+
+    now = _survivor_couple(ss_survivor_claim_age="immediate")
+    fra = _survivor_couple(ss_survivor_claim_age="FRA")
+    assert not np.allclose(now.zeta_in, fra.zeta_in)
+    # Only the survivor's own row moves; deferring to FRA drops the permanent reduction.
+    assert np.allclose(now.zeta_in[0], fra.zeta_in[0])
+    assert fra.zeta_in[1].max() > now.zeta_in[1].max()
+
+
+def test_build_plan_from_params_rejects_bad_survivor_claim_age():
+    for bad in ("someday", 55, 72):
+        with pytest.raises(ValueError):
+            _survivor_couple(ss_survivor_claim_age=bad)
+
+
+@pytest.mark.toml
+def test_run_from_params_with_survivor_claim_age():
+    """The parameter is accepted end to end by run_from_params."""
+    result = _run(
+        run_from_params(
+            names=["Alice", "Bob"],
+            state="TX",
+            taxable=[150_000, 150_000],
+            tax_deferred=[600_000, 600_000],
+            roth=[75_000, 75_000],
+            ss_ages=[67, 67],
+            rate_method="conservative",
+            ss_survivor_claim_age="FRA",
+            **_SURVIVOR_DATES,
+        )
+    )
+    data = json.loads(result)
+    assert data["status"] == "solved"
+    assert data["spending_year1_nominal"] > 0
+
+
+def _save_survivor_case(td, **kwargs):
+    return json.loads(
+        save_case(
+            names=["Alice", "Bob"],
+            taxable=[150_000, 150_000],
+            tax_deferred=[600_000, 600_000],
+            roth=[75_000, 75_000],
+            ss_ages=[67, 67],
+            output_dir=td,
+            **_SURVIVOR_DATES,
+            **kwargs,
+        )
+    )
+
+
+def test_save_case_persists_survivor_claim_age(tmp_path):
+    """save_case round-trips the setting into the TOML it writes."""
+    data = _save_survivor_case(str(tmp_path), case_name="surv", ss_survivor_claim_age="FRA")
+    assert "error" not in data, data
+    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text()
+
+
+def test_save_case_omits_default_survivor_claim_age(tmp_path):
+    """The default is not written, keeping generated case files clean."""
+    data = _save_survivor_case(str(tmp_path), case_name="surv_default")
+    assert "error" not in data, data
+    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text()
