@@ -1,3 +1,52 @@
+### Version 2026.8.10
+
+#### New: survivor Social Security claiming age
+The date at which a surviving spouse claims the survivor benefit is now a setting rather than a
+fixed assumption. `setSocialSecurity()` takes a `survivor_claim_age` argument, case files take
+`social_security_survivor_claim_age` in `[fixed_income]`, and the Streamlit **Fixed Income** page
+exposes it under *Advanced options* for married cases. Accepted values are `"immediate"` (the
+default, and the previous behavior), `"FRA"` (the survivor's full retirement age), or an explicit
+age in 60–70. A survivor benefit never starts before age 60 or before the first passing, and an
+age beyond the survivor FRA is capped there since survivor benefits earn no delayed retirement
+credits. Whenever one of those constraints overrides the requested age the plan log carries a
+`WARNING` naming the age actually used and why; separately, a claiming age below the survivor
+FRA is reported with the resulting permanent reduction, since that is easy to select without
+intending it. The setting works in both the default self-consistent-loop mode and under
+`withSSAges="optimize"`, and is re-resolved per scenario under stochastic longevity sampling —
+it is a policy ("claim at the survivor's FRA"), not a fixed calendar date.
+
+The default remains `"immediate"`, which reproduces the previous behavior, so no existing case
+file changes its results on load.
+
+#### Bugfix: survivor no longer forfeits their own Social Security benefit
+Own, spousal, and survivor entitlements are now built as three separate streams and combined the
+way SSA pays them — own plus excess spousal while both spouses are alive, and the greater of own
+and survivor from the first death onward. Previously the survivor benefit was written over the
+survivor's entire remaining horizon with a single one-shot comparison made in the year of death.
+Three defects followed from that, all fixed here:
+
+- A survivor who had not yet started their own benefit when their spouse died had it erased for
+  life, because the comparison saw a zero own benefit and the assignment overwrote everything
+  after it. For a survivor with the larger earnings record deferring to 70, this silently dropped
+  roughly \$20k/year for the rest of the plan — and it happened regardless of the survivor's age
+  at the first death, including well past their survivor FRA.
+- A survivor whose own benefit won the one-shot comparison was never stepped up to the unreduced
+  survivor benefit at their survivor FRA.
+- A survivor under 60 at the first death began collecting immediately. The age-60 minimum was
+  applied to the reduction factor but not to the start date.
+
+Under `withSSAges="optimize"` the same overwrite drove the spousal/survivor parameter offset
+sharply negative, feeding the LP a phantom income deduction for every candidate claiming age.
+The offset is now the excess survivor amount and is non-negative by construction. When the
+first-to-die's claiming age is not itself a decision variable — the common case, since that
+spouse is usually already collecting — the survivor stream is folded directly into the
+own-benefit table, making the post-death payout exact for every candidate claiming age instead
+of approximated across self-consistent iterations.
+
+Reference objective values for the example cases are unchanged: in every married example the
+survivor is already collecting and past their survivor FRA when the first death occurs, which is
+precisely the configuration the old code handled correctly.
+
 ### Version 2026.8.2
 
 #### Removal: vestigial `tax_fraction` argument to `setSocialSecurity()`

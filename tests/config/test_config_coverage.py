@@ -412,3 +412,27 @@ def test_save_config_no_double_case_prefix(tmp_path):
         bad = tmp_path / f"case_{name}.toml"
         assert not bad.exists(), f"Double-prefix file {bad} must not be created"
         target.unlink()  # clean up for next iteration
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [("immediate", "immediate"), ("FRA", "FRA"), ("fra", "FRA"), (63.0, 63.0), (66.5, 66.5)],
+)
+def test_survivor_claim_age_toml_roundtrip(tmp_path, value, expected):
+    """The survivor claiming age survives a save/load cycle, benefit series included."""
+    import numpy as np
+
+    p = owl.Plan(["Joe", "Jane"], ["1958-06-15", "1963-06-15"], [80, 95], "surv", verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[100, 50], taxDeferred=[200, 100], taxFree=[50, 25])
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]] * 2)
+    p.setRates("conservative")
+    p.setSocialSecurity([2000, 3000], [67, 70], survivor_claim_age=value)
+    assert p.ssecSurvivorClaimAge == expected
+
+    target = tmp_path / "Case_surv.toml"
+    config.saveConfig(p, str(target.with_suffix("")), p.mylog)
+    reloaded = config.readConfig(str(target.with_suffix("")), verbose=False)
+
+    assert reloaded.ssecSurvivorClaimAge == expected
+    assert np.allclose(reloaded.zeta_in, p.zeta_in)

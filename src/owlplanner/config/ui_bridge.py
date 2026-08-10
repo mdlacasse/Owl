@@ -30,8 +30,10 @@ from owlplanner.config.defaults import (
     DEFAULT_OBBBA_YEAR,
     DEFAULT_PENSION_AGE,
     DEFAULT_SS_AGE,
+    DEFAULT_SS_SURVIVOR_CLAIM_AGE,
 )
 from owlplanner.config.schema import KNOWN_SECTIONS
+from owlplanner.socialsecurity import validate_survivor_claim_age
 from owlplanner.rates import FROM, get_fixed_rate_values
 from owlplanner.utils import derive_swap_roth_converters, parse_swap_roth_converters
 from owlplanner.rate_models.constants import (
@@ -255,6 +257,16 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
 
     dic["ssTrimPct"] = int(ss_trim_pct) if ss_trim_pct is not None else 0
     dic["ssTrimYear"] = int(ss_trim_year) if ss_trim_year is not None else 2033
+    # Survivor claiming age: the keyword forms map to a mode, an explicit age to mode "age"
+    # plus a years+months pair, matching how the own claiming ages are entered.
+    ss_surv = fi.get("social_security_survivor_claim_age") or DEFAULT_SS_SURVIVOR_CLAIM_AGE
+    ss_surv = validate_survivor_claim_age(ss_surv)  # accepts a hand-written lower-case 'fra'
+    if isinstance(ss_surv, str):
+        dic["ssSurvivorMode"] = ss_surv
+        dic["ssSurvivorAge_y"], dic["ssSurvivorAge_m"] = int(DEFAULT_SS_AGE), 0
+    else:
+        dic["ssSurvivorMode"] = "age"
+        dic["ssSurvivorAge_y"], dic["ssSurvivorAge_m"] = _age_float_to_ym(float(ss_surv))
     is_married = status == "married"
     spia_inds = fi.get("spia_individuals", [])
     spia_years = fi.get("spia_buy_years", [])
@@ -474,6 +486,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "pension_survivor_fraction": [],
             "social_security_pia_amounts": [],
             "social_security_ages": [],
+            "social_security_survivor_claim_age": DEFAULT_SS_SURVIVOR_CLAIM_AGE,
         },
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": _get_ui(uidic, "heirsTx", DEFAULT_HEIRS_RATE, float),
@@ -538,6 +551,13 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     diconf["fixed_income"]["social_security_trim_year"] = int(
         trim_year_val if trim_year_val not in (None, "") else 2033
     )
+    surv_mode = uidic.get("ssSurvivorMode") or DEFAULT_SS_SURVIVOR_CLAIM_AGE
+    if surv_mode == "age":
+        surv_y = _get_ui(uidic, "ssSurvivorAge_y", int(DEFAULT_SS_AGE), int)
+        surv_m = _get_ui(uidic, "ssSurvivorAge_m", 0, int)
+        diconf["fixed_income"]["social_security_survivor_claim_age"] = surv_y + surv_m / 12.0
+    else:
+        diconf["fixed_income"]["social_security_survivor_claim_age"] = surv_mode
     spiadf = uidic.get("spiaDF")
     inames = [names[i] if i < len(names) else "" for i in range(2)]
     if spiadf is not None and isinstance(spiadf, pd.DataFrame) and len(spiadf) > 0:

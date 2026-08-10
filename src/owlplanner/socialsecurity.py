@@ -21,11 +21,12 @@ Limitations and known omissions:
   under FRA all year). This tool assumes users are retired with no earned income
   above the exempt amount.
 
-- Survivor benefit timing: survivor benefits are modeled as claimed immediately in
-  the year of the spouse's death (if the survivor is at least 60). In practice, a
-  survivor may choose to defer claiming to maximize lifetime benefits (e.g., take
-  their own growing benefit to age 70 then switch). This deferral strategy is not
-  modeled.
+- Survivor benefit timing: the date at which the survivor claims the survivor benefit
+  is a user setting (``survivor_claim_age``), not an optimized decision. Owl models
+  the survivor's own benefit and the survivor benefit as two independent streams and
+  pays the greater of the two in each year, so switching strategies (e.g. take the
+  survivor benefit at 60 and let one's own benefit grow to 70) are represented, but
+  the best claiming date is not searched for automatically.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -42,14 +43,26 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-Public API (used by plan.py): getFRAs, compute_social_security_benefits.
+Public API (used by plan.py): getFRAs, compute_social_security_benefits,
+build_own_benefit_table, compute_survivor_stream, apply_survivor_to_benefit_table,
+validate_survivor_claim_age.
 All other functions are internal and may change without notice.
 """
 
-__all__ = ["getFRAs", "compute_social_security_benefits", "build_own_benefit_table"]
+__all__ = [
+    "getFRAs",
+    "getSurvivorFRAs",
+    "compute_social_security_benefits",
+    "build_own_benefit_table",
+    "compute_survivor_stream",
+    "survivor_claim_window",
+    "apply_survivor_to_benefit_table",
+    "validate_survivor_claim_age",
+]
 
 import numpy as np
 from datetime import date
+from typing import NamedTuple
 
 # SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
 # Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
@@ -143,7 +156,17 @@ def getFRAs(yobs, mobs, tobs):
 
 
 def getSurvivorFRAs(yobs, mobs, tobs):
-    """Return survivor FRA from birth date. Same Jan-1 rule as getFRAs. Internal use only."""
+    """
+    Return the survivor full retirement age from birth date.
+
+    This is a *different* SSA schedule from the retirement FRA returned by :func:`getFRAs`,
+    and can fall up to four months earlier for the same person: someone born in 1960 reaches
+    their survivor FRA at 66 years 8 months but their retirement FRA at 67. Both are derived
+    from the survivor's own birth date, and the same Jan-1 rule applies.
+
+    A survivor benefit is reduced when claimed before this age and earns no delayed
+    retirement credits after it.
+    """
     yobs = np.asarray(yobs)
     n = len(yobs)
     mobs = np.broadcast_to(np.asarray(mobs), n)
@@ -326,42 +349,298 @@ def getSpousalFactor(fra, convage, bornOnFirstDays):
     return _reduction_factor(diff, 0.0, _SPOUSAL_REDUCTION_RATE, 0.75)
 
 
-def _add_spousal_benefit(zeta_in, i, nd, spousal_amount, fra, yobs, mobs, ages, tobs, thisyear):
+def _payment_start(yob, mob, claim_age, thisyear):
     """
-    Apply spousal benefit to zeta_in[i, :] starting from the later of both spouses' claim dates.
+    Return (n_start, first_year_fraction) for a benefit claimed at ``claim_age``.
+
+    Benefits are paid in arrears: the first check arrives the month after the claiming
+    age is attained. ``n_start`` is the plan-year index of that first check (may be
+    negative if it predates the plan), and ``first_year_fraction`` is the share of that
+    year actually covered by payments.
+    """
+    janage = claim_age + (mob - 1) / 12
+    payment_janage = janage + 1 / 12
+    n_start = int(yob + int(payment_janage) - thisyear)
+    return n_start, 1.0 - (payment_janage % 1.0)
+
+
+def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, ages, tobs, thisyear):
+    """
+    Apply spousal benefit to spousal_in[i, :] starting from the later of both spouses' claim dates.
 
     The spousal benefit begins when the last spouse has started collecting (since the
-    spousal benefit requires the higher-earning spouse to be collecting first).
+    spousal benefit requires the higher-earning spouse to be collecting first), and ends
+    at ``nd``, which the caller truncates to the year of the first death: entitlement as a
+    spouse ceases then and is replaced by the survivor benefit.
     """
     latest_claim_year = float(np.max(yobs + (mobs - 1) / 12 + ages))
     claim_age = latest_claim_year - yobs[i] - (mobs[i] - 1) / 12
     payment_claim_year = latest_claim_year + 1 / 12
     ns2 = max(0, int(payment_claim_year) - thisyear)
+    if ns2 >= nd:
+        return  # Spousal benefit would start at or after the end of entitlement.
     spousal_factor = getSpousalFactor(fra, claim_age, bool(tobs[i] == 1))
-    zeta_in[i, ns2:nd] += spousal_amount * spousal_factor
-    zeta_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
+    spousal_in[i, ns2:nd] += spousal_amount * spousal_factor
+    spousal_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
 
 
-def _apply_survivor_benefit(
-    zeta_in, earlier_idx, survivor_idx, death_year_n, survivor_horizon, pia_earlier, survivor_factor
-):
-    """Assign the surviving spouse's benefit from the year of first death onward.
-
-    Two SSA rules are applied in order:
-    1. 82.5% PIA floor (CFR § 404.338): survivor receives max(deceased actual, 0.825 × PIA).
-    2. Survivor claiming-age reduction: if the survivor is below their survivor FRA at the
-       time of death, the benefit is further reduced linearly toward 71.5% at age 60.
-
-    Note: zeta_in is still in monthly units here (×12 annualisation happens after this call),
-    so pia_earlier is also monthly.
+def validate_survivor_claim_age(survivor_claim_age):
     """
-    deceased_benefit = zeta_in[earlier_idx, death_year_n - 1]
-    survivor_benefit = max(deceased_benefit, 0.825 * pia_earlier) * survivor_factor
-    zeta_in[survivor_idx, death_year_n:survivor_horizon] = survivor_benefit
+    Normalize and validate a survivor claiming-age setting.
+
+    Accepted values are the keyword ``"immediate"``, the keyword ``"FRA"`` (the survivor's
+    full retirement age), or a numeric age in [60, 70]. Keywords are matched
+    case-insensitively and returned in canonical form; ages are returned as floats.
+
+    Raises
+    ------
+    ValueError
+        If the value is neither a recognized keyword nor an age in [60, 70].
+    """
+    if isinstance(survivor_claim_age, str):
+        key = survivor_claim_age.strip().lower()
+        if key == "immediate":
+            return "immediate"
+        if key == "fra":
+            return "FRA"
+        try:
+            age = float(key)
+        except ValueError:
+            raise ValueError(
+                f"Unknown survivor_claim_age {survivor_claim_age!r}; expected 'immediate', 'FRA', or an age."
+            )
+    else:
+        age = float(survivor_claim_age)
+
+    if not (60 <= age <= 70):
+        raise ValueError(f"survivor_claim_age {age} outside range [60, 70].")
+    return age
+
+
+def _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death):
+    """
+    Return the survivor's age when the survivor benefit begins.
+
+    A survivor benefit cannot start before age 60 nor before the spouse's death, and it
+    earns no delayed retirement credits past the survivor full retirement age (FRA), so an
+    explicit age beyond that is capped there.
+    """
+    earliest = max(60.0, float(age_at_death))
+    setting = validate_survivor_claim_age(survivor_claim_age)
+    if setting == "immediate":
+        return earliest
+    if setting == "FRA":
+        return max(float(survivor_fra), earliest)
+    return max(min(setting, float(survivor_fra)), earliest)
+
+
+class SurvivorStream(NamedTuple):
+    """Survivor benefit stream and the parameters it was derived from."""
+
+    survivor_idx: int  # Index of the surviving spouse (-1 if there is no survivor period)
+    deceased_idx: int  # Index of the spouse who dies first
+    death_year_n: int  # Plan year of the first death (N_n if there is none)
+    claim_age: float  # Survivor's age when the survivor benefit begins
+    survivor_fra: float  # Survivor full retirement age
+    age_at_death: float  # Survivor's age in the year of the first death
+    requested_age: object  # The setting as supplied, before clamping (for logging)
+    annual: np.ndarray  # Shape (N_n,), annual survivor benefit in today's dollars
+
+
+def _survivor_period(horizons, N_i, N_n):
+    """Return (death_year_n, deceased_idx, survivor_idx); survivor_idx is -1 if no survivor."""
+    if N_i == 2 and np.min(horizons) != np.max(horizons):
+        death_year_n = int(np.min(horizons))
+        deceased_idx = int(np.argmax(horizons == death_year_n))
+        return death_year_n, deceased_idx, (deceased_idx + 1) % 2
+    return N_n, 0, -1
+
+
+def survivor_claim_window(yobs, mobs, tobs, end_years):
+    """
+    Describe the survivor benefit claiming window implied by a set of birth dates and lifespans.
+
+    Intended for callers that hold dates and life expectancies rather than a built plan (the
+    Streamlit page, for instance) and need to know which choices are payable before solving.
+
+    Parameters
+    ----------
+    yobs, mobs, tobs : array-like
+        Birth year, month, and day-of-month, one per individual.
+    end_years : array-like
+        Last calendar year of life, one per individual (birth year + life expectancy).
+
+    Returns
+    -------
+    dict or None
+        ``None`` when there is no survivor period (a single individual, or two lifespans
+        ending in the same year). Otherwise the surviving spouse's index, their survivor
+        FRA, and the age they reach in the year of the first passing.
+
+        The age at the first passing is the *deterministic* lower end of the window only.
+        Under stochastic longevity the death year is redrawn per scenario, so a claiming
+        age below it remains meaningful and should be reported rather than forbidden.
+    """
+    end_years = [int(y) for y in end_years]
+    if len(end_years) != 2 or end_years[0] == end_years[1]:
+        return None
+
+    deceased_idx = 0 if end_years[0] < end_years[1] else 1
+    survivor_idx = 1 - deceased_idx
+    survivor_fra = getSurvivorFRAs(
+        [yobs[survivor_idx]], [mobs[survivor_idx]], [tobs[survivor_idx]]
+    )[0]
+    # Owl's convention: the horizon ends after end_years, so the first passing falls in the
+    # following plan year -- the same year compute_survivor_stream measures the age against.
+    death_year = end_years[deceased_idx] + 1
+    return {
+        "survivor_idx": survivor_idx,
+        "deceased_idx": deceased_idx,
+        "survivor_fra": float(survivor_fra),
+        "age_at_first_passing": death_year - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12,
+    }
+
+
+def compute_survivor_stream(
+    pias,
+    ages,
+    yobs,
+    mobs,
+    tobs,
+    horizons,
+    N_i,
+    N_n,
+    survivor_claim_age="immediate",
+    trim_pct=0,
+    trim_year=None,
+    thisyear=None,
+):
+    """
+    Compute the surviving spouse's survivor benefit as a standalone annual stream.
+
+    The amount follows CFR § 404.338: the greater of the deceased's actual benefit at
+    death and 82.5% of their PIA, reduced by ``_survivor_factor`` when claimed before the
+    survivor FRA. The start date comes from ``survivor_claim_age`` and is never earlier
+    than age 60 or the year of the first death.
+
+    This is the same stream ``compute_social_security_benefits`` combines with the
+    survivor's own benefit; it is exposed separately so the SS claiming-age MIP can fold
+    it into its own-benefit table (see :func:`apply_survivor_to_benefit_table`).
+
+    Returns
+    -------
+    SurvivorStream
+        With ``survivor_idx == -1`` and an all-zero ``annual`` when there is no survivor
+        period (single individual, or both horizons ending together).
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    pias = np.asarray(pias, dtype=np.int32)
+    ages = np.asarray(ages, dtype=np.float64)
+    death_year_n, deceased_idx, survivor_idx = _survivor_period(horizons, N_i, N_n)
+
+    annual = np.zeros(N_n)
+    if survivor_idx < 0 or death_year_n >= N_n:
+        return SurvivorStream(-1, deceased_idx, death_year_n, 0.0, 0.0, 0.0, survivor_claim_age, annual)
+
+    survivor_fra = getSurvivorFRAs(
+        yobs[survivor_idx : survivor_idx + 1],
+        mobs[survivor_idx : survivor_idx + 1],
+        tobs[survivor_idx : survivor_idx + 1],
+    )[0]
+    age_at_death = (thisyear + death_year_n) - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12
+    claim_age = _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death)
+
+    # The deceased's own monthly benefit as of death, unaffected by any partial first year.
+    fra_deceased = getFRAs(yobs, mobs, tobs)[deceased_idx]
+    started_n, _ = _payment_start(yobs[deceased_idx], mobs[deceased_idx], ages[deceased_idx], thisyear)
+    if started_n < death_year_n:
+        deceased_monthly = pias[deceased_idx] * getSelfFactor(
+            fra_deceased, ages[deceased_idx], bool(tobs[deceased_idx] == 1)
+        )
+    else:
+        deceased_monthly = 0.0  # Died before claiming; only the 82.5% PIA floor applies.
+
+    monthly = max(deceased_monthly, 0.825 * pias[deceased_idx]) * _survivor_factor(survivor_fra, claim_age)
+
+    n_raw, frac = _payment_start(yobs[survivor_idx], mobs[survivor_idx], claim_age, thisyear)
+    hs = min(int(horizons[survivor_idx]), N_n)
+    if n_raw > death_year_n:
+        n_surv, first_frac = n_raw, frac
+    else:
+        # Entitlement opens with the death; Owl's convention pays the survivor the full death year.
+        n_surv, first_frac = death_year_n, 1.0
+
+    if n_surv < hs:
+        annual[n_surv:hs] = monthly * 12
+        annual[n_surv] *= first_frac
+
+    if trim_pct > 0 and trim_year is not None:
+        trim_n = max(0, trim_year - thisyear)
+        if trim_n < N_n:
+            annual[trim_n:] *= 1.0 - trim_pct / 100
+
+    return SurvivorStream(
+        survivor_idx,
+        deceased_idx,
+        death_year_n,
+        claim_age,
+        float(survivor_fra),
+        float(age_at_death),
+        survivor_claim_age,
+        annual,
+    )
+
+
+def apply_survivor_to_benefit_table(B_own, survivor, gamma_n):
+    """
+    Overlay a survivor benefit stream onto the survivor's rows of an own-benefit table.
+
+    For the surviving spouse and every plan year at or after the first death, the entry
+    becomes the greater of the own benefit for that candidate claiming age and the
+    survivor benefit — exactly what SSA pays. Folding the survivor benefit into the table
+    this way makes the post-death payout exact for every candidate claiming age, so the
+    SS claiming-age MIP needs no parameter offset after the first death.
+
+    Parameters
+    ----------
+    B_own : ndarray, shape (N_i, N_K, N_n)
+        Own-benefit table from :func:`build_own_benefit_table`, in nominal dollars.
+    survivor : SurvivorStream
+        From :func:`compute_survivor_stream`; ``annual`` is in today's dollars.
+    gamma_n : array, shape (N_n,)
+        Cumulative inflation factors, matching those passed to ``build_own_benefit_table``.
+
+    Returns
+    -------
+    ndarray
+        A copy of ``B_own`` with the overlay applied. Returned unchanged (as a copy) when
+        there is no survivor period.
+    """
+    B_eff = np.array(B_own, dtype=float, copy=True)
+    if survivor.survivor_idx < 0:
+        return B_eff
+
+    nd = survivor.death_year_n
+    surv_nominal = survivor.annual[nd:] * gamma_n[nd:]
+    B_eff[survivor.survivor_idx, :, nd:] = np.maximum(B_eff[survivor.survivor_idx, :, nd:], surv_nominal)
+    return B_eff
 
 
 def compute_social_security_benefits(
-    pias, ages, yobs, mobs, tobs, horizons, N_i, N_n, trim_pct=0, trim_year=None, thisyear=None
+    pias,
+    ages,
+    yobs,
+    mobs,
+    tobs,
+    horizons,
+    N_i,
+    N_n,
+    trim_pct=0,
+    trim_year=None,
+    thisyear=None,
+    survivor_claim_age="immediate",
 ):
     """
     Compute annual Social Security benefits by individual and year.
@@ -369,6 +648,13 @@ def compute_social_security_benefits(
     Benefits are paid in arrears (one month after eligibility). Handles own benefits,
     spousal benefits, survivor benefits, and optional trim. Ages may be adjusted for
     eligibility (e.g. reset to 62 if below).
+
+    Own, spousal, and survivor entitlements are built as three separate streams and then
+    combined the way SSA pays them: while both spouses are alive each receives their own
+    benefit plus any excess spousal amount; from the year of the first death the survivor
+    receives the greater of their own benefit and the survivor benefit, and the spousal
+    add-on ends. Because the two post-death streams keep their own start dates, a survivor
+    who has not yet claimed does not forfeit their own (still growing) benefit.
 
     Parameters
     ----------
@@ -394,6 +680,11 @@ def compute_social_security_benefits(
         Calendar year when trim begins (required if trim_pct > 0)
     thisyear : int or None
         Current calendar year (default: date.today().year)
+    survivor_claim_age : str or float
+        When the surviving spouse claims the survivor benefit: ``"immediate"`` (default,
+        as soon as eligible), ``"FRA"`` (at the survivor FRA), or an explicit age in
+        [60, 70]. Never earlier than age 60 or the first death, and capped at the
+        survivor FRA since survivor benefits earn no delayed retirement credits.
 
     Returns
     -------
@@ -409,19 +700,13 @@ def compute_social_security_benefits(
     ages = np.asarray(ages, dtype=np.float64).copy()
 
     # Identify which spouse dies first (shorter horizon) so survivor benefit can be applied later.
-    if N_i == 2 and np.min(horizons) != np.max(horizons):
-        death_year_n = int(np.min(horizons))
-        earlier_idx = int(np.argmax(horizons == death_year_n))
-        survivor_idx = (earlier_idx + 1) % 2
-    else:
-        death_year_n = N_n
-        earlier_idx = 0
-        survivor_idx = -1
+    death_year_n, _, survivor_idx = _survivor_period(horizons, N_i, N_n)
 
     fras = getFRAs(yobs, mobs, tobs)
     spousalBenefits = getSpousalBenefits(pias)
 
-    zeta_in = np.zeros((N_i, N_n))
+    own_in = np.zeros((N_i, N_n))
+    spousal_in = np.zeros((N_i, N_n))
     for i in range(N_i):
         # Eligibility: born on 1st or 2nd can claim in their birthday month (or prior for 1st).
         # Factor shift: only born on 1st attains age one month early, warranting +1/12 SSA age.
@@ -431,51 +716,47 @@ def compute_social_security_benefits(
         if round(ages[i] * 12) < round(eligible * 12):
             ages[i] = eligible
 
-        janage = ages[i] + (mobs[i] - 1) / 12
-        paymentJanage = janage + 1 / 12
-        paymentIage = int(paymentJanage)
-        payment_start_n = yobs[i] + paymentIage - thisyear
+        payment_start_n, frac = _payment_start(yobs[i], mobs[i], ages[i], thisyear)
         ns = max(0, payment_start_n)
-        nd = horizons[i]
-        zeta_in[i, ns:nd] = pias[i]
+        nd = int(horizons[i])
+        own_in[i, ns:nd] = pias[i]
         if payment_start_n >= 0 and ns < nd:
-            zeta_in[i, ns] *= 1 - (paymentJanage % 1.0)
+            own_in[i, ns] *= frac
 
-        zeta_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)
+        own_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)
 
         if N_i == 2 and spousalBenefits[i] > 0:
-            _add_spousal_benefit(zeta_in, i, nd, spousalBenefits[i], fras[i], yobs, mobs, ages, tobs, thisyear)
-
-    if N_i == 2 and death_year_n < N_n:
-        # Compute the survivor's age at the death year to apply the claiming-age reduction.
-        survivor_fra = getSurvivorFRAs(
-            yobs[survivor_idx : survivor_idx + 1],
-            mobs[survivor_idx : survivor_idx + 1],
-            tobs[survivor_idx : survivor_idx + 1],
-        )[0]
-        survivor_age_at_death = (thisyear + death_year_n) - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12
-        # SSA: survivor benefits cannot begin before age 60; clamp for the factor calculation.
-        survivor_factor = _survivor_factor(survivor_fra, max(survivor_age_at_death, 60))
-        # Effective benefit: 82.5% PIA floor first, then survivor claiming-age reduction.
-        deceased_effective = max(zeta_in[earlier_idx, death_year_n - 1], 0.825 * pias[earlier_idx])
-        if deceased_effective * survivor_factor > zeta_in[survivor_idx, death_year_n - 1]:
-            _apply_survivor_benefit(
-                zeta_in,
-                earlier_idx,
-                survivor_idx,
-                death_year_n,
-                horizons[survivor_idx],
-                pias[earlier_idx],
-                survivor_factor,
+            # Spousal entitlement ends at the first death, when the survivor benefit takes over.
+            _add_spousal_benefit(
+                spousal_in, i, min(nd, death_year_n), spousalBenefits[i], fras[i], yobs, mobs, ages, tobs, thisyear
             )
 
-    zeta_in *= 12
+    zeta_in = (own_in + spousal_in) * 12
 
     if trim_pct > 0 and trim_year is not None:
-        trim = 1.0 - trim_pct / 100
         trim_n = max(0, trim_year - thisyear)
-        if 0 <= trim_n < N_n:
-            zeta_in[:, trim_n:] *= trim
+        if trim_n < N_n:
+            zeta_in[:, trim_n:] *= 1.0 - trim_pct / 100
+
+    if survivor_idx >= 0 and death_year_n < N_n:
+        survivor = compute_survivor_stream(
+            pias,
+            ages,
+            yobs,
+            mobs,
+            tobs,
+            horizons,
+            N_i,
+            N_n,
+            survivor_claim_age=survivor_claim_age,
+            trim_pct=trim_pct,
+            trim_year=trim_year,
+            thisyear=thisyear,
+        )
+        # SSA pays the greater of the survivor's own benefit and the survivor benefit.
+        zeta_in[survivor_idx, death_year_n:] = np.maximum(
+            zeta_in[survivor_idx, death_year_n:], survivor.annual[death_year_n:]
+        )
 
     return zeta_in, ages
 

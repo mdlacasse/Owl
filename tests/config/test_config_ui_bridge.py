@@ -740,3 +740,69 @@ def _minimal_config_for_rates():
         "solver_options": {},
         "results": {"default_plots": "nominal"},
     }
+
+
+@pytest.mark.parametrize(
+    "value,expected_mode,expected_y,expected_m",
+    [
+        ("immediate", "immediate", 67, 0),
+        ("FRA", "FRA", 67, 0),
+        (64.0, "age", 64, 0),
+        (66.5, "age", 66, 6),
+    ],
+)
+def test_config_roundtrip_survivor_claim_age(value, expected_mode, expected_y, expected_m):
+    """Every form of social_security_survivor_claim_age survives a UI round-trip."""
+    diconf = _minimal_config_for_rates()
+    diconf["fixed_income"]["social_security_survivor_claim_age"] = value
+
+    uidic = config_to_ui(diconf)
+    assert uidic["ssSurvivorMode"] == expected_mode
+    assert uidic["ssSurvivorAge_y"] == expected_y
+    assert uidic["ssSurvivorAge_m"] == expected_m
+
+    out = ui_to_config(uidic)
+    assert out["fixed_income"]["social_security_survivor_claim_age"] == value
+
+
+def test_config_survivor_claim_age_defaults_to_immediate():
+    """A config with no survivor claiming key behaves as 'immediate'."""
+    diconf = _minimal_config_for_rates()
+    diconf["fixed_income"].pop("social_security_survivor_claim_age", None)
+
+    uidic = config_to_ui(diconf)
+    assert uidic["ssSurvivorMode"] == "immediate"
+    assert ui_to_config(uidic)["fixed_income"]["social_security_survivor_claim_age"] == "immediate"
+
+
+def test_plan_to_config_survivor_claim_age():
+    """plan_to_config writes the setting only when it differs from the default."""
+    from owlplanner.config import plan_to_config
+
+    def _couple():
+        p = owl.Plan(["Joe", "Jane"], ["1961-01-15", "1963-01-15"], [80, 90], "test", verbose=False)
+        p.setSpendingProfile("flat")
+        p.setAccountBalances(taxable=[100, 50], taxDeferred=[200, 100], taxFree=[50, 25])
+        p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]] * 2)
+        p.setRates("gaussian", values=[7.0, 4.0, 3.3, 2.8], stdev=[17.0, 8.0, 10.0, 3.0])
+        return p
+
+    p = _couple()
+    p.setSocialSecurity([2000, 1500], [67, 67])  # default
+    assert "social_security_survivor_claim_age" not in plan_to_config(p)["fixed_income"]
+
+    p = _couple()
+    p.setSocialSecurity([2000, 1500], [67, 67], survivor_claim_age="FRA")
+    assert plan_to_config(p)["fixed_income"]["social_security_survivor_claim_age"] == "FRA"
+
+    p = _couple()
+    p.setSocialSecurity([2000, 1500], [67, 67], survivor_claim_age=63)
+    assert plan_to_config(p)["fixed_income"]["social_security_survivor_claim_age"] == 63.0
+
+
+def test_plan_rejects_bad_survivor_claim_age():
+    """Out-of-range or unrecognized survivor claiming ages are rejected at the API."""
+    p = owl.Plan(["Joe", "Jane"], ["1961-01-15", "1963-01-15"], [80, 90], "test", verbose=False)
+    for bad in ("someday", 55, 72):
+        with pytest.raises(ValueError):
+            p.setSocialSecurity([2000, 1500], [67, 67], survivor_claim_age=bad)

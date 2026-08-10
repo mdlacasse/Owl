@@ -348,7 +348,14 @@ the own FRA schedule) and no bonus for deferral beyond FRA.
 
 The survivor benefit is the greater of the deceased spouse's actual benefit and
 82.5\% of the deceased's PIA, reduced if the survivor claims before their own
-survivor FRA (minimum 71.5\% at age~60).
+survivor FRA (minimum 71.5\% at age~60, interpolated linearly in the claiming month).
+Unlike the retirement benefit, it earns no delayed retirement credits past the
+survivor FRA, so deferring beyond that date is never advantageous.
+The survivor benefit and the survivor's own retirement benefit are distinct
+entitlements with independent claiming dates, and only the larger of the two is
+paid in any given month; claiming one does not forfeit the other. A survivor may
+therefore claim the survivor benefit at~60 and let their own benefit accrue
+delayed credits to age~70, or the reverse.
 Reference: CFR~§~404.338 \cite{ssa-poms}.
 
 The fraction of SS benefits subject to federal income tax ranges from 0\% to
@@ -366,6 +373,23 @@ fund depletion scenario.
 
 SS benefit amounts, FRA schedules, spousal benefits, and survivor benefits
 are computed from the PIA inputs and each individual's date of birth.
+Own, spousal, and survivor entitlements are built as three separate time series
+and then combined as SSA pays them: while both spouses are alive, each receives
+their own benefit plus any excess spousal amount; from the year of the first
+death~$n_d$ the spousal add-on ends and the survivor receives
+$\max(\zeta^{\text{own}}_{i_s n},\,\zeta^{\text{surv}}_{n})$.
+The survivor claiming date is set by the parameter \code{survivor_claim_age},
+which accepts \code{"immediate"} (as soon as eligible), \code{"FRA"}, or an
+explicit age; it is never earlier than age~60 or~$n_d$, and is capped at the
+survivor FRA.
+When SS claiming ages are optimized (\code{withSSAges="optimize"}) and the
+first-to-die's claiming age is not itself a decision variable, $\zeta^{\text{surv}}_n$
+is a constant and is folded directly into the own-benefit table
+$B^{\text{own}}_{ikn} \leftarrow \max(B^{\text{own}}_{ikn},\,\zeta^{\text{surv}}_{n})$
+for $n \ge n_d$, making the post-death payout exact for every candidate claiming
+age~$k$. Otherwise the survivor amount depends on the deceased's chosen~$k$ and is
+carried as the non-negative excess-survivor offset
+$\max(0,\,\zeta^{\text{surv}}_n - B^{\text{own}}_{i_s k n})$ updated by the SC loop.
 SS taxability is computed iteratively using the provisional income formula,
 updated at each pass until it converges; a more exact method is also available
 via the option \code{withSSTaxability="optimize"} \cite{irs915}.
@@ -376,8 +400,10 @@ The SSA family maximum benefit cap (CFR~§~404.403) is not modeled; this may
 overstate benefits when multiple beneficiaries claim on one worker's record.
 The SSA earnings test is not modeled; users are assumed to be fully retired
 before their FRA.
-Survivor benefits are assumed to be claimed in the year of the spouse's death;
-the strategy of deferring survivor benefits to a later age is not optimized.
+The survivor claiming date is a user setting rather than an optimized decision:
+the model evaluates whichever date is specified, but does not search for the one
+that maximizes the objective. A worker who dies before claiming is credited with
+the 82.5\% PIA floor rather than the benefit accrued to the date of death.
 The Windfall Elimination Provision (WEP) and Government Pension Offset (GPO)
 were repealed by the Social Security Fairness Act (signed January~5, 2025) and therefore
 require no modeling.

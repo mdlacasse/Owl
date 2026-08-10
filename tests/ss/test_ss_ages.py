@@ -228,3 +228,80 @@ class TestSSAgesOptimize:
             f"Individual 0's age changed: {age0_before:.2f} → {jack_jill.ssecAges[0]:.2f}"
         )
         assert 62.0 <= float(jack_jill.ssecAges[1]) <= 70.0 + 1e-9
+
+
+# ---------------------------------------------------------------------------
+# Survivor benefit interaction with claiming-age optimization
+# ---------------------------------------------------------------------------
+
+
+class TestSurvivorOffset:
+    """The spousal/survivor parameter offset must stay well-formed in optimize mode.
+
+    Regression: the survivor benefit used to overwrite the survivor's own benefit for the
+    rest of the horizon, which made `zetaBar_in - B_own[k]` go sharply negative and fed the
+    LP a large phantom income deduction for every candidate claiming age.
+    """
+
+    def test_offset_is_non_negative(self, jack_jill):
+        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
+        offset = jack_jill._ssa_spousal_offset
+        assert np.all(offset > -1e-6), f"Negative SS offset: min {offset.min():.2f}"
+
+    def test_survivor_folded_when_deceased_age_is_fixed(self, jack_jill):
+        """Optimizing only the survivor's age leaves the survivor stream constant, so it folds.
+
+        Jack dies first; optimizing Jill's claiming age alone keeps Jack's fixed, which is the
+        common real case (one spouse already collecting).
+        """
+        from owlplanner import socialsecurity as socsec
+
+        survivor_name = jack_jill.inames[1]
+        jack_jill.solve("maxSpending", options={"withSSAges": survivor_name})
+        assert jack_jill._ssa_fold_survivor
+
+        survivor = socsec.compute_survivor_stream(
+            jack_jill.ssecAmounts,
+            jack_jill.ssecAges,
+            jack_jill.yobs,
+            jack_jill.mobs,
+            jack_jill.tobs,
+            jack_jill.horizons,
+            jack_jill.N_i,
+            jack_jill.N_n,
+            survivor_claim_age=jack_jill.ssecSurvivorClaimAge,
+            trim_pct=jack_jill.ssecTrimPct or 0,
+            trim_year=jack_jill.ssecTrimYear,
+        )
+        assert survivor.survivor_idx >= 0
+        nd, isv = survivor.death_year_n, survivor.survivor_idx
+        # Every candidate claiming age carries at least the survivor benefit after the death.
+        surv_nominal = survivor.annual[nd:] * jack_jill.gamma_n[:-1][nd:]
+        assert np.all(jack_jill._ssa_B_own[isv, :, nd:] >= surv_nominal - 1e-6)
+        # And the offset carries nothing after the death: the fold made it exact.
+        assert np.allclose(jack_jill._ssa_spousal_offset[isv, nd:], 0.0, atol=1e-6)
+
+    def test_optimize_solves_with_survivor_fra(self, jack_jill):
+        """A deferred survivor benefit still solves and is not better than claiming earlier."""
+        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
+        spending_immediate = float(jack_jill.g_n[0])
+
+        deferred = readConfig("examples/Case_jack+jill.toml")
+        deferred.setSocialSecurity(
+            deferred.ssecAmounts, deferred.ssecAges, survivor_claim_age="FRA"
+        )
+        deferred.solve("maxSpending", options={"withSSAges": "optimize"})
+        assert deferred.caseStatus == "solved"
+        # Jill is past her survivor FRA when Jack dies, so 'fra' resolves to the same date.
+        assert float(deferred.g_n[0]) == pytest.approx(spending_immediate, rel=5e-3)
+
+    def test_both_optimized_uses_offset_path(self, jack_jill):
+        """When the first-to-die's age is also a variable, the survivor rides in the offset.
+
+        Jack is 63 with a claiming age of 70, so 'optimize' leaves his age free and the survivor
+        amount depends on the age the solver picks; the fold cannot apply.
+        """
+        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
+        assert jack_jill.caseStatus == "solved"
+        assert not jack_jill._ssa_fold_survivor
+        assert np.all(jack_jill._ssa_spousal_offset > -1e-6)

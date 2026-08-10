@@ -138,6 +138,10 @@ Future Medicare and IRMAA values are simple projections of current values with t
 Owl has a basic social security calculator that determines the actual benefits based on the individual's
 primary insurance amount (PIA), full retirement age (FRA), and claiming age. Both
 spousal's benefits and survivor's benefits are calculated for non-complex cases.
+After the first passing, the survivor's own benefit and the survivor benefit are tracked as
+separate entitlements and the larger of the two is paid each year, as SSA does. The date at
+which the survivor benefit is claimed can be set to as soon as eligible, at the survivor's FRA,
+or at a chosen age.
 
 ## Limitations
 

@@ -285,6 +285,7 @@ class Plan:
         self.ssecAges = 67 * np.ones(self.N_i, dtype=np.int32)
         self.ssecTrimPct = 0
         self.ssecTrimYear = None
+        self.ssecSurvivorClaimAge = "immediate"
 
         # Parameters from timeLists initialized to zero.
         self.omega_in = np.zeros((self.N_i, self.N_n))
@@ -861,7 +862,7 @@ class Plan:
         self.caseStatus = "modified"
         self._adjustedParameters = False
 
-    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None):
+    def setSocialSecurity(self, pias, ages, trim_pct=0, trim_year=None, survivor_claim_age="immediate"):
         """
         Set value of social security for each individual and claiming age.
 
@@ -871,9 +872,19 @@ class Plan:
         The taxable fraction of benefits (Psi_n) is computed by the self-consistent loop
         from provisional income. To pin it instead, pass a numeric ``withSSTaxability``
         in the solver options; see :meth:`solve`.
+
+        Parameters
+        ----------
+        survivor_claim_age : str or float, optional
+            For a couple, when the surviving spouse claims the survivor benefit:
+            ``"immediate"`` (default) as soon as eligible, ``"FRA"`` at the survivor
+            full retirement age, or an explicit age in [60, 70]. The survivor's own
+            benefit keeps the claiming age given in ``ages``, and each year the survivor
+            receives the greater of the two, as SSA pays them.
         """
         u.require_list(pias, "pias", self.N_i)
         u.require_list(ages, "ages", self.N_i)
+        survivor_claim_age = socsec.validate_survivor_claim_age(survivor_claim_age)
 
         if trim_pct != 0:
             if not (0 <= trim_pct <= 100):
@@ -910,6 +921,7 @@ class Plan:
             trim_pct=trim_pct,
             trim_year=trim_year,
             thisyear=thisyear,
+            survivor_claim_age=survivor_claim_age,
         )
 
         for i in range(self.N_i):
@@ -922,12 +934,65 @@ class Plan:
         if trim_pct > 0:
             self.mylog.print(f"Reducing Social Security by {trim_pct}% starting in year {trim_year}.")
 
+        survivor = socsec.compute_survivor_stream(
+            pias,
+            ages,
+            self.yobs,
+            self.mobs,
+            self.tobs,
+            self.horizons,
+            self.N_i,
+            self.N_n,
+            survivor_claim_age=survivor_claim_age,
+            trim_pct=trim_pct,
+            trim_year=trim_year,
+            thisyear=thisyear,
+        )
+        if survivor.survivor_idx >= 0:
+            self._reportSurvivorClaimAge(survivor)
+
         self.ssecAmounts = pias
         self.ssecAges = ages
         self.ssecTrimPct = trim_pct
         self.ssecTrimYear = trim_year
+        self.ssecSurvivorClaimAge = survivor_claim_age
         self.caseStatus = "modified"
         self._adjustedParameters = False
+
+    def _reportSurvivorClaimAge(self, survivor):
+        """
+        Log the survivor's resolved claiming age, and say so whenever it was overridden.
+
+        Three constraints can move the requested age: a survivor benefit cannot start
+        before age 60, nor before the first passing, and it earns no delayed retirement
+        credits past the survivor FRA. A permanent reduction is also worth flagging even
+        when nothing was overridden, since the user may not have chosen it deliberately.
+        """
+        iname = self.inames[survivor.survivor_idx]
+        requested = survivor.requested_age
+        claim_age, fra, at_death = survivor.claim_age, survivor.survivor_fra, survivor.age_at_death
+        self.mylog.vprint(f"SS survivor benefit for {iname} claimed at age {claim_age:.2f}.")
+
+        if not isinstance(requested, str) and abs(claim_age - requested) > 1e-9:
+            reasons = []
+            if requested > fra + 1e-9:
+                reasons.append(f"survivor benefits earn no delayed credits past their survivor FRA of {fra:.2f}")
+            if requested < at_death - 1e-9:
+                reasons.append(f"they are already {at_death:.2f} at the first passing")
+            self.mylog.print(
+                f"Survivor claiming age {requested} for {iname} ignored, using {claim_age:.2f}: "
+                + "; ".join(reasons)
+                + ".",
+                tag="WARNING",
+            )
+
+        if claim_age < fra - 1e-9:
+            pct = 100 * socsec._survivor_factor(fra, claim_age)
+            self.mylog.print(
+                f"Survivor benefit for {iname} starts at age {claim_age:.2f}, below their survivor FRA of "
+                f"{fra:.2f}, so it is permanently reduced to {pct:.1f}% of the full amount. "
+                f"Set the survivor claiming age to 'FRA' to defer it instead."
+            )
 
     def setSpendingProfile(self, profile, percent=60, dip=15, increase=12, delay=0):
         """
@@ -2043,8 +2108,39 @@ class Plan:
                 N_K=self._ssa_N_K,
                 thisyear=None,
             )
+            # Fold the survivor benefit into the survivor's rows of the benefit table when
+            # the deceased's own claiming age is not itself a decision variable. The survivor
+            # amount is then a genuine constant, so max(own_k, survivor) is exact for every
+            # candidate k and the post-death offset below vanishes. When the deceased's age
+            # is also optimized, the survivor amount depends on their chosen k -- unknown at
+            # matrix-build time, since the SC loop updates parameters but never rebuilds A --
+            # so the survivor benefit is carried in the offset instead and is only exact at
+            # convergence.
+            survivor = socsec.compute_survivor_stream(
+                pias,
+                self.ssecAges,
+                self.yobs,
+                self.mobs,
+                self.tobs,
+                self.horizons,
+                self.N_i,
+                self.N_n,
+                survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
+                trim_pct=trim_pct,
+                trim_year=trim_year,
+                thisyear=None,
+            )
+            self._ssa_fold_survivor = survivor.survivor_idx >= 0 and self._ssaAgeIsFixed(survivor.deceased_idx)
+            if self._ssa_fold_survivor:
+                self._ssa_B_own = socsec.apply_survivor_to_benefit_table(
+                    self._ssa_B_own, survivor, self.gamma_n[:-1]
+                )
+
             # Initialize spousal/survivor offset from initial claiming ages.
             # B_own at initial claiming age k_init; offset = total zetaBar - own benefit.
+            # With the fold applied the post-death terms cancel and the offset is exactly the
+            # spousal add-on; otherwise it also carries the excess survivor benefit,
+            # max(0, survivor - own), which is non-negative by construction.
             self._ssa_spousal_offset = np.zeros((self.N_i, self.N_n))
             for i in range(self.N_i):
                 k_init = int(round((float(self.ssecAges[i]) - 62.0) * 12))
@@ -2885,6 +2981,19 @@ class Plan:
             )
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)  # t^σ ≤ 0.85·ζ̄
 
+    def _ssaAgeIsFixed(self, i):
+        """
+        Return True if individual i's SS claiming age is not a free decision variable.
+
+        An age is fixed when the individual has no PIA, has already claimed (their current
+        age is at or past the stored claiming age), or was not selected by withSSAges.
+        """
+        pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
+        current_age = date.today().year - self.yobs[i] - (self.mobs[i] - 1) / 12
+        already_claimed = current_age >= float(self.ssecAges[i])
+        not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
+        return pia_i == 0 or already_claimed or not_selected
+
     def _configure_ss_age_variables(self):
         """
         Add SS claiming-age optimization constraints (withSSAges='optimize' mode).
@@ -2908,17 +3017,11 @@ class Plan:
         vm = self.vm
         N_K = self._ssa_N_K
         B_own = self._ssa_B_own
-        thisyear = date.today().year
 
         for i in range(self.N_i):
             pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
 
-            # Determine if this individual has already claimed or is not selected for optimization.
-            current_age = thisyear - self.yobs[i] - (self.mobs[i] - 1) / 12
-            already_claimed = current_age >= float(self.ssecAges[i])
-            not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
-
-            if pia_i == 0 or already_claimed or not_selected:
+            if self._ssaAgeIsFixed(i):
                 # Fix to the known/current claiming age (or age 62 if no SS).
                 if pia_i == 0:
                     k_fixed = 0  # Arbitrary; B_own is all-zero anyway.
@@ -5128,6 +5231,7 @@ class Plan:
                 trim_pct=getattr(self, "ssecTrimPct", 0) or 0,
                 trim_year=getattr(self, "ssecTrimYear", None),
                 thisyear=date.today().year,
+                survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
             )
             new_zetaBar_in = new_zeta_in * self.gamma_n[:-1]
             for i in range(self.N_i):

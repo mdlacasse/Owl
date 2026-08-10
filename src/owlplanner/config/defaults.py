@@ -16,6 +16,7 @@ from owlplanner.rates import get_fixed_rate_values
 # Default constants (aligned with SSA/actuarial conventions)
 DEFAULT_LIFE_EXPECTANCY = 89
 DEFAULT_SS_AGE = 67.0  # Full retirement age for many birth years
+DEFAULT_SS_SURVIVOR_CLAIM_AGE = "immediate"  # Survivor claims as soon as eligible
 DEFAULT_PENSION_AGE = 65.0
 DEFAULT_DOB = "1965-01-15"
 DEFAULT_HEIRS_RATE = 30.0
@@ -76,6 +77,7 @@ def default_config(ni: int = 1) -> dict:
             "social_security_ages": [DEFAULT_SS_AGE] * ni,
             "social_security_trim_pct": 0,
             "social_security_trim_year": None,
+            "social_security_survivor_claim_age": DEFAULT_SS_SURVIVOR_CLAIM_AGE,
         },
         "rates_selection": {
             "heirs_rate_on_tax_deferred_estate": DEFAULT_HEIRS_RATE,

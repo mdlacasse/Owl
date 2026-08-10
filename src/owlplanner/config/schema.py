@@ -16,7 +16,14 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .defaults import DEFAULT_DOB, DEFAULT_LIFE_EXPECTANCY, DEFAULT_PENSION_AGE, DEFAULT_SS_AGE
+from .. import socialsecurity as socsec
+from .defaults import (
+    DEFAULT_DOB,
+    DEFAULT_LIFE_EXPECTANCY,
+    DEFAULT_PENSION_AGE,
+    DEFAULT_SS_AGE,
+    DEFAULT_SS_SURVIVOR_CLAIM_AGE,
+)
 
 
 # Known top-level section names (used for extracting unknown keys)
@@ -101,6 +108,20 @@ class FixedIncome(BaseModel):
         default=0, description="% reduction in SS benefits from trim_year onward"
     )
     social_security_trim_year: Optional[int] = Field(default=None, description="Year when SS benefit reduction begins")
+    social_security_survivor_claim_age: Optional[Union[str, float]] = Field(
+        default=DEFAULT_SS_SURVIVOR_CLAIM_AGE,
+        description=(
+            "When the surviving spouse claims the survivor benefit: 'immediate' (as soon as eligible),"
+            " 'fra' (at the survivor's FRA), or an explicit age in [60, 70]."
+        ),
+    )
+
+    @field_validator("social_security_survivor_claim_age")
+    @classmethod
+    def _check_survivor_claim_age(cls, v):
+        if v is None:
+            return DEFAULT_SS_SURVIVOR_CLAIM_AGE
+        return socsec.validate_survivor_claim_age(v)
     spia_individuals: List[int] = Field(
         default_factory=list,
         description="Individual index (0 = first, 1 = second) for each SPIA entry.",

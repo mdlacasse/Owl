@@ -276,6 +276,77 @@ to estimate {iname1}'s PIA.""")
                     help=help_trim_year,
                 )
 
+            if kz.getCaseKey("status") == "married":
+                st.markdown("#### :orange[Survivor benefit claiming age]")
+                help_surv = (
+                    "Social Security pays a survivor the larger of their own benefit and the survivor "
+                    "benefit, never both, and the two are claimed separately. The amount comes from the "
+                    "deceased spouse's record and is fixed at their passing; this setting controls only "
+                    "the survivor's own age when they file for it. Filing before the survivor FRA — a "
+                    "separate SSA schedule, up to four months earlier than the retirement FRA used above "
+                    "— reduces the benefit permanently, to 71.5% at age 60; waiting past it earns nothing "
+                    "extra. It can never start before age 60 or before the first passing. "
+                    "See the Documentation page for details."
+                )
+                help_surv_age = (
+                    "The survivor's own age when they claim the survivor benefit. In years and months."
+                )
+                # A survivor benefit is never paid past the survivor FRA rate, so cap the input
+                # there rather than at 70. The window's lower end is age 60 in every scenario;
+                # the age at the first passing is only the deterministic floor, and is reported
+                # below instead of enforced, since longevity sampling redraws the death year.
+                surv_ctx = owb.getSurvivorClaimContext()
+                surv_fra = surv_ctx["survivor_fra"] if surv_ctx else 67.0
+                fra_y, fra_m = int(surv_fra), round((surv_fra % 1) * 12)
+                incol1, incol2, incol3 = st.columns(3, gap="large", vertical_alignment="top")
+                with incol1:
+                    kz.initCaseKey("ssSurvivorMode", "immediate")
+                    surv_mode = kz.getRadio(
+                        "Claim survivor benefit",
+                        ["immediate", "FRA", "age"],
+                        "ssSurvivorMode",
+                        help=help_surv,
+                    )
+                with incol2:
+                    kz.initCaseKey("ssSurvivorAge_y", min(67, fra_y))
+                    surv_y = kz.getIntNum(
+                        "...at age",
+                        "ssSurvivorAge_y",
+                        disabled=(surv_mode != "age"),
+                        min_value=60,
+                        max_value=fra_y,
+                        step=1,
+                        help=help_surv_age,
+                    )
+                with incol3:
+                    kz.initCaseKey("ssSurvivorAge_m", 0)
+                    kz.getIntNum(
+                        "...and month(s)",
+                        "ssSurvivorAge_m",
+                        disabled=(surv_mode != "age"),
+                        min_value=0,
+                        max_value=fra_m if surv_y == fra_y else 11,
+                        step=1,
+                        help=help_surv_age,
+                    )
+                if surv_ctx is not None:
+                    at_death = surv_ctx["age_at_first_passing"]
+                    who = surv_ctx["name"]
+                    if at_death >= surv_fra:
+                        st.caption(
+                            f"With the life expectancies entered, {who} is already "
+                            f"{at_death:.1f} at the first passing — past their survivor FRA of "
+                            f"{fra_y} y {fra_m} m — so every choice above resolves to the same "
+                            "date and this setting has no effect on this plan. It still applies "
+                            "when lifespans are sampled on the Stochastic Longevity page."
+                        )
+                    else:
+                        st.caption(
+                            f"{who} is {at_death:.1f} at the first passing, below their survivor "
+                            f"FRA of {fra_y} y {fra_m} m, so this setting changes the plan. "
+                            "An age earlier than that is not payable and is reported in the log."
+                        )
+
     st.divider()
     st.markdown("#### :orange[Pension]")
     msg_pension1 = "Monthly benefit received from pension."

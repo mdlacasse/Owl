@@ -69,6 +69,40 @@ def getMethodDescription(method):
     return get_rate_model_metadata(method).get("description", "")
 
 
+def getSurvivorClaimContext():
+    """
+    Describe the survivor benefit claiming window implied by the dates currently entered.
+
+    Returns a dict with the surviving spouse's name, their survivor FRA (fractional years,
+    the upper end of the window), and the age they reach in the year of the first passing
+    under the life expectancies entered. Returns None when there is no survivor period —
+    a single individual, or two lifespans ending in the same year.
+
+    The age at the first passing is only the *deterministic* lower end of the window. Under
+    stochastic longevity the death year is resampled per scenario, so a claiming age below
+    it stays meaningful; it is reported for guidance rather than used to constrain input.
+    """
+    from owlplanner.socialsecurity import survivor_claim_window
+
+    if kz.getCaseKey("status") != "married":
+        return None
+
+    dobs, ends = [], []
+    for i in range(2):
+        dob, life = kz.getCaseKey(f"dob{i}"), kz.getCaseKey(f"life{i}")
+        if dob is None or life is None:
+            return None
+        dobs.append(str(dob))
+        ends.append(int(str(dob)[:4]) + int(life))
+
+    window = survivor_claim_window(
+        [int(d[:4]) for d in dobs], [int(d[5:7]) for d in dobs], [int(d[8:10]) for d in dobs], ends
+    )
+    if window is None:
+        return None
+    return {**window, "name": kz.getCaseKey(f"iname{window['survivor_idx']}")}
+
+
 def createPlan():
     if not kz.has_current_case():
         st.error(

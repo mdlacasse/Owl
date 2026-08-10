@@ -671,8 +671,36 @@ when benefits do not cover the full year.
 This is important for bridging the transition to retirement.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
-Survivor benefits rules provide the larger of the two benefits to the survivor. Complex
-cases involving divorce or deceased spouses are not considered.
+Complex cases involving divorce or deceased spouses are not considered.
+
+**Survivor benefits.** After the first passing, the surviving spouse is entitled to two
+separate benefits: their own, and a survivor benefit worth the larger of the deceased
+spouse's benefit and 82.5% of their PIA. Social Security pays whichever is larger in a
+given year, never both, and the spousal add-on ends. Because the two have independent
+start dates, a survivor who has not claimed yet keeps their own benefit and can still let
+it grow to age 70.
+
+The amount is set by the deceased spouse's record and is fixed at their passing — no delayed
+retirement credits accrue after death, though the benefit is still inflation-indexed. What the
+claiming date changes is the *fraction* of that amount paid, and it is measured against the
+**survivor's own age** when they file. Filing between age 60 and the survivor FRA reduces the
+benefit permanently, linearly from 71.5% at 60 to 100% at that FRA; waiting past it earns nothing
+extra, unlike a retirement benefit.
+
+Note that the *survivor* FRA is a different SSA schedule from the *retirement* FRA that governs
+the claiming ages entered above, and can fall up to four months earlier. Both are derived from the
+survivor's own birth date. Someone born in 1960, for example, reaches their survivor FRA at
+66 years 8 months but their retirement FRA at 67.
+
+When to start the survivor benefit is therefore a decision of its own, separate from the
+claiming ages entered for each spouse. Some households take one benefit early and let the
+other keep growing — the survivor benefit from age 60, switching to their own at 70, or the
+reverse. The *Survivor benefit claiming age* setting under *Advanced options* on the
+**Fixed Income** page chooses when the survivor benefit starts: as soon as eligible
+(the default), at the survivor's FRA, or at an age you pick. It is a setting rather than an
+optimized decision — **Owl** evaluates whichever date you specify but does not search for the
+best one. If the date you enter cannot be honored, because it falls before the first passing
+or past the survivor's FRA, the plan log says which date was used instead.
 
 By default, **Owl** uses the claiming ages you enter and does not change them.
 However, on the **Run Options** page, under *Optimize SS claiming age*, you can select which

@@ -21,6 +21,7 @@ from owlplanner.rate_models.constants import (
 from owlplanner.rate_models.loader import load_rate_model
 
 from .constants import ACCOUNT_KEY_MAP, ACCOUNT_TYPES
+from .defaults import DEFAULT_SS_SURVIVOR_CLAIM_AGE
 from .schema import KNOWN_SECTIONS, parse_solver_options
 
 if TYPE_CHECKING:
@@ -93,6 +94,7 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         ssec_ages,
         trim_pct=int(trim_pct),
         trim_year=int(trim_year) if trim_year is not None else None,
+        survivor_claim_age=fi.get("social_security_survivor_claim_age", DEFAULT_SS_SURVIVOR_CLAIM_AGE),
     )
     pension_amounts = np.array(
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
@@ -443,6 +445,9 @@ def plan_to_config(myplan: "Plan") -> dict:
     if trim_pct != 0 and trim_year is not None:
         diconf["fixed_income"]["social_security_trim_pct"] = int(trim_pct)
         diconf["fixed_income"]["social_security_trim_year"] = int(trim_year)
+    survivor_claim_age = getattr(myplan, "ssecSurvivorClaimAge", DEFAULT_SS_SURVIVOR_CLAIM_AGE)
+    if survivor_claim_age != DEFAULT_SS_SURVIVOR_CLAIM_AGE:
+        diconf["fixed_income"]["social_security_survivor_claim_age"] = survivor_claim_age
     if myplan._spia_list:
         diconf["fixed_income"]["spia_individuals"] = [s["individual"] for s in myplan._spia_list]
         diconf["fixed_income"]["spia_buy_years"] = [s["buy_year"] for s in myplan._spia_list]
