@@ -51,12 +51,14 @@ h11==0.16.0
     #   uvicorn
 highspy==1.15.1
     # via owlplanner
-httpcore2==2.9.1
+httpcore2==2.10.0 ; sys_platform != 'emscripten'
     # via httpx2
 httptools==0.8.0
     # via streamlit
-httpx2==2.9.1
+httpx2==2.10.0
     # via mcp
+httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscripten'
+    # via httpx2
 idna==3.18
     # via
     #   anyio
@@ -106,7 +108,7 @@ numpy==2.4.6 ; python_full_version < '3.12'
     #   scipy
     #   seaborn
     #   streamlit
-numpy==2.5.1 ; python_full_version >= '3.12'
+numpy==2.5.2 ; python_full_version >= '3.12'
     # via
     #   contourpy
     #   highspy
@@ -203,7 +205,7 @@ toml==0.10.2
     # via
     #   owlplanner
     #   streamlit
-truststore==0.10.4
+truststore==0.10.4 ; sys_platform != 'emscripten'
     # via
     #   httpcore2
     #   httpx2
@@ -221,7 +223,7 @@ typing-extensions==4.16.0
     #   starlette
     #   streamlit
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.3
     # via
     #   mcp
     #   pydantic
