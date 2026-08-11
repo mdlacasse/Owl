@@ -348,9 +348,6 @@ class SolverOptions(BaseModel):
     noLateSurplus: Optional[bool] = None
 
     # AMO / Big-M
-    amoConstraints: Optional[bool] = None
-    amoRoth: Optional[bool] = None
-    amoSurplus: Optional[bool] = None
     bigMamo: Optional[float] = None
     bigMaca: Optional[float] = None
     bigMss: Optional[float] = None

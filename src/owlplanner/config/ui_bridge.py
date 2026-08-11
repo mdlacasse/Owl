@@ -64,9 +64,6 @@ ACC_CONF = ACCOUNT_TYPES
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
-    "amoConstraints",
-    "amoRoth",
-    "amoSurplus",
     "bequest",
     "bigMaca",
     "bigMamo",

@@ -32,6 +32,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import time
 import textwrap
 
+from . import amorepair
 from . import utils as u
 from . import tax_federal as tx
 from . import tax_state
@@ -59,6 +60,11 @@ def _mosek_available():
 
     return importlib.util.find_spec("mosek") is not None and os.environ.get("MOSEKLM_LICENSE_FILE") is not None
 
+
+# Solver options that used to select the AMO exclusion binaries. Those exclusions are now
+# restored by post-processing (see amorepair), so the options no longer do anything. They are
+# accepted and dropped silently, because shipped and user-saved case files still carry them.
+RETIRED_OPTIONS = frozenset({"amoConstraints", "amoRoth", "amoSurplus"})
 
 # Default values
 BIGM_AMO = 5e7  # 100 times large withdrawals or conversions
@@ -177,8 +183,6 @@ class Plan:
         self.N_p = 3
         self.N_j = 4
         self.N_k = 4
-        # 4 binary variables for exclusions.
-        self.N_zx = 4
 
         # Default interpolation parameters for allocation ratios.
         self.interpMethod = "linear"
@@ -2182,7 +2186,6 @@ class Plan:
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
         vm.add_if(st_re_lp, "st_re", self.N_n)  # retirement income exemption
         vm.mark_binary_start()
-        vm.add("zx", self.N_n, self.N_zx)  # Roth exclusion binaries
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
         vm.add_if(self._aca_lp, "za", self.n_aca, tx.N_ACA_R)  # ACA bracket selection binaries
@@ -2244,7 +2247,6 @@ class Plan:
         self._add_ACA_costs(options)
         self._add_magi_lp(options)
         self._configure_NIIT_binary_variables(options)
-        self._configure_exclusion_binary_variables(options)
         self._build_objective_vector(objective, options)
 
     def _add_rmd_inequalities(self):
@@ -2518,6 +2520,27 @@ class Plan:
                 rowDic[self.vm["m"].idx(n)] = -1
                 self.A.addNewRow(rowDic, -np.inf, cap, tag=("hsa_medical_cap", n))
 
+    def _portfolioCeiling(self):
+        """Upper bound on total savings in each year, for big-M constraint families.
+
+        Nothing is withdrawn, held or deposited that exceeds the whole portfolio, and the
+        portfolio cannot outgrow starting balances plus contributions compounded at the
+        best return any account sees. Returns an array of length N_n + 1, generous by a
+        factor of two so that it stays a bound and never a constraint.
+        """
+        growth = 1.0 + np.max(
+            np.einsum("ijkn,kn->ijn", self.alpha_ijkn[:, :, :, : self.N_n], self.tau_kn[:, : self.N_n]),
+            axis=(0, 1),
+        )
+        growth = np.maximum(growth, 1.0)
+        ceiling = np.empty(self.N_n + 1)
+        wealth = float(np.sum(self.beta_ij)) + float(np.sum(self.kappa_ijn))
+        for n in range(self.N_n):
+            ceiling[n] = wealth
+            wealth *= growth[n]
+        ceiling[self.N_n] = wealth
+        return 2.0 * np.maximum(ceiling, 1.0)
+
     def _add_withdrawal_ordering(self, options):
         """
         Enforce the conventional withdrawal order — taxable first, then tax-deferred,
@@ -2539,8 +2562,14 @@ class Plan:
         if "zo" not in self.vm:
             return
         bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
+        # Every quantity these gates switch off is a balance or a withdrawal, so the
+        # portfolio ceiling bounds them all. Using it rather than the generic big-M keeps
+        # the gates honest: a solver's integer tolerance buys slack in proportion to M, and
+        # at the generic 5e7 that is hundreds of dollars of balance slipping past a closed
+        # gate. Capped by the generic value so this can only ever tighten the formulation.
+        ceiling_n = np.minimum(self._portfolioCeiling(), bigM * self.gamma_n[: self.N_n + 1])
         for n in range(self.N_n):
-            Mn = bigM * self.gamma_n[n]
+            Mn = ceiling_n[n]
             z1 = self.vm["zo"].idx(0, n)
             z2 = self.vm["zo"].idx(1, n)
             for i in range(self.N_i):
@@ -2785,70 +2814,6 @@ class Plan:
                 # e_n - t^σ_n + sum_t(f_tn) = non_SS_ordinary_income
                 row.addElem(self.vm["tss"].idx(n), -1)
             self.A.addRow(row, rhs, rhs, tag=("taxable_income", n))
-
-    def _configure_exclusion_binary_variables(self, options):
-        if not options.get("amoConstraints", True):
-            return
-
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
-
-        # A surplus cannot be created from a taxable or tax-exempt withdrawal.
-        if options.get("amoSurplus", True):
-            for n in range(self.N_n):
-                # Make z_0 and z_1 exclusive binary variables.
-                dic0 = {
-                    self.vm["zx"].idx(n, 0): bigM * self.gamma_n[n],
-                    self.vm["w"].idx(0, 0, n): -1,
-                    self.vm["w"].idx(0, 2, n): -1,
-                }
-                if self.N_i == 2:
-                    dic1 = {self.vm["w"].idx(1, 0, n): -1, self.vm["w"].idx(1, 2, n): -1}
-                    dic0.update(dic1)
-
-                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_surplus_wdraw", n))
-
-                self.A.addNewRow(
-                    {self.vm["zx"].idx(n, 1): bigM * self.gamma_n[n], self.vm["s"].idx(n): -1},
-                    0,
-                    np.inf,
-                    tag=("amo_surplus_gate", n),
-                )
-
-                # As both can be zero, bound as z_0 + z_1 <= 1
-                self.A.addNewRow(
-                    {self.vm["zx"].idx(n, 0): +1, self.vm["zx"].idx(n, 1): +1}, 0, 1, tag=("amo_surplus_excl", n)
-                )
-
-        if "maxRothConversion" in options:
-            rhsopt = u.get_numeric_option(options, "maxRothConversion", 0)
-            if rhsopt < -1:
-                return
-
-        # Turning off this constraint for maxRothConversions = 0 makes solution infeasible.
-        # A Roth conversion cannot be done in the same year as a Roth withdrawal.
-        if options.get("amoRoth", True):
-            n595_max = int(np.max(self.n595))  # last year any individual still needs the ladder
-            for n in range(self.N_n):
-                if n < n595_max:
-                    continue  # relax AMO: allow simultaneous conversion + mature Roth withdrawal
-                # Make z_2 and z_3 at-most-one binary variables.
-                dic0 = {self.vm["zx"].idx(n, 2): bigM * self.gamma_n[n], self.vm["x"].idx(0, n): -1}
-                if self.N_i == 2:
-                    dic1 = {self.vm["x"].idx(1, n): -1}
-                    dic0.update(dic1)
-
-                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_roth_conv", n))
-
-                dic0 = {self.vm["zx"].idx(n, 3): bigM * self.gamma_n[n], self.vm["w"].idx(0, 2, n): -1}
-                if self.N_i == 2:
-                    dic1 = {self.vm["w"].idx(1, 2, n): -1}
-                    dic0.update(dic1)
-
-                self.A.addNewRow(dic0, 0, np.inf, tag=("amo_roth_wdraw", n))
-
-                self.A.addNewRow(
-                    {self.vm["zx"].idx(n, 2): +1, self.vm["zx"].idx(n, 3): +1}, 0, 1, tag=("amo_roth_excl", n)
-                )
 
     def _configure_ss_taxability_lp(self, options):
         """
@@ -3604,6 +3569,23 @@ class Plan:
                 for n in range(self.N_n):
                     c_arr[self.vm["x"].idx(i, n)] += epsilon * (1 + n)
 
+            # Prefer leaving a dollar where it is never taxed again. A household with no
+            # tax to pay -- income under the standard deduction and gains inside the 0%
+            # bracket -- gets nothing from the distinction between a tax-free account and
+            # a taxable one, so without a tie-break the optimizer is free to empty the
+            # tax-free account into the taxable one and often does. The preference is far
+            # too small to outweigh any real reason to draw on the account.
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    c_arr[self.vm["w"].idx(i, 2, n)] += epsilon
+
+            # Prefer not to withdraw money only to bank it again. The round trip is free
+            # whenever it happens, so nothing else rules it out, and it is not harmless:
+            # a taxable withdrawal resets cost basis, which feeds back through the
+            # self-consistent loop and can settle the plan on a worse fixed point.
+            for n in range(self.N_n):
+                c_arr[self.vm["s"].idx(n)] += epsilon
+
             if self.N_i == 2:
                 # Favor withdrawals from spouse 0 by penalizing spouse 1 withdrawals.
                 for j in range(self.N_j):
@@ -3793,11 +3775,8 @@ class Plan:
 
         knownOptions = [
             "absTol",
-            "amoConstraints",
-            "amoRoth",
-            "amoSurplus",
             "bequest",
-            "bigMamo",  # Big-M value for AMO constraints (default: 5e7)
+            "bigMamo",  # Big-M value for the remaining big-M constraint families (default: 5e7)
             "epsilon",
             "gap",
             "maxIter",
@@ -3842,7 +3821,11 @@ class Plan:
         myoptions = dict(options)
 
         for opt in list(myoptions.keys()):
-            if opt not in knownOptions:
+            if opt in RETIRED_OPTIONS:
+                # The AMO exclusions are now restored by post-processing, not by binaries.
+                # Old case files still carry these keys; drop them without comment.
+                myoptions.pop(opt)
+            elif opt not in knownOptions:
                 # raise ValueError(f"Option '{opt}' is not one of {knownOptions}.")
                 self.mylog.print(f"Ignoring unknown solver option '{opt}'.")
                 myoptions.pop(opt)
@@ -4072,6 +4055,34 @@ class Plan:
             "tag": "WARNING",
         }
 
+    def _netSurplusRoundTrip(self):
+        """Report the surplus and the taxable withdrawal net of the round-trip between them.
+
+        A surplus is deposited straight back into the taxable account it may have just been
+        withdrawn from, so the gross figures describe a movement that never happens. When
+        the optimizer is indifferent to that round-trip — which is precisely when it occurs,
+        since a round-trip that costs anything is never chosen — it can leave an arbitrary
+        amount of it in the solution. Reporting the net is both truthful and stable.
+
+        The cash flow identity is unaffected: the surplus sits on its left-hand side and the
+        deposit is part of the withdrawals on its right, so cancelling the two removes the
+        same amount from both. Balances, taxes, spending and the bequest are untouched.
+
+        Years whose capital gains reach a taxed bracket are left gross, so that a displayed
+        withdrawal always explains the capital-gains tax displayed beside it.
+        """
+        taxed_gains_n = self.q_pn[1, :] + self.q_pn[2, :]
+        for n in range(self.N_n):
+            if self.s_n[n] <= 0.01 or taxed_gains_n[n] > 1.0:
+                continue
+            for i in range(self.N_i):
+                delta = min(self.d_in[i, n], self.w_ijn[i, 0, n], self.s_n[n])
+                if delta <= 0.01:
+                    continue
+                self.w_ijn[i, 0, n] -= delta
+                self.d_in[i, n] -= delta
+                self.s_n[n] -= delta
+
     def _check_cashflow_balance(self, atol=1.0):
         """Verify the LP cash flow identity holds on the aggregated post-solve arrays.
 
@@ -4223,6 +4234,9 @@ class Plan:
             ACA_n_lp = self.ACA_n.copy()
             J_n_lp = self.J_n.copy()
             objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
+            # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
+            # iterate below breaks that correspondence, which post-processing relies on.
+            matricesMatchSolution = True
             # Achieved MIP gap of the accepted solution (-1 for pure LP solves);
             # corrected below when a best-of-cycle iterate is accepted instead.
             self.solverGap = solgap
@@ -4311,6 +4325,7 @@ class Plan:
                     ACA_n_lp = trace["ACA_n_lp"][best_idx]
                     J_n_lp = trace["J_n_lp"][best_idx]
                     self.solverGap = trace["gaps"][best_idx]
+                    matricesMatchSolution = False
                     self.mylog.print("Accepting best solution from cycle and terminating.")
                 elif decision["reason"] in ("stagnation", "max_iter"):
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
@@ -4322,6 +4337,7 @@ class Plan:
                         ACA_n_lp = trace["ACA_n_lp"][best_idx]
                         J_n_lp = trace["J_n_lp"][best_idx]
                         self.solverGap = trace["gaps"][best_idx]
+                        matricesMatchSolution = False
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
@@ -4345,6 +4361,7 @@ class Plan:
                         if not fix_ok or xx_fix is None:
                             break
                         xx = xx_fix
+                        matricesMatchSolution = True
                         _ltcg_passes += 1
                     if _ltcg_passes:
                         self.mylog.vprint(f"Performed LTCG consistency solve ({_ltcg_passes} pass(es)).")
@@ -4357,6 +4374,7 @@ class Plan:
             self.mylog.print(f"Self-consistent loop returned after {it + 1} iterations.")
             if solverMsg:
                 self.mylog.print(solverMsg)
+            xx, objfn = self._restoreExclusions(xx, objfn, objective, options, matricesMatchSolution)
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
             self._aggregateResults(xx)
@@ -4386,6 +4404,144 @@ class Plan:
             self.caseStatus = "unsuccessful"
 
         return None
+
+    def _amoContext(self, options):
+        """Bundle what amorepair needs from this plan."""
+        col_lb, _ = self.B.arrays()
+        return amorepair.AmoContext(
+            vm=self.vm,
+            N_i=self.N_i,
+            N_j=self.N_j,
+            N_n=self.N_n,
+            n_d=self.n_d,
+            i_s=self.i_s,
+            eta=self.eta,
+            n595=self.n595,
+            horizons=self.horizons,
+            xnet=self.xnet,
+            col_lb=col_lb,
+            has_wdorder=("zo" in self.vm),
+        )
+
+    def _restoreExclusions(self, xx, objfn, objective, options, matricesMatch):
+        """Re-establish the two AMO exclusions on a solved vector.
+
+        Owl no longer carries mutual-exclusion binaries: enforcing them cost orders of
+        magnitude in solve time for households that owe no tax, while never changing the
+        optimum. They are restored here instead — first by an exact algebraic substitution
+        for the Roth overlap, then by a churn-minimizing re-solve that leaves spending, the
+        terminal balances and the conversion schedule pinned so the objective cannot move.
+
+        Returns the (possibly repaired) vector and its objective value. Any failure keeps
+        the solver's own answer: this pass is presentational and must never cost a result.
+        """
+        c_orig = self.c.arrays()
+        col_lb, col_ub = self.B.arrays()
+
+        ctx = self._amoContext(options)
+        before = amorepair.count_amo_violations(xx, ctx)
+        if before["roth"] == 0 and before["surplus"] == 0:
+            return xx, objfn
+
+        # Residual of the solver's own answer: feasibility is relative, so this is the
+        # bar a repaired vector has to meet, not zero.
+        res0 = amorepair.max_row_violation(xx, self.A, col_lb, col_ub)
+
+        # Surplus first: it needs a re-solve, which is free to move the Roth withdrawals
+        # that the substitution below then has to clean up. The re-solve is only sound
+        # while the matrices still describe this solution, which stops being true when the
+        # loop settles on an earlier iterate.
+        yy = xx
+        if before["surplus"]:
+            if matricesMatch:
+                yy = self._polishSurplus(yy, c_orig, ctx, options, res0, col_lb, col_ub)
+            else:
+                self.mylog.vprint(
+                    "Leaving the surplus as solved: an earlier iterate was accepted, so the "
+                    "constraint matrices no longer describe this solution."
+                )
+
+        # Then the exact substitution, which needs no solve and cannot be undone by one.
+        # Its neutrality rests on the carryover, income and cash-flow coefficients, none of
+        # which vary between iterations of the loop, so it stays valid on an earlier iterate.
+        zz, moves, blocked = amorepair.repair_roth_overlap(yy, ctx)
+        if blocked and before["roth"]:
+            self.mylog.vprint(f"Roth overlap left in place: {blocked}.")
+        if moves:
+            res = amorepair.max_row_violation(zz, self.A, col_lb, col_ub)
+            if matricesMatch and res > max(res0, 1.0):
+                self.mylog.print(
+                    f"Roth overlap repair rejected: residual {res:.2e} exceeds {max(res0, 1.0):.2e}.",
+                    tag="WARNING",
+                )
+            else:
+                yy = zz
+
+        after = amorepair.count_amo_violations(yy, ctx)
+
+        if after != before:
+            self.mylog.vprint(
+                f"Exclusion post-processing: Roth overlap {before['roth']} -> {after['roth']} year(s), "
+                f"surplus overlap {before['surplus']} -> {after['surplus']} year(s)."
+            )
+        if after["roth"] or after["surplus"]:
+            self.mylog.vprint(
+                f"{after['roth'] + after['surplus']} year(s) still combine flows that would "
+                "normally be kept apart; these are equivalent to the reported plan."
+            )
+
+        return yy, float(np.dot(c_orig, yy))
+
+    def _polishSurplus(self, xx, c_orig, ctx, options, res0, col_lb, col_ub):
+        """Re-solve for the same plan with as little surplus churn as possible.
+
+        Spending, the terminal balances, the conversion schedule and any binaries are
+        pinned, so the reported objective is unchanged by construction and the incumbent
+        is itself a feasible point — the re-solve cannot fail for want of a solution.
+        Everything else, in particular the bracket and deduction variables, is free to
+        re-establish its own equalities exactly.
+        """
+        overrides = amorepair.build_polish_overrides(xx, ctx, self.vm.nconts, self.nvars)
+        c_polish = amorepair.build_polish_objective(ctx, c_orig, self.gamma_n, self.nvars)
+        polish_options = dict(options)
+        polish_options["maxTime"] = min(u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0), 60)
+
+        obj = abc.Objective(self.nvars)
+        for j in np.nonzero(c_polish)[0]:
+            obj.setElem(int(j), float(c_polish[j]))
+
+        _, yy, ok, msg, _ = self._run_mip(
+            self.A, self.B, obj, polish_options, col_overrides=overrides, lp_relax=True, update_warm=False
+        )
+        if not ok or yy is None:
+            self.mylog.vprint(f"Surplus polish did not solve ({msg}); keeping the original flows.")
+            return xx
+        yy = np.array(yy)
+
+        res = amorepair.max_row_violation(yy, self.A, col_lb, col_ub)
+        if res > max(res0, 1.0):
+            self.mylog.print(
+                f"Surplus polish rejected: residual {res:.2e} exceeds {max(res0, 1.0):.2e}.", tag="WARNING"
+            )
+            return xx
+
+        # The pins should make these exact; check anyway, cheaply, against an index slip.
+        drift = 0.0
+        for n in range(self.N_n):
+            drift = max(drift, abs(yy[self.vm["g"].idx(n)] - xx[self.vm["g"].idx(n)]))
+        for i in range(self.N_i):
+            for j in range(self.N_j):
+                k = self.vm["b"].idx(i, j, self.N_n)
+                drift = max(drift, abs(yy[k] - xx[k]))
+        if drift > 0.01:
+            self.mylog.print(f"Surplus polish rejected: objective drifted by {u.d(drift)}.", tag="WARNING")
+            return xx
+
+        before = amorepair.count_amo_violations(xx, ctx)
+        after = amorepair.count_amo_violations(yy, ctx)
+        if after["surplus"] + after["roth"] > before["surplus"] + before["roth"]:
+            return xx
+        return yy
 
     def _run_highs(self, c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=None):
         """
@@ -4457,7 +4613,8 @@ class Plan:
             sol = h.getSolution()
             xx = np.array(sol.col_value, dtype=np.float64)
             obj_val = float(h.getObjectiveValue())
-            _, gap = h.getInfoValue("mip_gap")
+            # mip_gap is meaningless on a pure LP; -1 is the convention for those solves.
+            gap = h.getInfoValue("mip_gap")[1] if integrality.any() else -1.0
         else:
             xx = np.zeros(len(c))
             obj_val = None
@@ -5142,13 +5299,24 @@ class Plan:
         except mosek.Error as e:
             return 0.0, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1
 
-        # Problem MUST contain binary variables to make these calls.
-        solsta = task.getsolsta(mosek.soltype.itg)
-        solverSuccess = solsta in (mosek.solsta.integer_optimal, mosek.solsta.prim_feas)
-        rel_gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if solverSuccess else -1
+        # The integer solution slot only exists when the problem actually has integer
+        # variables. With every tax mode in loop mode the problem is a pure LP, so read
+        # the basic solution instead (same branch as _run_mosek_mip).
+        if int_vars:
+            soltype = mosek.soltype.itg
+            solsta = task.getsolsta(soltype)
+            solverSuccess = solsta in (mosek.solsta.integer_optimal, mosek.solsta.prim_feas)
+            rel_gap = task.getdouinf(mosek.dinfitem.mio_obj_rel_gap) if solverSuccess else -1
+        else:
+            soltype = mosek.soltype.bas
+            solsta = task.getsolsta(soltype)
+            solverSuccess = solsta == mosek.solsta.optimal
+            rel_gap = 0.0 if solverSuccess else -1
 
         if solsta == mosek.solsta.integer_optimal:
             solverMsg = "MOSEK: Optimal integer solution found"
+        elif solsta == mosek.solsta.optimal:
+            solverMsg = "MOSEK: Optimal solution found"
         elif solsta == mosek.solsta.prim_feas:
             solverMsg = "MOSEK: Feasible integer solution (not proven optimal)"
         elif solsta == mosek.solsta.unknown:
@@ -5157,8 +5325,8 @@ class Plan:
         else:
             solverMsg = f"MOSEK: Solution status {solsta}"
 
-        xx = np.array(task.getxx(mosek.soltype.itg))
-        solution = task.getprimalobj(mosek.soltype.itg)
+        xx = np.array(task.getxx(soltype))
+        solution = task.getprimalobj(soltype)
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 
@@ -5439,6 +5607,8 @@ class Plan:
         else:
             self.partialBequest = 0
             self.partial_heir_tax_liability = 0.0
+
+        self._netSurplusRoundTrip()
 
         self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in

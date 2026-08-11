@@ -33,32 +33,39 @@ import owlplanner as owl
 # Note: reference values below were established with HiGHS; verify on MOSEK if values diverge.
 # Updated after removing the explicit HSA deduction: wages are now entered net of all
 # contributions (HSA included), so the jack+jill case no longer gets a phantom HSA deduction.
+# Updated after the AMO exclusion binaries were removed (restored by post-processing instead):
+# SPENDING1 89_112 -> 89_314, BEQUEST1 939_900 -> 960_684. Both solvers now agree on BEQUEST1,
+# so its MOSEK override is gone; SPENDING1 gained one instead. Note this configuration converges
+# *oscillatory* on 1969 rates, so the self-consistent loop settles on a best-of-cycle iterate:
+# solving it under different constraint subsets gave 939_900 / 978_246 / 960_684, an ordering
+# no relaxation can produce. Most of the move is which fixed point the loop lands on, not a
+# change in what is achievable, so these are reproducibility anchors and not optimality claims.
 if platform == "darwin":
-    SPENDING1 = 89_112
-    BEQUEST1 = 939_900
+    SPENDING1 = 89_314
+    BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 89_112
-    BEQUEST1 = 939_900
+    SPENDING1 = 89_314
+    BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 89_112
-    BEQUEST1 = 939_900
+    SPENDING1 = 89_314
+    BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 else:
     raise RuntimeError(f"Unknown platform {platform!r}: no reference reproducibility values defined")
 
-# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for the
-# jack+jill maxBequest case (939_566 vs 939_900 after the HSA-deduction removal).
+# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for the jack+jill
+# maxSpending case (89_532 vs 89_314). The two now agree on BEQUEST1.
 # The conftest session fixture pins the solver to HiGHS unless OWL_TEST_SOLVER=mosek.
 if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek":
-    BEQUEST1 = 939_566
+    SPENDING1 = 89_532
 
 REL_TOL = 3e-5
 ABS_TOL = 50.0  # Widened from 20 to tolerate minor HiGHS version differences across Python releases

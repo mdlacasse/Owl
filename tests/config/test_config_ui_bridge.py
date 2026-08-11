@@ -546,9 +546,6 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
     # swapRothConvertersEnabled/First/Year (see config_to_ui / ui_to_config).
     plan_known = {
         "absTol",
-        "amoConstraints",
-        "amoRoth",
-        "amoSurplus",
         "bequest",
         "bigMaca",
         "bigMamo",

@@ -277,24 +277,6 @@ else:
                 disabled=decompoff,
             )
         with col2:
-            kz.initCaseKey("amoSurplus", True)
-            helpmsg = (
-                "Enable at-most-one (AMO) exclusive constraints between surplus deposits"
-                " and withdrawals from taxable or tax-free accounts."
-            )
-            ret = kz.getToggle(
-                "Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts",
-                "amoSurplus",
-                help=helpmsg,
-            )
-
-            kz.initCaseKey("amoRoth", True)
-            helpmsg = (
-                "Enable at-most-one (AMO) exclusive constraints between"
-                " Roth conversions and withdrawals from tax-free accounts."
-            )
-            ret = kz.getToggle("Disallow same-year Roth conversions and tax-free withdrawals", "amoRoth", help=helpmsg)
-
             kz.initCaseKey("noLateSurplus", False)
             helpmsg = (
                 "Disallow cash-flow surpluses in the last two years of the plan."

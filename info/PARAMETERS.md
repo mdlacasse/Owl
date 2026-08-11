@@ -309,11 +309,8 @@ Options controlling the optimization solver and constraints.
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `absTol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `100` |
-| `amoConstraints` | boolean | *(Advanced)* Whether to use at-most-one (AMO) constraints in the optimization. | `true` |
-| `amoRoth` | boolean | *(Advanced)* Whether to enforce at-most-one (AMO) constraints preventing simultaneous Roth conversions and tax-free withdrawals. | `true` |
-| `amoSurplus` | boolean | *(Advanced)* Whether to enforce XOR constraints preventing simultaneous surplus deposits and withdrawals from taxable or tax-free accounts. | `true` |
 | `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
-| `bigMamo` | float | *(Advanced)* Big-M value for at-most-one (AMO) constraints (mutually exclusive operations). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
+| `bigMamo` | float | *(Advanced)* Big-M value shared by the remaining big-M constraint families (withdrawal ordering, Medicare and Social Security taxability). Should exceed any individual withdrawal, conversion, or surplus deposit. | `5e7` |
 | `bigMaca` | float | *(Advanced)* Big-M value for the upper bound on the above-400%-FPL ACA MAGI bracket (when `withACA = "optimize"`). Should exceed any plausible annual MAGI. | `5e7` |
 | `bigMss` | float | *(Advanced)* Big-M value for the Social Security taxability MIP formulation (when `withSSTaxability = "optimize"`). Should exceed provisional income and related quantities. | Same as `bigMamo` |
 | `epsilon` | float | *(Advanced)* Lexicographic weight added to the objective to break ties. Adds a linearly increasing penalty to Roth conversions (earlier years are cheaper) to frontload conversions, and when `N_i = 2`, also penalizes withdrawals of spouse 2 to favor withdrawals from spouse 1. Use a very small value so the primary objective dominates. | `1e-8` |
@@ -457,8 +454,6 @@ withSSTaxability = "loop"
 bequest = 500
 solver = "default"
 spendingSlack = 0
-amoRoth = true
-amoSurplus = true
 withSCLoop = true
 maxIter = 29
 maxTime = 900
