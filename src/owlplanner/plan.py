@@ -4959,7 +4959,7 @@ class Plan:
            For zm: use MAGI_n from previous SC iteration (solver-independent).
            For za: use argmax of companion haca-block.
            For other families (zs, zl, zj) round the fractional LP value directly.
-        3. Single MIP solve with all bracket binaries fixed; zx (Roth exclusion) free.
+        3. Single solve with all bracket binaries fixed.
         4. Fall back to monolithic MIP if LP relaxation fails or the fixed-bracket MIP fails.
 
         Note: this is a heuristic — result is not proven globally optimal.
@@ -5053,8 +5053,8 @@ class Plan:
         Benders decomposition (withDecomposition='benders').
 
         Master problem: bracket-selector binaries (zm, za, zs, zl, zj).
-        Subproblem: continuous variables + Roth exclusion (zx); solved as MIP for UB,
-        LP for Benders cut generation.
+        Subproblem: the continuous variables; solved as MIP for UB, LP for Benders cut
+        generation.
 
         For each z* (master assignment):
           - SP LP (zx and continuous relaxed): generates optimality cut via LP duals.
@@ -5074,7 +5074,6 @@ class Plan:
         nvars = self.A.nvars
 
         # Master variables: bracket-selector binaries only.
-        # zx (Roth exclusion) stays in the SP so it can be optimized freely.
         # Exclude columns already hard-fixed (Lb == Ub), e.g. zm for years with known prevMAGI.
         Lb_all, Ub_all = self.B.arrays()
         master_cols = []

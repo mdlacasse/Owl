@@ -175,10 +175,11 @@ def build_explanation(plan) -> dict:
             "Only the first year's decisions are executed. Later years are projections under "
             "current tax law and the assumed return path; they will change when the plan is "
             "re-solved next year, so present them as trajectory context, not recommendations.",
-            "Shadow prices are marginal (valid for small changes) and hold the discrete choices "
-            "(tax/IRMAA/ACA bracket selections, Roth-exclusion binaries) and self-consistent "
-            "quantities (SS taxability, IRMAA premiums) fixed at their solved values.",
-            "Large parameter changes can switch brackets or binaries; re-solve to evaluate them.",
+            "Shadow prices are marginal (valid for small changes) and hold any discrete choices "
+            "(an optimized Social Security claiming age, a prescribed withdrawal order) and the "
+            "self-consistent quantities (SS taxability, IRMAA premiums) fixed at their solved values.",
+            "Large parameter changes can move the plan into a different tax bracket or flip one of "
+            "those choices; re-solve to evaluate them.",
         ],
     }
     # Validate against the versioned contract; fail fast on schema drift.
