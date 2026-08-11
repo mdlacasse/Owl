@@ -2403,13 +2403,13 @@ add the market returns to the savings balances.
 	the ability to prune: it holds the optimal value at the root node and spends the rest of
 	its time proving no tie beats it. The effect is severe. A single retiree with about
 	\$119{,}000 of savings, no pension, and Social Security of \$200 per month solves in
-	\SI{0.05}{\second} without the binaries and took \SI{577}{\second} with them.
+	0.05 seconds without the binaries and took 577 seconds with them.
 
 	Two details of that pathology are worth recording. First, a loose $\mathcal{M}$ is not
 	the cause: tightening it by two orders of magnitude changes the solve time by a quarter,
 	because the bound was already exact and the failure is discrimination rather than
 	tightness. Second, zero federal tax is necessary but not sufficient. The same household
-	in a state with no income tax solves in \SI{0.06}{\second}; it is the state deduction and
+	in a state with no income tax solves in 0.06 seconds; it is the state deduction and
 	exemption variables, free to move when there is no tax to pay, that widen the flat face
 	far enough to matter. These exclusions were also the only binary family a default plan
 	carried, so removing them turns the default problem into a pure linear program.
