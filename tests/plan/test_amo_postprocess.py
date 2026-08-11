@@ -87,8 +87,9 @@ class TestNoBinaries:
         assert p.nbins == 0, "a default plan should carry no integer variables"
         assert "zx" not in p.vm
 
-    def test_retired_options_are_accepted_silently(self, capsys):
-        """Old case files still carry amoRoth/amoSurplus; they must not warn."""
+    def test_retired_options_are_reported_as_deprecated(self, capsys):
+        """A case file saved before the change still carries amoRoth/amoSurplus. It must
+        still solve, and must say the options are deprecated rather than unrecognized."""
         p = _make_single("retired-opts", [500], [1000], [200], ss_pia=[2000], ss_age=[67])
         p.setVerbose(True)
         p.solve(
@@ -96,7 +97,10 @@ class TestNoBinaries:
             options={"bequest": 100, "amoConstraints": True, "amoRoth": True, "amoSurplus": False},
         )
         assert p.caseStatus == "solved"
-        assert "Ignoring unknown solver option" not in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert "Ignoring unknown solver option" not in out
+        for name in ("amoConstraints", "amoRoth", "amoSurplus"):
+            assert f"Ignoring deprecated solver option '{name}'" in out
 
     @pytest.mark.toml
     def test_solves_without_binaries_on_active_solver(self):

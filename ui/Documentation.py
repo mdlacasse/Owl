@@ -808,6 +808,12 @@ of binary variables which involves more complex algorithms.
 In some situations, unconventional transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
+A surplus is deposited into the same taxable account a withdrawal may have been taken from
+in that year. Where that happens, worksheets and graphs report the withdrawal and the surplus
+net of one another, since the money never left the account. Years in which the sale realizes
+taxable capital gains are reported in full, so that a withdrawal always accounts for the
+capital gains tax shown beside it.
+
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
 can also sometimes lead to slow convergence. This is especially noticeable when solving with
 varying rates and not so common when using constant rates.
@@ -1400,8 +1406,6 @@ against future IRMAA simultaneously.
 - *Optimize NIIT (expert)* – replaces the self-consistent loop for NIIT with an exact MILP formulation.
   Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
   Most effective when *Optimize LTCG* is also enabled, since MAGI depends on ordinary income stacking.
-- *Disallow same-year surplus deposits and withdrawals from taxable or tax-free accounts*
-- *Disallow same-year Roth conversions and tax-free withdrawals*
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
 - *MIP decomposition* (expert): when any of Optimize Medicare, Optimize ACA, Optimize LTCG, or Optimize NIIT is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.

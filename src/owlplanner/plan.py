@@ -62,8 +62,9 @@ def _mosek_available():
 
 
 # Solver options that used to select the AMO exclusion binaries. Those exclusions are now
-# restored by post-processing (see amorepair), so the options no longer do anything. They are
-# accepted and dropped silently, because shipped and user-saved case files still carry them.
+# restored by post-processing (see amorepair), so the options no longer do anything. A case
+# file saved before the change still carries them, so they are accepted and reported as
+# deprecated rather than rejected as unknown.
 RETIRED_OPTIONS = frozenset({"amoConstraints", "amoRoth", "amoSurplus"})
 
 # Default values
@@ -3822,8 +3823,11 @@ class Plan:
 
         for opt in list(myoptions.keys()):
             if opt in RETIRED_OPTIONS:
-                # The AMO exclusions are now restored by post-processing, not by binaries.
-                # Old case files still carry these keys; drop them without comment.
+                self.mylog.print(
+                    f"Ignoring deprecated solver option '{opt}': the exclusions it controlled "
+                    "are now restored after the solve and no longer need constraining.",
+                    tag="WARNING",
+                )
                 myoptions.pop(opt)
             elif opt not in knownOptions:
                 # raise ValueError(f"Option '{opt}' is not one of {knownOptions}.")

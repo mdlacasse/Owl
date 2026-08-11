@@ -1290,9 +1290,10 @@ times for large MIP problems.
 When multiple \code{"optimize"} flags are active simultaneously---for example,
 \code{withLTCG}, \code{withMedicare}, \code{withACA}, \code{withSSTaxability},
 and \code{withNIIT} all set to \code{"optimize"}---the monolithic MILP can
-accumulate on the order of 400 binary variables from the five bracket-selector
-families ($z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$) plus the Roth exclusion
-binaries $z^x$.
+accumulate on the order of 300 binary variables from the five bracket-selector
+families ($z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$). These are the only binaries
+a plan carries; with every tax mode left in loop mode the problem is a pure
+linear program.
 Solve times grow substantially with this binary count.
 The \code{withDecomposition} option partitions the MILP into two interacting
 subproblems that are solved sequentially, separating bracket selection from
@@ -1301,8 +1302,7 @@ continuous planning:
   \item \textbf{Master problem} --- selects the bracket binary families
     $z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$.
   \item \textbf{Subproblem} --- solves the continuous planning problem (all
-    LP variables) together with the Roth exclusion binaries $z^x$, with
-    bracket assignments fixed by the master.
+    LP variables), with bracket assignments fixed by the master.
 \end{itemize}
 Two decomposition strategies are available.
 
@@ -1310,8 +1310,7 @@ Two decomposition strategies are available.
 The LP relaxation (all binaries relaxed to $[0,1]$) is solved first.
 The bracket binary families are then rounded to 0 or 1 in a fixed order
 ($z^l \to z^\sigma \to z^j \to z^m \to z^a$).
-Finally, one reduced MILP is solved with all bracket binaries fixed and only
-$z^x$ free.
+Finally, the reduced problem is solved with all bracket binaries fixed.
 This is a fast heuristic and is not guaranteed to be globally optimal, but
 in practice it produces near-optimal or optimal solutions.
 
@@ -1335,8 +1334,8 @@ An upper bound is obtained by solving the subproblem MIP.
 The loop terminates when the gap between the upper and lower bounds falls within
 the solver's MIP gap tolerance.
 In practice the algorithm converges in one to three iterations.
-If the LP relaxation gap cannot be closed---which occurs when fractional $z^x$
-values introduce an inherent gap---Benders falls back to the sequential strategy.
+If the LP relaxation gap cannot be closed, Benders falls back to the sequential
+strategy.
 
 Both strategies support HiGHS and MOSEK.
 The option is \code{withDecomposition = "none" | "sequential" | "benders"};
@@ -1552,8 +1551,6 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	Binary variables are all designated by the letter $z$; a superscript
 	distinguishes the five families:
 	\begin{itemize}[nosep]
-	  \item $z_{nz}^x$ ($z \in \{0,1,2,3\}$) --- Roth exclusion binaries, always present.
-	    Enforce the at-most-one constraints (Eqs.~(\ref{Eq:Binary1})--(\ref{Eq:Binary2})).
 	  \item $z_{qn}^m$ --- Medicare IRMAA bracket selectors; present when
 	    \code{withMedicare="optimize"}.
 	  \item $z_{rn}^{\mathrm{aca}}$ --- ACA premium bracket selectors; present when
@@ -2390,34 +2387,80 @@ add the market returns to the savings balances.
 	The first exclusion prevents surplus deposits when withdrawals from taxable or tax-free accounts occur
 	from either spouse, while the second exclusion prevents simultaneous Roth conversions and tax-free withdrawals
 	from either spouse.
-	To favor tax-deferred withdrawals in most reasonable situations,
-	we implement these exclusions by introducing binary variables $z^x_{n\ell} \in \{0, 1\}$ 
-	with $\ell \in \{0, 1, 2, 3\}$ for each year $n$ (shared across both spouses).
-	The first pair of binary variables $(z^x_{n0}, z^x_{n1})$ enforces the surplus-withdrawal exclusion:
-	\begin{alignat}{2}
-		\label{Eq:Binary1}
-		\epsilon z^x_{n0} & \le \; \sum_i (w_{i0n} + w_{i2n})  \le \mathcal{M} z^x_{n0}, \nonumber \\
-		\epsilon z^x_{n1} & \le \; s_n  \le \mathcal{M} z^x_{n1}, \nonumber \\
-		0  & \le z^x_{n0} + z^x_{n1}  \le 1,
-	\end{alignat}
-	where $\epsilon$ is a small positive number (e.g., $0.001$) to ensure that when a binary variable
-	is active, the corresponding continuous variable is non-zero. However, the AMO exclusion
-	does not require the lower bound on the variables as both values can be zero.
-	The second pair of binary variables $(z^x_{n2}, z^x_{n3})$ enforces the Roth conversion-tax-free withdrawal exclusion:
+	The natural way to impose these exclusions is with binary variables and big-$\mathcal{M}$
+	constraints, one pair per exclusion per year. Owl did exactly that, and no longer does.
+	The reason is worth setting out, because it says something about the objective rather
+	than about the constraints.
+
+	\paragraph*{Why the binaries were removed}
+	Measured across every shipped example case under both solvers, the constrained optimum
+	equals that of the relaxation: the exclusions never change what the plan is worth. They
+	are symmetry breakers, selecting the legible member of a family of equally valued
+	solutions. They are not free, however. Owl's objective distinguishes the three account
+	types \emph{only} through their tax treatment, so a household with a zero marginal rate
+	on both ordinary income and capital gains gains nothing from where a dollar sits. The
+	objective then goes flat across a combinatorial set of plans, and branch-and-bound loses
+	the ability to prune: it holds the optimal value at the root node and spends the rest of
+	its time proving no tie beats it. The effect is severe. A single retiree with about
+	\$119{,}000 of savings, no pension, and Social Security of \$200 per month solves in
+	\SI{0.05}{\second} without the binaries and took \SI{577}{\second} with them.
+
+	Two details of that pathology are worth recording. First, a loose $\mathcal{M}$ is not
+	the cause: tightening it by two orders of magnitude changes the solve time by a quarter,
+	because the bound was already exact and the failure is discrimination rather than
+	tightness. Second, zero federal tax is necessary but not sufficient. The same household
+	in a state with no income tax solves in \SI{0.06}{\second}; it is the state deduction and
+	exemption variables, free to move when there is no tax to pay, that widen the flat face
+	far enough to matter. These exclusions were also the only binary family a default plan
+	carried, so removing them turns the default problem into a pure linear program.
+
+	\paragraph*{Restoring the exclusions after the solve}
+	Both properties are re-established on the solved vector instead. For the Roth exclusion,
+	a year $n \ge n_{i,59\frac{1}{2}}$ carrying both a conversion and a tax-free withdrawal
+	is rewritten with $m = \min(x_{in},\, w_{i2n})$ as
 	\begin{alignat}{2}
 		\label{Eq:Binary2}
-		\epsilon z^x_{n2} & \le \; \sum_i x_{in}  \le \mathcal{M} z^x_{n2}, \nonumber \\
-		\epsilon z^x_{n3} & \le \; \sum_i w_{i2n}  \le \mathcal{M} z^x_{n3}, \nonumber \\
-		0 &\le z^x_{n2} + z^x_{n3} \le 1.
+		x_{in} &\;\rightarrow\; x_{in} - m, \qquad
+		w_{i2n} &\;\rightarrow\; w_{i2n} - m, \qquad
+		w_{i1n} &\;\rightarrow\; w_{i1n} + m.
 	\end{alignat}
-	Here, $\mathcal{M}$ is a large number such as $10^9$, just slightly
-	larger than what $x$, $w$, and $s$ can possibly be.
-	The lower bound can be ignored here as well for the same reason.
-	Note that the Roth conversion/tax-free withdrawal AMO (Eq.~(\ref{Eq:Binary2})) is \emph{relaxed}
-	for years $n < \max_i(n_{i,59\frac{1}{2}})$: before any individual reaches age 59½,
-	it is legitimate to simultaneously withdraw mature 5-year-old conversions and initiate new
-	ladder rungs, so enforcing the AMO in those years would block the Roth conversion ladder.
-	The AMO is reinstated once all individuals have passed 59½, preventing artificial round-trips.
+	Every affected row is invariant rather than merely slack. The two balance carryovers
+	cancel, the second of them provided $\bar{x} = 1$; taxable income is unchanged because a
+	conversion and a tax-deferred withdrawal are both fully taxable; net cash is unchanged
+	once the ten-percent early-withdrawal penalty is absent, which is what confines the
+	substitution to $n \ge n_{i,59\frac{1}{2}}$; and the tax-deferred withdrawal limit
+	$b_{i1n} - w_{i1n} - x_{in} \ge 0$ is invariant term by term. The RMD floor, the five-year
+	Roth retainer and the remaining withdrawal limits only loosen. The substitution is
+	therefore exact and needs no second solve.
+
+	Confining it to $n \ge n_{i,59\frac{1}{2}}$ is not merely a technical requirement: before
+	an individual reaches 59½ it is legitimate to withdraw mature five-year-old conversions
+	while initiating new ladder rungs, so removing that overlap would dismantle the Roth
+	conversion ladder. The pre-59½ years are left exactly as solved.
+
+	For the surplus exclusion, note first that the surplus is deposited into the same taxable
+	account a withdrawal may have just drawn from, so the gross figures describe a movement
+	that does not occur. Reporting the two net of one another is an identity for the cash flow
+	balance, since the surplus appears on its left-hand side and the deposit within the
+	withdrawals on its right, and cancelling them removes the same amount from both. Balances,
+	taxes, spending and the bequest are untouched. Years whose capital gains reach a taxed
+	bracket are left gross, so that a reported withdrawal always accounts for the
+	capital-gains tax reported beside it. Whatever overlap survives is re-examined by a
+	churn-minimizing re-solve of the same program with spending, the terminal balances and the
+	conversion schedule pinned, which cannot change any reported objective and for which the
+	incumbent is itself a feasible point.
+
+	\paragraph*{What is not recovered}
+	Three situations admit no exact substitution and are reported rather than removed:
+	a non-zero opportunity cost on conversions, for which $\bar{x} \neq 1$ breaks the balance
+	invariance; the \code{taxable\_first} withdrawal ordering, whose gate pins tax-deferred
+	withdrawals to the RMD and so forbids the substitution's larger withdrawal; and a couple
+	in which one spouse converts while the other withdraws, since the original exclusion was
+	a household-level row while the substitution is per individual. In each case the overlap
+	is left in the reported plan, which costs nothing, rather than paid for out of the
+	objective. Two vanishingly small preferences in the objective---for leaving a dollar in an
+	account that is never taxed again, and for not withdrawing money only to bank it---keep
+	the solvers from selecting arbitrarily among the remaining ties.
 
 	Another approach could be to perform Roth conversions at mid-year, while withdrawals
 	could be made at the beginning of the year, and surplus deposits,
@@ -2453,8 +2496,10 @@ add the market returns to the savings balances.
 	a path to shelter negative returns by performing an over-withdrawal from the taxable
 	account at the beginning of the year followed by a deposit in the
 	same account at the end of the year. This can 
-	be removed by using another binary variable, thus making these events exclusive by using
-	the same strategy as Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2}).
+	be removed by making these events exclusive. Owl handles the same round-trip after the
+	solve instead, by reporting the withdrawal net of the deposit that returns to the account
+	(Eq.~(\ref{Eq:Binary2}) and the discussion around it), which avoids the binary variable
+	and the branch-and-bound cost that comes with it.
 
 	A much simpler approach, while not so natural,
 	is to move all transactions to be synchronous at the beginning or at the end of the year
@@ -3364,36 +3409,6 @@ $\sum_i x_{in} \le x_{max}$ for all $n$ with
 \end{eqnarray}
 This maximum is applied to the combined conversions of both individuals in each year.
 
-\paragraph*{Exclusion constraints}
-The at-most-one (AMO) exclusions of Eqs.~(\ref{Eq:Binary1}) and (\ref{Eq:Binary2})
-are implemented with big-$\mathcal{M}$ constraints using binary variables $z_{nz}^x$,
-adding the corresponding rows for $\sum_i w_{i0n} + \sum_i w_{i2n}$, $s_n$, and $\sum_i x_{in}$
-with upper bounds $\mathcal{M} z_{nz}$, along with the bounds
-$0 \le z_{n0}^x + z_{n1}^x \le 1$ and $0 \le z_{n2}^x + z_{n3}^x \le 1$.
-\begin{eqnarray}
-	A_u[I_9(n), q_w(i, 0, n)] &=& 1, \nonumber \\
-	A_u[I_9(n), q_w(i, 2, n)] &=& 1, \nonumber \\
-	A_u[I_9(n), q_{z^x}(n, 0)] &=& -\mathcal{M}, \nonumber \\
-	u[I_9(n)] &=& 0, \nonumber \\
-	A_u[I_{10}(n), q_s(n)] &=& 1, \nonumber \\
-	A_u[I_{10}(n), q_{z^x}(n, 1)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{10}(n)] &=& 0, \nonumber \\
-	A_u[I_{11}(n), q_{z^x}(n, 0)] &=& 1, \nonumber \\
-	A_u[I_{11}(n), q_{z^x}(n, 1)] &=& 1, \nonumber \\
-	u[I_{11}(n)] &=& 1, \nonumber \\
-	A_u[I_{12}(n), q_x(i, n)] &=& 1, \nonumber \\
-	A_u[I_{12}(n), q_{z^x}(n, 2)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{12}(n)] &=& 0, \nonumber \\
-	A_u[I_{13}(n), q_w(i, 2, n)] &=& 1, \nonumber \\
-	A_u[I_{13}(n), q_{z^x}(n, 3)] &=& -\mathcal{M}, \nonumber \\
-	u[I_{13}(n)] &=& 0, \nonumber \\
-	A_u[I_{14}(n), q_{z^x}(n, 2)] &=& 1, \nonumber \\
-	A_u[I_{14}(n), q_{z^x}(n, 3)] &=& 1, \nonumber \\
-	u[I_{14}(n)] &=& 1, \nonumber \\
-	&&\qquad\forall i \in \{0,\ldots, N_i - 1\}, \nonumber\\
-	&&\qquad\forall n \in \{0,\ldots, N_n - 1\}. \nonumber
-\end{eqnarray}
-
 \paragraph*{Medicare brackets}
 Medicare's MAGI brackets use binary variables $z^m_{qn}$ and the disaggregated
 MAGI variables $h_{qn}$. We set upper bounds for each bracket using Eq.~(\ref{Eq:MedDecomph}) as
@@ -3802,12 +3817,6 @@ Tag family & Indices & Formulation \\
 \hline
 Tag family & Indices & Formulation \\
 \hline
-\code{amo_surplus_wdraw} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
-\code{amo_surplus_gate} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
-\code{amo_surplus_excl} & $(n)$ & Eq.~(\ref{Eq:Binary1}) \\
-\code{amo_roth_conv} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
-\code{amo_roth_wdraw} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
-\code{amo_roth_excl} & $(n)$ & Eq.~(\ref{Eq:Binary2}) \\
 \code{wdorder_txdef_gate} & $(i,n)$ & Eq.~(\ref{Eq:WdOrderGates}) \\
 \code{wdorder_roth_gate} & $(i,n)$ & Eq.~(\ref{Eq:WdOrderGates}) \\
 \code{wdorder_taxable_exhausted} & $(n)$ & Eq.~(\ref{Eq:WdOrderExhaust}) \\
@@ -5253,7 +5262,7 @@ This is the largest and most complex file.
 \item[varmap.py]
 Variable block indexing and extraction for the LP solver.
 \code{VarBlock} records the start offset and shape of one decision-variable family
-(e.g., $b$, $d$, $e$, $f$, $g$, $h$, $m$, $s$, $w$, $x$, $z^x$, \ldots);
+(e.g., $b$, $d$, $e$, $f$, $g$, $h$, $m$, $s$, $w$, $x$, $z^m$, \ldots);
 \code{VarMap} accumulates them in declaration order and exposes a cursor tracking the
 running offset.
 Used by \code{plan.py} to build and query all LP/MIP variable indices without
