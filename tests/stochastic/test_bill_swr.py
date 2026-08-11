@@ -39,7 +39,7 @@ Two differences explain why his number is higher:
 Note on full-options case
 --------------------------
 Running Case_bill with its default solver options (withACA='loop', withLTCG='loop',
-amoSurplus=True, etc.) gives a lower SWR (~3.42%) because ACA health-insurance
+etc.) gives a lower SWR (~3.42%) because ACA health-insurance
 costs are computed for the pre-Medicare year and other SC-loop interactions add
 constraints.  The test below uses stripped-down options to isolate the pure
 annuity math.

@@ -1,7 +1,7 @@
 """
 Variable block indexing and extraction for the LP solver in plan.py.
 
-Each decision-variable family (b, d, e, f, g, h, m, s, w, x, zx, …) lives in a
+Each decision-variable family (b, d, e, f, g, h, m, s, w, x, zm, …) lives in a
 contiguous slice of the flat solution vector ``x``.  ``VarBlock`` records the start
 offset and shape of one such family; ``VarMap`` accumulates them in declaration order
 and exposes a cursor that naturally tracks the running offset.
@@ -13,7 +13,7 @@ Usage (inside plan.py)::
     vm.add("d", N_i, N_n)
     ...
     vm.mark_binary_start()
-    vm.add("zx", N_n, N_zx)
+    vm.add_if(medi, "zm", Nmed, N_irmaa)
 
     # Index into constraint row:
     idx = vm["b"].idx(i, j, n)       # replaces _q3(C["b"], i, j, n, N_i, N_j, N_n+1)

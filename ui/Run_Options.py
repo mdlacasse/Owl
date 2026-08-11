@@ -242,18 +242,8 @@ else:
                 "More accurate but slower. Only applies when SLCSP > 0."
             )
             ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
-            helpmsg_ltcg = (
-                "Optimize LTCG bracket selection using binary variables. "
-                "Replaces self-consistent loop for LTCG ordinary income stacking. "
-                "More accurate but slower."
-            )
-            ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
-            helpmsg_niit = (
-                "Optimize NIIT (Net Investment Income Tax) within the MIP. "
-                "Replaces self-consistent loop for NIIT computation. "
-                "Only effective when Optimize LTCG is also enabled."
-            )
-            ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
+            # The last two toggles are drawn in the next column, below. Reading them here is
+            # still current: each toggle writes to the case on change, before the rerun.
             decompoff = not (
                 kz.getCaseKey("optimizeMedicare")
                 or kz.getCaseKey("optimizeACA")
@@ -283,6 +273,18 @@ else:
                 " This avoids sheltering transfers when market goes down in last years."
             )
             ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years", "noLateSurplus", help=helpmsg)
+            helpmsg_ltcg = (
+                "Optimize LTCG bracket selection using binary variables. "
+                "Replaces self-consistent loop for LTCG ordinary income stacking. "
+                "More accurate but slower."
+            )
+            ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            helpmsg_niit = (
+                "Optimize NIIT (Net Investment Income Tax) within the MIP. "
+                "Replaces self-consistent loop for NIIT computation. "
+                "Only effective when Optimize LTCG is also enabled."
+            )
+            ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
 
         st.divider()
         st.markdown("#### :orange[Social Security Taxability]")
