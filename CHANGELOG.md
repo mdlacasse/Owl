@@ -50,6 +50,12 @@ account the plan had declared empty, letting tax-deferred withdrawals exceed the
 early. The gates now use a bound computed from the portfolio itself, capped by the previous
 constant so the formulation can only tighten.
 
+The same mechanism exists wherever a big-M is larger than it needs to be, and the remaining
+families were measured rather than changed: at the shipped defaults nothing leaks, but raising
+`bigMamo` by two orders of magnitude was enough to misplace \$34k of MAGI across two years of a
+Medicare-optimize plan, and by four, \$131k and a 1.5% inflated objective. Those options now
+carry a warning against raising them.
+
 #### Bugfix: MOSEK failed on problems with no integer variables
 `_mosekSolve` read the integer solution slot unconditionally, which is only populated when the
 problem has integer variables. This never surfaced while every plan carried exclusion binaries;
