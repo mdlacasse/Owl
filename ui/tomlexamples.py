@@ -28,6 +28,7 @@ from io import StringIO, BytesIO
 CASES = [
     "alex+jamie",
     "bill",
+    "cameron",
     "chris+pat",
     "dana",
     "devon",

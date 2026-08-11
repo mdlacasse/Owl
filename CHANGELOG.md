@@ -19,11 +19,11 @@ spouse converting while the other withdraws — the overlap is reported rather t
 These were the only binary variables a plan carried by default, so unless an `"optimize"` tax mode
 is on, Owl now solves a pure linear program: no branch-and-bound, no optimality gap, no time
 limit. Solve times drop sharply for plans that owe no tax in any year, where the objective cannot
-distinguish one account from another and the search had nothing to narrow it; the new `Case_sam`
+distinguish one account from another and the search had nothing to narrow it; the new `Case_cameron`
 went from 577 seconds to 0.05. Two example cases that previously disagreed between HiGHS and MOSEK
 now agree exactly.
 
-#### New: `Case_sam`, a modest-portfolio example
+#### New: `Case_cameron`, a modest-portfolio example
 A single 66-year-old renting in California, about \$119,000 of savings, no pension, \$200/month at
 70. Every other shipped example owes federal tax; this one does not, which is the regime that was
 slowest to solve. Included as a worked small-portfolio scenario and a regression case.

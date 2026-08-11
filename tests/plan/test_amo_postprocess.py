@@ -4,7 +4,7 @@ Tests for the post-processing that replaces the AMO exclusion binaries.
 Owl used to enforce two exclusions with big-M binaries: no Roth conversion in a year
 with a Roth withdrawal, and no surplus in a year with a taxable or tax-free withdrawal.
 Neither changed the optimum, but enforcing them cost orders of magnitude in solve time
-for households that owe no tax -- see examples/Case_sam.toml, which took 577 s with the
+for households that owe no tax -- see examples/Case_cameron.toml, which took 577 s with the
 binaries and solves in a twentieth of a second without them.
 
 The binaries are gone. These tests check that what replaced them is sound:
@@ -106,7 +106,7 @@ class TestNoBinaries:
     def test_solves_without_binaries_on_active_solver(self):
         """Regression for the MOSEK path, which used to read the integer solution slot
         unconditionally and would fail once no integer variables existed."""
-        p = owl.readConfig(os.path.join("examples", "Case_sam"))
+        p = owl.readConfig(os.path.join("examples", "Case_cameron"))
         p.solverOptions["solver"] = _active_solver()
         p.resolve()
         assert p.caseStatus == "solved"
@@ -207,7 +207,7 @@ class TestSurplusNetting:
 
     @pytest.mark.toml
     def test_cashflow_identity_holds_after_netting(self):
-        p = owl.readConfig(os.path.join("examples", "Case_sam"))
+        p = owl.readConfig(os.path.join("examples", "Case_cameron"))
         p.resolve()
         # The surplus sits on the left of the identity and the deposit is inside the
         # withdrawals on the right, so netting removes the same amount from both.
@@ -215,7 +215,7 @@ class TestSurplusNetting:
 
     @pytest.mark.toml
     def test_netting_leaves_balances_and_objective_alone(self):
-        p = owl.readConfig(os.path.join("examples", "Case_sam"))
+        p = owl.readConfig(os.path.join("examples", "Case_cameron"))
         p.resolve()
         basis, bequest = p.basis, p.bequest
         b_end = p.b_ijn[:, :, p.N_n].copy()
@@ -301,7 +301,7 @@ class TestOverlapsResolved:
 
     @pytest.mark.toml
     def test_low_wealth_case_reports_little_churn(self):
-        p = owl.readConfig(os.path.join("examples", "Case_sam"))
+        p = owl.readConfig(os.path.join("examples", "Case_cameron"))
         p.resolve()
         # Before netting this plan showed a withdraw-and-redeposit cycle in most years.
         assert len(_surplus_overlap_years(p)) <= 2
