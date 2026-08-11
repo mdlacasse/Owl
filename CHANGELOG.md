@@ -1,80 +1,62 @@
 ### Version 2026.8.11
 
 #### Change: transaction exclusions are restored after the solve, not constrained during it
-Owl kept two properties to make a plan readable: a Roth conversion and a tax-free withdrawal do
-not fall in the same year, and a surplus is not banked in a year that also withdraws from a
-taxable or tax-free account. Both were enforced with big-M binary variables. Neither ever changed
-what a plan was worth — measured across every shipped example under both solvers, the constrained
-optimum equals the unconstrained one — but they were expensive, and expensive in a way that fell
-hardest on the households least able to absorb it.
-
-The cause is that Owl distinguishes the three account types only through their tax treatment. A
-household that owes no tax in any year gets nothing from where a dollar sits, the objective goes
-flat across a combinatorial set of plans, and the solver loses the ability to narrow its search:
-it holds the answer immediately and then spends its time proving nothing else ties it. The new
-`Case_sam` example — a single retiree, \$119k of savings, \$200/month of Social Security — took
-577 seconds and now takes 0.05. Zero federal tax is necessary but not sufficient: the same
-household in a state with no income tax always solved instantly, since it is the state deduction
-and exemption variables, free to move when there is no tax to pay, that widen the flat region far
-enough to matter.
+Two properties keep a plan readable: a Roth conversion and a tax-free withdrawal do not fall in
+the same year, and a surplus is not banked in a year that also withdraws from a taxable or
+tax-free account. Both were enforced with big-M binary variables, which are removed. Across every
+shipped example under both solvers, the constrained and unconstrained optima are the same.
 
 Both properties are now re-established on the solved plan. A same-year conversion and tax-free
-withdrawal are rewritten as a larger tax-deferred withdrawal, which leaves every balance, every
-income figure and the year's net cash exactly as they were. The surplus round-trip is reported
-net of the deposit that returns to the same account it was drawn from — the gross figures
-describe a movement that never happens, and cancelling them removes the same amount from both
-sides of the cash flow balance. Anything left is re-examined by a re-solve that cannot change
-spending, the terminal balances or the conversion schedule.
+withdrawal are rewritten as a larger tax-deferred withdrawal, leaving balances, income and net
+cash unchanged. A surplus is reported net of the deposit returning to the account it was drawn
+from, which cancels on both sides of the cash flow balance. Any overlap left is re-examined by a
+re-solve that cannot change spending, the terminal balances or the conversion schedule.
 
-Below age 59½ nothing is rewritten, since a conversion ladder needs exactly the overlap the
-substitution would remove. Where the substitution provably does not hold — a non-zero `oppCostX`,
-`withdrawalOrder = "taxable_first"`, or one spouse converting while the other withdraws — the
-overlap is reported rather than removed, and never paid for out of the plan.
+Nothing is rewritten below age 59½, where a conversion ladder needs that overlap. Where the
+substitution does not hold — non-zero `oppCostX`, `withdrawalOrder = "taxable_first"`, or one
+spouse converting while the other withdraws — the overlap is reported rather than removed.
 
-These were also the only binary variables a plan carried by default, so unless one of the
-`"optimize"` tax modes is switched on, Owl now solves a pure linear program: no branch-and-bound,
-no optimality gap, no time limit, and no dependence on which solver found the answer first. Two
-example cases that previously disagreed between HiGHS and MOSEK now agree exactly.
+These were the only binary variables a plan carried by default, so unless an `"optimize"` tax mode
+is on, Owl now solves a pure linear program: no branch-and-bound, no optimality gap, no time
+limit. Solve times drop sharply for plans that owe no tax in any year, where the objective cannot
+distinguish one account from another and the search had nothing to narrow it; the new `Case_sam`
+went from 577 seconds to 0.05. Two example cases that previously disagreed between HiGHS and MOSEK
+now agree exactly.
 
 #### New: `Case_sam`, a modest-portfolio example
-A single 66-year-old renting in California with about \$119,000 of savings, no pension, and a
-\$200/month benefit at 70. Every other shipped example has enough income to owe federal tax; this
-one does not, which is the regime that used to be pathological to solve. It is included both as a
-worked small-portfolio scenario and as a regression case.
+A single 66-year-old renting in California, about \$119,000 of savings, no pension, \$200/month at
+70. Every other shipped example owes federal tax; this one does not, which is the regime that was
+slowest to solve. Included as a worked small-portfolio scenario and a regression case.
 
 #### Bugfix: withdrawal-ordering gates could be bypassed by a few hundred dollars
-The `taxable_first` withdrawal order is enforced by gates that open only once an account is
-exhausted. Those gates shared a generic big-M constant of 5×10⁷, and a solver's integer tolerance
-buys slack in proportion to it — enough for several hundred dollars of balance to remain in an
-account the plan had declared empty, letting tax-deferred withdrawals exceed the RMD a year
-early. The gates now use a bound computed from the portfolio itself, capped by the previous
-constant so the formulation can only tighten.
+The `taxable_first` order is enforced by gates that open once an account is exhausted. They used a
+generic big-M of 5×10⁷, and a solver's integer tolerance allows slack in proportion to it — enough
+for several hundred dollars to remain in an account the plan had declared empty, letting
+tax-deferred withdrawals exceed the RMD a year early. The gates now use a bound computed from the
+portfolio, capped by the previous constant so the formulation can only tighten.
 
-The same mechanism exists wherever a big-M is larger than it needs to be, and the remaining
-families were measured rather than changed: at the shipped defaults nothing leaks, but raising
-`bigMamo` by two orders of magnitude was enough to misplace \$34k of MAGI across two years of a
-Medicare-optimize plan, and by four, \$131k and a 1.5% inflated objective. Those options now
-carry a warning against raising them.
+The other big-M families were measured rather than changed: nothing leaks at the shipped defaults,
+but raising `bigMamo` by two orders of magnitude misplaced \$34k of MAGI on a Medicare-optimize
+plan, and by four, \$131k and a 1.5% inflated objective. Those options now carry a warning against
+raising them.
 
 #### Bugfix: MOSEK failed on problems with no integer variables
-`_mosekSolve` read the integer solution slot unconditionally, which is only populated when the
-problem has integer variables. This never surfaced while every plan carried exclusion binaries;
-with those gone, a default plan is a pure LP, and MOSEK is the default solver when licensed.
+`_mosekSolve` read the integer solution slot unconditionally, which is only populated when integer
+variables exist. Previously masked by the exclusion binaries; a default plan is now a pure LP, and
+MOSEK is the default solver when licensed.
 
 #### Deprecated: `amoConstraints`, `amoRoth`, `amoSurplus`
-The three solver options that selected the exclusion binaries no longer do anything. A case file
-saved before this release still loads and solves; each option is reported in the plan log as
-deprecated and ignored. They have been removed from the shipped example cases, from the case-file
-schema, and from the Run Options page, where the two toggles are gone. `bigMamo` is unaffected and
+These three options no longer do anything. A case file saved before this release still loads and
+solves, with each option reported in the plan log as deprecated and ignored. They are removed from
+the shipped examples, the case-file schema, and the Run Options page. `bigMamo` is unaffected and
 still sets the big-M shared by the remaining at-most-one families.
 
 #### Note on reported values
-Several example cases shift slightly, all within or explained by which fixed point the
-self-consistent loop settles on rather than by any change in what is achievable. The clearest is
-`Case_john+sally`, whose bequest rises about 1.6% at unchanged spending. One reference used by the
-conversion-regret sweep moves more: the 1966 maxBequest baseline for `Case_dana` was previously
-produced by a solve that exhausted its iteration limit without converging, and now converges on a
-detected cycle.
+Several example cases shift slightly, all attributable to which fixed point the self-consistent
+loop settles on. `Case_john+sally` gains about 1.6% of bequest at unchanged spending. The 1966
+maxBequest reference for `Case_dana` used by the conversion-regret sweep moves more: the previous
+value came from a solve that exhausted its iteration limit without converging, where the current
+one converges on a detected cycle.
 
 ### Version 2026.8.10
 
