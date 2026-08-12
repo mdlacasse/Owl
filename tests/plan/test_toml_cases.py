@@ -110,7 +110,7 @@ if platform == "darwin":
             "bequest": 84_252,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_697,
+            "net_spending_basis": 102_515,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -137,7 +137,7 @@ elif platform == "linux":
             "bequest": 84_252,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_697,
+            "net_spending_basis": 102_515,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -164,7 +164,7 @@ elif platform == "win32":
             "bequest": 84_252,
         },
         "Case_jack+jill": {
-            "net_spending_basis": 102_879,
+            "net_spending_basis": 102_697,
             "bequest": 400_000,
         },
         "Case_joe": {
@@ -203,6 +203,7 @@ def test_reproducibility():
     # (~103_129 vs HiGHS ~102_622) after the LTCG bracket-partition and state-tax LP fixes
     # and the HSA-deduction removal.
     if _active_solver() == "MOSEK":
+        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 102_556
         # MOSEK keeps the pre-removal fixed point on this oscillatory case.
         EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
         # Both kim+sam cases settle a little lower under MOSEK.

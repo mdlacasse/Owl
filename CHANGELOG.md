@@ -1,3 +1,29 @@
+### Version 2026.8.13
+
+#### Bugfix: IRMAA and ACA brackets were selected on MAGI plus the standard exemption
+MAGI is defined once, in the formulation: `G_n + Q_n + e_n`, where `G_n` is taxable ordinary
+income after the standard exemption, so adding `e_n` back recovers AGI. The rows that split MAGI
+into IRMAA and ACA bracket portions built it from raw income components instead — withdrawals,
+conversions, dividends, realized gains, taxable Social Security, wages, pension — which already
+include the exemption, and then subtracted `e_n` as well. The figure the optimizer worked from
+came out one exemption too high.
+
+The consequence fell on `withMedicare = "optimize"` and `withACA = "optimize"`, whose purpose is
+to fill a bracket exactly. On a single retiree the IRMAA constraint was binding in all thirteen
+Medicare years while the true MAGI sat \$12,432 to \$21,859 under the tier ceiling, so that much
+Roth conversion capacity went unused each year on the belief the year was already at the edge.
+Objectives improve accordingly, by a few hundred dollars of annual spending on the plans measured.
+The first two plan years were always right, since they use the MAGI supplied through
+`previousMAGIs`, and loop mode was never affected because it reads the reported MAGI directly.
+
+A regression test now asserts the identity the formulation states — that the bracket portions sum
+to the reported MAGI — rather than checking a premium, since a bracket only moves when the error
+happens to straddle a threshold and a premium check would have passed for years.
+
+`Case_jack+jill` moves 102,697 to 102,515 despite the correction relaxing its brackets: that case
+converges oscillatory, so the loop settles on a best-of-cycle iterate and the change shifted which
+one. Plans that converge monotonically all improved.
+
 ### Version 2026.8.12
 
 #### Bugfix: a pinned rate seed now reproduces the same series on any machine

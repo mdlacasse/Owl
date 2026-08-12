@@ -3361,7 +3361,8 @@ class Plan:
             # taxability is optimized, taxable SS is the LP var tss[n2] (added once, below);
             # otherwise it is the SC-loop parameter Psi_n[n2]*zetaBar_in[i,n2].
             ss_lp = "tss" in self.vm
-            row.addElem(self.vm["e"].idx(n2), -1)
+            # The terms below are income before the standard exemption, which is what AGI
+            # is: G_(n-2) + e_(n-2). Subtracting e here as well would add it a second time.
             for i in range(self.N_i):
                 row.addElem(self.vm["w"].idx(i, 1, n2), -1)
                 row.addElem(self.vm["x"].idx(i, n2), -1)
@@ -3462,8 +3463,9 @@ class Plan:
             n = nn  # ACA uses current year (no lag)
             rhs_magi = self.fixed_assets_ordinary_income_n[n] + self.fixed_assets_capital_gains_n[n]
 
+            # As for IRMAA: these terms are income before the standard exemption, so the
+            # exemption is already in them and must not be subtracted a second time.
             row_magi = {}
-            row_magi[self.vm["e"].idx(n)] = -1
 
             for i in range(self.N_i):
                 afac = self.mu * self.alpha_ijkn[i, 0, 0, n] + np.sum(
