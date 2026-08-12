@@ -275,7 +275,11 @@ class TestMatchesRecordedOptimum:
         if reference is None:
             pytest.skip(f"no {solver} reference recorded for {case}")
         if _draws_its_returns(case):
-            pytest.skip(f"{case} draws its returns; its objective is not comparable across platforms")
+            pytest.skip(
+                f"{case} draws its returns, and this fixture predates the change that made "
+                "correlated draws reproducible, so its recorded objective came from a "
+                "different return sequence"
+            )
 
         p = owl.readConfig(os.path.join("examples", case))
         p.solverOptions["solver"] = solver
