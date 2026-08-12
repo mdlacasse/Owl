@@ -12,6 +12,8 @@ import os
 import sys
 
 import numpy as np
+
+from . import _sampling
 import pandas as pd
 
 from owlplanner.rate_models.constants import REQUIRED_RATE_COLUMNS
@@ -273,7 +275,7 @@ def generate_histogaussian_series(
 
     arith_means = data_t.mean(axis=0)
     covar = np.cov(data_t.T)
-    rate_series = rng.multivariate_normal(arith_means, covar, size=N)
+    rate_series = _sampling.multivariate_normal(rng, arith_means, covar, size=N)
 
     # Invert inflation transform on generated samples
     rate_series[:, 3] = inv_pwl_transform(rate_series[:, 3], k, slope_lo, slope_hi)
@@ -333,7 +335,7 @@ def generate_lognormal_series(
         corr_matrix = _build_corr_matrix(corr)
 
     Sigma_z = _build_covar(sigma_z, corr_matrix)
-    Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
+    Z = _sampling.multivariate_normal(rng, mu_z, Sigma_z, size=N)
     rate_series = np.exp(Z) - 1.0
 
     return rate_series, means, stdev, corr_matrix
@@ -392,7 +394,7 @@ def generate_histolognormal_series(
     mu_z = lr_t.mean(axis=0)  # log-space mean (transformed inflation)
     Sigma_z = np.cov(lr_t.T)  # log-space covariance (transformed inflation)
 
-    Z = rng.multivariate_normal(mu_z, Sigma_z, size=N)
+    Z = _sampling.multivariate_normal(rng, mu_z, Sigma_z, size=N)
 
     # Invert inflation transform in log-return space before exponentiating
     Z[:, 3] = inv_pwl_transform(Z[:, 3], k, slope_lo, slope_hi)
@@ -458,6 +460,6 @@ def generate_stochastic_series(
         corr_matrix = _build_corr_matrix(corr, Nk)
 
     covar = _build_covar(stdev, corr_matrix)
-    rate_series = rng.multivariate_normal(means, covar, size=N)
+    rate_series = _sampling.multivariate_normal(rng, means, covar, size=N)
 
     return rate_series, means, stdev, corr_matrix

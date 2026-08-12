@@ -26,6 +26,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ###########################################################################
 import numpy as np
+
+from . import _sampling
 from scipy.stats import multivariate_normal
 
 from owlplanner.rate_models.base import BaseRateModel
@@ -290,7 +292,7 @@ class HMMRateModel(BaseRateModel):
 
         out = np.empty((N, D))
         for t in range(N):
-            out[t] = self._rng.multivariate_normal(self._means[k], self._covs[k])
+            out[t] = _sampling.multivariate_normal(self._rng, self._means[k], self._covs[k])
             k = int(self._rng.choice(K, p=self._trans[k]))
 
         if self._constrain_mean:

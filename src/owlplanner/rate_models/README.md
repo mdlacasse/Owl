@@ -119,7 +119,12 @@ class RateModel(BaseRateModel):
 
         rng = np.random.default_rng(self.seed)
 
-        return rng.multivariate_normal(means, cov, size=N)
+        # Draw through the shared helper rather than rng.multivariate_normal: the
+        # default SVD factorization is not identical across LAPACK builds, so a seeded
+        # series would only reproduce on the machine that generated it.
+        from ._sampling import multivariate_normal
+
+        return multivariate_normal(rng, means, cov, size=N)
 ```
 
 Then use it:

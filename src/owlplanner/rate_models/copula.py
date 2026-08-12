@@ -31,6 +31,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ###########################################################################
 import numpy as np
+
+from . import _sampling
 from scipy.special import ndtri
 from scipy.stats import norm, rankdata
 
@@ -115,7 +117,7 @@ def generate_histocopula_series(
         mylog.vprint(f"historical_copula: Rho fitted on {T} years ({frm}-{to}).")
 
     # Step 4: sample from multivariate normal with the copula correlation.
-    Z_samples = rng.multivariate_normal(np.zeros(K), Rho, size=N)  # (N, K)
+    Z_samples = _sampling.multivariate_normal(rng, np.zeros(K), Rho, size=N)  # (N, K)
 
     # Step 5a: Φ(Z) → U[0,1].
     U_samples = norm.cdf(Z_samples)  # (N, K)

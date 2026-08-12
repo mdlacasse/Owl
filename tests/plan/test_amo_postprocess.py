@@ -64,11 +64,12 @@ def _active_solver():
 def _draws_its_returns(case):
     """True when the case's returns are randomly drawn rather than fixed.
 
-    Such a case is not comparable against a stored objective even with its seed pinned:
-    the correlated draw goes through a matrix factorization, and factorizations that are
-    equally valid differ between LAPACK builds, so macOS and Linux see different return
-    sequences from the same seed. The plan is then solving a different problem, not
-    converging differently -- Case_chris+pat lands 17% apart across platforms.
+    Such a case cannot be held against this fixture. The recorded objectives were
+    produced before correlated draws were made reproducible across platforms, so the
+    return sequence behind them is not the one a case generates now -- Case_chris+pat
+    moves about 3% on the machine that recorded it, and used to differ by 17% between
+    macOS and Linux. Its constraint and cash-flow behaviour is still covered; only the
+    objective comparison is meaningless.
     """
     with open(os.path.join("examples", case + ".toml"), "rb") as f:
         method = tomllib.load(f).get("rates_selection", {}).get("method", "")

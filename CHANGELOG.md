@@ -1,3 +1,24 @@
+### Version 2026.8.12
+
+#### Bugfix: a pinned rate seed now reproduces the same series on any machine
+Rate models that draw correlated returns used `Generator.multivariate_normal`, which
+factorizes the covariance by SVD unless told otherwise. An SVD is only determined up to
+conventions that differ between LAPACK builds, so macOS and Linux drew different numbers from
+the same seed — not by a sign, but entirely. `rate_seed` therefore reproduced a series only on
+the machine that produced it, and `Case_chris+pat` solved 17% apart across platforms.
+
+The draw now goes through a Cholesky factor, which is unique, so a seeded series is the same
+everywhere. This is what `vector_ar` and `garch_dcc` already did by hand; it now applies to
+`gaussian`, `historical_gaussian`, `lognormal`, `historical_lognormal`, `historical_copula`,
+`gmm` and `hmm`. `historical_bootstrap` resamples whole years and was never affected. A
+covariance that is not positive definite cannot be factorized this way, so those cases fall
+back to the previous behavior and warn that the seed will not carry to another machine.
+
+Numbers drawn from these models change, since the draw itself changes: `Case_chris+pat` moves
+about 3%. Results from `historical` and `historical_average` are unaffected — they read
+recorded returns and involve no draw — as are historical-window analyses, which override the
+case's rate method entirely.
+
 ### Version 2026.8.11
 
 #### Change: transaction exclusions are restored after the solve, not constrained during it

@@ -25,6 +25,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ###########################################################################
 import numpy as np
+
+from . import _sampling
 from scipy.special import logsumexp
 from scipy.stats import multivariate_normal
 
@@ -187,7 +189,7 @@ class GMMRateModel(BaseRateModel):
             mask = k_idx == k
             n_k = int(mask.sum())
             if n_k > 0:
-                out[mask] = self._rng.multivariate_normal(self._means[k], self._covs[k], size=n_k)
+                out[mask] = _sampling.multivariate_normal(self._rng, self._means[k], self._covs[k], size=n_k)
         if self._constrain_mean:
             out = constrain_series_mean(out, self._hist_target_means)
         return apply_return_floors(out)
