@@ -33,12 +33,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
 import os
+import tomllib
 
 import numpy as np
 import pytest
 
 import owlplanner as owl
 from owlplanner import amorepair
+from owlplanner.rate_models.constants import STOCHASTIC_METHODS
 
 from test_cashflow_balance import _assert_cashflow_balance, _make_couple, _make_single
 
@@ -57,6 +59,20 @@ def _load_reference():
 
 def _active_solver():
     return "MOSEK" if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
+
+
+def _draws_its_returns(case):
+    """True when the case's returns are randomly drawn rather than fixed.
+
+    Such a case is not comparable against a stored objective even with its seed pinned:
+    the correlated draw goes through a matrix factorization, and factorizations that are
+    equally valid differ between LAPACK builds, so macOS and Linux see different return
+    sequences from the same seed. The plan is then solving a different problem, not
+    converging differently -- Case_chris+pat lands 17% apart across platforms.
+    """
+    with open(os.path.join("examples", case + ".toml"), "rb") as f:
+        method = tomllib.load(f).get("rates_selection", {}).get("method", "")
+    return method in STOCHASTIC_METHODS
 
 
 def _surplus_overlap_years(p):
@@ -257,6 +273,8 @@ class TestMatchesRecordedOptimum:
         reference = _load_reference()["cases"][case].get(solver)
         if reference is None:
             pytest.skip(f"no {solver} reference recorded for {case}")
+        if _draws_its_returns(case):
+            pytest.skip(f"{case} draws its returns; its objective is not comparable across platforms")
 
         p = owl.readConfig(os.path.join("examples", case))
         p.solverOptions["solver"] = solver
