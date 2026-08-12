@@ -61,19 +61,23 @@ def _active_solver():
     return "MOSEK" if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
 
 
-def _draws_its_returns(case):
-    """True when the case's returns are randomly drawn rather than fixed.
+def _comparable_cases():
+    """Recorded cases whose objective can still be held against the fixture.
 
-    Such a case cannot be held against this fixture. The recorded objectives were
-    produced before correlated draws were made reproducible across platforms, so the
-    return sequence behind them is not the one a case generates now -- Case_chris+pat
-    moves about 3% on the machine that recorded it, and used to differ by 17% between
-    macOS and Linux. Its constraint and cash-flow behaviour is still covered; only the
-    objective comparison is meaningless.
+    A case that draws its returns cannot: the fixture was recorded before correlated
+    draws were made reproducible, so its objective came from a return sequence the case
+    no longer generates, and re-recording it would need a build that had the exclusion
+    binaries and the new sampling at once -- one that never existed. Those cases are
+    referenced instead by tests/stochastic/test_seed_reproducibility.py, which pins both
+    their series and their objective.
     """
-    with open(os.path.join("examples", case + ".toml"), "rb") as f:
-        method = tomllib.load(f).get("rates_selection", {}).get("method", "")
-    return method in STOCHASTIC_METHODS
+    cases = []
+    for case in sorted(_load_reference()["cases"]):
+        with open(os.path.join("examples", case + ".toml"), "rb") as f:
+            method = tomllib.load(f).get("rates_selection", {}).get("method", "")
+        if method not in STOCHASTIC_METHODS:
+            cases.append(case)
+    return cases
 
 
 def _surplus_overlap_years(p):
@@ -268,19 +272,12 @@ class TestMatchesRecordedOptimum:
     """The recorded fixture is what the exclusion binaries produced, before their removal."""
 
     @pytest.mark.toml
-    @pytest.mark.parametrize("case", sorted(_load_reference()["cases"]))
+    @pytest.mark.parametrize("case", _comparable_cases())
     def test_objective_matches_reference(self, case):
         solver = _active_solver()
         reference = _load_reference()["cases"][case].get(solver)
         if reference is None:
             pytest.skip(f"no {solver} reference recorded for {case}")
-        if _draws_its_returns(case):
-            pytest.skip(
-                f"{case} draws its returns, and this fixture predates the change that made "
-                "correlated draws reproducible, so its recorded objective came from a "
-                "different return sequence"
-            )
-
         p = owl.readConfig(os.path.join("examples", case))
         p.solverOptions["solver"] = solver
         p.resolve()
