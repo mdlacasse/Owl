@@ -51,7 +51,7 @@ def _make_plan(name, horizon_years=12):
     return p
 
 
-_BASE_OPTIONS = {"withMedicare": "None", "withDecomposition": "none", "withSCLoop": False}
+_BASE_OPTIONS = {"withMedicare": "None", "withDecomposition": "none"}
 
 
 def test_pin_positive_bypasses_cap():

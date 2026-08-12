@@ -62,7 +62,6 @@ slcsp_annual = 14.0
 maxRothConversion = 50
 startRothConversions = 2026
 bequest = 75
-withSCLoop = true
 withMedicare = "loop"
 withACA = "loop"
 solver = "default"

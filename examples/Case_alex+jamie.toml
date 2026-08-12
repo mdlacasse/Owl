@@ -61,7 +61,6 @@ startRothConversions = 2026
 bequest = 0
 solver = "default"
 spendingSlack = 0
-withSCLoop = true
 withMedicare = "loop"
 noLateSurplus = false
 previousMAGIs = [ 200.0, 200.0,]

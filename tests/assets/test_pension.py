@@ -96,7 +96,7 @@ def test_pension_survivor_benefit_added_to_pibar():
     p.setPension([1000, 0], [65, 65], indexed=[False, False], survivor_fraction=[0.5, 0])
     p.setRates("user", values=[0.05, 0.03, 0.02, 0.01])
 
-    p.solve("maxSpending", options={"maxRothConversion": 0, "withSCLoop": False})
+    p.solve("maxSpending", options={"maxRothConversion": 0})
 
     assert p.caseStatus == "solved"
     assert p.N_i == 2

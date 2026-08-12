@@ -35,7 +35,6 @@ def test_sc_policy_defaults_and_numeric_reltol():
     policy = p._build_sc_loop_policy(opts)
 
     assert policy["includeMedicare"] is True
-    assert policy["withSCLoop"] is True
     assert policy["fixedPsi"] is None
     assert policy["relTol"] == 1e-4
     assert policy["maxIter"] == 12

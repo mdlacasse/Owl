@@ -60,7 +60,6 @@ objective = "maxSpending"
 maxRothConversion = 50
 startRothConversions = 2026
 bequest = 50
-withSCLoop = true
 withMedicare = "loop"
 previousMAGIs = [71.0, 72.0]
 solver = "default"

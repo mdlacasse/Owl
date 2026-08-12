@@ -97,7 +97,6 @@ startRothConversions = 2026
 bequest = 40
 solver = "default"
 spendingSlack = 0
-withSCLoop = true
 withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"

@@ -220,21 +220,31 @@ Add Owl to Claude Desktop's MCP server list by editing
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-### Recommended: via `uv` (works everywhere)
+### Recommended: via `uv`, using its full path
 
 ```json
 {
   "mcpServers": {
     "owl": {
-      "command": "uv",
+      "command": "/full/path/to/uv",
       "args": ["run", "--project", "/path/to/Owl", "owlcli", "serve"]
     }
   }
 }
 ```
 
-Replace `/path/to/Owl` with the absolute path to the Owl repository. `uv`
-activates the correct virtual environment automatically — no PATH setup needed.
+Run `which uv` (macOS/Linux) or `where uv` (Windows) to get the first path, and
+replace the second with the absolute path to the Owl repository.
+
+Give the **full path** to `uv` rather than just `uv`. Claude Desktop is a desktop
+application, so it does not inherit the `PATH` from your shell — on macOS it starts
+with little more than `/usr/bin:/bin`. uv's own installer puts the binary in
+`~/.local/bin`, which is not on that list, so `"command": "uv"` fails to start with
+an error that does not mention `PATH`. Once uv is found, it activates the right
+Python environment on its own; that part needs no setup.
+
+`--project` is what ties the server to this copy of Owl, whichever directory Claude
+Desktop happens to run it from.
 
 ### Alternative: if `owlcli` is already on your PATH
 
@@ -248,6 +258,12 @@ activates the correct virtual environment automatically — no PATH setup needed
   }
 }
 ```
+
+This runs whichever `owlcli` comes first on the PATH, which is not necessarily the
+one belonging to this repository — an older copy installed into a system or Conda
+environment will win, and will serve that version of Owl against your cases or fail
+on import. Check with `which owlcli` before choosing this form, and prefer the `uv`
+form above if you have more than one installation.
 
 Restart Claude Desktop after saving. The tools appear automatically in the
 conversation interface.
@@ -318,6 +334,10 @@ Create or edit `~/.cursor/mcp.json` (user-wide, all projects):
 For a **project-only** setup, put the same JSON in `.cursor/mcp.json` at the root
 of the Owl repo (or your planning workspace) and use the repo’s absolute path in
 `--project`.
+
+If the server fails to start, replace `"uv"` with the full path printed by `which uv`.
+Cursor is a desktop application and does not inherit the `PATH` from your shell — see
+[Claude Desktop](#claude-desktop) above for why.
 
 ### Alternative: `owlcli` already on PATH
 
@@ -397,6 +417,11 @@ before connecting it to an AI.
 
 Any client that supports the MCP stdio transport uses the same pattern —
 a command and argument list that launches `owlcli serve`. Common examples:
+
+The snippets below write `uv` plainly for readability. Each of these clients is a desktop
+application that does not inherit the `PATH` from your shell, so if a server fails to
+start, substitute the full path printed by `which uv` — the same point made under
+[Claude Desktop](#claude-desktop).
 
 ### VS Code (GitHub Copilot)
 

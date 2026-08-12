@@ -1,3 +1,34 @@
+### Version 2026.8.14
+
+#### Deprecated: `withSCLoop`
+The option promised speed in exchange for precision. What it did was leave Medicare out of the
+budget constraint while still reporting the premiums, so the plan spent money it would have owed:
+`Case_dana` came back 3% high and `Case_cameron` 34% high, the same ~\$2,435 of unbudgeted premium
+in both.
+
+There is nothing it could legitimately switch off. Even with every tax feature set to `"optimize"`,
+where the MILP is meant to absorb the nonlinearities, the loop still resolves two quantities that
+have no formulation inside the optimization: the standard exemption's OBBBA 65+ phaseout, which is
+computed from MAGI, and the cost-basis gain fractions, which depend on the withdrawals themselves.
+Turning the loop off does not trade accuracy for speed; it stops the plan converging.
+
+Where a shorter loop is genuinely wanted, `maxIter` already does it coherently — `maxIter = 2`
+reproduces the full-loop answer exactly on the cases above, at the same speed, with Medicare in the
+budget throughout.
+
+A case file that still sets the option loads, reports it as deprecated, and solves properly. Two
+consequences worth noting: a solved plan now always carries a real convergence verdict, where
+before this mode left it `undefined` — which the historical sweeps counted as a solve needing an
+error bar — and the Medicare cost is no longer simultaneously absent from the budget and present in
+the report.
+
+#### Changed: the expert MILP toggles say what they do
+"Optimize Medicare", "Optimize ACA", "Optimize LTCG brackets" and "Optimize NIIT" implied that the
+alternative does not optimize those things. It does — every one of them is modeled either way, and
+the toggle chooses how. They now read "Solve … with MILP", and their help text says the bracket is
+chosen inside the optimization rather than by iteration, which is exact at a bracket edge and
+slower.
+
 ### Version 2026.8.13
 
 #### Bugfix: IRMAA and ACA brackets were selected on MAGI plus the standard exemption

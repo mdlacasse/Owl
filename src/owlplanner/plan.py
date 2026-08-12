@@ -61,11 +61,23 @@ def _mosek_available():
     return importlib.util.find_spec("mosek") is not None and os.environ.get("MOSEKLM_LICENSE_FILE") is not None
 
 
-# Solver options that used to select the AMO exclusion binaries. Those exclusions are now
-# restored by post-processing (see amorepair), so the options no longer do anything. A case
-# file saved before the change still carries them, so they are accepted and reported as
-# deprecated rather than rejected as unknown.
-RETIRED_OPTIONS = frozenset({"amoConstraints", "amoRoth", "amoSurplus"})
+# Solver options that no longer do anything, and why. A case file saved earlier still
+# carries them, so they are accepted and reported as deprecated rather than rejected as
+# unknown, each with the reason a reader would need.
+_AMO_RETIRED = (
+    "the exclusions it selected are restored after the solve now, so nothing needs constraining"
+)
+_SCLOOP_RETIRED = (
+    "no mode can solve without the self-consistent loop -- the standard exemption's OBBBA "
+    "phaseout and the cost-basis gain fractions are nonlinear in the solution -- and turning "
+    "it off left Medicare out of the budget, overstating spending. Use maxIter to shorten it"
+)
+RETIRED_OPTIONS = {
+    "amoConstraints": _AMO_RETIRED,
+    "amoRoth": _AMO_RETIRED,
+    "amoSurplus": _AMO_RETIRED,
+    "withSCLoop": _SCLOOP_RETIRED,
+}
 
 # Default values
 BIGM_AMO = 5e7  # 100 times large withdrawals or conversions
@@ -3812,7 +3824,6 @@ class Plan:
             "bendersMaxIter",  # Maximum Benders iterations (default: 50)
             "withDecomposition",  # MIP decomposition: "none" (default), "sequential", or "benders"
             "withMedicare",
-            "withSCLoop",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
             "withDuals",  # Re-solve final LP with binaries fixed to extract shadow prices
@@ -3826,8 +3837,7 @@ class Plan:
         for opt in list(myoptions.keys()):
             if opt in RETIRED_OPTIONS:
                 self.mylog.print(
-                    f"Ignoring deprecated solver option '{opt}': the exclusions it controlled "
-                    "are now restored after the solve and no longer need constraining.",
+                    f"Ignoring deprecated solver option '{opt}': {RETIRED_OPTIONS[opt]}.",
                     tag="WARNING",
                 )
                 myoptions.pop(opt)
@@ -3949,7 +3959,6 @@ class Plan:
 
     def _build_sc_loop_policy(self, options):
         include_medicare = options.get("withMedicare", "loop") == "loop"
-        with_sc_loop = options.get("withSCLoop", True)
         ss_val = options.get("withSSTaxability", "loop")
         fixed_psi = float(ss_val) if isinstance(ss_val, (int, float)) else None
 
@@ -3964,7 +3973,6 @@ class Plan:
 
         return {
             "includeMedicare": include_medicare,
-            "withSCLoop": with_sc_loop,
             "fixedPsi": fixed_psi,
             "gap": gap,
             "absTol": abs_tol,
@@ -4179,7 +4187,6 @@ class Plan:
         """
         policy = self._build_sc_loop_policy(options)
         includeMedicare = policy["includeMedicare"]
-        withSCLoop = policy["withSCLoop"]
         fixed_psi = policy["fixedPsi"]
         abs_tol = policy["absTol"]
         rel_tol = policy["relTol"]
@@ -4251,21 +4258,7 @@ class Plan:
                 self.mylog.print("Solver failed:", solverMsg, solverSuccess)
                 break
 
-            if not withSCLoop and it >= 1:
-                # When Medicare is in loop mode, M_n was zero in the constraint for this
-                # single solve. Update M_n (and J_n) from solution for reporting.
-                if includeMedicare:
-                    self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
-                    self.mylog.print(
-                        "Self-consistent loop is off; Medicare premiums are "
-                        "computed for display but were not in the budget constraint.",
-                        tag="WARNING",
-                    )
-                break
-
-            # When withSCLoop=False, only update G_n (needed for LTCG bracket accuracy)
-            # by passing includeMedicare=False; this preserves the no-Medicare-loop behavior.
-            self._computeNLstuff(xx, includeMedicare if withSCLoop else False, fixedPsi=fixed_psi)
+            self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
             self._update_gain_fraction()
 
             delta = xx - old_x
@@ -4392,13 +4385,13 @@ class Plan:
             # exactly on p.M_n / p.J_n / p.ACA_n without any post-hoc correction.
             # Only applies to loop-mode quantities (LP-mode variants are already extracted
             # from solver variables and are always consistent).
-            if withSCLoop and includeMedicare:
+            if includeMedicare:
                 self.M_n = M_n_lp
                 hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
                 self.hsa_medicare_n = np.minimum(hsa_total, self.m_n + self.M_n)
-            if withSCLoop and not getattr(self, "_niit_lp", False):
+            if not getattr(self, "_niit_lp", False):
                 self.J_n = J_n_lp
-            if withSCLoop and self.slcsp_annual > 0 and not self._aca_lp:
+            if self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
             self._check_cashflow_balance()
             if options.get("withDuals", False):

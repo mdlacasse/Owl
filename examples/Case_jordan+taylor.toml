@@ -68,7 +68,6 @@ noRothConversions = "Taylor"
 startRothConversions = 2026
 solver = "default"
 spendingSlack = 0
-withSCLoop = true
 noLateSurplus = false
 withMedicare = "loop"
 withACA = "loop"

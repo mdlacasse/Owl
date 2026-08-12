@@ -26,7 +26,7 @@ def solved_single():
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("conservative")
-    p.solve("maxSpending", {"withMedicare": "None", "withSCLoop": False})
+    p.solve("maxSpending", {"withMedicare": "None"})
     assert p.caseStatus == "solved"
     return p
 
@@ -39,7 +39,7 @@ def solved_couple():
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("conservative")
-    p.solve("maxSpending", {"withMedicare": "None", "withSCLoop": False})
+    p.solve("maxSpending", {"withMedicare": "None"})
     assert p.caseStatus == "solved"
     return p
 

@@ -61,7 +61,6 @@ objective = "maxSpending"
 maxRothConversion = 100
 noRothConversions = "Jill"
 startRothConversions = 2026
-withSCLoop = true
 withMedicare = "optimize"
 withSSTaxability = "loop"
 withDecomposition = "benders"

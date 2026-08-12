@@ -571,7 +571,6 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
         "units",
         "useRothConvOverrides",
         "verbose",
-        "withSCLoop",
     }
     assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
 

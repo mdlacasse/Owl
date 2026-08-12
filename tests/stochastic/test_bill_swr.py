@@ -112,7 +112,6 @@ def test_bill_matches_annuity_formula():
 
     # Disable all real-world features so the LP is a pure annuity problem.
     options = {
-        "withSCLoop": False,
         "withACA": "none",
         "withMedicare": "none",
         "withLTCG": "none",
@@ -143,7 +142,6 @@ def test_bill_end_of_year_timing_difference():
     p = owl.readConfig("examples/Case_bill", verbose=False, loadHFP=False)
 
     options = {
-        "withSCLoop": False,
         "withACA": "none",
         "withMedicare": "none",
         "withLTCG": "none",

@@ -199,7 +199,6 @@ objective = "maxSpending"
 
 [solver_options]
 withMedicare = "loop"
-withSCLoop = true
 
 [results]
 default_plots = "today"

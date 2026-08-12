@@ -38,7 +38,6 @@ kz.initCaseKey("otherMedical", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
 kz.initCaseKey("useDecomposition", "none")
-kz.initCaseKey("withSCLoop", True)
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
 
@@ -166,8 +165,6 @@ else:
         kz.initCaseKey("computeMedicare", True)
         helpmsg = "Compute Medicare and IRMAA premiums."
         medion = kz.getToggle("Medicare and IRMAA calculations", "computeMedicare", help=helpmsg)
-        if medion and not kz.getCaseKey("withSCLoop"):
-            st.markdown(":material/warning: Medicare is on while self-consistent loop is off.")
 
     if kz.getCaseKey("computeMedicare"):
         helpmsg = "MAGI in nominal \\$k for current and previous years."
@@ -224,24 +221,22 @@ else:
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
             helpmsg = (
-                "Option to use a self-consistent loop to adjust additional values such as the net"
-                " investment income tax (NIIT), and capital gain tax rates."
-                "  When Medicare is selected, this will also compute Medicare and IRMAA."
-            )
-            ret = kz.getToggle("Self-consistent loop calculations", "withSCLoop", help=helpmsg)
-            helpmsg = (
                 "Option to optimize Medicare using binary variables."
                 "  Use with caution as some cases might not converge"
                 " without adjusting additional solver parameters."
             )
             medioff = not medion
-            ret = kz.getToggle("Optimize Medicare (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff)
+            ret = kz.getToggle(
+                "Solve Medicare brackets with MILP (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff
+            )
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
             helpmsg_aca = (
-                "Co-optimize ACA bracket selection within the LP. "
-                "More accurate but slower. Only applies when SLCSP > 0."
+                "Choose the ACA bracket inside the optimization instead of by iteration. "
+                "Exact at a bracket edge, and slower. Only applies when SLCSP > 0."
             )
-            ret = kz.getToggle("Optimize ACA (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff)
+            ret = kz.getToggle(
+                "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff
+            )
             # The last two toggles are drawn in the next column, below. Reading them here is
             # still current: each toggle writes to the case on change, before the rerun.
             decompoff = not (
@@ -257,7 +252,7 @@ else:
                 "sequentially; fast but not guaranteed globally optimal. "
                 "'benders': classical Benders decomposition — certified globally optimal within "
                 "the MIP gap; slower per iteration but provably correct. "
-                "Only applies when Optimize Medicare or Optimize ACA is active."
+                "Only applies when the Medicare or ACA brackets are solved with MILP."
             )
             ret = kz.getRadio(
                 "MIP decomposition (expert)",
@@ -274,17 +269,17 @@ else:
             )
             ret = kz.getToggle("Disallow cash-flow surpluses in the last 2 years", "noLateSurplus", help=helpmsg)
             helpmsg_ltcg = (
-                "Optimize LTCG bracket selection using binary variables. "
-                "Replaces self-consistent loop for LTCG ordinary income stacking. "
-                "More accurate but slower."
+                "Choose the capital-gains bracket inside the optimization instead of by "
+                "iteration, for the stacking of ordinary income under long-term gains. "
+                "Exact at a bracket edge, and slower."
             )
-            ret = kz.getToggle("Optimize LTCG brackets (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            ret = kz.getToggle("Solve LTCG brackets with MILP (expert)", "optimizeLTCG", help=helpmsg_ltcg)
             helpmsg_niit = (
-                "Optimize NIIT (Net Investment Income Tax) within the MIP. "
-                "Replaces self-consistent loop for NIIT computation. "
-                "Only effective when Optimize LTCG is also enabled."
+                "Decide inside the optimization whether income crosses the Net Investment "
+                "Income Tax threshold, instead of by iteration. Only has an effect when the "
+                "capital-gains brackets are solved the same way."
             )
-            ret = kz.getToggle("Optimize NIIT (expert)", "optimizeNIIT", help=helpmsg_niit)
+            ret = kz.getToggle("Solve NIIT threshold with MILP (expert)", "optimizeNIIT", help=helpmsg_niit)
 
         st.divider()
         st.markdown("#### :orange[Social Security Taxability]")

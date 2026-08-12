@@ -1282,7 +1282,7 @@ with the options on the **Run Options** page (Roth conversions, Medicare, solver
 
     with st.expander(":orange[**Run Options**]", expanded=expand_all, type="compact"):
         st.markdown("""
-This page configures Roth conversions, health insurance costs, the self-consistent loop, and solver options.
+This page configures Roth conversions, health insurance costs, and solver options.
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
@@ -1324,7 +1324,7 @@ depending on the age gap between spouses.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.
-*Optimize ACA (expert)* in *Advanced options*
+*Solve ACA brackets with MILP (expert)* in *Advanced options*
 co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
 for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
 
@@ -1335,7 +1335,7 @@ finds the best strategy, then Medicare premiums are calculated from that strateg
 and the problem is re-solved with those premiums as fixed costs until they stabilize.
 This provides good accuracy with reasonable computation time.
 
-For maximum accuracy, enable *Optimize Medicare (expert)* in the *Advanced options* expander.
+For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
 It can be significantly slower (sometimes many minutes) due to additional binary variables.
@@ -1349,9 +1349,6 @@ IRMAA surcharges. Values default to zero.
 Turn it off if you have other drug coverage (e.g. employer, VA).
 *Part D base premium (\\$/month per person)* is optional (default 0 = IRMAA only);
 use it to add a monthly base (e.g. national average ~\\$39–47).
-A warning appears if Medicare is on while the self-consistent loop is off,
-since Medicare in loop mode requires the loop to compute premiums iteratively.
-
 A **self-consistent loop** is an iterative method used for values that depend on the
 solution itself and are therefore difficult to integrate directly into the linear program.
 These include: the net investment income tax (NIIT, a 3.8% surtax on investment income
@@ -1364,10 +1361,11 @@ up to 50% between those thresholds and \\$34k (single) / \\$44k (MFJ), and up to
 above the upper threshold — Medicare/IRMAA when Medicare is enabled, and ACA marketplace
 premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
 re-solves, and repeats until convergence.
-The *Self-consistent loop calculations* toggle in *Advanced options* turns this on or off;
-turning it off defaults all these values to their worst-case upper bounds (e.g. 85% SS
-taxability every year, maximum capital gains rate), which simplifies the model but
-produces a more conservative (lower spending / lower bequest) estimate.
+The loop always runs. It cannot be switched off, because two of the quantities it settles
+have no place inside the optimization at all: the phase-out of the senior deduction, which
+depends on the MAGI the solution produces, and the cost basis of the taxable account, which
+depends on the withdrawals taken. The *Maximum iterations* setting bounds how long it may
+run, should a case prove slow to settle.
 
 **Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
 The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
@@ -1381,34 +1379,31 @@ Use this to ensure a reserve of liquid assets is maintained for emergencies or o
 or to reflect a personal preference for keeping a buffer in taxable accounts.
 
 The *Advanced options* expander contains:
-- *Self-consistent loop calculations* – when on, iteratively computes NIIT, capital gains rates,
-  phase out of senior exemptions, the taxable fraction of SS benefits, Medicare/IRMAA
-  (when Medicare is enabled), and ACA premiums (when ACA is enabled).
-- *Optimize Medicare (expert)* – integrates Medicare into the optimization; enabled only when
-  Medicare and IRMAA calculations are on.
-- *Optimize ACA (expert)* – co-optimizes ACA bracket selection within the LP, enabling the optimizer
-  to shift MAGI across brackets for improved objectives (can be slower; applies 2026 rules only);
+- *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
+  optimization rather than by iteration; enabled only when Medicare and IRMAA calculations are on.
+- *Solve ACA brackets with MILP (expert)* – chooses the ACA bracket inside the optimization, letting
+  it shift MAGI across brackets deliberately (slower; applies 2026 rules only);
   enabled only when SLCSP > 0.
 
 These two optimize modes operate on nearly disjoint time ranges — ACA covers pre-65 years,
 Medicare covers 65+ years (with a 2-year MAGI lag) — and can be enabled independently or together
 without conflict. Setting both simultaneously allows the LP to optimally balance the brief overlap
 period where pre-Medicare MAGI also determines early IRMAA amounts.
-*Guidance*: enable *Optimize ACA* for early retirees with long pre-65 periods where ACA costs dominate;
-enable *Optimize Medicare* for high-income retirees where IRMAA surcharges are significant;
+*Guidance*: solve the ACA brackets with MILP for early retirees with long pre-65 periods where ACA costs dominate;
+solve the Medicare brackets that way for high-income retirees where IRMAA surcharges are significant;
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
-- *Optimize LTCG brackets (expert)* – replaces the self-consistent loop for LTCG ordinary income
+- *Solve LTCG brackets with MILP (expert)* – replaces the iteration for LTCG ordinary income
   stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
   so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
   placement significantly affects the objective.
-- *Optimize NIIT (expert)* – replaces the self-consistent loop for NIIT with an exact MILP formulation.
+- *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
   Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
-  Most effective when *Optimize LTCG* is also enabled, since MAGI depends on ordinary income stacking.
+  Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last two years of the plan*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of Optimize Medicare, Optimize ACA, Optimize LTCG, or Optimize NIIT is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
+- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
 - *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
@@ -1686,8 +1681,8 @@ passing of the first spouse, and one for the distribution of the primary objecti
 ##### Performance considerations
 Each Monte Carlo trial requires solving a full LP or MIP, which is more expensive than
 event-driven forward simulators. To improve throughput:
-- Use `Medicare off` or the `self-consistent loop` option — the full MIP Medicare option
-  adds binary variables to every trial and can be several times slower.
+- Turn Medicare off, or leave its brackets to the iteration rather than the MILP — solving them
+  with MILP adds binary variables to every trial and can be several times slower.
 - Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
   server, which also has a CPU-time quota that may terminate long sessions.
 """)
@@ -1932,7 +1927,7 @@ with tab_tips:
 costly computations. This approach is included in the current version but
 be aware that computing time can be unpredictable
 due to the additional complexity and the number of binary variables involved.
-As a second option, a self-consistent loop is provided by default which consists in adding
+By default a self-consistent loop is used instead, which consists in adding
 Medicare costs after the optimization step, and then iterate to convergence.
 In this case, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no Roth conversions are made.

@@ -89,7 +89,6 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "units",
     "useRothConvOverrides",
     "verbose",
-    "withSCLoop",
 ]
 
 

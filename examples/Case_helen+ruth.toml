@@ -63,7 +63,6 @@ startRothConversions = 2026
 bequest = 200
 solver = "default"
 spendingSlack = 0
-withSCLoop = true
 withMedicare = "loop"
 withSSTaxability = "loop"
 previousMAGIs = [ 175.0, 185.0,]

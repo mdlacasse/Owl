@@ -242,8 +242,6 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
         plan.solverOptions["withLTCG"] = "loop"
     if "withNIIT" not in plan.solverOptions:
         plan.solverOptions["withNIIT"] = "loop"
-    if "withSCLoop" not in plan.solverOptions:
-        plan.solverOptions["withSCLoop"] = True
     with_medicare = plan.solverOptions.get("withMedicare")
     if isinstance(with_medicare, bool):
         # Legacy TOML compat: pre-2025 files used withMedicare = true/false.

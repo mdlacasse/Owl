@@ -56,7 +56,6 @@ bequest = 400
 previousMAGIs = [ 100.0, 95.0,]
 solver = "default"
 spendingSlack = 0
-withSCLoop = true
 withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"

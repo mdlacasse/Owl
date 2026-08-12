@@ -45,7 +45,6 @@ import owlplanner as owl
 # Shared solver options that eliminate all SC-loop features.
 _BASE = {
     "maxRothConversion": 0,
-    "withSCLoop": False,
     "withMedicare": False,
 }
 

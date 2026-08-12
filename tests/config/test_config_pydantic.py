@@ -78,7 +78,6 @@ objective = "maxSpending"
 maxRothConversion = 50
 startRothConversions = 2025
 bequest = 300
-withSCLoop = true
 withMedicare = "loop"
 solver = "HiGHS"
 
