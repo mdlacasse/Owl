@@ -107,7 +107,7 @@ def plan_to_dict(plan) -> dict:
     ltcg_tax = plan.U_n[:N]
     niit = plan.J_n[:N]
     state_tax = plan.st_T_n[:N]
-    medicare = plan.m_n[:N] + plan.M_n[:N]
+    medicare = plan.medicare_n[:N]
     aca = plan.aca_costs_n[:N]
     roth_conv = np.sum(plan.x_in[:, :N], axis=0)
     ss_income = plan.zetaBar_in[:, :N]

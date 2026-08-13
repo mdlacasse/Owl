@@ -722,7 +722,7 @@ class Plan:
             "living": float(np.sum(self.g_n * inv_g)),
             "taxes": float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
             "state_taxes": float(np.sum(self.st_T_n * inv_g)),
-            "healthcare": float(np.sum((self.m_n + self.M_n + self.aca_costs_n) * inv_g)),
+            "healthcare": float(np.sum((self.medicare_n + self.aca_costs_n) * inv_g)),
             "debt": float(np.sum(self.debt_payments_n * inv_g)),
             "bti": bti_out,
             "bequest": self.bequest + self.partialBequest,
@@ -769,7 +769,7 @@ class Plan:
             "living": self.g_n * inv_g,
             "taxes": (self.T_n + self.U_n + self.J_n) * inv_g,
             "state_taxes": self.st_T_n * inv_g,
-            "healthcare": (self.m_n + self.M_n + self.aca_costs_n) * inv_g,
+            "healthcare": (self.medicare_n + self.aca_costs_n) * inv_g,
             "debt": self.debt_payments_n * inv_g,
             "bti": np.maximum(0.0, -Lambda_n),
         }
@@ -2868,18 +2868,18 @@ class Plan:
             delta_p_n = ss_hi_n - ss_lo_n
 
             # === Build Π_n LP coefficients ===
-            # Π_n = e_n - t^σ_n + LP_income_terms + params, where the LP income terms
-            # mirror the Medicare MAGI constraint (same year n, not n-2) but with 0.5·ζ̄_n.
-            # The t^σ_n correction cancels the taxable-SS portion embedded in e_n (with ss_lp,
-            # e_n = B_n + t^σ_n), leaving Π_n = B_n + Q_n + 0.5·ζ̄_n independent of t^σ_n.
+            # Π_n = B_n + Q_n + 0.5·ζ̄_n, where B_n is non-SS ordinary income before the
+            # standard exemption. The LP income terms below mirror the ACA MAGI constraint
+            # exactly — same year n, same coefficients — and carry 0.5·ζ̄_n instead of the
+            # full ζ̄_n. Those terms already are B_n + Q_n: neither e_n nor t^σ_n belongs
+            # here. Adding e_n would count the exemption a second time, and subtracting
+            # t^σ_n would remove taxable SS that the terms never included.
 
             rhs_pi = (
                 self.fixed_assets_ordinary_income_n[n] + self.fixed_assets_capital_gains_n[n] + 0.5 * zetaBar_n
             )  # 0.5·SS for provisional income (not full SS)
 
             pi_row = {}
-            pi_row[self.vm["e"].idx(n)] = -1  # subtract e_n
-            pi_row[self.vm["tss"].idx(n)] = +1  # add back t^σ_n to cancel its share in e_n
 
             for i in range(self.N_i):
                 # Combined dividend + interest yield for taxable account (equity + bonds/notes/cash).
@@ -4110,8 +4110,7 @@ class Plan:
             + self.U_n
             + self.J_n
             + self.st_T_n
-            + self.m_n
-            + self.M_n
+            + self.medicare_n
             + self.aca_costs_n
             + self.debt_payments_n
         )
@@ -4388,7 +4387,7 @@ class Plan:
             if includeMedicare:
                 self.M_n = M_n_lp
                 hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
-                self.hsa_medicare_n = np.minimum(hsa_total, self.m_n + self.M_n)
+                self.hsa_medicare_n = np.minimum(hsa_total, self.medicare_n)
             if not getattr(self, "_niit_lp", False):
                 self.J_n = J_n_lp
             if self.slcsp_annual > 0 and not self._aca_lp:
@@ -5475,7 +5474,7 @@ class Plan:
         self.w_ijn = vm["w"].extract(x)
         self.x_in = vm["x"].extract(x)
         hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
-        self.hsa_medicare_n = np.minimum(hsa_total, self.m_n + self.M_n)
+        self.hsa_medicare_n = np.minimum(hsa_total, self.medicare_n)
 
         # Extract SS taxability LP variables and update Psi_n from the LP solution.
         if "tss" in vm:
@@ -5674,6 +5673,17 @@ class Plan:
     def aca_costs_n(self):
         """ACA net premium costs per year: LP result (optimize mode) or SC-loop result (loop mode)."""
         return self.maca_n if self._aca_lp else self.ACA_n
+
+    @property
+    def medicare_n(self):
+        """Total Medicare premiums per year, Part B and Part D including IRMAA.
+
+        Which array carries the cost depends on how Medicare was solved: withMedicare='optimize'
+        puts it in the LP variable m_n and leaves M_n at zero, while loop mode computes M_n
+        outside the solver and pins m_n to zero. Read the total here rather than from either
+        array, which is only ever half the answer.
+        """
+        return self.m_n + self.M_n
 
     @_checkCaseStatus
     def estate(self):
@@ -6182,7 +6192,7 @@ class Plan:
         aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
         st_n = self.st_T_n if self.state else None
         fig = self._plotter.plot_taxes(
-            self.year_n, allTaxes, self.m_n + self.M_n, self.gamma_n, value, title, self.inames, A_n=aca_n, ST_n=st_n
+            self.year_n, allTaxes, self.medicare_n, self.gamma_n, value, title, self.inames, A_n=aca_n, ST_n=st_n
         )
         if figure:
             return fig

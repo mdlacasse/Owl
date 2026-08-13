@@ -1,3 +1,41 @@
+### Version 2026.8.15
+
+#### Bugfix: taxable Social Security was computed from the wrong provisional income
+`withSSTaxability = "optimize"` builds provisional income as a row of raw income components —
+withdrawals, conversions, dividends, realized gains, wages, pension, plus half the benefit. Those
+components already are non-Social-Security ordinary income plus capital gains, which is the whole
+of what the formulation asks for: Eq. (PI) states that taxable Social Security does not appear in
+provisional income, and neither does the standard exemption. The row added the exemption `e_n` and
+subtracted `t^σ_n` on top of them anyway, so the IRS piecewise formula was applied to
+`Π_n + e_n − t^σ_n`.
+
+This is the same family as the 2026.8.13 exemption bug, in the third row that builds an income
+figure from components; that fix corrected IRMAA and ACA and left this one standing.
+
+The error is invisible wherever the 85% cap binds, since the answer is then `0.85·ζ̄` for any
+provisional income at all — which is why bounds tests and a cap-binding test passed while the
+definition was wrong. It bites on the taxability ramp, and its sign follows `e_n − t^σ_n`: the
+figure runs high while the exemption exceeds taxable benefits, and low once benefits are largely
+taxable, which is the case that costs money. On `Case_dana` under `maxBequest` at the 1966
+sequence, \$153,488 of taxable Social Security went untaxed across 27 years, up to \$16,981 in a
+single year, and the bequest came back \$462,211 against a corrected \$452,598.
+
+Loop mode never built the row and is unaffected, as are all default solves — the option is off by
+default, and no pinned case objective moves.
+
+The regression test asserts the identity the formulation states, that the reported taxable benefit
+is what the IRS formula returns for the plan's own provisional income, on a plan whose Social
+Security years sit on the ramp. It refuses to pass on a plan where every year is at the cap, since
+there the identity holds no matter what the row computes.
+
+#### Added: `plan.medicare_n`
+Medicare premiums land in a different array depending on how they were solved:
+`withMedicare = "optimize"` puts them in the LP variable `m_n` and leaves `M_n` at zero, loop mode
+does the reverse. Reading either one alone therefore reports the full premium on one path and zero
+on the other. `medicare_n` is the total, and every reporting path — summaries, cash-flow mixes,
+worksheets, the Excel export, the CLI, the tax plot — now reads it instead of adding the two
+arrays by hand.
+
 ### Version 2026.8.14
 
 #### Deprecated: `withSCLoop`

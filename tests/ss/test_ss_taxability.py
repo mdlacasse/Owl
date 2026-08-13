@@ -505,3 +505,59 @@ def test_ss_fixed_fraction_distinct_levels():
             f"Spending did not fall from Psi={lo} to Psi={hi}: "
             f"{objectives[lo]:,.0f} -> {objectives[hi]:,.0f}"
         )
+
+
+def test_ss_lp_matches_irs_formula_below_the_cap():
+    """
+    In 'optimize' mode the taxable-SS variable must equal what the IRS formula returns for
+    the plan's own provisional income, in every SS year.
+
+    Bounds and cap-binding checks cannot see an error in the provisional-income row: at
+    PI well above P_hi the answer is 0.85·ζ̄ whatever PI the row computes, and 0 ≤ Ψ ≤ 0.85
+    holds for any PI at all. The row therefore has to be checked against the formula, on a
+    plan whose SS years sit on the 50%/85% ramp where the answer still depends on PI.
+
+    Single retiree, $2,000/month PIA (ζ̄ ≈ $24k) and net spending pinned at $46k with
+    conversions off, which puts provisional income between P_lo=$25k and P_hi=$34k plus
+    the 85% ramp — the regime where the cap does not bind.
+    """
+    thisyear = date.today().year
+    p = owl.Plan(["Robin"], [f"{thisyear - 66}-06-01"], [78], "ss_lp_irs_identity")
+    p.setSpendingProfile("flat", 100)
+    p.setAccountBalances(taxable=[120], taxDeferred=[420], taxFree=[30], startDate="1-1")
+    p.setInterpolationMethod("s-curve")
+    p.setAllocationRatios("individual", generic=[[[50, 50, 0, 0], [50, 50, 0, 0]]])
+    p.setPension([0], [65])
+    p.setSocialSecurity([2_000], [67])
+    p.setRates("historical", 2000)
+    p.solve(
+        "maxBequest",
+        {
+            "withSSTaxability": "optimize",
+            "withMedicare": "None",
+            "netSpending": 46,
+            "noRothConversions": "Robin",
+        },
+    )
+    assert p.caseStatus == "solved", f"Solver status: {p.caseStatus} (expected 'solved')"
+
+    ss_n = np.sum(p.zetaBar_in, axis=0)
+    ss_mask = ss_n > 0
+    assert ss_mask.any(), "Expected some SS-active years"
+
+    # Guard against a vacuous pass: at least one year must sit strictly inside (0, 0.85),
+    # since only there does the reported figure depend on provisional income.
+    assert np.any((p.Psi_n[ss_mask] > 1e-6) & (p.Psi_n[ss_mask] < 0.85 - 1e-6)), (
+        f"No SS year on the taxability ramp — test cannot detect a PI error. Psi_n={p.Psi_n[ss_mask]}"
+    )
+
+    # MAGI_aca_n is the full-SS MAGI the plan reports; tax_federal takes PI = MAGI - 0.5·ζ̄.
+    expected = tx.compute_social_security_taxability(p.N_i, p.MAGI_aca_n, ss_n) * ss_n
+    reported = p.Psi_n * ss_n
+    worst = int(np.argmax(np.abs(reported - expected)))
+    assert np.allclose(reported[ss_mask], expected[ss_mask], atol=1.0), (
+        f"Taxable SS disagrees with the IRS formula on the plan's own provisional income; "
+        f"worst year {p.year_n[worst]}: reported ${reported[worst]:,.0f} vs "
+        f"${expected[worst]:,.0f} (PI ${p.MAGI_aca_n[worst] - 0.5 * ss_n[worst]:,.0f}, "
+        f"e_n ${p.e_n[worst]:,.0f})"
+    )

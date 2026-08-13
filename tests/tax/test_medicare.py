@@ -172,3 +172,38 @@ def test_mediVals_combined_costs_increase_by_bracket():
     for nn in range(Cbar.shape[0]):
         for q in range(1, Nq):
             assert Cbar[nn, q] > Cbar[nn, q - 1], f"Year nn={nn}: bracket {q} cost should exceed bracket {q - 1}"
+
+
+def test_medicare_n_carries_the_total_in_both_modes():
+    """plan.medicare_n is the whole premium whichever way Medicare was solved.
+
+    The cost lands in a different array per mode: withMedicare='optimize' puts it in the
+    LP variable m_n and leaves M_n at zero, loop mode does the reverse. Reading either
+    array alone silently reports zero on the other path, so the total has one name.
+    """
+    import owlplanner as owl
+
+    thisyear = date.today().year
+    p = owl.Plan(["Sam"], [f"{thisyear - 66}-01-15"], [78], "medicare_total", verbose=False)
+    p.setVerbose(False)
+    p.setSpendingProfile("flat", 60)
+    p.setAccountBalances(taxable=[300], taxDeferred=[1200], taxFree=[100], startDate="1-1")
+    p.setInterpolationMethod("s-curve")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setPension([0], [65])
+    p.setSocialSecurity([2000], [67])
+    p.setRates("historical average", 1928, 2025)
+
+    totals = {}
+    for mode in ("loop", "optimize"):
+        p.solve("maxSpending", options={"withMedicare": mode, "bequest": 0})
+        assert p.caseStatus == "solved", f"withMedicare='{mode}' failed: {p.caseStatus}"
+        np.testing.assert_allclose(p.medicare_n, p.m_n + p.M_n, atol=1e-9)
+        totals[mode] = float(np.sum(p.medicare_n))
+        assert totals[mode] > 0, f"withMedicare='{mode}' charged no Medicare at all"
+
+    # Each mode leaves the other mode's array empty -- the reason the property exists.
+    p.solve("maxSpending", options={"withMedicare": "loop", "bequest": 0})
+    assert np.all(p.m_n == 0), "loop mode should leave the LP variable m_n at zero"
+    p.solve("maxSpending", options={"withMedicare": "optimize", "bequest": 0})
+    assert np.all(p.M_n == 0), "optimize mode should leave the loop array M_n at zero"

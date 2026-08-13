@@ -423,8 +423,8 @@ def build_summary_dic(plan, N=None):
         stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
         _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
 
-    taxPaid = np.sum(plan.m_n[:N] + plan.M_n[:N], axis=0)
-    taxPaidNow = np.sum((plan.m_n[:N] + plan.M_n[:N]) / plan.gamma_n[:N], axis=0)
+    taxPaid = np.sum(plan.medicare_n[:N], axis=0)
+    taxPaidNow = np.sum(plan.medicare_n[:N] / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Medicare premiums paid", taxPaidNow, taxPaid)
     hsa_med = np.sum(plan.hsa_medicare_n[:N])
     hsa_med_now = np.sum(plan.hsa_medicare_n[:N] / plan.gamma_n[:N])
@@ -765,8 +765,8 @@ def plan_metrics(plan, N=None) -> dict:
         "niit_nominal": _s(plan.J_n[:N]),
         "state_tax_today": _st(plan.st_T_n[:N]),
         "state_tax_nominal": _s(plan.st_T_n[:N]),
-        "medicare_today": _st(plan.m_n[:N] + plan.M_n[:N]),
-        "medicare_nominal": _s(plan.m_n[:N] + plan.M_n[:N]),
+        "medicare_today": _st(plan.medicare_n[:N]),
+        "medicare_nominal": _s(plan.medicare_n[:N]),
         "aca_today": _st(plan.aca_costs_n[:N]),
         "aca_nominal": _s(plan.aca_costs_n[:N]),
         "debt_payments_today": _st(plan.debt_payments_n[:N]),
@@ -932,7 +932,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "net spending": plan.g_n,
         "taxable ord. income": plan.G_n,
         "taxable gains + divs": plan.Q_n,
-        "Tax bills + Med.": plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n + plan.st_T_n,
+        "Tax bills + Med.": plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n,
     }
     fillsheet(ws, incomeDic, "currency", scale=inv_gamma, sheet_name="Income")
 
@@ -953,7 +953,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ord taxes": -plan.T_n,
         "div taxes": -plan.U_n,
         "NIIT": -plan.J_n,
-        "Medicare": -plan.m_n - plan.M_n,
+        "Medicare": -plan.medicare_n,
         "ACA premiums": -plan.aca_costs_n,
     }
     if np.any(plan.st_T_n > 0):
@@ -1043,7 +1043,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     hsa_total_n = np.sum(plan.w_ijn[:, 3, :], axis=0)
     hsa_qme_n = np.maximum(hsa_total_n - plan.hsa_medicare_n, 0.0)
     hsaDic = {
-        "Medicare": plan.m_n + plan.M_n,
+        "Medicare": plan.medicare_n,
         "QME": plan.other_medical_n,
         "HSA total wdrwl": hsa_total_n,
         "HSA→Medicare": plan.hsa_medicare_n,
@@ -1125,7 +1125,7 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["10% penalty"] = plan.P_n
     if np.any(plan.st_T_n > 0):
         TxDic["State tax"] = plan.st_T_n
-    TxDic["Medicare+IRMAA"] = plan.m_n + plan.M_n
+    TxDic["Medicare+IRMAA"] = plan.medicare_n
     if np.any(plan.aca_costs_n > 0):
         TxDic["ACA premiums"] = plan.aca_costs_n
     ss_n = np.sum(plan.zetaBar_in, axis=0)
@@ -1193,7 +1193,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["net spending"] = plan.g_n
     planData["taxable ord. income"] = plan.G_n
     planData["taxable gains + divs"] = plan.Q_n
-    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.m_n + plan.M_n + plan.J_n + plan.aca_costs_n + plan.st_T_n
+    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
     planData["all net inv"] = np.sum(plan.netinv_in, axis=0)
@@ -1209,7 +1209,7 @@ def plan_to_csv(plan, basename, mylog):
     planData["ord taxes"] = -plan.T_n
     planData["div taxes"] = -plan.U_n
     planData["NIIT"] = -plan.J_n
-    planData["Medicare"] = -plan.m_n - plan.M_n
+    planData["Medicare"] = -plan.medicare_n
     planData["ACA premiums"] = -plan.aca_costs_n
     if np.any(plan.st_T_n > 0):
         planData["state taxes"] = -plan.st_T_n
