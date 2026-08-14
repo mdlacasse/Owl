@@ -561,3 +561,56 @@ def test_ss_lp_matches_irs_formula_below_the_cap():
         f"${expected[worst]:,.0f} (PI ${p.MAGI_aca_n[worst] - 0.5 * ss_n[worst]:,.0f}, "
         f"e_n ${p.e_n[worst]:,.0f})"
     )
+
+
+def test_loop_psi_matches_what_the_lp_charged():
+    """The reported Psi_n must be the one the final LP actually charged.
+
+    The taxable-income row carries Psi_n * zetaBar as a parameter, so a solved plan satisfies
+        e_n + G_n = (non-SS ordinary income) + Psi_n * zetaBar_n.
+    The SC loop advances Psi_n after every solve, for the next iteration's constraints. M_n,
+    J_n and ACA_n are rolled back to the values the final LP embedded; Psi_n was not, so it
+    came back one or two steps ahead of the figure behind the numbers. That also left
+    MAGI_aca_n = MAGI_n + (1 - Psi_n) * zetaBar wrong by the same step, since the taxable
+    share cancels between the two terms only when both use the same Psi_n.
+
+    Checked on a case that converges oscillatory, where the loop is still moving Psi_n when
+    it stops; a monotonic case settles and would satisfy the identity either way.
+    """
+    p = _make_couple_plan(
+        "psi_restore",
+        taxable=[90, 60],
+        tax_deferred=[600, 150],
+        tax_free=[70, 40],
+        ss_pias=[2_333, 2_083],
+        ss_ages=[67, 70],
+        pension=[500, 200],
+        pension_ages=[65, 65],
+        expectancy=[86, 86],
+    )
+    p.solve("maxSpending", {"withMedicare": "loop"})
+    assert p.caseStatus == "solved", f"Solver failed: {p.caseStatus}"
+
+    Nn, Ni = p.N_n, p.N_i
+    # Non-SS ordinary income before the standard exemption, from the primitive variables.
+    B = np.array(p.fixed_assets_ordinary_income_n, dtype=float)
+    for attr in ("omega_in", "other_inc_in", "netinv_in", "piBar_in", "spiaBar_in"):
+        B = B + np.sum(getattr(p, attr), axis=0)
+    for i in range(Ni):
+        fak = np.sum(np.maximum(0, p.tau_kn[1:, :Nn]) * p.alpha_ijkn[i, 0, 1:, :Nn], axis=0)
+        B = B + p.w_ijn[i, 1, :] + p.x_in[i, :]
+        B = B + fak * (p.b_ijn[i, 0, :Nn] - p.w_ijn[i, 0, :] + p.d_in[i, :] + 0.5 * p.kappa_ijn[i, 0, :Nn])
+
+    zeta_n = np.sum(p.zetaBar_in, axis=0)
+    charged = p.e_n + p.G_n - B
+    reported = p.Psi_n * zeta_n
+    worst = int(np.argmax(np.abs(charged - reported)))
+    assert np.allclose(charged, reported, atol=1.0), (
+        f"reported Psi_n is not the one the LP charged; worst year {p.year_n[worst]}: "
+        f"taxable SS charged ${charged[worst]:,.0f} vs reported ${reported[worst]:,.0f} "
+        f"(Psi_n={p.Psi_n[worst]:.4f}, zetaBar=${zeta_n[worst]:,.0f})"
+    )
+
+    # The same step corrupted MAGI_aca_n, whose definition is Psi_n-independent by design.
+    magi_aca = p.MAGI_n + np.sum((1 - p.Psi_n) * p.zetaBar_in, axis=0)
+    np.testing.assert_allclose(p.MAGI_aca_n, magi_aca, atol=1.0)

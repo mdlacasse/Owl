@@ -91,6 +91,11 @@ ABS_TOL = 100
 REL_TOL = 5e-5
 TIME_LIMIT = 900
 EPSILON = 1e-8
+# Tie-break for degenerate directions inside a MIP. EPSILON is sized for the simplex, which
+# resolves ties exactly; a branch-and-bound gap swallows anything smaller than the optimality
+# tolerance, so a MIP tie-break has to be visible above it while staying far below any real
+# cost in the objective. See the t^sigma_n preference in _buildObjective.
+MIP_TIEBREAK = 1e-4
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -3607,6 +3612,28 @@ class Plan:
                     for n in range(self.N_n):
                         c_arr[self.vm["w"].idx(1, j, n)] += epsilon
 
+            # Pin taxable Social Security in the years where it costs nothing. Nothing in
+            # the formulation selects between the two z^σ_0 branches when the year owes no
+            # tax on the benefit, and the branch that sets z^σ_0 = 1 forces
+            # p^{σ,min}_n up to min(ΔP, ζ̄_n) rather than down to max(0, Π_n - P^lo), so the
+            # solver can report half the benefit as taxable in a year whose provisional
+            # income is below P^lo entirely. Preferring the smaller share recovers the IRS
+            # formula and cannot outweigh a real cost: a taxable dollar of benefit is worth
+            # at least the lowest bracket rate, five orders of magnitude more than this.
+            #
+            # EPSILON is sized for tie-breaks between vertices of an LP, where the simplex
+            # resolves them exactly. It is too small to be seen through a MIP gap: at 1e-8
+            # against a few thousand dollars of benefit it moves the objective by ~1e-5,
+            # below the solver's own optimality tolerance, and the branch stays arbitrary.
+            # Measured on Case_cameron, years reported wrong out of 23: all of them at 1e-7,
+            # 16 at 1e-6, one at 1e-5, none at 1e-4, and the objective is identical from 1e-4
+            # through 1e-3. A case that settles on a cycle can still report a wrong share:
+            # it is answered from a best-of-cycle iterate, and raising the preference far
+            # enough to pin that starts to move the objective instead.
+            if "tss" in self.vm:
+                for n in range(self.N_n):
+                    c_arr[self.vm["tss"].idx(n)] += MIP_TIEBREAK
+
         c = abc.Objective(self.nvars)
         for idx in np.flatnonzero(c_arr):
             c.setElem(idx, c_arr[idx])
@@ -3989,6 +4016,7 @@ class Plan:
             "M_n_lp": [],  # M_n parameter used by each iteration's LP
             "ACA_n_lp": [],  # ACA_n parameter used by each iteration's LP
             "J_n_lp": [],  # J_n parameter used by each iteration's LP
+            "Psi_n_lp": [],  # Psi_n parameter used by each iteration's LP
         }
 
     def _valid_history_start(self, includeMedicare):
@@ -4240,11 +4268,16 @@ class Plan:
         self._init_gain_fraction()
         M_n_lp = self.M_n.copy()
         ACA_n_lp = self.ACA_n.copy()
+        Psi_n_lp = self.Psi_n.copy()
         while True:
             # Snapshot the NL parameters actually embedded in this iteration's LP constraints.
+            # _buildConstraints runs inside the solver call below, so these are the values it
+            # embeds. Psi_n belongs here for the same reason as the other three: the taxable
+            # income row carries Psi_n * zetaBar as a parameter.
             M_n_lp = self.M_n.copy()
             ACA_n_lp = self.ACA_n.copy()
             J_n_lp = self.J_n.copy()
+            Psi_n_lp = self.Psi_n.copy()
             objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
             # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
             # iterate below breaks that correspondence, which post-processing relies on.
@@ -4271,6 +4304,7 @@ class Plan:
             trace["M_n_lp"].append(M_n_lp)
             trace["ACA_n_lp"].append(ACA_n_lp)
             trace["J_n_lp"].append(J_n_lp)
+            trace["Psi_n_lp"].append(Psi_n_lp)
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
             prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
@@ -4322,6 +4356,7 @@ class Plan:
                     M_n_lp = trace["M_n_lp"][best_idx]
                     ACA_n_lp = trace["ACA_n_lp"][best_idx]
                     J_n_lp = trace["J_n_lp"][best_idx]
+                    Psi_n_lp = trace["Psi_n_lp"][best_idx]
                     self.solverGap = trace["gaps"][best_idx]
                     matricesMatchSolution = False
                     self.mylog.print("Accepting best solution from cycle and terminating.")
@@ -4334,6 +4369,7 @@ class Plan:
                         M_n_lp = trace["M_n_lp"][best_idx]
                         ACA_n_lp = trace["ACA_n_lp"][best_idx]
                         J_n_lp = trace["J_n_lp"][best_idx]
+                        Psi_n_lp = trace["Psi_n_lp"][best_idx]
                         self.solverGap = trace["gaps"][best_idx]
                         matricesMatchSolution = False
                 else:
@@ -4355,6 +4391,7 @@ class Plan:
                         M_n_lp = self.M_n.copy()
                         ACA_n_lp = self.ACA_n.copy()
                         J_n_lp = self.J_n.copy()
+                        Psi_n_lp = self.Psi_n.copy()
                         _, xx_fix, fix_ok, _, _ = solverMethod(objective, options)
                         if not fix_ok or xx_fix is None:
                             break
@@ -4374,7 +4411,14 @@ class Plan:
                 self.mylog.print(solverMsg)
             xx, objfn = self._restoreExclusions(xx, objfn, objective, options, matricesMatchSolution)
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
-            # self.mylog.vprint('Upper bound:', u.d(-solution.mip_dual_bound))
+            # Psi_n is restored BEFORE aggregation, unlike the three below: MAGI_aca_n is
+            # defined as MAGI_n + (1 - Psi_n) * zetaBar, and MAGI_n already carries the
+            # taxable share the LP charged. The two cancel only when both use the same
+            # Psi_n, so aggregating with a Psi_n the loop had already advanced left
+            # MAGI_aca_n wrong by exactly that step. In optimize mode Psi_n is derived from
+            # the tss variable during aggregation and is consistent already, so leave it.
+            if "tss" not in self.vm:
+                self.Psi_n = Psi_n_lp
             self._aggregateResults(xx)
             # Restore the NL parameters to what was actually embedded in the final LP
             # constraints. _computeNLstuff runs after every LP solve (for convergence

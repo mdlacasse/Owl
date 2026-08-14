@@ -1,3 +1,40 @@
+### Version 2026.8.16
+
+#### Bugfix: the reported Social Security taxability was not the one the plan was charged
+The taxable-income row carries `Psi_n * zetaBar` as a parameter, so a solved plan satisfies
+`e_n + G_n = (non-SS ordinary income) + Psi_n * zetaBar_n`. The self-consistent loop advances
+`Psi_n` after every solve, for the *next* iteration's constraints. `M_n`, `J_n` and `ACA_n` are
+rolled back afterwards to the values the final LP embedded; `Psi_n` was not, so it came back one
+step ahead of the figure behind the numbers — two steps when the post-loop LTCG consistency pass
+ran, since that advances it again.
+
+The same step landed in `MAGI_aca_n`, which is defined to be independent of `Psi_n`:
+`MAGI_n` already carries the taxable share, and `MAGI_aca_n = MAGI_n + (1 - Psi_n) * zetaBar`
+cancels it — but only when both use the same `Psi_n`. On `Case_chris+pat` the reported taxable
+benefit was out by up to \$13,558 in a year and \$207,584 over the horizon. Plans that converge
+monotonically were never affected: they settle, so there is no step to lose.
+
+Nothing about the money changes — the tax charged was always consistent with the `Psi_n` the LP
+was built with. What changes is that the plan now reports that figure rather than a later one.
+
+#### Bugfix: taxable Social Security could be reported in a year that owed none
+With `withSSTaxability = "optimize"`, nothing selected between the two `z_0` branches in a year
+where the benefit's taxability costs nothing, and the branch that sets `z_0 = 1` forces the
+excess-provisional-income variables *up* to their caps rather than down to the IRS values. A
+retiree whose provisional income sat at \$5k-\$22k, against a \$25,000 threshold, could have
+half or 85% of the benefit reported as taxable where the correct answer is none.
+
+The objective already carries small preferences that break ties like this, but at `EPSILON = 1e-8`
+this one was invisible: against a few thousand dollars of benefit it moves the objective by about
+1e-5, below the solver's own optimality tolerance, so branch-and-bound stopped at whichever
+incumbent it found first. `MIP_TIEBREAK`, sized for a gap rather than for the simplex, resolves it.
+The value is far below any real cost — a taxable dollar of benefit is worth at least the lowest
+bracket rate — and the objective is identical across two orders of magnitude around it.
+
+A case that settles on a cycle can still report a wrong share, because it is answered from a
+best-of-cycle iterate; raising the preference enough to pin that begins to move the objective
+instead, so it is left as it is.
+
 ### Version 2026.8.15
 
 #### Bugfix: taxable Social Security was computed from the wrong provisional income
