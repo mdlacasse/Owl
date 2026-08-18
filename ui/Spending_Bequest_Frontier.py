@@ -155,26 +155,28 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
 
     if kz.getCaseKey("frontierPlot") is not None:
         st.markdown("---")
-        if kz.getCaseKey("frontierData") is not None:
-            result = kz.getCaseKey("frontierData")
-            if result["scenario_method"] != "deterministic":
-                rates = list(result["success_rates"])
-                cur = kz.getCaseKey("frontier_target_success_rate_pct") or 90.0
-                st.selectbox(
-                    "Report the exchange rate at",
-                    options=rates,
-                    index=rates.index(cur) if cur in rates else len(rates) - 1,
-                    format_func=lambda r: f"{r:g}% success",
-                    on_change=owb.updateFrontierTarget,
-                    key=kz.genCaseKey("frontier_target_sr_selector"),
-                    help="Re-reads the traced curve. Nothing is re-solved.",
-                )
         owb.renderPlot(kz.getCaseKey("frontierPlot"))
 
     if kz.getCaseKey("frontierSummary"):
         st.markdown("#### :orange[Frontier]")
+        result = kz.getCaseKey("frontierData")
+        if result is not None and result["scenario_method"] != "deterministic":
+            rates = list(result["success_rates"])
+            cur = kz.getCaseKey("frontier_target_success_rate_pct") or 90.0
+            st.selectbox(
+                "Read the single-number figures from",
+                options=rates,
+                index=rates.index(cur) if cur in rates else len(rates) - 1,
+                format_func=lambda r: f"the {r:g}% success curve",
+                on_change=owb.updateFrontierTarget,
+                key=kz.genCaseKey("frontier_target_sr_selector"),
+                help="The plot always shows every curve. The free bequest, the knee and the "
+                "exchange rate are single numbers, so each has to be read off one of them. "
+                "Nothing is re-solved.",
+            )
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
             "*Free bequest* is the estate the plan leaves behind anyway, so it costs no "
-            "spending. Past the *knee*, each further dollar reserved costs materially more."
+            "spending. Past the *knee*, each further dollar reserved costs materially more. "
+            "Both are read off the curve selected above, and both move with it."
         )
