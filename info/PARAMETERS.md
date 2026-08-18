@@ -326,7 +326,6 @@ Options controlling the optimization solver and constraints.
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
 | `relTol` | float | *(Advanced)* Relative convergence tolerance for the self-consistent loop objective. | `max(5e-5, gap / 300)` |
 | `solver` | string | Solver to use for optimization. Valid values: `"default"`, `"HiGHS"`, `"MOSEK"`. `"default"` automatically selects MOSEK when available and licensed, otherwise falls back to HiGHS. | `"default"` |
-| `fixedSpending` | float | Pin first-year spending to a fixed value (in today's dollars, in `units`) for `objective = "maxSpending"`. When set, the optimizer holds `g[0]` at this level and uses `spendingSlack` to vary spending dynamically across years. Useful for studying dynamic spending paths at a committed level (e.g., from the efficient frontier). | *(unset)* |
 | `spendingSlack` | integer | Percentage allowed to deviate from the spending profile. Spending stays within ±slack% of the profile. (0–100) | `0` |
 | `timePreference` | float | Subjective time preference rate (%/year). Values above 0 discount future spending exponentially, shifting the optimal spending profile earlier. Supported for `"maxSpending"`. Has no effect when `objective = "maxBequest"`. | `0` |
 | `startRothConversions` | integer | Year when Roth conversions can begin (clamped to the current year). | Current year |

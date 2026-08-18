@@ -212,7 +212,7 @@ def _build_mcp_opts(
     return opts
 
 
-_MONETARY_OPTS = ("maxRothConversion", "netSpending", "fixedSpending", "bequest")
+_MONETARY_OPTS = ("maxRothConversion", "netSpending", "bequest")
 _MONETARY_LIST_OPTS = ("minTaxableBalance", "previousMAGIs")
 
 

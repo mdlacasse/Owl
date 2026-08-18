@@ -48,6 +48,7 @@ from . import debts as debts
 from . import fixedassets as fxasst
 from . import mylogging as log
 from .config.plan_bridge import clone  # noqa: F401
+from .config.schema import REMOVED_OPTIONS
 from .plotting.factory import PlotFactory
 from .rate_models.constants import CONSTRAIN_MEAN_METHODS, HISTORICAL_RANGE_METHODS
 from .stresstests import run_historical_range, run_mc, run_stochastic_spending
@@ -2619,9 +2620,6 @@ class Plan:
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
-            if "fixedSpending" in options:
-                spending = u.get_monetary_option(options, "fixedSpending", 1)
-                self.B.setRange(self.vm["g"].idx(0), spending, spending)
             if "bequest" in options:
                 bequest = u.get_monetary_option(options, "bequest", 1) * self.gamma_n[-1]
             else:
@@ -3792,7 +3790,6 @@ class Plan:
         - options is a dictionary which can include:
             - maxRothConversion: Only allow conversion smaller than amount specified.
             - netSpending: Desired spending amount when optimizing with maxBequest.
-            - fixedSpending: Pin first-year spending for maxSpending; slack varies g[n] dynamically.
             - bequest: Value of bequest in today's $ when optimizing with maxSpending.
             - units: Units to use for amounts (1, k, or M).
 
@@ -3831,7 +3828,6 @@ class Plan:
             "previousMAGIs",
             "relTol",
             "solver",
-            "fixedSpending",  # Pin first-year spending for maxSpending; optimizer uses slack dynamically
             "spendingSlack",
             "timePreference",  # Subjective time discount rate (%/year) to front-load spending
             "startRothConversions",
@@ -3862,7 +3858,9 @@ class Plan:
         myoptions = dict(options)
 
         for opt in list(myoptions.keys()):
-            if opt in RETIRED_OPTIONS:
+            if opt in REMOVED_OPTIONS:
+                raise ValueError(f"Solver option '{opt}' has been removed: {REMOVED_OPTIONS[opt]}.")
+            elif opt in RETIRED_OPTIONS:
                 self.mylog.print(
                     f"Ignoring deprecated solver option '{opt}': {RETIRED_OPTIONS[opt]}.",
                     tag="WARNING",

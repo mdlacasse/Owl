@@ -1,3 +1,29 @@
+### Version 2026.8.18
+
+#### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
+Reported as issue #140: with `fixedSpending` set below what a plan can afford, the ordinary
+tax `T_n` could exceed the top statutory rate applied to all of ordinary income — 46.7% on
+\$292,001 in the reporter's worst year, against about \$65,300 by hand.
+
+`fixedSpending` pinned `g(0)`, and at the default `spendingSlack` of zero the spending-profile
+rows tie every `g(n)` to `g(0)`, so the whole spending vector was fixed. The `maxSpending`
+objective is assembled solely from the `g(n)` coefficients, so it became *constant* over the
+feasible set. The bracket-fill variables `f_tn` are a relaxation of the progressive schedule —
+tight only because the objective pushes ordinary income into the cheapest brackets — so with
+nothing left to push, the solver was free to fill the 37% bracket while lower ones sat empty.
+The excess tax cost the objective nothing, being absorbed by an estate whose floor defaults to
+one dollar. The existing LTCG degeneracy warning fired on the same years, for the same reason.
+
+Raising `spendingSlack` did not help: the top of the slack band is itself proportional to the
+pinned `g(0)`, so the solver saturated it and the objective went flat again — more excess tax,
+not less. `epsilon` was not implicated either; at `epsilon = 0` the symptom is marginally worse.
+
+The option is **rejected rather than ignored**, both when a case file is loaded and when
+`Plan.solve()` is called, because a plan that silently dropped it would answer a different
+question than the case file asks. Sweep the `bequest` floor under `maxSpending` instead to
+trace the spending/bequest efficient frontier, where `g(0)` stays free, the objective keeps a
+nonzero gradient, and every point is a genuine optimum.
+
 ### Version 2026.8.16
 
 #### Bugfix: the reported Social Security taxability was not the one the plan was charged
