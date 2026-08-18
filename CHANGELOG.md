@@ -1,5 +1,30 @@
 ### Version 2026.8.18
 
+#### New: the spending/bequest efficient frontier
+Answers *what does leaving an estate cost me in spending?*, and replaces what `fixedSpending`
+was reaching for. Sweeps the `bequest` floor under `maxSpending`, so each point is an ordinary
+solve and no new optimization structure is involved. Because the floor constrains the estate
+rather than spending, `g(0)` stays free and the objective keeps a nonzero gradient — every
+point is a genuine optimum, which is precisely what pinning the spending level destroyed.
+
+In the `historical` and `mc` modes each level is additionally solved across the whole scenario
+ensemble, turning the curve into a surface *S(B, p)*. Read down a column it gives spending
+versus bequest at fixed confidence, and the fan across success rates is the
+sequence-of-returns risk; read across a row it gives the spending/success curve of
+`run_stochastic_spending`, which it reuses rather than reimplements.
+
+Available as `Plan.runSpendingBequestFrontier()` and
+`owlplanner.run_spending_bequest_frontier()` with a `summarize_*` companion, as the
+**Spending vs Bequest** page under Stress Tests, as `owlcli frontier`, and as the
+`run_spending_bequest_frontier` MCP tool (the server now exposes eighteen tools).
+
+The summary reports the *free bequest* — the estate the plan leaves behind anyway, costing no
+spending — and the *knee* past which each further dollar reserved costs materially more. The
+`bequest_floor` shadow price is recorded per level as an annotation with a measured-secant
+cross-check; it is the dual of the final LP with the self-consistent loop's parameters frozen,
+so it runs about 9% shallow and carries no breakpoint information. It is reported, not used to
+reconstruct the curve.
+
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
 Reported as issue #140: with `fixedSpending` set below what a plan can afford, the ordinary
 tax `T_n` could exceed the top statutory rate applied to all of ordinary income — 46.7% on

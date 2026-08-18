@@ -1833,6 +1833,49 @@ validated for production use; see the [*Modeling Capabilities*](https://github.c
 reference for details.
 """)
 
+    with st.expander(":orange[**Spending vs Bequest**]", expanded=expand_all, type="compact"):
+        st.markdown("""
+Every dollar reserved for an estate is a dollar not spent. This page traces that trade-off
+directly, answering:
+
+> *What does leaving this inheritance cost me in spending?* — or, read the other way,
+> *if I spend this much, what is left behind?*
+
+##### How it works
+
+You give a list of bequest levels, in today's $k. The plan is re-optimized at each one, with
+that level as a floor on the estate, and the resulting net spending is plotted against it.
+Because the floor constrains the estate rather than spending, the optimizer is still free to
+choose the spending level, so every point on the curve is a full optimization rather than a
+single fixed operating point.
+
+##### Choosing a scenario method
+
+- **This case's rates** solves each level once, on the rates the case is configured with. It
+  is fast enough to use interactively, but it says nothing about how much the answer depends
+  on when returns arrive.
+- **Historical range** and **Monte Carlo** solve every level across the whole set of
+  scenarios, and report spending at the 50%, 75% and 90% success rates. The spread between
+  those three curves, shaded on the plot, is the sequence-of-returns risk: a wide fan means
+  the outcome depends heavily on the order in which returns happen. This costs one solve per
+  level per scenario, so keep the list of levels short.
+
+##### Reading the results
+
+- **Free bequest** is the estate the plan leaves behind anyway. Up to that point the curve is
+  flat and the inheritance costs nothing, because the money is never spent under any plan.
+- The **knee** is where each further dollar reserved starts costing materially more spending
+  than the dollars before it.
+- The **$/yr per $** column is the measured exchange rate: how much annual spending each
+  extra dollar of estate costs over the segment.
+- An optional **shadow price** reports the same exchange rate as the optimizer itself sees it.
+  It is read from the final solve with the self-consistent loop's values held fixed, so it
+  runs slightly shallow and is offered as a cross-check rather than as the answer.
+
+A bequest level the plan cannot reach is marked *unreachable* and drawn as a dotted line,
+so a curve that stops short is not mistaken for the frontier simply ending.
+""")
+
 # --- Tools tab ---
 with tab_tools:
     st.markdown("This section describes tools available to the user.")
