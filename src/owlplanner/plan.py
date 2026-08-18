@@ -51,7 +51,7 @@ from .config.plan_bridge import clone  # noqa: F401
 from .config.schema import REMOVED_OPTIONS
 from .plotting.factory import PlotFactory
 from .rate_models.constants import CONSTRAIN_MEAN_METHODS, HISTORICAL_RANGE_METHODS
-from .stresstests import run_historical_range, run_mc, run_stochastic_spending
+from .stresstests import run_historical_range, run_mc, run_spending_bequest_frontier, run_stochastic_spending
 from .varmap import VarMap
 
 
@@ -3701,6 +3701,41 @@ class Plan:
             with_longevity=with_longevity,
             sexes=sexes,
             seed=seed,
+        )
+
+    @_timer
+    def runSpendingBequestFrontier(
+        self,
+        options,
+        bequest_grid,
+        *,
+        scenario_method="historical",
+        ystart=None,
+        yend=None,
+        N=None,
+        success_rates=(50.0, 75.0, 90.0),
+        seed=None,
+        with_duals=True,
+        progcall=None,
+    ):
+        """
+        Trace the efficient frontier between net spending and bequest.
+
+        Sweeps the bequest floor under maxSpending. See
+        stresstests.run_spending_bequest_frontier for the full contract.
+        """
+        return run_spending_bequest_frontier(
+            self,
+            options,
+            bequest_grid,
+            scenario_method=scenario_method,
+            ystart=ystart,
+            yend=yend,
+            N=N,
+            success_rates=success_rates,
+            seed=seed,
+            with_duals=with_duals,
+            progcall=progcall,
         )
 
     @_timer
