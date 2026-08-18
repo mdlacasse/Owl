@@ -774,6 +774,62 @@ class MatplotlibBackend(PlotBackend):
         plt.tight_layout()
         return fig
 
+    def plot_spending_bequest_frontier(
+        self,
+        bequest_dollars,
+        spending,
+        year_n,
+        labels=None,
+        scenario_method="deterministic",
+        level_failed=None,
+    ):
+        """Efficient frontier: net spending vs. bequest, one curve per confidence level."""
+        thisyear = int(year_n[0])
+        x = np.asarray(bequest_dollars, float) / 1000
+        y = np.atleast_2d(np.asarray(spending, float).T)  # (R, K)
+        n_curves = y.shape[0]
+        if labels is None:
+            labels = ["Net spending"] if n_curves == 1 else [f"curve {j}" for j in range(n_curves)]
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+        # Shade between the outermost curves: that spread is the sequence-of-returns risk.
+        if n_curves > 1:
+            lo, hi = np.nanmin(y, axis=0), np.nanmax(y, axis=0)
+            ax.fill_between(x, lo / 1000, hi / 1000, color="steelblue", alpha=0.15)
+
+        palette = ["steelblue", "darkorange", "seagreen", "firebrick", "purple"]
+        for j in range(n_curves):
+            ax.plot(
+                x,
+                y[j] / 1000,
+                color=palette[j % len(palette)],
+                linewidth=1.5,
+                marker="o",
+                markersize=4,
+                label=str(labels[j]),
+            )
+
+        # Mark floors the plan could not reach at all, so a truncated curve is not read
+        # as the frontier simply ending.
+        if level_failed is not None and np.any(level_failed):
+            for xf in x[np.asarray(level_failed, bool)]:
+                ax.axvline(float(xf), color="firebrick", linestyle=":", linewidth=1, alpha=0.5)
+
+        ax.set_xlabel(f"Bequest ({thisyear} $k)", fontsize=11)
+        ax.set_ylabel(f"Net spending ({thisyear} $k)", fontsize=11)
+        ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda v, _: f"${v:,.0f}k"))
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda v, _: f"${v:,.0f}k"))
+        ax.tick_params(axis="both", labelsize=10)
+        ax.legend(fontsize=10)
+        ax.grid(True, alpha=0.3)
+
+        method_tag = {"deterministic": "", "historical": "Historical ", "mc": "Monte Carlo "}
+        title = f"{method_tag.get(scenario_method, '')}spending vs bequest frontier ({thisyear}$)"
+        plt.suptitle(title.capitalize(), fontsize=14)
+        plt.tight_layout()
+        return fig
+
     def plot_stochastic_outcomes(
         self, start_years, bases, g_opt, target_success_rate_pct, year_n, with_longevity=False
     ):
