@@ -91,6 +91,20 @@ def _fake_result(scenario_method="deterministic"):
     }
 
 
+@pytest.fixture(autouse=True)
+def _close_figures():
+    """
+    Discard figures these tests build.
+
+    _render_frontier returns a live matplotlib figure; left open they accumulate
+    until matplotlib warns, and under a GUI backend each one is a window.
+    """
+    yield
+    import matplotlib.pyplot as plt
+
+    plt.close("all")
+
+
 class TestRenderFrontier:
     """_render_frontier writes into session state, so the stores are captured."""
 

@@ -25,10 +25,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-import sys
-import datetime
-import pytest
-from unittest.mock import patch
+
+# Before anything imports matplotlib. Its default backend on macOS is "macosx",
+# which opens a native window for every figure a test builds -- the plotting
+# backends are exercised directly, so a run would litter the desktop. Agg draws
+# to memory instead. setdefault so an explicit MPLBACKEND still wins.
+os.environ.setdefault("MPLBACKEND", "Agg")
+
+import sys  # noqa: E402
+import datetime  # noqa: E402
+import pytest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
 
 _REAL_DATE = datetime.date
 _FROZEN_DATE = _REAL_DATE(2026, 1, 1)
