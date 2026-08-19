@@ -783,7 +783,7 @@ class MatplotlibBackend(PlotBackend):
         scenario_method="deterministic",
         level_failed=None,
     ):
-        """Efficient frontier: net spending vs. bequest, one curve per confidence level."""
+        """Trade-off between net spending and bequest, one curve per confidence level."""
         thisyear = int(year_n[0])
         x = np.asarray(bequest_dollars, float) / 1000
         y = np.atleast_2d(np.asarray(spending, float).T)  # (R, K)
@@ -811,7 +811,7 @@ class MatplotlibBackend(PlotBackend):
             )
 
         # Mark floors the plan could not reach at all, so a truncated curve is not read
-        # as the frontier simply ending.
+        # as the trade-off simply ending.
         if level_failed is not None and np.any(level_failed):
             for xf in x[np.asarray(level_failed, bool)]:
                 ax.axvline(float(xf), color="firebrick", linestyle=":", linewidth=1, alpha=0.5)
@@ -825,8 +825,9 @@ class MatplotlibBackend(PlotBackend):
         ax.grid(True, alpha=0.3)
 
         method_tag = {"deterministic": "", "historical": "Historical ", "mc": "Monte Carlo "}
-        title = f"{method_tag.get(scenario_method, '')}spending vs bequest frontier ({thisyear}$)"
-        plt.suptitle(title.capitalize(), fontsize=14)
+        tag = method_tag.get(scenario_method, "")
+        title = f"{tag}spending vs bequest trade-off" if tag else "Spending vs bequest trade-off"
+        plt.suptitle(f"{title} ({thisyear}$)", fontsize=14)
         plt.tight_layout()
         return fig
 

@@ -1875,12 +1875,9 @@ single fixed operating point.
 
 Assets sold *during* the plan are not counted here: their proceeds land in the savings accounts
 and are already inside the Savings column.
-- An optional **shadow price** reports the same exchange rate as the optimizer itself sees it.
-  It is read from the final solve with the self-consistent loop's values held fixed, so it
-  runs slightly shallow and is offered as a cross-check rather than as the answer.
 
 A bequest level the plan cannot reach is marked *unreachable* and drawn as a dotted line,
-so a curve that stops short is not mistaken for the frontier simply ending.
+so a curve that stops short is not mistaken for the trade-off simply ending.
 """)
 
 # --- Tools tab ---

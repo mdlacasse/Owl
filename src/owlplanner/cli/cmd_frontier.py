@@ -151,7 +151,7 @@ def cmd_frontier(
     output_format,
     use_loguru,
 ):
-    """Trace the spending/bequest efficient frontier for an OWL case file.
+    """Trace the trade-off between net spending and bequest for an OWL case file.
 
     Sweeps the bequest floor under maxSpending, reporting the net spending each
     level of estate permits. Every point is an ordinary solve, so the curve shows
@@ -207,7 +207,7 @@ def cmd_frontier(
 
     deterministic = summary["scenario_method"] == "deterministic"
     fixed = float(summary.get("fixed_assets_today_dollars", 0.0) or 0.0)
-    click.echo(f"\nSpending/bequest frontier — {plan._name}")
+    click.echo(f"\nSpending vs bequest trade-off — {plan._name}")
     click.echo(f"  scenarios: {summary['scenario_method']} ({summary['n_scenarios']})")
     if not deterministic:
         click.echo(f"  reporting at {summary['target_success_rate_pct']:g}% success")
@@ -246,9 +246,10 @@ def cmd_frontier(
 
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
+    what = "savings" if fixed > 0 else "this plan"  # be explicit when assets sit outside
     if hi is None and lo is not None:
-        click.echo(f"\n  Every level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
+        click.echo(f"\n  Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
     elif lo is None and hi is not None:
-        click.echo(f"\n  No level traced is reachable: even ${hi:,.0f} is out of reach.")
+        click.echo(f"\n  No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
     elif lo is not None:
-        click.echo(f"\n  The most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+        click.echo(f"\n  The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")

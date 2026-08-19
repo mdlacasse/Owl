@@ -1,6 +1,6 @@
 ### Version 2026.8.18
 
-#### New: the spending/bequest efficient frontier
+#### New: the spending-vs-bequest trade-off
 Answers *what does leaving an estate cost me in spending?*, and replaces what `fixedSpending`
 was reaching for. Sweeps the `bequest` floor under `maxSpending`, so each point is an ordinary
 solve and no new optimization structure is involved. Because the floor constrains the estate
@@ -46,7 +46,7 @@ not less. `epsilon` was not implicated either; at `epsilon = 0` the symptom is m
 The option is **rejected rather than ignored**, both when a case file is loaded and when
 `Plan.solve()` is called, because a plan that silently dropped it would answer a different
 question than the case file asks. Sweep the `bequest` floor under `maxSpending` instead to
-trace the spending/bequest efficient frontier, where `g(0)` stays free, the objective keeps a
+trace the spending-vs-bequest trade-off, where `g(0)` stays free, the objective keeps a
 nonzero gradient, and every point is a genuine optimum.
 
 ### Version 2026.8.16

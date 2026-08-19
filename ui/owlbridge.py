@@ -587,7 +587,7 @@ def runStochasticSpending(plan):
 
 
 def _parse_bequest_grid(raw):
-    """Parse the comma-separated grid typed on the frontier page."""
+    """Parse the comma-separated grid typed on the trade-off page."""
     if raw is None:
         return []
     out = []
@@ -600,7 +600,7 @@ def _parse_bequest_grid(raw):
 
 
 def _render_frontier(result, plotter):
-    """Draw the frontier and its summary. Split out so the page can redraw from cache."""
+    """Draw the trade-off curve and its table. Split out so the page can redraw from cache."""
     deterministic = result["scenario_method"] == "deterministic"
     if deterministic:
         spending = result["base_basis"]
@@ -708,7 +708,8 @@ def runSpendingBequestFrontier(plan):
             N=kz.getCaseKey("frontier_N_mc") or 200,
             success_rates=rates_pct,
             seed=kz.getCaseKey("frontier_seed"),
-            with_duals=bool(kz.getCaseKey("frontier_with_duals")),
+            # The page shows no shadow price, so the extra solve per level would be wasted.
+            with_duals=False,
             progcall=mybar,
         )
         kz.storeCaseKey("frontierData", result)
@@ -717,7 +718,7 @@ def runSpendingBequestFrontier(plan):
         kz.storeCaseKey("frontierPlot", None)
         kz.storeCaseKey("frontierSummary", None)
         kz.storeCaseKey("frontierData", None)
-        st.error(f"Spending/bequest frontier failed: {e}", icon=":material/error:")
+        st.error(f"Spending vs bequest trade-off failed: {e}", icon=":material/error:")
 
 
 @_checkPlan

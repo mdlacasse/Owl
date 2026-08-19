@@ -959,7 +959,7 @@ class PlotlyBackend(PlotBackend):
         scenario_method="deterministic",
         level_failed=None,
     ):
-        """Efficient frontier: net spending vs. bequest, one curve per confidence level."""
+        """Trade-off between net spending and bequest, one curve per confidence level."""
         thisyear = int(year_n[0])
         x = np.asarray(bequest_dollars, float) / 1000
         y = np.atleast_2d(np.asarray(spending, float).T)  # (R, K)
@@ -998,12 +998,14 @@ class PlotlyBackend(PlotBackend):
             )
 
         # Mark floors the plan could not reach at all, so a truncated curve is not read
-        # as the frontier simply ending.
+        # as the trade-off simply ending.
         if level_failed is not None and np.any(level_failed):
             for xf in x[np.asarray(level_failed, bool)]:
                 fig.add_vline(x=float(xf), line_dash="dot", line_color="firebrick", opacity=0.4)
 
         method_tag = {"deterministic": "", "historical": "Historical ", "mc": "Monte Carlo "}
+        _tag = method_tag.get(scenario_method, "")
+        _title = f"{_tag}spending vs bequest trade-off" if _tag else "Spending vs bequest trade-off"
         fig.update_xaxes(
             title_text=f"Bequest ({thisyear} $k)", tickprefix="$", title_font_size=14, tickfont_size=11
         )
@@ -1012,7 +1014,7 @@ class PlotlyBackend(PlotBackend):
         )
         fig.update_layout(
             title=dict(
-                text=f"{method_tag.get(scenario_method, '')}spending vs bequest frontier ({thisyear}$)".capitalize(),
+                text=f"{_title} ({thisyear}$)",
                 font_size=20,
             ),
             template=self.template,

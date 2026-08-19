@@ -3196,7 +3196,7 @@ def _default_bequest_grid(plan, opts, n_points=5):
 
 
 def _frontier_blocking(plan, opts, bequest_grid, scenario_method, ystart, yend, n_scenarios, rates_pct, seed):
-    """Trace the spending/bequest frontier. Runs in a thread."""
+    """Trace the spending-vs-bequest trade-off. Runs in a thread."""
     from owlplanner.stresstests import run_spending_bequest_frontier
     from owlplanner.rates import FROM
 
@@ -3222,7 +3222,7 @@ def _frontier_blocking(plan, opts, bequest_grid, scenario_method, ystart, yend, 
 
 
 def _build_frontier_json(plan, result, summary):
-    """Shape a frontier result for the assistant. All dollars are today's dollars."""
+    """Shape a trade-off result for the assistant. All dollars are today's dollars."""
     out = {
         "status": "ok",
         "case_name": plan._name,
@@ -3319,7 +3319,7 @@ async def run_spending_bequest_frontier(
     max_time: float | None = None,
     seed: int | None = None,
 ) -> str:
-    """Trace the efficient frontier between net spending and the bequest left behind.
+    """Trace the trade-off between net spending and the bequest left behind.
 
     Answers "how much spending does leaving an estate cost me?" by sweeping the
     bequest floor under the maxSpending objective. Each point is a full optimization,

@@ -174,7 +174,7 @@ class PlotBackend(ABC):
         scenario_method="deterministic",
         level_failed=None,
     ):
-        """Efficient frontier plot: net spending vs. the bequest left behind.
+        """Trade-off plot: net spending against the bequest left behind.
 
         One curve per confidence level. In the stochastic modes the spread between
         the outermost curves is the sequence-of-returns risk, and is shaded.

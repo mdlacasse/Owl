@@ -39,7 +39,6 @@ else:
     kz.initCaseKey("frontier_yend", owb.TO)
     kz.initCaseKey("frontier_N_mc", 100)
     kz.initCaseKey("frontier_seed", None)
-    kz.initCaseKey("frontier_with_duals", False)
     kz.initCaseKey("frontierPlot", None)
     kz.initCaseKey("frontierSummary", None)
     kz.initCaseKey("frontierData", None)
@@ -96,7 +95,7 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
         )
     with col3:
         st.button(
-            "Trace frontier",
+            "Trace trade-off",
             on_click=owb.runSpendingBequestFrontier,
             disabled=kz.caseIsNotRunReady(),
         )
@@ -139,25 +138,12 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
                     max_value=2000,
                 )
 
-    st.markdown("####")
-    with st.expander("*Advanced options*"):
-        st.caption("Changing these options will only affect the next run.")
-        col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
-        with col1:
-            kz.getToggle(
-                "Report the bequest shadow price",
-                "frontier_with_duals",
-                callback=kz.storepull,
-                help="Costs one extra solve per level. The shadow price is the plan's own "
-                "marginal exchange rate between bequest and lifetime spending.",
-            )
-
     if kz.getCaseKey("frontierPlot") is not None:
         st.markdown("---")
         owb.renderPlot(kz.getCaseKey("frontierPlot"))
 
     if kz.getCaseKey("frontierSummary"):
-        st.markdown("#### :orange[Frontier]")
+        st.markdown("#### :orange[Trade-off]")
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
             "**Savings** is what the accounts leave after the heirs' tax, net of any remaining "

@@ -1282,6 +1282,11 @@ def run_spending_bequest_frontier(
     """
     Trace the efficient frontier between net spending and the bequest left behind.
 
+    The user-facing surfaces call this the spending-vs-bequest *trade-off*, to keep
+    it apart from the spending/shortfall-risk frontier of run_stochastic_spending().
+    Both are Pareto frontiers; only that one is a risk/return curve in the Markowitz
+    sense, so the plainer word is used where a reader might conflate them.
+
     Sweeps the ``bequest`` floor under the maxSpending objective. Each point is an
     ordinary solve, so no new optimization structure is involved. Because the floor
     constrains the estate rather than spending, g(0) stays free and the objective
