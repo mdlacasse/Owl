@@ -1,5 +1,7 @@
 ### Version 2026.8.18
 
+#### Maintenance: Updated dependecies to silence GitHub's dependabot.
+
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
 Issue #140. Set below what a plan can afford, it produced ordinary tax above the top statutory
 rate — 46.7% on \$292,001 in the reporter's worst year, against about \$65,300 by hand.
