@@ -150,6 +150,9 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             "debt, and it is the level being swept. **Fixed assets** are the house and anything "
             "else still held at the end of the plan; they pass outside the accounts, so they are "
             "the same at every level and add straight on top to give the **total estate**. "
+            "On a single rate scenario, *$/yr per $k* is the measured cost of the trade-off: "
+            "the annual spending given up for each further \\$1,000 of estate, over that segment "
+            "of the curve. Across scenarios the column is replaced by one per success rate, and "
             "*short* counts the scenarios that could not reach that level at all — each is "
             "recorded as a full shortfall, which is what pulls the high-confidence curves down."
         )

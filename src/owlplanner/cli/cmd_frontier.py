@@ -217,7 +217,7 @@ def cmd_frontier(
     if fixed > 0:
         head += f"{'fixed assets':>14}{'total estate':>14}"
     if deterministic:
-        head += f"{'spending':>14}{'$/yr per $':>14}"
+        head += f"{'spending':>14}{'$/yr per $k':>14}"
     else:
         head += "".join(f"{r:>13g}%" for r in summary["success_rates"])
     click.echo(head)
@@ -232,7 +232,8 @@ def cmd_frontier(
         if deterministic:
             line += f"{row['spending_today_dollars']:>14,.0f}"
             rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
-            line += f"{rate:>14.4f}" if rate is not None else f"{'':>14}"
+            # Per $k of bequest; the JSON keeps the canonical per-dollar figure.
+            line += f"{1000 * rate:>14.1f}" if rate is not None else f"{'':>14}"
         else:
             for r in summary["success_rates"]:
                 v = row.get(f"spending_at_{r:g}pct")
