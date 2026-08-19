@@ -66,7 +66,7 @@ pages = {
         st.Page("Historical_Range.py", icon=":material/history:"),
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
         st.Page("Spending_Optimization.py", icon=":material/query_stats:"),
-        st.Page("Spending_Bequest_Frontier.py", icon=":material/balance:"),
+        st.Page("Spending_vs_Bequest.py", icon=":material/balance:"),
     ],
     "Tools": [
         st.Page("Connect_your_AI.py", icon=":material/smart_toy:"),
