@@ -232,10 +232,6 @@ def cmd_frontier(
                 line += f"{v:>14,.0f}" if v is not None else f"{'n/a':>14}"
         click.echo(line)
 
-    click.echo(f"\n  free bequest:       {summary['free_bequest_today_dollars']:>14,.0f}")
-    if summary["knee_today_dollars"] is not None:
-        click.echo(f"  knee:               {summary['knee_today_dollars']:>14,.0f}")
-
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     if hi is None and lo is not None:

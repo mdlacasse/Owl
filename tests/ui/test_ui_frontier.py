@@ -98,7 +98,7 @@ class TestRenderFrontier:
         text = stored["frontierSummary"]
         assert "Net spending" in text
         assert "100,000" in text and "88,000" in text
-        assert "Free bequest" in text
+        assert "the most this plan can leave" in text
 
     def test_stochastic_table_has_one_column_per_success_rate(self, monkeypatch):
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
@@ -114,8 +114,8 @@ class TestRenderFrontier:
 
     def test_stochastic_scalars_are_reported_for_every_curve(self, monkeypatch):
         """
-        No hidden selection: the free bequest, knee and exchange rate are read off
-        one curve each, so all three are shown rather than one being chosen for you.
+        No hidden selection: the exchange rate is read off one curve, so it is shown
+        for every curve rather than one being chosen for the reader.
         """
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
 
@@ -123,8 +123,8 @@ class TestRenderFrontier:
         owb._render_frontier(_fake_result("historical"), MatplotlibBackend())
 
         text = stored["frontierSummary"]
-        assert "free bequest" in text and "knee" in text and "$/yr per $" in text
-        # One scalar row per curve, on top of the header row naming the same curves.
+        assert "$/yr per $" in text
+        # One rate row per curve, on top of the header row naming the same curves.
         for rate in ("50% success", "75% success", "90% success"):
             assert text.count(rate) == 2
 

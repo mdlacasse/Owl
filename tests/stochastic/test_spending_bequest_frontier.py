@@ -270,7 +270,6 @@ def test_summarize_is_pure():
     }
     s = summarize_spending_bequest_frontier(result)
 
-    assert s["free_bequest_today_dollars"] == 0.0
     assert s["n_levels_failed"] == 0
     # Nothing failed, so the maximum is only known to lie above the top of the grid.
     assert s["max_feasible_bequest_today_dollars"] == 2_000_000.0
@@ -279,31 +278,3 @@ def test_summarize_is_pure():
     assert s["exchange_rate"][0]["spending_per_dollar_of_bequest"] == pytest.approx(-0.006)
     # The dual is a lifetime figure; dividing by the profile sum puts it in basis units.
     assert s["exchange_rate"][0]["shadow_price_implied"] == pytest.approx(-0.18 / 30.0)
-
-
-def test_summarize_reports_free_bequest():
-    """The flat left region: estate the plan leaves behind anyway, costing no spending."""
-    result = {
-        "bequest_grid": np.array([0.0, 100.0, 200.0]),
-        "bequest_dollars": np.array([0.0, 100_000.0, 200_000.0]),
-        "base_basis": np.array([100_000.0, 100_000.0, 94_000.0]),
-        "bases": np.zeros((3, 1)),
-        "g_at_success": np.full((3, 1), np.nan),
-        "lam_at_success": np.full((3, 1), np.nan),
-        "frontier_g": None,
-        "frontier_prob": None,
-        "frontier_shortfall": None,
-        "n_infeasible": np.zeros(3, dtype=int),
-        "level_failed": np.zeros(3, dtype=bool),
-        "bequest_shadow_price": np.full(3, np.nan),
-        "max_gap": np.full(3, -1.0),
-        "xi_sum": 30.0,
-        "success_rates": (90.0,),
-        "scenario_method": "deterministic",
-        "n_scenarios": 1,
-        "start_years": None,
-        "year_n": np.arange(2026, 2029),
-        "n_d": 2,
-    }
-    s = summarize_spending_bequest_frontier(result)
-    assert s["free_bequest_today_dollars"] == 100_000.0

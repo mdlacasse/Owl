@@ -67,7 +67,7 @@ class TestFromCaseFile:
     def test_monetary_keys_are_labelled_today_dollars(self):
         """The transport contract: nominal unless the key says otherwise."""
         out = _frontier(filename=CASE_TOML, bequest_grid=[0, 500_000], scenario_method="deterministic")
-        for key in ("free_bequest_today_dollars", "knee_today_dollars", "max_feasible_bequest_today_dollars"):
+        for key in ("max_feasible_bequest_today_dollars", "first_unreachable_bequest_today_dollars"):
             assert key in out
         for row in out["frontier"]:
             assert "bequest_today_dollars" in row

@@ -622,9 +622,9 @@ def _render_frontier(result, plotter):
         spending = result["g_at_success"]
         labels = [f"{r:g}% success" for r in result["success_rates"]]
 
-    # The free bequest, the knee and the exchange rate are single numbers, so each is
-    # read off one curve. Report them for every curve rather than making the user pick:
-    # they move with confidence, and the spread is the point of the stochastic modes.
+    # The exchange rate is a single number read off one curve, so it is reported for
+    # every curve rather than making the user pick: it moves with confidence, and that
+    # spread is the point of the stochastic modes.
     rates = list(result["success_rates"])
     summary = owl.summarize_spending_bequest_frontier(
         result, target_success_rate_pct=(90.0 if deterministic else rates[-1])
@@ -644,7 +644,7 @@ def _render_frontier(result, plotter):
     if deterministic:
         lines.append(f"{'Bequest':>16}{'Net spending':>16}{'$/yr per $':>14}")
     else:
-        lines.append(f"{'Bequest':>16}" + "".join(f"{lab:>16}" for lab in labels))
+        lines.append(f"{'Bequest':>16}" + "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}")
     for k, row in enumerate(summary["frontier"]):
         if not row["feasible"]:
             lines.append(f"{row['bequest_today_dollars']:>16,.0f}{'unreachable':>16}")
@@ -658,34 +658,28 @@ def _render_frontier(result, plotter):
             for r in summary["success_rates"]:
                 v = row.get(f"spending_at_{r:g}pct")
                 line += f"{v:>16,.0f}" if v is not None else f"{'n/a':>16}"
+            # Scenarios that could not reach this floor at all. They are counted as a
+            # full shortfall, so a rising count is what pulls the high-confidence
+            # curves down; without it the collapse looks unexplained.
+            line += f"{row['n_infeasible_scenarios']:>8}"
         lines.append(line)
 
-    lines.append("")
-    if deterministic:
-        lines.append(f"Free bequest (costs no spending): ${summary['free_bequest_today_dollars']:,.0f}")
-        if summary["knee_today_dollars"] is not None:
-            lines.append(f"Knee (cost per dollar starts rising): ${summary['knee_today_dollars']:,.0f}")
-    else:
-        lines.append(f"{'':>16}{'free bequest':>16}{'knee':>16}{'$/yr per $':>14}")
-        for j, r in enumerate(rates):
-            s = owl.summarize_spending_bequest_frontier(result, target_success_rate_pct=r)
-            knee = s["knee_today_dollars"]
+    if not deterministic:
+        lines.append("")
+        lines.append(f"{'':>16}{'$/yr per $ over the whole range':>32}")
+        for j in range(len(rates)):
             rate = _overall_exchange_rate(result["bequest_dollars"], result["g_at_success"][:, j])
-            lines.append(
-                f"{labels[j]:>16}"
-                f"{s['free_bequest_today_dollars']:>16,.0f}"
-                + (f"{knee:>16,.0f}" if knee is not None else f"{'n/a':>16}")
-                + (f"{rate:>14.5f}" if rate is not None else f"{'n/a':>14}")
-            )
+            lines.append(f"{labels[j]:>16}" + (f"{rate:>32.5f}" if rate is not None else f"{'n/a':>32}"))
 
+    lines.append("")
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     if hi is None:
-        lines.append(f"\nEvery level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
+        lines.append(f"Every level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
     elif lo is None:
-        lines.append(f"\nNo level traced is reachable: even ${hi:,.0f} is out of reach.")
+        lines.append(f"No level traced is reachable: even ${hi:,.0f} is out of reach.")
     else:
-        lines.append(f"\nThe most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+        lines.append(f"The most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 

@@ -1860,14 +1860,21 @@ single fixed operating point.
   the outcome depends heavily on the order in which returns happen. This costs one solve per
   level per scenario, so keep the list of levels short.
 
+##### What "bequest" means here
+
+The savings accounts left after the heirs' tax, net of any remaining debt. It does **not**
+include the house or other fixed assets, so the estate your heirs actually receive is larger
+by their value. The same definition is used for the floor you set and for the figure reported.
+
 ##### Reading the results
 
-- **Free bequest** is the estate the plan leaves behind anyway. Up to that point the curve is
-  flat and the inheritance costs nothing, because the money is never spent under any plan.
-- The **knee** is where each further dollar reserved starts costing materially more spending
-  than the dollars before it.
-- The **$/yr per $** column is the measured exchange rate: how much annual spending each
-  extra dollar of estate costs over the segment.
+- The **$/yr per $** figure is the measured exchange rate: how much annual spending each extra
+  dollar of estate costs. It is read off one curve, so in the stochastic modes it is reported
+  for each of them; it does not always steepen with confidence.
+- **short** counts the scenarios that could not reach that bequest level at all. Each is
+  recorded as a full shortfall, so a rising count is what drags the high-confidence curves down.
+- The largest estate the plan can leave is reported as a **bracket**, since a sweep only ever
+  establishes that it lies between the highest level that solved and the lowest that did not.
 - An optional **shadow price** reports the same exchange rate as the optimizer itself sees it.
   It is read from the final solve with the self-consistent loop's values held fixed, so it
   runs slightly shallow and is offered as a cross-check rather than as the answer.

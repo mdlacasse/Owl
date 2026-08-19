@@ -3231,8 +3231,6 @@ def _build_frontier_json(plan, result, summary):
         "n_levels_failed": summary["n_levels_failed"],
         "success_rates_pct": summary["success_rates"],
         "target_success_rate_pct": summary["target_success_rate_pct"],
-        "free_bequest_today_dollars": summary["free_bequest_today_dollars"],
-        "knee_today_dollars": summary["knee_today_dollars"],
         # A bracket, not a value: the true maximum is at or above the first and below
         # the second. first_unreachable is null when every traced level was reachable,
         # in which case the maximum lies above the top of the grid.
@@ -3358,10 +3356,11 @@ async def run_spending_bequest_frontier(
             every bequest level meets the same ensemble.
 
     Returns:
-        JSON with the frontier (one row per bequest level), the measured exchange
-        rate between bequest and spending, the free bequest (estate the plan leaves
-        behind anyway, costing no spending), and the knee past which each further
-        dollar of estate costs materially more.
+        JSON with the frontier (one row per bequest level, carrying the count of
+        scenarios that could not reach that level at all), the measured exchange rate
+        between bequest and spending segment by segment, and a bracket on the largest
+        estate the plan can leave. Bequest means savings accounts after the heirs'
+        tax, net of debt; it excludes real estate and other fixed assets.
     """
     from owlplanner.stresstests import _validate_success_rate_pct, summarize_spending_bequest_frontier
 

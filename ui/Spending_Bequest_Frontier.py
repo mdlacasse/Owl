@@ -160,10 +160,11 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
         st.markdown("#### :orange[Frontier]")
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
-            "*Free bequest* is the estate the plan leaves behind anyway, so it costs no "
-            "spending. Past the *knee*, each further dollar reserved costs materially more. "
-            "*$/yr per $* is the annual spending given up for each dollar of estate across "
-            "the whole range. Each of the three is read off a single curve, so in the "
-            "stochastic modes all three are reported per curve: what an inheritance costs "
-            "depends on the confidence you demand, and not always in the direction expected."
+            "**Bequest** here means the savings accounts left after the heirs' tax, net of "
+            "any remaining debt. It does **not** include the house or other fixed assets, "
+            "so the estate your heirs actually receive is larger by their value. "
+            "*$/yr per $* is the annual spending given up for each dollar of estate; it is "
+            "read off a single curve, so in the stochastic modes it is reported per curve. "
+            "*short* counts the scenarios that could not reach that level at all — each is "
+            "recorded as a full shortfall, which is what pulls the high-confidence curves down."
         )

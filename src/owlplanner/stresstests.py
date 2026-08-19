@@ -1481,14 +1481,19 @@ def run_spending_bequest_frontier(
     }
 
 
-def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0, knee_tolerance=0.05):
+def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0):
     """
     Summarize a run_spending_bequest_frontier() result into a JSON-ready dict.
 
-    Reports the curve itself, the exchange rate between bequest and spending at the
-    requested confidence, and two readings a planner acts on: the bequest that costs
-    nothing because the plan leaves it behind anyway, and the knee past which each
-    further dollar of estate starts costing materially more spending.
+    Reports the curve itself and the measured exchange rate between bequest and
+    spending at the requested confidence, segment by segment.
+
+    Deliberately absent are a "free bequest" and a "knee". Both read as properties
+    of the plan but are set by the grid: the free bequest, being the largest floor
+    that costs no spending, is zero for any curve that slopes at all, and the knee
+    lands on the second grid point whenever the second segment differs from the
+    first, which on a curved frontier is always. Resolving either honestly needs a
+    finer sweep than a caller-supplied handful of levels.
 
     The shadow price is carried alongside the measured secant as a cross-check. It
     is the dual of the final LP with the self-consistent loop's parameters frozen,
@@ -1556,31 +1561,17 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0,
             entry["reliable"] = bool(abs(implied - secant) / abs(secant) <= 0.2)
         exchange.append(entry)
 
-    # Free bequest: the estate the plan leaves anyway, costing no spending.
-    free_bequest = 0.0
-    ok = ~np.isnan(g_col)
-    if ok.any():
-        g0 = g_col[np.argmax(ok)]
-        for k, bequest in enumerate(grid):
-            if not np.isnan(g_col[k]) and g_col[k] >= g0 - 1.0:
-                free_bequest = float(bequest)
-
-    # Knee: where the marginal cost first departs from the initial slope.
-    knee = None
-    if len(exchange) >= 2:
-        first = exchange[0]["spending_per_dollar_of_bequest"]
-        if abs(first) > 1e-12:
-            knee = exchange[-1]["to_bequest"]
-            for e in exchange:
-                if abs(e["spending_per_dollar_of_bequest"] - first) / abs(first) > knee_tolerance:
-                    knee = e["from_bequest"]
-                    break
-
     # A sweep can only bracket the largest reachable estate: it lies at or above the
     # highest level that solved, and below the lowest that did not. Reporting the
     # highest success alone would just echo the grid back when nothing failed, and
     # would understate the true maximum by a whole grid step when something did.
-    ok = ~failed & (np.asarray(result["n_infeasible"]) == 0)
+    #
+    # Reachability is level_failed alone. Individual scenarios going infeasible at a
+    # high floor is ordinary in the stochastic modes -- that is what the success rates
+    # exist to express, an infeasible scenario being recorded as a full shortfall -- so
+    # counting those would report a level as out of reach while the table above it
+    # showed spending at all three confidences.
+    ok = ~failed
     reachable = grid[ok]
     unreachable = grid[~ok]
     gaps = np.asarray(result["max_gap"], float)
@@ -1592,8 +1583,6 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0,
         "target_success_rate_pct": None if deterministic else target_success_rate_pct,
         "frontier": rows,
         "exchange_rate": exchange,
-        "free_bequest_today_dollars": round(free_bequest, 2),
-        "knee_today_dollars": None if knee is None else round(float(knee), 2),
         "max_feasible_bequest_today_dollars": None if not len(reachable) else round(float(reachable.max()), 2),
         "first_unreachable_bequest_today_dollars": (
             None if not len(unreachable) else round(float(unreachable.min()), 2)
