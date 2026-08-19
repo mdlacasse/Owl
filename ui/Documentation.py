@@ -1843,7 +1843,11 @@ directly, answering:
 
 ##### How it works
 
-You give a list of bequest levels, in today's $k. The plan is re-optimized at each one, with
+You give a list of bequest levels, in today's $k — so `1_000` means \\$1,000,000. Group digits
+with **underscores**, never commas: a comma separates one level from the next, so `1,000` reads
+as two levels, \\$1k and \\$0k.
+
+The plan is re-optimized at each level, with
 that level as a floor on the estate, and the resulting net spending is plotted against it.
 Because the floor constrains the estate rather than spending, the optimizer is still free to
 choose the spending level, so every point on the curve is a full optimization rather than a
@@ -1875,7 +1879,7 @@ single fixed operating point.
   growth is real (a residence, real estate) and which is quoted at the plan's **start** year
   carries no such dependence at all — the inflation cancels — so entering values in today's
   dollars removes the effect entirely.
-- **$/yr per $k** appears on a single rate scenario: the annual spending given up for each
+- **\\$/yr per \\$k** appears on a single rate scenario: the annual spending given up for each
   further \\$1,000 of estate, measured over that segment of the curve. It is reported per
   \\$1,000 rather than per dollar because the per-dollar figure runs to four decimal places.
 - **short** counts the scenarios that could not reach that bequest level at all. Each is

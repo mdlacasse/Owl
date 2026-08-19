@@ -35,12 +35,23 @@ class TestParseBequestGrid:
             ("0;500;1000", [0.0, 500.0, 1000.0]),
             (" 0 , 500 ,, ", [0.0, 500.0]),
             ("1000", [1000.0]),
+            # Underscores group digits without colliding with the comma that separates
+            # levels, so they are the safe way to write a large figure legibly.
+            ("0, 500, 1_000, 2_000", [0.0, 500.0, 1000.0, 2000.0]),
+            ("1_000_000", [1_000_000.0]),
+            ("0;1_500;10_000", [0.0, 1500.0, 10000.0]),
             ("", []),
             (None, []),
         ],
     )
     def test_accepts_what_a_user_would_type(self, raw, expected):
         assert owb._parse_bequest_grid(raw) == expected
+
+    @pytest.mark.parametrize("raw", ["_1000", "1000_"])
+    def test_rejects_a_misplaced_underscore(self, raw):
+        """Grouping underscores must sit between digits, as in a Python literal."""
+        with pytest.raises(ValueError):
+            owb._parse_bequest_grid(raw)
 
     def test_rejects_a_non_numeric_entry(self):
         """Better to refuse than to silently drop a level the user meant to trace."""

@@ -34,7 +34,7 @@ if ret is None or kz.caseHasNoPlan():
     kz.no_case_info()
 else:
     kz.initCaseKey("frontier_scenario_method", "deterministic")
-    kz.initCaseKey("frontier_bequest_grid", "0, 500, 1000, 2000, 4000")
+    kz.initCaseKey("frontier_bequest_grid", "0, 500, 1_000, 2_000, 4_000")
     kz.initCaseKey("frontier_ystart", owb.FROM)
     kz.initCaseKey("frontier_yend", owb.TO)
     kz.initCaseKey("frontier_N_mc", 100)
@@ -86,13 +86,14 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
     with col1:
         st.text_input(
-            "Bequest levels ($k, comma-separated)",
+            "Bequest levels (\\$k, comma-separated)",
             value=kz.getCaseKey("frontier_bequest_grid"),
             on_change=kz.storepull,
             args=["frontier_bequest_grid"],
             key=kz.genCaseKey("frontier_bequest_grid"),
-            help="Today's dollars, in $k — so 1000 means $1,000,000. Each becomes one point "
-            "on the curve. Do not group digits: '1,000' reads as two levels, $1k and $0k.",
+            help="Today's dollars, in \\$k — so 1_000 means \\$1,000,000. Each becomes one point "
+            "on the curve. Group digits with underscores, never commas: a comma separates "
+            "levels, so '1,000' reads as two of them, \\$1k and \\$0k.",
         )
     with col3:
         st.button(

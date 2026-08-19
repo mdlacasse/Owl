@@ -59,9 +59,10 @@ def _parse_float_list(value, what):
 @click.option(
     "--bequest-grid",
     "bequest_grid",
-    default="0,500,1000,2000,4000",
+    default="0,500,1_000,2_000,4_000",
     show_default=True,
-    help="Comma-separated bequest floors to trace, in the case's solver units.",
+    help="Comma-separated bequest floors to trace, in the case's solver units. "
+    "Group digits with underscores, never commas, which separate the levels.",
 )
 @click.option(
     "--scenario-method",
