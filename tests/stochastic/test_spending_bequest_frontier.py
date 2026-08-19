@@ -244,6 +244,80 @@ class TestValidation:
             run_spending_bequest_frontier(case, opts, grid, **kwargs)
 
 
+def _synthetic(base, failed):
+    """A deterministic result with a chosen pattern of unreachable levels."""
+    K = len(base)
+    return {
+        "bequest_grid": np.array([0.0, 1000.0, 2000.0])[:K],
+        "bequest_dollars": np.array([0.0, 1e6, 2e6])[:K],
+        "base_basis": np.array(base),
+        "bases": np.zeros((K, 1)),
+        "g_at_success": np.full((K, 3), np.nan),
+        "lam_at_success": np.full((K, 3), np.nan),
+        "frontier_g": None,
+        "frontier_prob": None,
+        "frontier_shortfall": None,
+        "n_infeasible": np.zeros(K, dtype=int),
+        "level_failed": np.array(failed),
+        "bequest_shadow_price": np.full(K, np.nan),
+        "max_gap": np.full(K, -1.0),
+        "fixed_assets_today_dollars": 0.0,
+        "xi_sum": 30.0,
+        "success_rates": (50.0, 75.0, 90.0),
+        "scenario_method": "deterministic",
+        "n_scenarios": 1,
+        "start_years": None,
+        "year_n": np.arange(2026, 2029),
+        "n_d": 2,
+    }
+
+
+class TestUnreachableLevels:
+    """
+    Failures are not necessarily a suffix of the grid.
+
+    A solve can time out or fail to converge at one level and succeed above it, and
+    both of these went wrong when that happened.
+    """
+
+    def test_exchange_rate_has_one_entry_per_segment(self):
+        """
+        Renderers index it by grid position, so it must not be compacted.
+
+        Dropping unmeasurable segments shortened the list, which shifted every rate
+        a renderer printed -- silently wrong when entries remained, IndexError when
+        they did not.
+        """
+        for base, failed in (
+            ([100_000.0, np.nan, 88_000.0], [False, True, False]),
+            ([100_000.0, 94_000.0, np.nan], [False, False, True]),
+            ([100_000.0, 94_000.0, 88_000.0], [False, False, False]),
+        ):
+            s = summarize_spending_bequest_frontier(_synthetic(base, failed))
+            assert len(s["exchange_rate"]) == len(s["frontier"]) - 1
+            for k, e in enumerate(s["exchange_rate"], start=1):
+                assert e["to_bequest"] == s["frontier"][k]["bequest_today_dollars"]
+
+    def test_unmeasurable_segment_is_none_not_missing(self):
+        s = summarize_spending_bequest_frontier(_synthetic([100_000.0, 94_000.0, np.nan], [False, False, True]))
+        assert s["exchange_rate"][0]["spending_per_dollar_of_bequest"] == pytest.approx(-0.006)
+        assert s["exchange_rate"][1]["spending_per_dollar_of_bequest"] is None
+
+    def test_bracket_never_runs_backwards(self):
+        """The upper end is the lowest failure ABOVE the highest success, not overall."""
+        s = summarize_spending_bequest_frontier(_synthetic([100_000.0, np.nan, 88_000.0], [False, True, False]))
+        lo = s["max_feasible_bequest_today_dollars"]
+        hi = s["first_unreachable_bequest_today_dollars"]
+        assert lo == 2_000_000.0
+        assert hi is None, "nothing failed above the best success, so there is no upper bound"
+        assert s["n_levels_failed"] == 1, "the failure is still counted"
+
+    def test_bracket_when_the_top_fails(self):
+        s = summarize_spending_bequest_frontier(_synthetic([100_000.0, 94_000.0, np.nan], [False, False, True]))
+        assert s["max_feasible_bequest_today_dollars"] == 1_000_000.0
+        assert s["first_unreachable_bequest_today_dollars"] == 2_000_000.0
+
+
 def test_summarize_is_pure():
     """The summarizer takes a result dict and no Plan, so it can run on stored output."""
     result = {

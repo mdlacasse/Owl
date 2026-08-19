@@ -642,14 +642,16 @@ def _render_frontier(result, plotter):
         head += "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}"
     lines.append(head)
     for k, row in enumerate(summary["frontier"]):
-        if not row["feasible"]:
-            lines.append(f"{row['bequest_today_dollars']:>16,.0f}{'unreachable':>16}")
-            continue
         line = f"{row['bequest_today_dollars']:>16,.0f}"
         if show_estate:
             line += f"{fixed:>16,.0f}{row['total_estate_today_dollars']:>16,.0f}"
+        if not row["feasible"]:
+            lines.append(line + f"{'unreachable':>16}")
+            continue
         if deterministic:
             line += f"{row['spending_today_dollars']:>16,.0f}"
+            # One exchange entry per segment, so index k - 1 is the segment ending here;
+            # it carries None when either endpoint was unreachable.
             rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
             # Reported per $k of bequest: per dollar it reads as -0.0745, which nobody
             # can act on without shifting the decimal point four places.
@@ -666,17 +668,29 @@ def _render_frontier(result, plotter):
 
     lines.append("")
     if show_estate:
-        lines.append(
+        note = (
             f"Fixed assets add ${fixed:,.0f} to every level: the house and other assets still held "
             "at the end of the plan, which pass outside the savings accounts."
         )
+        if not deterministic:
+            # Assets quoted at a future reference year must be deflated back to today,
+            # so their today's-dollar value moves with the drawn inflation path.
+            note += " Valued on one rate path; see the documentation."
+        lines.append(note)
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
-    if hi is None:
-        lines.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
-    elif lo is None:
+    n_failed = summary["n_levels_failed"]
+    if lo is None:
         lines.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
+    elif hi is None and not n_failed:
+        lines.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
+    elif hi is None:
+        # Nothing failed above the best success, but something below it did, so the
+        # levels are not simply reachable up to a ceiling.
+        lines.append(
+            f"The most {what} can leave is above ${lo:,.0f}, though {n_failed} lower level(s) did not solve."
+        )
     else:
         lines.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
@@ -687,7 +701,11 @@ def runSpendingBequestFrontier(plan):
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
-    grid = _parse_bequest_grid(kz.getCaseKey("frontier_bequest_grid"))
+    try:
+        grid = _parse_bequest_grid(kz.getCaseKey("frontier_bequest_grid"))
+    except ValueError as e:
+        st.error(f"Could not read the bequest levels: {e}", icon=":material/error:")
+        return
     if not grid:
         st.error("Enter at least one bequest level.", icon=":material/error:")
         return

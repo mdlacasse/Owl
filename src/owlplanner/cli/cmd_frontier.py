@@ -72,7 +72,14 @@ def _parse_float_list(value, what):
 )
 @click.option("--ystart", type=int, default=None, help="First historical start year.")
 @click.option("--yend", type=int, default=None, help="Last historical start year.")
-@click.option("--num-scenarios", "num_scenarios", type=int, default=None, help="Monte Carlo draws per level.")
+@click.option(
+    "--num-scenarios",
+    "num_scenarios",
+    type=int,
+    default=200,
+    show_default=True,
+    help="Monte Carlo draws per level. Ignored in the other scenario methods.",
+)
 @click.option(
     "--success-rates",
     "success_rates",
@@ -223,14 +230,16 @@ def cmd_frontier(
     click.echo(head)
 
     for k, row in enumerate(summary["frontier"]):
-        if not row["feasible"]:
-            click.echo(f"{row['bequest_today_dollars']:>14,.0f}{'unreachable':>14}")
-            continue
         line = f"{row['bequest_today_dollars']:>14,.0f}"
         if fixed > 0:
             line += f"{fixed:>14,.0f}{row['total_estate_today_dollars']:>14,.0f}"
+        if not row["feasible"]:
+            click.echo(line + f"{'unreachable':>14}")
+            continue
         if deterministic:
             line += f"{row['spending_today_dollars']:>14,.0f}"
+            # One entry per segment, so k - 1 is the segment ending here; None when
+            # either endpoint was unreachable.
             rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
             # Per $k of bequest; the JSON keeps the canonical per-dollar figure.
             line += f"{1000 * rate:>14.1f}" if rate is not None else f"{'':>14}"
@@ -249,9 +258,16 @@ def cmd_frontier(
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if fixed > 0 else "this plan"  # be explicit when assets sit outside
-    if hi is None and lo is not None:
-        click.echo(f"\n  Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
-    elif lo is None and hi is not None:
+    n_failed = summary["n_levels_failed"]
+    if lo is None and hi is not None:
         click.echo(f"\n  No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
+    elif lo is not None and hi is None and not n_failed:
+        click.echo(f"\n  Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
+    elif lo is not None and hi is None:
+        # Nothing failed above the best success, but something below it did.
+        click.echo(
+            f"\n  The most {what} can leave is above ${lo:,.0f}, "
+            f"though {n_failed} lower level(s) did not solve."
+        )
     elif lo is not None:
         click.echo(f"\n  The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")

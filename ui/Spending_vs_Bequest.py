@@ -91,7 +91,8 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             on_change=kz.storepull,
             args=["frontier_bequest_grid"],
             key=kz.genCaseKey("frontier_bequest_grid"),
-            help="Today's dollars, in $k. Each becomes one point on the curve.",
+            help="Today's dollars, in $k — so 1000 means $1,000,000. Each becomes one point "
+            "on the curve. Do not group digits: '1,000' reads as two levels, $1k and $0k.",
         )
     with col3:
         st.button(
@@ -150,7 +151,9 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             "debt, and it is the level being swept. **Fixed assets** are the house and anything "
             "else still held at the end of the plan; they pass outside the accounts, so they are "
             "the same at every level and add straight on top to give the **total estate**. "
-            "On a single rate scenario, *$/yr per $k* is the measured cost of the trade-off: "
+            "Across scenarios that figure is taken from a single rate path: an asset quoted at a "
+            "future year has to be deflated back to today, so its value moves with early inflation. "
+            "On a single rate scenario, *\\$/yr per \\$k* is the measured cost of the trade-off: "
             "the annual spending given up for each further \\$1,000 of estate, over that segment "
             "of the curve. Across scenarios the column is replaced by one per success rate, and "
             "*short* counts the scenarios that could not reach that level at all — each is "

@@ -1868,6 +1868,13 @@ single fixed operating point.
   to heirs outside the savings accounts, with a step-up in basis, so no tax is applied. Their
   value is set by the assets table rather than by the plan, which is why it is identical on
   every row; it adds straight on top to give the **total estate**.
+
+  On a single rate scenario this figure is exact. Across scenarios it is taken from one rate
+  path, because an asset quoted at a **future** reference year has to be deflated back to
+  today's dollars, and that depends on inflation between now and that year. An asset whose
+  growth is real (a residence, real estate) and which is quoted at the plan's **start** year
+  carries no such dependence at all — the inflation cancels — so entering values in today's
+  dollars removes the effect entirely.
 - **$/yr per $k** appears on a single rate scenario: the annual spending given up for each
   further \\$1,000 of estate, measured over that segment of the curve. It is reported per
   \\$1,000 rather than per dollar because the per-dollar figure runs to four decimal places.

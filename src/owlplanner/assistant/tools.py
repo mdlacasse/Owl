@@ -3524,7 +3524,7 @@ async def run_spending_bequest_frontier(
     _scrub_optimized_ss_ages(assumed, opts)
 
     if bequest_grid is None:
-        grid = _default_bequest_grid(plan, opts)
+        grid = await asyncio.get_running_loop().run_in_executor(None, _default_bequest_grid, plan, opts)
     else:
         grid = [float(b) for b in bequest_grid]
 

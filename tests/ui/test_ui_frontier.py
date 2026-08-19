@@ -161,3 +161,50 @@ class TestRenderFrontier:
         owb._render_frontier(result, MatplotlibBackend())
 
         assert "unreachable" in stored["frontierSummary"]
+
+    def test_mid_grid_hole_renders(self, monkeypatch):
+        """
+        A level failing in the middle of the grid used to abort the whole render.
+
+        exchange_rate was compacted, so indexing it by grid position raised
+        IndexError and the UI reported "trade-off failed", discarding the sweep.
+        """
+        from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
+
+        stored = self._capture(monkeypatch)
+        result = _fake_result("deterministic")
+        result["level_failed"] = np.array([False, True, False])
+        result["base_basis"] = np.array([100_000.0, np.nan, 88_000.0])
+        owb._render_frontier(result, MatplotlibBackend())
+
+        text = stored["frontierSummary"]
+        assert "unreachable" in text
+        assert "100,000" in text and "88,000" in text, "the solved levels must still print"
+        # A failure below the best success is not "every level is reachable".
+        assert "Every level traced is reachable" not in text
+        assert "1 lower level(s) did not solve" in text
+
+    def test_unreachable_marker_sits_under_spending(self, monkeypatch):
+        """
+        The missing value is the spending, not the estate.
+
+        Fixed assets are known whether or not the level is reachable, so the marker
+        has to clear those columns; printed too early it lands under Fixed assets and
+        reads as the assets being unreachable.
+        """
+        from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
+
+        stored = self._capture(monkeypatch)
+        result = _fake_result("deterministic")
+        result["fixed_assets_today_dollars"] = 1_067_389.0
+        result["level_failed"] = np.array([False, False, True])
+        result["base_basis"] = np.array([100_000.0, 94_000.0, np.nan])
+        owb._render_frontier(result, MatplotlibBackend())
+
+        header, *rows = stored["frontierSummary"].splitlines()
+        bad = [r for r in rows if "unreachable" in r][0]
+        assert header.index("Net spending") + len("Net spending") == bad.index("unreachable") + len(
+            "unreachable"
+        ), "the marker must be right-aligned in the Net spending column"
+        # The estate columns are still filled on that row.
+        assert "1,067,389" in bad and "3,067,389" in bad
