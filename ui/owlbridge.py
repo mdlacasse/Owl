@@ -586,6 +586,161 @@ def runStochasticSpending(plan):
         st.error(f"Stochastic spending optimization failed: {e}", icon=":material/error:")
 
 
+def _parse_bequest_grid(raw):
+    """Parse the comma-separated grid typed on the trade-off page."""
+    if raw is None:
+        return []
+    out = []
+    for part in str(raw).replace(";", ",").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        out.append(float(part))
+    return out
+
+
+def _render_frontier(result, plotter):
+    """Draw the trade-off curve and its table. Split out so the page can redraw from cache."""
+    deterministic = result["scenario_method"] == "deterministic"
+    if deterministic:
+        spending = result["base_basis"]
+        labels = ["Net spending"]
+    else:
+        spending = result["g_at_success"]
+        labels = [f"{r:g}% success" for r in result["success_rates"]]
+
+    # The exchange rate is a single number read off one curve, so it is reported for
+    # every curve rather than making the user pick: it moves with confidence, and that
+    # spread is the point of the stochastic modes.
+    rates = list(result["success_rates"])
+    summary = owl.summarize_spending_bequest_frontier(
+        result, target_success_rate_pct=(90.0 if deterministic else rates[-1])
+    )
+
+    fig = plotter.plot_spending_bequest_frontier(
+        result["bequest_dollars"],
+        spending,
+        result["year_n"],
+        labels=labels,
+        scenario_method=result["scenario_method"],
+        level_failed=result["level_failed"],
+    )
+    kz.storeCaseKey("frontierPlot", fig)
+
+    # Fixed assets sit on top of every bequest figure and do not vary with the floor,
+    # so they get their own column rather than being folded silently into one number.
+    fixed = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
+    show_estate = fixed > 0
+
+    lines = []
+    head = f"{'Savings':>16}"
+    if show_estate:
+        head += f"{'Fixed assets':>16}{'Total estate':>16}"
+    if deterministic:
+        head += f"{'Net spending':>16}{'$/yr per $k':>14}"
+    else:
+        head += "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}"
+    lines.append(head)
+    for k, row in enumerate(summary["frontier"]):
+        line = f"{row['bequest_today_dollars']:>16,.0f}"
+        if show_estate:
+            line += f"{fixed:>16,.0f}{row['total_estate_today_dollars']:>16,.0f}"
+        if not row["feasible"]:
+            lines.append(line + f"{'unreachable':>16}")
+            continue
+        if deterministic:
+            line += f"{row['spending_today_dollars']:>16,.0f}"
+            # One exchange entry per segment, so index k - 1 is the segment ending here;
+            # it carries None when either endpoint was unreachable.
+            rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
+            # Reported per $k of bequest: per dollar it reads as -0.0745, which nobody
+            # can act on without shifting the decimal point four places.
+            line += f"{1000 * rate:>14.1f}" if rate is not None else f"{'':>14}"
+        else:
+            for r in summary["success_rates"]:
+                v = row.get(f"spending_at_{r:g}pct")
+                line += f"{v:>16,.0f}" if v is not None else f"{'n/a':>16}"
+            # Scenarios that could not reach this floor at all. They are counted as a
+            # full shortfall, so a rising count is what pulls the high-confidence
+            # curves down; without it the collapse looks unexplained.
+            line += f"{row['n_infeasible_scenarios']:>8}"
+        lines.append(line)
+
+    lines.append("")
+    if show_estate:
+        note = (
+            f"Fixed assets add ${fixed:,.0f} to every level: the house and other assets still held "
+            "at the end of the plan, which pass outside the savings accounts."
+        )
+        if not deterministic:
+            # Assets quoted at a future reference year must be deflated back to today,
+            # so their today's-dollar value moves with the drawn inflation path.
+            note += " Valued on one rate path; see the documentation."
+        lines.append(note)
+    lo = summary["max_feasible_bequest_today_dollars"]
+    hi = summary["first_unreachable_bequest_today_dollars"]
+    what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
+    n_failed = summary["n_levels_failed"]
+    if lo is None:
+        lines.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
+    elif hi is None and not n_failed:
+        lines.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
+    elif hi is None:
+        # Nothing failed above the best success, but something below it did, so the
+        # levels are not simply reachable up to a ceiling.
+        lines.append(
+            f"The most {what} can leave is above ${lo:,.0f}, though {n_failed} lower level(s) did not solve."
+        )
+    else:
+        lines.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+    kz.storeCaseKey("frontierSummary", "\n".join(lines))
+
+
+@_checkPlan
+def runSpendingBequestFrontier(plan):
+    plan1 = owl.clone(plan)
+    prepareRun(plan1)
+
+    try:
+        grid = _parse_bequest_grid(kz.getCaseKey("frontier_bequest_grid"))
+    except ValueError as e:
+        st.error(f"Could not read the bequest levels: {e}", icon=":material/error:")
+        return
+    if not grid:
+        st.error("Enter at least one bequest level.", icon=":material/error:")
+        return
+
+    scenario_method = kz.getCaseKey("frontier_scenario_method") or "deterministic"
+    rates_pct = [50.0, 75.0, 90.0]
+
+    _objective, options = kz.getSolveParameters()
+    # The sweep sets the floor per level; the case's own value would flatten the curve.
+    options.pop("bequest", None)
+
+    try:
+        mybar = progress.Progress()
+        result = plan1.runSpendingBequestFrontier(
+            options,
+            grid,
+            scenario_method=scenario_method,
+            ystart=kz.getCaseKey("frontier_ystart") or FROM,
+            yend=kz.getCaseKey("frontier_yend") or TO,
+            N=kz.getCaseKey("frontier_N_mc") or 200,
+            success_rates=rates_pct,
+            seed=kz.getCaseKey("frontier_seed"),
+            # The page shows no shadow price, so the extra solve per level would be wasted.
+            with_duals=False,
+            progcall=mybar,
+        )
+        kz.storeCaseKey("frontierData", result)
+        _render_frontier(result, plan1._plotter)
+    except Exception as e:
+        kz.storeCaseKey("frontierPlot", None)
+        kz.storeCaseKey("frontierSummary", None)
+        kz.storeCaseKey("frontierData", None)
+        st.error(f"Spending vs bequest trade-off failed: {e}", icon=":material/error:")
+
+
 @_checkPlan
 def updateStochasticTarget(plan):
     """Reapply a new target success rate to cached scenario data — no scenarios re-run."""

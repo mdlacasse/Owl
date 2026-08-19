@@ -294,6 +294,21 @@ class Results(BaseModel):
     )
 
 
+# Solver options withdrawn because the answers they produced were wrong, and why. Unlike the
+# deprecated options in plan.RETIRED_OPTIONS, which are accepted and ignored, these are
+# rejected outright, both here at load time and in Plan.solve().
+_FIXEDSPENDING_REMOVED = (
+    "pinning g(0) left the maxSpending objective constant over the whole feasible set, so "
+    "nothing priced the tax bracket variables and the solver was free to fill the top bracket "
+    "while lower ones sat empty, charging well above the top marginal rate (issue #140). Trace "
+    "the spending/bequest frontier instead, which prices every point: runSpendingBequestFrontier(), "
+    "the Spending vs Bequest page, or 'owlcli frontier'"
+)
+REMOVED_OPTIONS = {
+    "fixedSpending": _FIXEDSPENDING_REMOVED,
+}
+
+
 class SolverOptions(BaseModel):
     """
     Solver options for the optimization routine.
@@ -340,10 +355,6 @@ class SolverOptions(BaseModel):
         "by valuing near-term consumption more than end-of-life spending.",
     )
     minTaxableBalance: Optional[List[float]] = None
-    fixedSpending: Optional[float] = Field(
-        default=None,
-        description="Pin first-year spending to a fixed value (today's dollars, in units) for maxSpending objective.",
-    )
     spendingSlack: Optional[int] = None
     noLateSurplus: Optional[bool] = None
 
@@ -371,6 +382,21 @@ class SolverOptions(BaseModel):
     previousMAGIs: Optional[List[float]] = None
     oppCostX: Optional[float] = None
     units: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_removed_options(cls, raw: Any) -> Any:
+        """
+        Refuse options that were withdrawn for giving wrong answers.
+
+        These are rejected rather than ignored: a case file asking for one would
+        otherwise solve as something else without saying so.
+        """
+        if isinstance(raw, dict):
+            for name in raw:
+                if name in REMOVED_OPTIONS:
+                    raise ValueError(f"Solver option '{name}' has been removed: {REMOVED_OPTIONS[name]}.")
+        return raw
 
 
 def parse_solver_options(raw: dict) -> dict:

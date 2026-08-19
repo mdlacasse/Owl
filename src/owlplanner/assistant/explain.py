@@ -537,8 +537,8 @@ def _explain_bequest_floor(plan, dd):
 
 @_shadow_explainer("spending_floor")
 def _explain_spending_floor(plan, dd):
-    # Spending floor (maxBequest / fixedSpending): g(0) is a fixed variable; its reduced
-    # cost is the marginal bequest cost of each extra dollar of required year-1 spending.
+    # Spending floor (maxBequest): g(0) is a fixed variable; its reduced cost is the
+    # marginal bequest cost of each extra dollar of required year-1 spending.
     if plan.objective != "maxBequest" or "g" not in plan.vm:
         return None
     j = plan.vm["g"].idx(0)

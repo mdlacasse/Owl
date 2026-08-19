@@ -22,7 +22,7 @@ certifi==2026.7.22
     # via requests
 cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
-charset-normalizer==3.4.9
+charset-normalizer==3.5.1
     # via requests
 click==8.4.2
     # via
@@ -51,15 +51,15 @@ h11==0.16.0
     #   uvicorn
 highspy==1.15.1
     # via owlplanner
-httpcore2==2.10.0 ; sys_platform != 'emscripten'
+httpcore2==2.12.0 ; sys_platform != 'emscripten'
     # via httpx2
 httptools==0.8.0
     # via streamlit
-httpx2==2.10.0
+httpx2==2.12.0
     # via mcp
 httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscripten'
     # via httpx2
-idna==3.18
+idna==3.19
     # via
     #   anyio
     #   httpx2
@@ -90,7 +90,7 @@ mcp==2.0.0
     # via owlplanner
 mcp-types==2.0.0
     # via mcp
-mosek==11.2.2
+mosek==11.2.3
     # via owlplanner
 narwhals==2.24.0
     # via
@@ -223,7 +223,7 @@ typing-extensions==4.16.0
     #   starlette
     #   streamlit
     #   typing-inspection
-typing-inspection==0.4.3
+typing-inspection==0.4.4
     # via
     #   mcp
     #   pydantic
@@ -231,7 +231,7 @@ tzdata==2026.3 ; sys_platform == 'emscripten' or sys_platform == 'win32'
     # via pandas
 urllib3==2.7.0
     # via requests
-uvicorn==0.52.1
+uvicorn==0.52.3
     # via
     #   mcp
     #   streamlit

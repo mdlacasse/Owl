@@ -1154,7 +1154,7 @@ Two optimization objectives are supported:
 
 \subsection*{Solver options for spending and bequest}
 
-Two options modify how the primary objectives are formulated:
+One option modifies how the primary objectives are formulated:
 \begin{itemize}[nosep]
   \item \code{timePreference} (\%/year, default~0) --- a subjective time-discount rate
     $\rho$ that front-loads spending.
@@ -1162,13 +1162,26 @@ Two options modify how the primary objectives are formulated:
     $(1+\rho)^{-n}$, so near-term spending is valued more than equivalent
     spending in the distant future.
     At $\rho=0$ (the default) all years carry equal real weight.
-  \item \code{fixedSpending} (monetary value) --- pins first-year net spending
-    to a user-specified level when using \code{maxSpending}.
-    Instead of freely maximizing the basis, the optimizer holds year-0 spending
-    fixed and uses a slack variable to allow the spending profile to flex dynamically
-    around that anchor in subsequent years.
-    Useful for testing a specific withdrawal rate or matching a concrete budget target.
 \end{itemize}
+
+A \code{fixedSpending} option, which pinned $g_0$ to a committed level under
+\code{maxSpending}, has been withdrawn.
+With the default zero profile slack, the spending-profile rows tie every $g_n$ to $g_0$,
+so pinning $g_0$ fixes the whole spending vector.
+The \code{maxSpending} objective is assembled solely from the $g_n$ coefficients and
+therefore became \emph{constant} over the feasible set.
+Since the bracket-fill variables $f_{t,n}$ are a relaxation of the progressive schedule,
+tight only because the objective pushes ordinary income into the cheapest brackets, the
+solver was then free to fill the top bracket while lower ones sat empty; the resulting
+excess tax was absorbed by the estate at no cost to a constant objective.
+Raising the slack does not repair this, because the upper edge of the slack band is itself
+proportional to the pinned $g_0$, so the objective merely goes flat at saturation instead.
+
+The well-posed replacement is to sweep the \code{bequest} floor under \code{maxSpending},
+tracing the spending--bequest efficient frontier.
+Every point of that sweep leaves $g_0$ free, so the objective retains a nonzero gradient and
+prices the tax variables, and each point is a genuine optimum rather than an arbitrary
+vertex of a degenerate program.
 
 \subsection*{Lexicographic weight}
 

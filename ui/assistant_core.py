@@ -47,6 +47,7 @@ STATELESS_TOOLS = (
     "compare_to_baseline",
     "explain_results",
     "run_stochastic",
+    "run_spending_bequest_frontier",
     "run_year1_robustness",
     "run_longevity_stochastic",
     "run_historical",

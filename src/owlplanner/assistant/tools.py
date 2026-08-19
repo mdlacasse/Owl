@@ -21,6 +21,7 @@ Tools implemented:
   run_from_params          — build and solve from structured parameters (no TOML needed)
   save_case                — save structured parameters to TOML + HFP Excel for reproducibility
   run_stochastic           — spending frontier over historical or Monte Carlo scenarios
+  run_spending_bequest_frontier — trade-off curve between net spending and bequest
   run_longevity_stochastic — frontier with joint market + lifespan sampling
   run_historical           — backtest across historical sequences, return outcome distribution
   run_monte_carlo          — Monte Carlo simulations, return outcome distribution
@@ -87,6 +88,12 @@ SERVER_INSTRUCTIONS = (
     "run_year1_robustness to report how the first year's decisions (Roth "
     "conversion, withdrawals, bracket) vary across those scenarios — use it when "
     "the user asks how confident they should be in this year's recommendation, "
+    "run_spending_bequest_frontier to answer how much spending an estate costs, "
+    "tracing the trade-off curve between net spending and bequest — use it whenever "
+    "the user wants to commit to a spending level or an inheritance target, since "
+    "each point is a full optimization rather than one arbitrary operating point, "
+    "and in its historical or mc modes the spread between success-rate curves shows "
+    "how much the answer depends on the sequence of returns, "
     "run_longevity_stochastic for a frontier that jointly samples market sequences "
     "and random lifespans (use list_mortality_tables to select the right actuarial "
     "table based on the user's occupation and smoking status). "
@@ -212,7 +219,7 @@ def _build_mcp_opts(
     return opts
 
 
-_MONETARY_OPTS = ("maxRothConversion", "netSpending", "fixedSpending", "bequest")
+_MONETARY_OPTS = ("maxRothConversion", "netSpending", "bequest")
 _MONETARY_LIST_OPTS = ("minTaxableBalance", "previousMAGIs")
 
 
@@ -3158,6 +3165,405 @@ async def run_stochastic(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tool: run_spending_bequest_frontier
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _default_bequest_grid(plan, opts, n_points=5):
+    """
+    A five-point grid spanning zero to roughly the plan's reachable estate.
+
+    The upper end comes from one probe solve of maxBequest at a subsistence spending
+    level, which is the largest estate the plan could produce if it barely spent at
+    all. Anything above that is unreachable by construction, so the grid stops there.
+    Falls back to a flat grid if the probe fails, since a usable default matters more
+    than a well-scaled one.
+    """
+    from owlplanner.config.plan_bridge import clone
+
+    probe = clone(plan, verbose=False)
+    o = dict(opts)
+    o["netSpending"] = 1000.0  # subsistence: leaves as much as the plan can possibly leave
+    try:
+        probe.solve("maxBequest", o)
+        top = float(probe.bequest) if probe.caseStatus == "solved" else 0.0
+    except Exception:
+        top = 0.0
+    if not np.isfinite(top) or top <= 0:
+        top = 1_000_000.0
+    # Stop just inside the maximum: the last point should be reachable, not marginal.
+    return [round(top * f / n_points, 2) for f in range(n_points)]
+
+
+def _frontier_blocking(
+    plan, opts, bequest_grid, scenario_method, ystart, yend, n_scenarios, rates_pct, seed, with_duals=False
+):
+    """Trace the spending-vs-bequest trade-off. Runs in a thread."""
+    from owlplanner.stresstests import run_spending_bequest_frontier
+    from owlplanner.rates import FROM
+
+    if scenario_method == "mc":
+        if getattr(plan, "rateModel", None) is None or getattr(plan.rateModel, "deterministic", True):
+            raise ValueError(
+                "Monte Carlo requires a stochastic rate method "
+                "(e.g. 'historical_gaussian', 'lognormal', 'historical_bootstrap'). "
+                "Current rate method is deterministic."
+            )
+
+    return run_spending_bequest_frontier(
+        plan,
+        opts,
+        bequest_grid,
+        scenario_method=scenario_method,
+        ystart=ystart if ystart is not None else FROM,
+        yend=yend,
+        N=n_scenarios,
+        success_rates=rates_pct,
+        seed=seed,
+        with_duals=with_duals,
+    )
+
+
+def _build_frontier_json(plan, result, summary):
+    """Shape a trade-off result for the assistant. All dollars are today's dollars."""
+    out = {
+        "status": "ok",
+        "case_name": plan._name,
+        "scenario_method": summary["scenario_method"],
+        "n_scenarios_run": summary["n_scenarios"],
+        "n_levels_failed": summary["n_levels_failed"],
+        # Fixed assets pass outside the savings accounts, so they are on top of every
+        # bequest figure here and are the same at every level.
+        "fixed_assets_today_dollars": summary["fixed_assets_today_dollars"],
+        "success_rates_pct": summary["success_rates"],
+        "target_success_rate_pct": summary["target_success_rate_pct"],
+        # A bracket, not a value: the true maximum is at or above the first and below
+        # the second. first_unreachable is null when every traced level was reachable,
+        # in which case the maximum lies above the top of the grid.
+        "max_feasible_bequest_today_dollars": summary["max_feasible_bequest_today_dollars"],
+        "first_unreachable_bequest_today_dollars": summary["first_unreachable_bequest_today_dollars"],
+        "frontier": summary["frontier"],
+        "exchange_rate": summary["exchange_rate"],
+    }
+    if summary["max_achieved_gap"] is not None:
+        out["max_achieved_gap"] = summary["max_achieved_gap"]
+    return out
+
+
+async def run_spending_bequest_frontier(
+    bequest_grid: list[float] | None = None,
+    scenario_method: str = "deterministic",
+    success_rates_pct: list[float] | None = None,
+    target_success_rate_pct: float = 90.0,
+    filename: str | None = None,
+    overrides: list[str] | None = None,
+    names: list[str] | None = None,
+    birth_dates: list[str] | None = None,
+    life_expectancy: list[int] | None = None,
+    taxable: list[float] | None = None,
+    tax_deferred: list[float] | None = None,
+    roth: list[float] | None = None,
+    hsa: list[float] | None = None,
+    cost_basis: list[float] | None = None,
+    ss_monthly_pias: list[float] | None = None,
+    ss_ages: list[int] | None = None,
+    pension_monthly_amounts: list[float] | None = None,
+    pension_ages: list[int] | None = None,
+    pension_indexed: list[bool] | None = None,
+    pension_survivor_fractions: list[float] | None = None,
+    wages: list[dict] | None = None,
+    contributions: list[dict] | None = None,
+    big_ticket_items: list[dict] | None = None,
+    roth_conversions: list[dict] | None = None,
+    debts: list[dict] | None = None,
+    fixed_assets: list[dict] | None = None,
+    spias: list[dict] | None = None,
+    state: str | None = None,
+    rate_method: str = "conservative",
+    rate_values: list[float] | None = None,
+    rate_frm: int | None = None,
+    rate_to: int | None = None,
+    survivor_fraction: float | None = None,
+    initial_allocation: list[float] | None = None,
+    final_allocation: list[float] | None = None,
+    interpolation_method: str = "linear",
+    interpolation_center: float | None = None,
+    interpolation_width: float | None = None,
+    balance_date: str | None = None,
+    spending_profile: str | None = None,
+    smile_dip: int = 15,
+    smile_increase: int = 12,
+    smile_delay: int = 0,
+    min_taxable_balance: list[float] | None = None,
+    start_roth_year: int | None = None,
+    no_roth_person: str | None = None,
+    max_roth_conversion: float | None = None,
+    use_roth_conv_overrides: bool | None = None,
+    swap_roth_converters_first: str | None = None,
+    swap_roth_converters_year: int | None = None,
+    heirs_tax_rate: float | None = None,
+    previous_magis: list[float] | None = None,
+    with_medicare: str | None = None,
+    with_aca: str | None = None,
+    aca_start_year: int | None = None,
+    optimize_ss_ages: bool | str | list[str] | None = None,
+    constrain_mean: bool = False,
+    slcsp: float | None = None,
+    rate_params: dict | None = None,
+    ss_trim_pct: int | None = None,
+    ss_trim_year: int | None = None,
+    ss_survivor_claim_age: str | float | None = None,
+    obbba_expiration_year: int | None = None,
+    dividend_rate: float | None = None,
+    n_scenarios: int = 200,
+    ystart: int | None = None,
+    yend: int | None = None,
+    solver: str | None = None,
+    max_time: float | None = None,
+    seed: int | None = None,
+    with_duals: bool = False,
+) -> str:
+    """Trace the trade-off between net spending and the bequest left behind.
+
+    Answers "how much spending does leaving an estate cost me?" by sweeping the
+    bequest floor under the maxSpending objective. Each point is a full optimization,
+    so the curve shows a real trade-off rather than one arbitrary operating point.
+
+    Use this instead of pinning a spending level. Pinning leaves the objective with
+    nothing to optimize, which lets the solver charge more tax than the law allows.
+
+    With scenario_method='historical' or 'mc', every bequest level is additionally
+    solved across the whole scenario ensemble, and spending is reported at each of
+    success_rates_pct. The spread between those curves is sequence-of-returns risk:
+    a wide fan means the plan's outcome depends heavily on when returns arrive.
+
+    The plan may come from a case file (filename) or from flat parameters, exactly
+    as in run_from_params. All monetary values are today's dollars.
+
+    Args:
+        bequest_grid: Bequest floors to trace, in today's dollars, e.g.
+            [0, 500000, 1000000, 2000000]. Defaults to a five-point grid spanning
+            zero to roughly the plan's reachable maximum.
+        scenario_method: 'deterministic' (one solve per level on the plan's own
+            rates, fast enough for interactive use), 'historical' (sweep start
+            years), or 'mc' (Monte Carlo draws). Cost is levels x scenarios, so
+            prefer a short grid for the stochastic modes.
+        success_rates_pct: Success percentages to trace, each in (1, 100].
+            Defaults to [50, 75, 90]. Ignored when deterministic.
+        target_success_rate_pct: Which traced rate the summary reports against.
+            Must be one of success_rates_pct.
+        filename: Path to a case TOML. Mutually exclusive with the flat parameters.
+        overrides: TOML overrides as 'key.path=value' strings, as in run_case.
+        n_scenarios: Monte Carlo draws per level. Ignored in historical mode, which
+            runs one scenario per start year.
+        ystart, yend: Historical start-year range.
+        solver: 'HiGHS' or 'MOSEK'.
+        max_time: Per-solver-call time limit in seconds.
+        seed: Seed for the Monte Carlo draws. The rate RNG is pinned regardless, so
+            every bequest level meets the same ensemble.
+        with_duals: Report the bequest shadow price per level, and with it the
+            reliability flag on each exchange-rate segment. Off by default, since it
+            costs an extra solve per level and only cross-checks an exchange rate that
+            is already measured directly from the curve.
+
+    Returns:
+        JSON with one row per bequest level, the measured exchange rate between
+        bequest and spending segment by segment, and a bracket on the largest estate
+        the plan can leave: at or above max_feasible_bequest_today_dollars and below
+        first_unreachable_bequest_today_dollars, the latter null when every level was
+        reachable. A sweep can only bracket that maximum, never pin it.
+
+        Each row carries bequest_today_dollars (the savings accounts after the heirs'
+        tax, net of debt -- the level being swept), total_estate_today_dollars, and
+        n_infeasible_scenarios, the count of scenarios that could not reach that level
+        at all. Real estate and other assets still held at the end of the plan pass
+        outside the savings accounts and are reported separately as
+        fixed_assets_today_dollars; being set by the asset table rather than by the
+        floor, that figure is the same at every level and is already added into the
+        total estate. Assets sold during the plan are not counted there, their
+        proceeds having landed in the savings accounts.
+    """
+    from owlplanner.stresstests import _validate_success_rate_pct, summarize_spending_bequest_frontier
+
+    if scenario_method not in ("deterministic", "historical", "mc"):
+        return json.dumps(
+            {"error": f"scenario_method must be 'deterministic', 'historical' or 'mc', got '{scenario_method}'."}
+        )
+    rates_pct = [50.0, 75.0, 90.0] if success_rates_pct is None else [float(r) for r in success_rates_pct]
+    try:
+        for r in rates_pct:
+            _validate_success_rate_pct(r)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+    if scenario_method != "deterministic" and target_success_rate_pct not in rates_pct:
+        return json.dumps(
+            {
+                "error": (
+                    f"target_success_rate_pct={target_success_rate_pct} must be one of "
+                    f"success_rates_pct={rates_pct}."
+                )
+            }
+        )
+
+    assumed: list[dict] = []
+    overrides = _norm_overrides(overrides)
+    if filename is not None and names is not None:
+        msg = "Provide either 'filename' or flat parameters (names, birth_dates, ...) — not both."
+        return json.dumps({"error": msg})
+
+    if filename is not None:
+        try:
+            diconf, dirname, _ = load_toml(filename)
+        except Exception as e:
+            return json.dumps({"error": f"Failed to load {filename}: {e}"})
+        if overrides:
+            try:
+                diconf = apply_overrides(diconf, overrides)
+            except Exception as e:
+                return json.dumps({"error": f"Invalid override: {e}"})
+        try:
+            plan = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: config_to_plan(diconf, dirname, verbose=False, logstreams=[sys.stderr], loadHFP=True),
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Failed to build plan from {filename}: {e}"})
+    else:
+        if (
+            names is None
+            or birth_dates is None
+            or life_expectancy is None
+            or taxable is None
+            or tax_deferred is None
+            or roth is None
+        ):
+            return json.dumps(
+                {
+                    "error": (
+                        "Provide either 'filename' or flat parameters: "
+                        "names, birth_dates, life_expectancy, taxable, tax_deferred, roth are required."
+                    )
+                }
+            )
+        try:
+            plan = _build_plan_from_params(
+                names,
+                birth_dates,
+                life_expectancy,
+                state,
+                taxable,
+                tax_deferred,
+                roth,
+                hsa,
+                cost_basis,
+                ss_monthly_pias,
+                ss_ages,
+                pension_monthly_amounts,
+                pension_ages,
+                pension_indexed,
+                pension_survivor_fractions,
+                wages,
+                contributions,
+                big_ticket_items,
+                roth_conversions,
+                debts,
+                fixed_assets,
+                spias,
+                "maxSpending",
+                rate_method,
+                rate_values,
+                rate_frm,
+                rate_to,
+                survivor_fraction,
+                initial_allocation,
+                final_allocation,
+                spending_profile,
+                smile_dip,
+                smile_increase,
+                smile_delay,
+                constrain_mean,
+                interpolation_method,
+                interpolation_center,
+                interpolation_width,
+                balance_date,
+                heirs_tax_rate=heirs_tax_rate,
+                slcsp=slcsp,
+                aca_start_year=aca_start_year,
+                rate_params=rate_params,
+                ss_trim_pct=ss_trim_pct,
+                ss_trim_year=ss_trim_year,
+                ss_survivor_claim_age=ss_survivor_claim_age,
+                obbba_expiration_year=obbba_expiration_year,
+                dividend_rate=dividend_rate,
+                assumed=assumed,
+            )
+        except Exception as e:
+            return json.dumps({"error": f"Plan build error: {e}"})
+
+    opts = _build_mcp_opts(
+        solver=solver,
+        max_time=max_time,
+        min_taxable_balance=min_taxable_balance,
+        start_roth_year=start_roth_year,
+        no_roth_person=no_roth_person,
+        max_roth_conversion=max_roth_conversion,
+        optimize_ss_ages=optimize_ss_ages,
+        previous_magis=previous_magis,
+        with_medicare=with_medicare,
+        with_aca=with_aca,
+        use_roth_conv_overrides=use_roth_conv_overrides,
+        swap_roth_converters_first=swap_roth_converters_first,
+        swap_roth_converters_year=swap_roth_converters_year,
+        inames=plan.inames,
+    )
+    if filename is not None:
+        opts = _merge_case_opts(plan, opts)
+    # The sweep sets this per level; a case file's own floor would pin the curve flat.
+    opts.pop("bequest", None)
+    opts["units"] = "1"
+    _scrub_optimized_ss_ages(assumed, opts)
+
+    if bequest_grid is None:
+        grid = await asyncio.get_running_loop().run_in_executor(None, _default_bequest_grid, plan, opts)
+    else:
+        grid = [float(b) for b in bequest_grid]
+
+    try:
+        result = await asyncio.get_running_loop().run_in_executor(
+            None,
+            _frontier_blocking,
+            plan,
+            opts,
+            grid,
+            scenario_method,
+            ystart,
+            yend,
+            n_scenarios,
+            rates_pct,
+            seed,
+            with_duals,
+        )
+        summary = summarize_spending_bequest_frontier(result, target_success_rate_pct=target_success_rate_pct)
+    except Exception as e:
+        return json.dumps({"error": f"Frontier run error: {e}"})
+
+    try:
+        out = _build_frontier_json(plan, result, summary)
+    except Exception as e:
+        return json.dumps({"error": f"Result processing error: {e}"})
+
+    if scenario_method == "historical" and n_scenarios != 200:
+        out["note"] = (
+            f"n_scenarios={n_scenarios} was ignored: 'historical' mode runs one scenario per "
+            "start year at each bequest level (controlled by ystart/yend). Use "
+            "scenario_method='mc' to control the scenario count."
+        )
+    if assumed:
+        out["assumed_defaults"] = assumed
+    return json.dumps(out, indent=2, cls=_NumpyEncoder)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_year1_robustness
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -4584,6 +4990,7 @@ MCP_TOOLS = (
     run_from_params,
     save_case,
     run_stochastic,
+    run_spending_bequest_frontier,
     run_year1_robustness,
     run_longevity_stochastic,
     run_historical,

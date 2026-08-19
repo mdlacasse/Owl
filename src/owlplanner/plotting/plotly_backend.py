@@ -950,6 +950,78 @@ class PlotlyBackend(PlotBackend):
         )
         return fig
 
+    def plot_spending_bequest_frontier(
+        self,
+        bequest_dollars,
+        spending,
+        year_n,
+        labels=None,
+        scenario_method="deterministic",
+        level_failed=None,
+    ):
+        """Trade-off between net spending and bequest, one curve per confidence level."""
+        thisyear = int(year_n[0])
+        x = np.asarray(bequest_dollars, float) / 1000
+        y = np.atleast_2d(np.asarray(spending, float).T)  # (R, K)
+        n_curves = y.shape[0]
+        if labels is None:
+            labels = ["Net spending"] if n_curves == 1 else [f"curve {j}" for j in range(n_curves)]
+
+        fig = go.Figure()
+
+        # Shade between the outermost curves: that spread is the sequence-of-returns risk.
+        if n_curves > 1:
+            lo, hi = np.nanmin(y, axis=0), np.nanmax(y, axis=0)
+            fig.add_trace(
+                go.Scatter(
+                    x=x.tolist() + x[::-1].tolist(),
+                    y=(hi / 1000).tolist() + (lo / 1000)[::-1].tolist(),
+                    fill="toself",
+                    fillcolor="rgba(70, 130, 180, 0.15)",
+                    line=dict(width=0),
+                    hoverinfo="skip",
+                    showlegend=False,
+                )
+            )
+
+        palette = ["steelblue", "darkorange", "seagreen", "firebrick", "purple"]
+        for j in range(n_curves):
+            fig.add_trace(
+                go.Scatter(
+                    x=x.tolist(),
+                    y=(y[j] / 1000).tolist(),
+                    mode="lines+markers",
+                    name=str(labels[j]),
+                    line=dict(color=palette[j % len(palette)], width=2),
+                    marker=dict(size=6),
+                )
+            )
+
+        # Mark floors the plan could not reach at all, so a truncated curve is not read
+        # as the trade-off simply ending.
+        if level_failed is not None and np.any(level_failed):
+            for xf in x[np.asarray(level_failed, bool)]:
+                fig.add_vline(x=float(xf), line_dash="dot", line_color="firebrick", opacity=0.4)
+
+        method_tag = {"deterministic": "", "historical": "Historical ", "mc": "Monte Carlo "}
+        _tag = method_tag.get(scenario_method, "")
+        _title = f"{_tag}spending vs bequest trade-off" if _tag else "Spending vs bequest trade-off"
+        fig.update_xaxes(
+            title_text=f"Bequest ({thisyear} $k)", tickprefix="$", title_font_size=14, tickfont_size=11
+        )
+        fig.update_yaxes(
+            title_text=f"Net spending ({thisyear} $k)", tickprefix="$", title_font_size=14, tickfont_size=11
+        )
+        fig.update_layout(
+            title=dict(
+                text=f"{_title} ({thisyear}$)",
+                font_size=20,
+            ),
+            template=self.template,
+            legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
+        )
+        return fig
+
     def plot_stochastic_cvar_vs_pos(
         self, frontier_prob, frontier_cvar, rho_star_pct, cvar_star, target_success_rate_pct, year_n
     ):

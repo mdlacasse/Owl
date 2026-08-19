@@ -1,9 +1,10 @@
 """
 Stress testing methods for retirement plans and stochastic spending optimization.
 
-Provides ``run_historical_range``, ``run_mc``, and ``run_stochastic_spending``, which take a
-:class:`~owlplanner.plan.Plan` instance as the first argument (``Plan`` exposes them as methods
-that delegate here). Also includes standalone LP helpers for the efficient frontier.
+Provides ``run_historical_range``, ``run_mc``, ``run_stochastic_spending``, and
+``run_spending_bequest_frontier``, which take a :class:`~owlplanner.plan.Plan` instance as the
+first argument (``Plan`` exposes them as methods that delegate here). Also includes standalone
+LP helpers for the efficient frontier.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -30,6 +31,7 @@ from scipy.optimize import linprog
 
 from . import progress
 from . import rates
+from . import utils as u
 from .config.plan_bridge import clone
 from .data.mortality_tables import sample_lifespans
 
@@ -1211,4 +1213,439 @@ def run_stochastic_spending(
         "drawn_lifespans": drawn_lifespans,
         "n_infeasible": n_infeasible,
         "year1_decisions": year1_list,
+    }
+
+
+###############################################################################
+# Spending / bequest efficient frontier
+###############################################################################
+
+
+def _bequest_shadow_price(p):
+    """
+    Lifetime spending cost, in today's dollars, of one more today's-dollar of bequest.
+
+    Reads the dual of the bequest_floor row, the same quantity the assistant reports
+    in explain._explain_bequest_floor. Returns NaN when duals were not computed or
+    the floor is slack, the latter meaning the plan leaves that much behind anyway.
+    """
+    dd = getattr(p, "_dual_data", None)
+    if not dd:
+        return np.nan
+    for i, tag in enumerate(dd["row_tags"]):
+        if tag is not None and tag[0] == "bequest_floor":
+            sens = dd["row_dual"][i] * dd["objFac"] * p.gamma_n[p.N_n]
+            return float(-sens)
+    return np.nan
+
+
+def _frontier_base_solve(plan, options, with_duals):
+    """
+    Solve the plan on its own configured rates at one bequest level.
+
+    This is the whole answer in deterministic mode. In the stochastic modes it is
+    only a probe for the fixed-asset value. Returns (basis, shadow_price, max_gap,
+    fixed_assets), with basis None when the level is infeasible. Fixed assets are
+    only known after a solve, and are the same at every level, being set by the
+    asset table rather than by the bequest floor.
+    """
+    p = clone(plan, verbose=False)
+    opts = dict(options)
+    if with_duals:
+        opts["withDuals"] = True
+    try:
+        p.solve("maxSpending", opts)
+    except Exception as exc:
+        # Without this the caller sees only "unreachable", which reads as a plan that
+        # cannot afford the floor rather than as an option or configuration error.
+        plan.mylog.print(
+            f"bequest level {opts.get('bequest')}: solve raised {type(exc).__name__}: {exc}.",
+            tag="WARNING",
+        )
+        return None, np.nan, -1.0, np.nan
+    if p.caseStatus != "solved":
+        return None, np.nan, -1.0, np.nan
+    shadow = _bequest_shadow_price(p) if with_duals else np.nan
+    fixed = float(p.getFixedAssetsBequestValueInTodaysDollars())
+    return float(p.basis), shadow, float(getattr(p, "solverGap", -1.0)), fixed
+
+
+def run_spending_bequest_frontier(
+    plan,
+    options,
+    bequest_grid,
+    *,
+    scenario_method="historical",
+    ystart=None,
+    yend=None,
+    N=None,
+    success_rates=(50.0, 75.0, 90.0),
+    seed=None,
+    with_duals=False,
+    max_time=MC_TIME_LIMIT,
+    progcall=None,
+):
+    """
+    Trace the efficient frontier between net spending and the bequest left behind.
+
+    The user-facing surfaces call this the spending-vs-bequest *trade-off*, to keep
+    it apart from the spending/shortfall-risk frontier of run_stochastic_spending().
+    Both are Pareto frontiers; only that one is a risk/return curve in the Markowitz
+    sense, so the plainer word is used where a reader might conflate them.
+
+    Sweeps the ``bequest`` floor under the maxSpending objective. Each point is an
+    ordinary solve, so no new optimization structure is involved. Because the floor
+    constrains the estate rather than spending, g(0) stays free and the objective
+    keeps a nonzero gradient: every point is a genuine optimum, unlike a pinned
+    spending level, which leaves the objective constant and the tax variables
+    unpriced (issue #140).
+
+    In the stochastic modes each level is additionally solved across the whole
+    scenario ensemble, which turns the curve into a surface S(B, p): spending as a
+    function of the bequest target B and the probability p of not falling short.
+    Reading it down a column gives spending versus bequest at fixed confidence, the
+    fan across ``success_rates`` being the sequence-of-returns risk. Reading it
+    across a row gives the spending/success curve of run_stochastic_spending().
+
+    Parameters
+    ----------
+    options : dict
+        Solver options passed to solve(). Monetary entries, ``bequest_grid``
+        included, are in ``options["units"]`` (default "k").
+    bequest_grid : sequence of float
+        Bequest floors to trace, in ``options["units"]``. Sorted and deduplicated.
+    scenario_method : str
+        "deterministic" — one solve per level on the plan's own rates. Fast enough
+                          to be interactive, and the direct replacement for pinning
+                          a spending level.
+        "historical"    — sweep ``ystart``..``yend`` at every level.
+        "mc"            — ``N`` Monte Carlo draws at every level.
+    success_rates : sequence of float
+        Success percentages, each in (1, 100], at which to report spending. Ignored
+        in deterministic mode, which has a single scenario.
+    seed : int or None
+        Seed for the Monte Carlo draws. MC mode pins the rate RNG regardless, so
+        that every bequest level meets the same ensemble; without common random
+        numbers the surface wanders non-monotonically on sampling noise alone.
+    with_duals : bool
+        Record the bequest_floor shadow price at each level, and with it the
+        reliability flag on each exchange-rate segment. Off by default: it costs an
+        extra LP re-solve per level, and the exchange rate is already measured
+        directly from the curve, so the dual only cross-checks it -- and being the
+        dual of the final LP with the loop's parameters frozen, it runs shallow.
+        Deterministic mode only: a dual read off the plan's own rates says nothing about
+        an ensemble, so it is not computed in the stochastic modes.
+    max_time : float or None
+        Per-solver-call time limit, applied unless ``options`` already sets one.
+        A sweep multiplies any pathological scenario by the number of levels.
+
+    Returns
+    -------
+    dict with keys:
+        "bequest_grid"         : ndarray (K,) — floors as given, in ``units``
+        "bequest_dollars"      : ndarray (K,) — the same floors in dollars
+        "base_basis"           : ndarray (K,) — spending on the plan's own rates. Deterministic
+                                 mode only; NaN throughout the stochastic modes, where the
+                                 answer is the ensemble and a single-scenario basis would
+                                 describe none of it
+        "bases"                : ndarray (K, S) — per-scenario spending; 0.0 marks an
+                                 infeasible scenario, matching run_stochastic_spending
+        "g_at_success"         : ndarray (K, R) — spending at each success rate
+        "lam_at_success"       : ndarray (K, R)
+        "frontier_g"           : ndarray (K, L) or None — full lambda sweep per level
+        "frontier_prob"        : ndarray (K, L) or None
+        "frontier_shortfall"   : ndarray (K, L) or None
+        "n_infeasible"         : ndarray (K,) int
+        "level_failed"         : ndarray (K,) bool — level too high to solve at all
+        "bequest_shadow_price" : ndarray (K,) — lifetime spending $ per today's-$ of bequest.
+                                 Deterministic mode only, and only with ``with_duals``
+        "fixed_assets_today_dollars" : float — value of fixed assets still held at the end
+                                 of the plan, in today's dollars. Set by the asset table
+                                 rather than by the floor, so it is the same at every
+                                 level, and it is on top of every bequest figure here
+        "max_gap"              : ndarray (K,) — largest achieved MIP gap; -1 when pure LP
+        "xi_sum"               : float — sum of the spending profile, converting a basis
+                                 difference into the lifetime units of the shadow price
+        "success_rates", "scenario_method", "n_scenarios", "start_years", "year_n", "n_d"
+
+    Summarize with summarize_spending_bequest_frontier().
+    """
+    if scenario_method not in ("deterministic", "historical", "mc"):
+        raise ValueError(
+            f"scenario_method must be 'deterministic', 'historical' or 'mc', got '{scenario_method}'."
+        )
+    grid = sorted({float(b) for b in bequest_grid})
+    if not grid or grid[0] < 0:
+        raise ValueError("bequest_grid must be a non-empty sequence of non-negative amounts.")
+    rates_pct = [float(r) for r in success_rates]
+    for r in rates_pct:
+        _validate_success_rate_pct(r)
+
+    if scenario_method == "historical":
+        if ystart is None:
+            ystart = rates.FROM
+        if yend is None:
+            yend = plan.year_n[0] - plan.N_n
+        if yend + plan.N_n > plan.year_n[0]:
+            yend = plan.year_n[0] - plan.N_n
+            plan.mylog.print(f"Upper bound for year range re-adjusted to {yend}.", tag="WARNING")
+        if yend < ystart:
+            raise ValueError(f"Starting year is too large to support a lifespan of {plan.N_n} years.")
+
+    myoptions = dict(options)
+    if max_time is not None and "maxTime" not in myoptions:
+        myoptions["maxTime"] = max_time
+    unit_fac = u.getUnits(myoptions.get("units", "k"))
+
+    # Both of these are put back in the finally below. Left set, they leak out of the
+    # sweep: a caller's later runMC() would come back silently seeded, and an escaping
+    # exception would leave the plan's logger muted for good.
+    saved_reproducible = (plan.reproducibleRates, plan.rateSeed)
+    if scenario_method == "mc":
+        # Common random numbers: without them each level meets a different ensemble and
+        # the surface is non-monotone in B from sampling noise alone.
+        plan.setReproducible(True, seed=0 if seed is None else seed)
+
+    plan.mylog.setVerbose(False)
+    if progcall is None:
+        progcall = progress.Progress(plan.mylog)
+    quiet = progress.Progress(None)  # the inner runs must not each draw their own bar
+
+    K, R = len(grid), len(rates_pct)
+    base_basis = np.full(K, np.nan)
+    shadow = np.full(K, np.nan)
+    max_gap = np.full(K, -1.0)
+    n_infeasible = np.zeros(K, dtype=int)
+    level_failed = np.zeros(K, dtype=bool)
+    g_at_success = np.full((K, R), np.nan)
+    lam_at_success = np.full((K, R), np.nan)
+    bases_rows, frontier_rows, start_years, n_scenarios = [None] * K, [None] * K, None, 1
+    fixed_assets = np.nan
+
+    plan.mylog.print(f"Spending/bequest frontier: {K} bequest level(s), {scenario_method} scenarios.")
+    progcall.start()
+
+    try:
+        for k, bequest in enumerate(grid):
+            opts = dict(myoptions)
+            opts["bequest"] = bequest
+            if scenario_method == "deterministic":
+                # Here the solve is the answer, so everything it reports is per level.
+                basis, dual, gap, fixed = _frontier_base_solve(plan, opts, with_duals)
+                shadow[k] = dual
+                max_gap[k] = gap
+                if np.isfinite(fixed):
+                    fixed_assets = fixed
+                if basis is None:
+                    level_failed[k] = True
+                    n_infeasible[k] = 1
+                    bases_rows[k] = np.array([0.0])
+                else:
+                    base_basis[k] = basis
+                    bases_rows[k] = np.array([basis])
+                    g_at_success[k, :] = basis
+            else:
+                # The answer comes from the ensemble below. The only thing a base solve
+                # adds here is the fixed-asset value, which the asset table fixes rather
+                # than the floor, so probe for it once -- retrying at the next level should
+                # the first prove infeasible -- and record nothing else. A basis, gap or
+                # dual read off the plan's own rates describes none of the scenarios.
+                if not np.isfinite(fixed_assets):
+                    _, _, _, fixed = _frontier_base_solve(plan, opts, with_duals=False)
+                    if np.isfinite(fixed):
+                        fixed_assets = fixed
+                try:
+                    res = run_stochastic_spending(
+                        plan, opts, scenario_method, ystart=ystart, yend=yend, N=N, progcall=quiet, seed=seed
+                    )
+                except RuntimeError as exc:
+                    plan.mylog.print(
+                        f"bequest level {bequest:,.0f}: {exc} Recording the level as unreachable.",
+                        tag="WARNING",
+                    )
+                    level_failed[k] = True
+                else:
+                    bases_rows[k] = res["bases"]
+                    frontier_rows[k] = (res["frontier_g"], res["frontier_prob"], res["frontier_shortfall"])
+                    n_infeasible[k] = int(res["n_infeasible"])
+                    start_years = res["start_years"]
+                    n_scenarios = len(res["bases"])
+                    for j, rate in enumerate(rates_pct):
+                        g, lam = g_for_success_rate(rate, res["lambdas"], res["frontier_g"], res["frontier_prob"])
+                        g_at_success[k, j] = g
+                        lam_at_success[k, j] = lam
+
+            progcall.show(k + 1, K)
+
+    finally:
+        progcall.finish()
+        plan.mylog.resetVerbose()
+        # Restored by hand: setReproducible() regenerates a seed rather than
+        # simply assigning the one it is given.
+        plan.reproducibleRates, plan.rateSeed = saved_reproducible
+
+    n_failed = int(level_failed.sum())
+    if n_failed:
+        plan.mylog.print(f"{n_failed} of {K} bequest levels could not be reached.", tag="WARNING")
+
+    bases = np.zeros((K, n_scenarios))
+    for k, row in enumerate(bases_rows):
+        if row is not None and len(row) == n_scenarios:
+            bases[k, :] = row
+
+    if scenario_method == "deterministic":
+        frontier_g = frontier_prob = frontier_shortfall = None
+    else:
+        n_pts = max((len(f[0]) for f in frontier_rows if f is not None), default=0)
+        frontier_g = np.full((K, n_pts), np.nan)
+        frontier_prob = np.full((K, n_pts), np.nan)
+        frontier_shortfall = np.full((K, n_pts), np.nan)
+        for k, f in enumerate(frontier_rows):
+            if f is not None:
+                frontier_g[k, :], frontier_prob[k, :], frontier_shortfall[k, :] = f
+
+    return {
+        "bequest_grid": np.array(grid),
+        "bequest_dollars": np.array(grid) * unit_fac,
+        "base_basis": base_basis,
+        "bases": bases,
+        "g_at_success": g_at_success,
+        "lam_at_success": lam_at_success,
+        "frontier_g": frontier_g,
+        "frontier_prob": frontier_prob,
+        "frontier_shortfall": frontier_shortfall,
+        "n_infeasible": n_infeasible,
+        "level_failed": level_failed,
+        "bequest_shadow_price": shadow,
+        "fixed_assets_today_dollars": 0.0 if not np.isfinite(fixed_assets) else fixed_assets,
+        "max_gap": max_gap,
+        "xi_sum": float(np.sum(plan.xi_n)),
+        "success_rates": tuple(rates_pct),
+        "scenario_method": scenario_method,
+        "n_scenarios": n_scenarios,
+        "start_years": start_years,
+        "year_n": plan.year_n,
+        "n_d": plan.n_d,
+    }
+
+
+def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0):
+    """
+    Summarize a run_spending_bequest_frontier() result into a JSON-ready dict.
+
+    Reports the curve itself and the measured exchange rate between bequest and
+    spending at the requested confidence, segment by segment.
+
+    Deliberately absent are a "free bequest" and a "knee". Both read as properties
+    of the plan but are set by the grid: the free bequest, being the largest floor
+    that costs no spending, is zero for any curve that slopes at all, and the knee
+    lands on the second grid point whenever the second segment differs from the
+    first, which on a curved frontier is always. Resolving either honestly needs a
+    finer sweep than a caller-supplied handful of levels.
+
+    The shadow price is carried alongside the measured secant as a cross-check. It
+    is the dual of the final LP with the self-consistent loop's parameters frozen,
+    so it is a partial derivative of a fixed point and runs shallow; a disagreement
+    above 20% means the segment is being driven by the loop rather than the LP and
+    should not be read as a local slope.
+
+    The largest reachable estate is reported as a bracket, not a value: it lies at
+    or above ``max_feasible_bequest_today_dollars`` and below
+    ``first_unreachable_bequest_today_dollars``, which is None when every traced
+    level was reachable. Both are grid points, so neither is a property of the plan
+    on its own — the highest success merely echoes the grid when nothing failed.
+    """
+    grid = np.asarray(result["bequest_dollars"], float)
+    failed = np.asarray(result["level_failed"], bool)
+    shadow = np.asarray(result["bequest_shadow_price"], float)
+    xi_sum = float(result["xi_sum"])
+    rates_pct = list(result["success_rates"])
+    deterministic = result["scenario_method"] == "deterministic"
+    fixed_assets = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
+
+    if deterministic:
+        g_col = np.asarray(result["base_basis"], float)
+    else:
+        if target_success_rate_pct not in rates_pct:
+            raise ValueError(
+                f"target_success_rate_pct={target_success_rate_pct} is not among the rates traced "
+                f"({rates_pct}); re-run the frontier including it."
+            )
+        g_col = np.asarray(result["g_at_success"], float)[:, rates_pct.index(target_success_rate_pct)]
+
+    rows = []
+    for k, bequest in enumerate(grid):
+        row = {
+            "bequest_today_dollars": round(float(bequest), 2),
+            "total_estate_today_dollars": round(float(bequest) + fixed_assets, 2),
+            "feasible": not bool(failed[k]),
+            "n_infeasible_scenarios": int(result["n_infeasible"][k]),
+            "shadow_price": None if np.isnan(shadow[k]) else round(float(shadow[k]), 4),
+        }
+        if deterministic:
+            row["spending_today_dollars"] = None if np.isnan(g_col[k]) else round(float(g_col[k]), 2)
+        else:
+            for j, rate in enumerate(rates_pct):
+                v = float(result["g_at_success"][k, j])
+                row[f"spending_at_{rate:g}pct"] = None if np.isnan(v) else round(v, 2)
+        rows.append(row)
+
+    # Exchange rate: how much spending each extra dollar of estate costs, measured.
+    #
+    # One entry per grid segment, always, so exchange_rate[k - 1] is the segment ending
+    # at level k. Skipping unmeasurable segments would shorten the list and silently
+    # shift every rate a renderer reads by position.
+    exchange = []
+    for k in range(1, len(grid)):
+        entry = {
+            "from_bequest": round(float(grid[k - 1]), 2),
+            "to_bequest": round(float(grid[k]), 2),
+            "spending_per_dollar_of_bequest": None,
+        }
+        dB = grid[k] - grid[k - 1]
+        if dB > 0 and not np.isnan(g_col[k]) and not np.isnan(g_col[k - 1]):
+            secant = (g_col[k] - g_col[k - 1]) / dB
+            entry["spending_per_dollar_of_bequest"] = round(float(secant), 6)
+            # The dual is a lifetime figure; a basis secant scales by the profile sum.
+            d = shadow[k]
+            if not np.isnan(d) and abs(secant) > 1e-12:
+                implied = -d / xi_sum
+                entry["shadow_price_implied"] = round(float(implied), 6)
+                entry["dual_secant_disagreement"] = round(abs(implied - secant) / abs(secant), 4)
+                entry["reliable"] = bool(abs(implied - secant) / abs(secant) <= 0.2)
+        exchange.append(entry)
+
+    # A sweep can only bracket the largest reachable estate: it lies at or above the
+    # highest level that solved, and below the lowest that did not. Reporting the
+    # highest success alone would just echo the grid back when nothing failed, and
+    # would understate the true maximum by a whole grid step when something did.
+    #
+    # Reachability is level_failed alone. Individual scenarios going infeasible at a
+    # high floor is ordinary in the stochastic modes -- that is what the success rates
+    # exist to express, an infeasible scenario being recorded as a full shortfall -- so
+    # counting those would report a level as out of reach while the table above it
+    # showed spending at all three confidences.
+    #
+    # Failures are not necessarily a suffix of the grid -- a solve can time out at one
+    # level and succeed above it -- so the upper end is the lowest failure *above* the
+    # highest success. Taking the lowest failure overall reports a backwards bracket.
+    ok = ~failed
+    reachable = grid[ok]
+    lo = float(reachable.max()) if len(reachable) else None
+    above = grid[~ok] if lo is None else grid[~ok & (grid > lo)]
+    hi = float(above.min()) if len(above) else None
+    gaps = np.asarray(result["max_gap"], float)
+
+    return {
+        "scenario_method": result["scenario_method"],
+        "n_scenarios": int(result["n_scenarios"]),
+        "success_rates": rates_pct,
+        "target_success_rate_pct": None if deterministic else target_success_rate_pct,
+        "frontier": rows,
+        "exchange_rate": exchange,
+        "max_feasible_bequest_today_dollars": None if lo is None else round(lo, 2),
+        "first_unreachable_bequest_today_dollars": None if hi is None else round(hi, 2),
+        "fixed_assets_today_dollars": round(fixed_assets, 2),
+        "n_levels_failed": int(failed.sum()),
+        "max_achieved_gap": None if not len(gaps) or gaps.max() < 0 else round(float(gaps.max()), 6),
     }

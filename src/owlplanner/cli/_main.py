@@ -26,6 +26,7 @@ import click
 from .cli_logging import configure_logging, LOG_LEVELS
 from .cmd_compare import cmd_compare
 from .cmd_explain import cmd_explain
+from .cmd_frontier import cmd_frontier
 from .cmd_list import cmd_list
 from .cmd_list_rates import cmd_list_rates
 from .cmd_run import cmd_run
@@ -55,6 +56,7 @@ def cli(ctx, log_level: str):
 
 cli.add_command(cmd_compare)
 cli.add_command(cmd_explain)
+cli.add_command(cmd_frontier)
 cli.add_command(cmd_list)
 cli.add_command(cmd_list_rates)
 cli.add_command(cmd_run)
