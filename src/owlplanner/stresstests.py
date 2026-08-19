@@ -1275,7 +1275,7 @@ def run_spending_bequest_frontier(
     N=None,
     success_rates=(50.0, 75.0, 90.0),
     seed=None,
-    with_duals=True,
+    with_duals=False,
     max_time=MC_TIME_LIMIT,
     progcall=None,
 ):
@@ -1322,8 +1322,11 @@ def run_spending_bequest_frontier(
         that every bequest level meets the same ensemble; without common random
         numbers the surface wanders non-monotonically on sampling noise alone.
     with_duals : bool
-        Record the bequest_floor shadow price at each level. Costs one extra LP
-        re-solve per level.
+        Record the bequest_floor shadow price at each level, and with it the
+        reliability flag on each exchange-rate segment. Off by default: it costs an
+        extra LP re-solve per level, and the exchange rate is already measured
+        directly from the curve, so the dual only cross-checks it -- and being the
+        dual of the final LP with the loop's parameters frozen, it runs shallow.
     max_time : float or None
         Per-solver-call time limit, applied unless ``options`` already sets one.
         A sweep multiplies any pathological scenario by the number of levels.

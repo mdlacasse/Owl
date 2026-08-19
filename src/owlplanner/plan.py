@@ -3715,7 +3715,7 @@ class Plan:
         N=None,
         success_rates=(50.0, 75.0, 90.0),
         seed=None,
-        with_duals=True,
+        with_duals=False,
         progcall=None,
     ):
         """

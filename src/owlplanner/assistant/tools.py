@@ -3195,7 +3195,9 @@ def _default_bequest_grid(plan, opts, n_points=5):
     return [round(top * f / n_points, 2) for f in range(n_points)]
 
 
-def _frontier_blocking(plan, opts, bequest_grid, scenario_method, ystart, yend, n_scenarios, rates_pct, seed):
+def _frontier_blocking(
+    plan, opts, bequest_grid, scenario_method, ystart, yend, n_scenarios, rates_pct, seed, with_duals=False
+):
     """Trace the spending-vs-bequest trade-off. Runs in a thread."""
     from owlplanner.stresstests import run_spending_bequest_frontier
     from owlplanner.rates import FROM
@@ -3218,6 +3220,7 @@ def _frontier_blocking(plan, opts, bequest_grid, scenario_method, ystart, yend, 
         N=n_scenarios,
         success_rates=rates_pct,
         seed=seed,
+        with_duals=with_duals,
     )
 
 
@@ -3318,6 +3321,7 @@ async def run_spending_bequest_frontier(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    with_duals: bool = False,
 ) -> str:
     """Trace the trade-off between net spending and the bequest left behind.
 
@@ -3357,13 +3361,27 @@ async def run_spending_bequest_frontier(
         max_time: Per-solver-call time limit in seconds.
         seed: Seed for the Monte Carlo draws. The rate RNG is pinned regardless, so
             every bequest level meets the same ensemble.
+        with_duals: Report the bequest shadow price per level, and with it the
+            reliability flag on each exchange-rate segment. Off by default, since it
+            costs an extra solve per level and only cross-checks an exchange rate that
+            is already measured directly from the curve.
 
     Returns:
-        JSON with the frontier (one row per bequest level, carrying the count of
-        scenarios that could not reach that level at all), the measured exchange rate
-        between bequest and spending segment by segment, and a bracket on the largest
-        estate the plan can leave. Bequest means savings accounts after the heirs'
-        tax, net of debt; it excludes real estate and other fixed assets.
+        JSON with one row per bequest level, the measured exchange rate between
+        bequest and spending segment by segment, and a bracket on the largest estate
+        the plan can leave: at or above max_feasible_bequest_today_dollars and below
+        first_unreachable_bequest_today_dollars, the latter null when every level was
+        reachable. A sweep can only bracket that maximum, never pin it.
+
+        Each row carries bequest_today_dollars (the savings accounts after the heirs'
+        tax, net of debt -- the level being swept), total_estate_today_dollars, and
+        n_infeasible_scenarios, the count of scenarios that could not reach that level
+        at all. Real estate and other assets still held at the end of the plan pass
+        outside the savings accounts and are reported separately as
+        fixed_assets_today_dollars; being set by the asset table rather than by the
+        floor, that figure is the same at every level and is already added into the
+        total estate. Assets sold during the plan are not counted there, their
+        proceeds having landed in the savings accounts.
     """
     from owlplanner.stresstests import _validate_success_rate_pct, summarize_spending_bequest_frontier
 
@@ -3523,6 +3541,7 @@ async def run_spending_bequest_frontier(
             n_scenarios,
             rates_pct,
             seed,
+            with_duals,
         )
         summary = summarize_spending_bequest_frontier(result, target_success_rate_pct=target_success_rate_pct)
     except Exception as e:

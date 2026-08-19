@@ -111,11 +111,12 @@ def _parse_float_list(value, what):
 )
 @click.option("--seed", type=int, default=None, help="Random seed for the Monte Carlo draws.")
 @click.option(
-    "--no-duals",
-    "no_duals",
+    "--with-duals",
+    "with_duals",
     is_flag=True,
     default=False,
-    help="Skip the bequest shadow price, saving one LP re-solve per level.",
+    help="Also compute the bequest shadow price, at one extra LP re-solve per level. "
+    "Only surfaces under --output-format json; the text table reports the measured rate.",
 )
 @click.option(
     "--output-format",
@@ -147,7 +148,7 @@ def cmd_frontier(
     solver_opts,
     set_overrides,
     seed,
-    no_duals,
+    with_duals,
     output_format,
     use_loguru,
 ):
@@ -192,7 +193,7 @@ def cmd_frontier(
             N=num_scenarios,
             success_rates=rates_pct,
             seed=seed,
-            with_duals=not no_duals,
+            with_duals=with_duals,
         )
         summary = summarize_spending_bequest_frontier(
             result, target_success_rate_pct=target_success_rate
