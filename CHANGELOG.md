@@ -18,12 +18,19 @@ Available as `Plan.runSpendingBequestFrontier()` and
 **Spending vs Bequest** page under Stress Tests, as `owlcli frontier`, and as the
 `run_spending_bequest_frontier` MCP tool (the server now exposes eighteen tools).
 
-The summary reports the *free bequest* — the estate the plan leaves behind anyway, costing no
-spending — and the *knee* past which each further dollar reserved costs materially more. The
-`bequest_floor` shadow price is recorded per level as an annotation with a measured-secant
-cross-check; it is the dual of the final LP with the self-consistent loop's parameters frozen,
-so it runs about 9% shallow and carries no breakpoint information. It is reported, not used to
-reconstruct the curve.
+The bequest being swept is the savings accounts after the heirs' tax, net of debt. Assets still
+held at the end of the plan pass to heirs outside those accounts, so they are reported
+separately and added into a total estate; being set by the asset table rather than by the floor,
+that figure is the same at every level. In the stochastic modes each row also carries the count
+of scenarios that could not reach the level at all, which is what drags the high-confidence
+curves down. The largest reachable estate is given as a bracket rather than a value, since a
+sweep only establishes that it lies between the highest level that solved and the lowest that
+did not.
+
+The `bequest_floor` shadow price is available per level via `with_duals`, off by default: the
+exchange rate is measured directly off the curve, and the dual — that of the final LP with the
+self-consistent loop's parameters frozen — runs about 9% shallow, so it serves as a cross-check
+rather than as the answer.
 
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
 Reported as issue #140: with `fixedSpending` set below what a plan can afford, the ordinary
