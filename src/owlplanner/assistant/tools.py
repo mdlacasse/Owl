@@ -3235,6 +3235,9 @@ def _build_frontier_json(plan, result, summary):
         # Fixed assets pass outside the savings accounts, so they are on top of every
         # bequest figure here and are the same at every level.
         "fixed_assets_today_dollars": summary["fixed_assets_today_dollars"],
+        # The first-death transfer to non-spouse heirs. Unlike fixed assets it is solved,
+        # so it varies per level and is carried on each frontier row.
+        "partial_bequest_year": summary["partial_bequest_year"],
         "success_rates_pct": summary["success_rates"],
         "target_success_rate_pct": summary["target_success_rate_pct"],
         # A bracket, not a value: the true maximum is at or above the first and below
@@ -3382,6 +3385,15 @@ async def run_spending_bequest_frontier(
         floor, that figure is the same at every level and is already added into the
         total estate. Assets sold during the plan are not counted there, their
         proceeds having landed in the savings accounts.
+
+        For a couple whose beneficiary fractions are below 1, part of the first
+        spouse's accounts passes to non-spouse heirs at that first death rather than
+        to the survivor. That appears as partial_bequest_today_dollars on each row,
+        net of the heirs' tax, with partial_bequest_year giving when it lands. It is
+        a solved quantity, so unlike fixed assets it moves with the floor, and it can
+        exceed the final bequest several times over -- it is included in the total
+        estate. Zero for a single filer, for equal life expectancies, and whenever the
+        surviving spouse is the sole beneficiary.
     """
     from owlplanner.stresstests import _validate_success_rate_pct, summarize_spending_bequest_frontier
 

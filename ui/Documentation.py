@@ -1868,6 +1868,14 @@ single fixed operating point.
 
 - **Savings** is what the accounts leave after the heirs' tax, net of any remaining debt. This
   is the level being swept, and it is what the plot's horizontal axis shows.
+- **Partial bequest** appears for a couple whose `Beneficiary fractions` are below 1 and whose
+  life expectancies differ. At the **first** death the complementary fraction of the decedent's
+  accounts passes to non-spouse heirs instead of to the survivor, net of the heirs' tax on the
+  tax-deferred and HSA shares. Unlike fixed assets this is a *solved* quantity: raising the floor
+  changes the balances the decedent is holding when they die, so it varies down the column — and
+  it can exceed the final bequest several times over. On `Case_jordan+taylor`, asking for a
+  \\$4M final bequest also delivers \\$7.8M at the first death, so heirs receive \\$12.8M in all.
+  Across scenarios the median is shown, since the figure varies by scenario as well as by level.
 - **Fixed assets** are the house and anything else still held at the end of the plan. They pass
   to heirs outside the savings accounts, with a step-up in basis, so no tax is applied. Their
   value is set by the assets table rather than by the plan, which is why it is identical on
@@ -1882,6 +1890,9 @@ single fixed operating point.
 - **\\$/yr per \\$k** appears on a single rate scenario: the annual spending given up for each
   further \\$1,000 of estate, measured over that segment of the curve. It is reported per
   \\$1,000 rather than per dollar because the per-dollar figure runs to four decimal places.
+  It is measured against the **swept** figure, the savings floor, since that is what you control.
+  Where a partial bequest is in play the total reaching heirs rises faster than the floor, so each
+  \\$1,000 of floor buys them rather more than \\$1,000.
 - **short** counts the scenarios that could not reach that bequest level at all. Each is
   recorded as a full shortfall, so a rising count is what drags the high-confidence curves down.
 - The largest estate the plan can leave is reported as a **bracket**, since a sweep only ever

@@ -184,10 +184,13 @@ def test_scenario_worker_historical_applies_reverse_roll():
             self.caseStatus = "solved"
 
     p = _DummyPlan()
-    basis, year1 = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
+    basis, year1, partial = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
     assert basis == 123.0
     assert year1["g0"] == 100.0
     assert year1["top_bracket_pct"] is None  # no bracket filled in the dummy
+    # The dummy has no partialBequest, so the worker falls back to zero rather than
+    # failing: a plan without a first death legitimately transfers nothing.
+    assert partial == 0.0
     assert p.calls == [("historical", 1975, True, 2)]
 
 

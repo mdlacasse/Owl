@@ -149,7 +149,10 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
             "**Savings** is what the accounts leave after the heirs' tax, net of any remaining "
-            "debt, and it is the level being swept. **Fixed assets** are the house and anything "
+            "debt, and it is the level being swept. **Partial bequest** is what passes to "
+            "non-spouse heirs at the *first* death, when beneficiary fractions are below 1; it is "
+            "solved rather than fixed, so it moves with the floor, and it can run to several times "
+            "the final bequest. **Fixed assets** are the house and anything "
             "else still held at the end of the plan; they pass outside the accounts, so they are "
             "the same at every level and add straight on top to give the **total estate**. "
             "Across scenarios that figure is taken from a single rate path: an asset quoted at a "

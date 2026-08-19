@@ -170,6 +170,95 @@ class TestHistorical:
 
 
 @pytest.mark.toml
+class TestPartialBequest:
+    """
+    The transfer to non-spouse heirs at the first death.
+
+    Unlike fixed assets this is solved, not read off a table, so it moves with the
+    bequest floor and has to be captured at every level.
+    """
+
+    CASE = "examples/Case_jordan+taylor.toml"  # beneficiary_fractions [0.28, 0.28, 0.28, 1.0]
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def couple():
+        return readConfig(TestPartialBequest.CASE, verbose=False)
+
+    def test_matches_a_direct_solve_at_every_level(self, couple):
+        """The swept value must equal what solving that floor directly reports."""
+        o = dict(couple.solverOptions)
+        o["solver"] = "HiGHS"
+        o.pop("bequest", None)
+        grid = [0, 1000, 2000]
+
+        res = run_spending_bequest_frontier(couple, o, grid, scenario_method="deterministic")
+        for k, b in enumerate(grid):
+            p = owl.clone(couple, verbose=False)
+            p.solve("maxSpending", {**o, "bequest": b})
+            assert res["partial_bequest"][k] == pytest.approx(p.partialBequest, abs=NOISE)
+
+    def test_it_varies_with_the_floor(self, couple):
+        """
+        The property that forces per-level capture.
+
+        Probing once, as fixed assets does, would report one figure for a quantity
+        that on this case ranges from zero to several million.
+        """
+        o = dict(couple.solverOptions)
+        o["solver"] = "HiGHS"
+        o.pop("bequest", None)
+        res = run_spending_bequest_frontier(couple, o, [0, 1000, 2000], scenario_method="deterministic")
+        pb = res["partial_bequest"]
+        assert pb.max() - pb.min() > 1000.0, "this case must show a spread, or the test proves nothing"
+
+    def test_folded_into_the_total_estate(self, couple):
+        """Total estate is everything reaching heirs: savings, fixed assets, and this."""
+        o = dict(couple.solverOptions)
+        o["solver"] = "HiGHS"
+        o.pop("bequest", None)
+        res = run_spending_bequest_frontier(couple, o, [0, 1000], scenario_method="deterministic")
+        s = summarize_spending_bequest_frontier(res)
+        fixed = s["fixed_assets_today_dollars"]
+        for row in s["frontier"]:
+            expected = row["bequest_today_dollars"] + fixed + (row["partial_bequest_today_dollars"] or 0.0)
+            assert row["total_estate_today_dollars"] == pytest.approx(expected, abs=0.02)
+
+    def test_year_is_the_first_death_not_the_year_after(self, couple):
+        """
+        Passings are assumed at the end of the decedent's last year, index n_d - 1.
+
+        The LP transfer sits there and partialBequest is deflated by gamma_n[n_d], the
+        multiplier at the *beginning* of n_d -- the same instant.
+        """
+        o = dict(couple.solverOptions)
+        o["solver"] = "HiGHS"
+        o.pop("bequest", None)
+        res = run_spending_bequest_frontier(couple, o, [0, 1000], scenario_method="deterministic")
+        s = summarize_spending_bequest_frontier(res)
+        assert s["partial_bequest_year"] == int(couple.year_n[couple.n_d - 1])
+        # The decedent's expectancy year, independently derived.
+        assert s["partial_bequest_year"] == int(couple.yobs[couple.i_d] + couple.expectancy[couple.i_d])
+
+    def test_absent_when_the_spouse_is_sole_beneficiary(self, case, opts):
+        """Case_jack+jill leaves everything to the survivor, so there is nothing to report."""
+        res = run_spending_bequest_frontier(case, opts, [0, 1000], scenario_method="deterministic")
+        assert np.nanmax(res["partial_bequest"]) == 0.0
+
+    def test_scenarios_each_report_one(self, couple):
+        """The ensemble carries a value per scenario, so a median and range are meaningful."""
+        o = dict(couple.solverOptions)
+        o["solver"] = "HiGHS"
+        o.pop("bequest", None)
+        res = run_spending_bequest_frontier(
+            couple, o, [0, 3000], scenario_method="historical", ystart=1970, yend=1978, with_duals=False
+        )
+        lo, mid, hi = res["partial_bequest_lo"], res["partial_bequest"], res["partial_bequest_hi"]
+        for k in range(2):
+            assert lo[k] <= mid[k] <= hi[k]
+
+
+@pytest.mark.toml
 class TestAwkwardCases:
     def test_unreachable_level_is_recorded_not_raised(self, case, opts):
         """

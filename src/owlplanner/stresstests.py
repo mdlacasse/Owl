@@ -109,8 +109,9 @@ def _scenario_worker(args):
 
     p.solve("maxSpending", options)
     if p.caseStatus == "solved":
-        return p.basis, _year1_snapshot(p)
-    return None, None
+        # partialBequest is only defined after a solve, and is discarded with p.
+        return p.basis, _year1_snapshot(p), float(getattr(p, "partialBequest", 0.0))
+    return None, None, None
 
 
 ###############################################################################
@@ -996,6 +997,10 @@ def run_stochastic_spending(
         "year_n"             : ndarray — plan calendar years
         "n_d"                : int — death year index (for unit labeling)
         "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
+        "partial_bequests"   : ndarray (S,) — bequest passing to non-spouse heirs at the first
+                               death, today's dollars, net of the heirs' tax; NaN for a
+                               scenario that did not solve, and legitimately 0.0 when the
+                               surviving spouse is the sole beneficiary
         "year1_decisions"    : list (S,) of dict or None — first-year primal decisions per
                                scenario (see _year1_snapshot); None for infeasible or
                                short-horizon scenarios. Summarize with summarize_year1().
@@ -1023,6 +1028,7 @@ def run_stochastic_spending(
 
     bases_list = []
     year1_list = []
+    partials_list = []
     start_years_list = []
     drawn_lifespans_list = []
 
@@ -1067,7 +1073,7 @@ def run_stochastic_spending(
             else:
                 horizon = plan.N_n
             if horizon <= 1:
-                results_map[i] = (0.0, None)
+                results_map[i] = (0.0, None, None)
                 n_short_horizon += 1
             else:
                 args_list.append(
@@ -1125,7 +1131,7 @@ def run_stochastic_spending(
         for n, tau_kn in enumerate(rate_data):
             horizon = horizons[n] if with_longevity else plan.N_n
             if horizon <= 1:
-                results_map[n] = (0.0, None)
+                results_map[n] = (0.0, None, None)
                 n_short_horizon += 1
             else:
                 args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options)))
@@ -1168,12 +1174,15 @@ def run_stochastic_spending(
     n_infeasible = 0
     for i in sorted(results_map):
         val = results_map[i]
-        basis, year1 = (None, None) if val is None else val
+        basis, year1, partial = (None, None, None) if val is None else val
         if basis is None:
             n_infeasible += 1
             basis = 0.0
         bases_list.append(basis)
         year1_list.append(year1)
+        # NaN rather than 0 for a scenario that did not solve: zero is a real value
+        # here (a spouse who is sole beneficiary), so the two must stay distinguishable.
+        partials_list.append(np.nan if partial is None else partial)
         if scenario_method == "historical":
             start_years_list.append(years[i])
         if with_longevity:
@@ -1212,6 +1221,7 @@ def run_stochastic_spending(
         "n_d": plan.n_d,
         "drawn_lifespans": drawn_lifespans,
         "n_infeasible": n_infeasible,
+        "partial_bequests": np.array(partials_list),
         "year1_decisions": year1_list,
     }
 
@@ -1245,7 +1255,7 @@ def _frontier_base_solve(plan, options, with_duals):
 
     This is the whole answer in deterministic mode. In the stochastic modes it is
     only a probe for the fixed-asset value. Returns (basis, shadow_price, max_gap,
-    fixed_assets), with basis None when the level is infeasible. Fixed assets are
+    fixed_assets, partial_bequest), with basis None when the level is infeasible. Fixed assets are
     only known after a solve, and are the same at every level, being set by the
     asset table rather than by the bequest floor.
     """
@@ -1262,12 +1272,14 @@ def _frontier_base_solve(plan, options, with_duals):
             f"bequest level {opts.get('bequest')}: solve raised {type(exc).__name__}: {exc}.",
             tag="WARNING",
         )
-        return None, np.nan, -1.0, np.nan
+        return None, np.nan, -1.0, np.nan, np.nan
     if p.caseStatus != "solved":
-        return None, np.nan, -1.0, np.nan
+        return None, np.nan, -1.0, np.nan, np.nan
     shadow = _bequest_shadow_price(p) if with_duals else np.nan
     fixed = float(p.getFixedAssetsBequestValueInTodaysDollars())
-    return float(p.basis), shadow, float(getattr(p, "solverGap", -1.0)), fixed
+    # Unlike fixed assets this moves with the floor, so it is read at every level.
+    partial = float(getattr(p, "partialBequest", 0.0))
+    return float(p.basis), shadow, float(getattr(p, "solverGap", -1.0)), fixed, partial
 
 
 def run_spending_bequest_frontier(
@@ -1359,6 +1371,15 @@ def run_spending_bequest_frontier(
         "level_failed"         : ndarray (K,) bool — level too high to solve at all
         "bequest_shadow_price" : ndarray (K,) — lifetime spending $ per today's-$ of bequest.
                                  Deterministic mode only, and only with ``with_duals``
+        "partial_bequest"      : ndarray (K,) — bequest passing to non-spouse heirs at the first
+                                 death, today's dollars, net of the heirs' tax. Unlike fixed
+                                 assets this is solved, so it moves with the floor. The median
+                                 across scenarios in the stochastic modes, the exact value when
+                                 deterministic. NaN when no scenario at that level solved; 0.0
+                                 when the surviving spouse is the sole beneficiary
+        "partial_bequest_lo"   : ndarray (K,) — smallest across scenarios; equals the median
+                                 when deterministic
+        "partial_bequest_hi"   : ndarray (K,) — largest across scenarios
         "fixed_assets_today_dollars" : float — value of fixed assets still held at the end
                                  of the plan, in today's dollars. Set by the asset table
                                  rather than by the floor, so it is the same at every
@@ -1421,6 +1442,9 @@ def run_spending_bequest_frontier(
     lam_at_success = np.full((K, R), np.nan)
     bases_rows, frontier_rows, start_years, n_scenarios = [None] * K, [None] * K, None, 1
     fixed_assets = np.nan
+    partial_bequest = np.full(K, np.nan)
+    partial_lo = np.full(K, np.nan)
+    partial_hi = np.full(K, np.nan)
 
     plan.mylog.print(f"Spending/bequest frontier: {K} bequest level(s), {scenario_method} scenarios.")
     progcall.start()
@@ -1431,11 +1455,14 @@ def run_spending_bequest_frontier(
             opts["bequest"] = bequest
             if scenario_method == "deterministic":
                 # Here the solve is the answer, so everything it reports is per level.
-                basis, dual, gap, fixed = _frontier_base_solve(plan, opts, with_duals)
+                basis, dual, gap, fixed, partial = _frontier_base_solve(plan, opts, with_duals)
                 shadow[k] = dual
                 max_gap[k] = gap
                 if np.isfinite(fixed):
                     fixed_assets = fixed
+                if np.isfinite(partial):
+                    # One scenario, so the median and the range collapse to the value.
+                    partial_bequest[k] = partial_lo[k] = partial_hi[k] = partial
                 if basis is None:
                     level_failed[k] = True
                     n_infeasible[k] = 1
@@ -1451,7 +1478,7 @@ def run_spending_bequest_frontier(
                 # the first prove infeasible -- and record nothing else. A basis, gap or
                 # dual read off the plan's own rates describes none of the scenarios.
                 if not np.isfinite(fixed_assets):
-                    _, _, _, fixed = _frontier_base_solve(plan, opts, with_duals=False)
+                    _, _, _, fixed, _ = _frontier_base_solve(plan, opts, with_duals=False)
                     if np.isfinite(fixed):
                         fixed_assets = fixed
                 try:
@@ -1468,6 +1495,13 @@ def run_spending_bequest_frontier(
                     bases_rows[k] = res["bases"]
                     frontier_rows[k] = (res["frontier_g"], res["frontier_prob"], res["frontier_shortfall"])
                     n_infeasible[k] = int(res["n_infeasible"])
+                    # The transfer varies by scenario as well as by level, so report the
+                    # middle of the distribution and how far it spreads.
+                    pb = np.asarray(res["partial_bequests"], float)
+                    if np.isfinite(pb).any():
+                        partial_bequest[k] = float(np.nanmedian(pb))
+                        partial_lo[k] = float(np.nanmin(pb))
+                        partial_hi[k] = float(np.nanmax(pb))
                     start_years = res["start_years"]
                     n_scenarios = len(res["bases"])
                     for j, rate in enumerate(rates_pct):
@@ -1518,6 +1552,9 @@ def run_spending_bequest_frontier(
         "level_failed": level_failed,
         "bequest_shadow_price": shadow,
         "fixed_assets_today_dollars": 0.0 if not np.isfinite(fixed_assets) else fixed_assets,
+        "partial_bequest": partial_bequest,
+        "partial_bequest_lo": partial_lo,
+        "partial_bequest_hi": partial_hi,
         "max_gap": max_gap,
         "xi_sum": float(np.sum(plan.xi_n)),
         "success_rates": tuple(rates_pct),
@@ -1562,6 +1599,9 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
     rates_pct = list(result["success_rates"])
     deterministic = result["scenario_method"] == "deterministic"
     fixed_assets = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
+    partial = np.asarray(result.get("partial_bequest", np.full(len(grid), np.nan)), float)
+    partial_lo = np.asarray(result.get("partial_bequest_lo", partial), float)
+    partial_hi = np.asarray(result.get("partial_bequest_hi", partial), float)
 
     if deterministic:
         g_col = np.asarray(result["base_basis"], float)
@@ -1575,13 +1615,19 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
 
     rows = []
     for k, bequest in enumerate(grid):
+        # Everything that reaches heirs, whether at the first death or at the end.
+        pb = 0.0 if np.isnan(partial[k]) else float(partial[k])
         row = {
             "bequest_today_dollars": round(float(bequest), 2),
-            "total_estate_today_dollars": round(float(bequest) + fixed_assets, 2),
+            "partial_bequest_today_dollars": None if np.isnan(partial[k]) else round(pb, 2),
+            "total_estate_today_dollars": round(float(bequest) + fixed_assets + pb, 2),
             "feasible": not bool(failed[k]),
             "n_infeasible_scenarios": int(result["n_infeasible"][k]),
             "shadow_price": None if np.isnan(shadow[k]) else round(float(shadow[k]), 4),
         }
+        if not np.isnan(partial[k]) and (partial_hi[k] - partial_lo[k]) > 1.0:
+            row["partial_bequest_low"] = round(float(partial_lo[k]), 2)
+            row["partial_bequest_high"] = round(float(partial_hi[k]), 2)
         if deterministic:
             row["spending_today_dollars"] = None if np.isnan(g_col[k]) else round(float(g_col[k]), 2)
         else:
@@ -1646,6 +1692,12 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
         "max_feasible_bequest_today_dollars": None if lo is None else round(lo, 2),
         "first_unreachable_bequest_today_dollars": None if hi is None else round(hi, 2),
         "fixed_assets_today_dollars": round(fixed_assets, 2),
+        # year_n[n_d - 1] is the decedent's last year, matching export.py and the histograms.
+        "partial_bequest_year": (
+            None
+            if not np.isfinite(partial).any() or np.nanmax(partial) <= 0
+            else int(result["year_n"][max(0, int(result["n_d"]) - 1)])
+        ),
         "n_levels_failed": int(failed.sum()),
         "max_achieved_gap": None if not len(gaps) or gaps.max() < 0 else round(float(gaps.max()), 6),
     }

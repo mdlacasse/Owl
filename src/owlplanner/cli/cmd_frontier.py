@@ -216,14 +216,20 @@ def cmd_frontier(
 
     deterministic = summary["scenario_method"] == "deterministic"
     fixed = float(summary.get("fixed_assets_today_dollars", 0.0) or 0.0)
+    partials = [r.get("partial_bequest_today_dollars") or 0.0 for r in summary["frontier"]]
+    show_partial = any(v > 0 for v in partials)
     click.echo(f"\nSpending vs bequest trade-off — {plan._name}")
     click.echo(f"  scenarios: {summary['scenario_method']} ({summary['n_scenarios']})")
     if not deterministic:
         click.echo(f"  reporting at {summary['target_success_rate_pct']:g}% success")
 
     head = f"\n{'savings':>14}"
-    if fixed > 0:
-        head += f"{'fixed assets':>14}{'total estate':>14}"
+    if show_partial:
+        head += f"{'partial':>14}"
+    if fixed > 0 or show_partial:
+        if fixed > 0:
+            head += f"{'fixed assets':>14}"
+        head += f"{'total estate':>14}"
     if deterministic:
         head += f"{'spending':>14}{'$/yr per $k':>14}"
     else:
@@ -232,8 +238,13 @@ def cmd_frontier(
 
     for k, row in enumerate(summary["frontier"]):
         line = f"{row['bequest_today_dollars']:>14,.0f}"
-        if fixed > 0:
-            line += f"{fixed:>14,.0f}{row['total_estate_today_dollars']:>14,.0f}"
+        if show_partial:
+            pb = row.get("partial_bequest_today_dollars")
+            line += f"{pb:>14,.0f}" if pb is not None else f"{'n/a':>14}"
+        if fixed > 0 or show_partial:
+            if fixed > 0:
+                line += f"{fixed:>14,.0f}"
+            line += f"{row['total_estate_today_dollars']:>14,.0f}"
         if not row["feasible"]:
             click.echo(line + f"{'unreachable':>14}")
             continue
@@ -250,6 +261,13 @@ def cmd_frontier(
                 line += f"{v:>14,.0f}" if v is not None else f"{'n/a':>14}"
         click.echo(line)
 
+    if show_partial:
+        year = summary.get("partial_bequest_year")
+        click.echo(
+            f"\n  Partial bequest passes to non-spouse heirs "
+            f"{'in ' + str(year) if year else 'at the first death'}, when the first spouse dies; "
+            "savings is what remains at the end of the plan."
+        )
     if fixed > 0:
         click.echo(
             f"\n  Fixed assets add ${fixed:,.0f} to every level: assets still held at the end "

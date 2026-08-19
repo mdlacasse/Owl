@@ -601,6 +601,8 @@ def _parse_bequest_grid(raw):
 
 def _render_frontier(result, plotter):
     """Draw the trade-off curve and its table. Split out so the page can redraw from cache."""
+    import numpy as np
+
     deterministic = result["scenario_method"] == "deterministic"
     if deterministic:
         spending = result["base_basis"]
@@ -630,12 +632,20 @@ def _render_frontier(result, plotter):
     # Fixed assets sit on top of every bequest figure and do not vary with the floor,
     # so they get their own column rather than being folded silently into one number.
     fixed = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
-    show_estate = fixed > 0
+    # The first-death transfer does vary with the floor, and is often the larger part
+    # of what heirs receive, so it is shown whenever a plan has one at all.
+    partial = np.asarray(result.get("partial_bequest", []), float)
+    show_partial = partial.size > 0 and np.isfinite(partial).any() and np.nanmax(partial) > 0
+    show_estate = fixed > 0 or show_partial
 
     lines = []
     head = f"{'Savings':>16}"
+    if show_partial:
+        head += f"{'Partial bequest':>18}"
     if show_estate:
-        head += f"{'Fixed assets':>16}{'Total estate':>16}"
+        if fixed > 0:
+            head += f"{'Fixed assets':>16}"
+        head += f"{'Total estate':>16}"
     if deterministic:
         head += f"{'Net spending':>16}{'$/yr per $k':>14}"
     else:
@@ -643,8 +653,13 @@ def _render_frontier(result, plotter):
     lines.append(head)
     for k, row in enumerate(summary["frontier"]):
         line = f"{row['bequest_today_dollars']:>16,.0f}"
+        if show_partial:
+            pb = row.get("partial_bequest_today_dollars")
+            line += f"{pb:>18,.0f}" if pb is not None else f"{'n/a':>18}"
         if show_estate:
-            line += f"{fixed:>16,.0f}{row['total_estate_today_dollars']:>16,.0f}"
+            if fixed > 0:
+                line += f"{fixed:>16,.0f}"
+            line += f"{row['total_estate_today_dollars']:>16,.0f}"
         if not row["feasible"]:
             lines.append(line + f"{'unreachable':>16}")
             continue
@@ -667,7 +682,22 @@ def _render_frontier(result, plotter):
         lines.append(line)
 
     lines.append("")
-    if show_estate:
+    if show_partial:
+        year = summary.get("partial_bequest_year")
+        when = f"in {year}" if year else "at the first death"
+        lines.append(
+            f"Partial bequest is what passes to non-spouse heirs {when}, when the first spouse "
+            "dies; the savings column is what is left at the end of the plan."
+        )
+        if not deterministic:
+            lo = np.asarray(result.get("partial_bequest_lo", []), float)
+            hi = np.asarray(result.get("partial_bequest_hi", []), float)
+            if lo.size and np.isfinite(lo).any() and np.nanmax(hi - lo) > 1.0:
+                lines.append(
+                    "  Median across scenarios; it ranges "
+                    f"${np.nanmin(lo):,.0f} to ${np.nanmax(hi):,.0f} over the levels traced."
+                )
+    if show_estate and fixed > 0:
         note = (
             f"Fixed assets add ${fixed:,.0f} to every level: the house and other assets still held "
             "at the end of the plan, which pass outside the savings accounts."
@@ -1253,7 +1283,11 @@ def plotSummaryMetrics(plan):
     cols[col].metric(spending_label, f"${spending:,.0f}")
     col += 1
     if show_partial:
-        partial_year = int(plan.year_n[plan.n_d])
+        # n_d - 1 is the decedent's last year: passings are assumed at the end of it
+        # (plan.py), the transfer constraint sits there, and partialBequest is deflated
+        # by gamma_n[n_d], the multiplier at the beginning of n_d -- the same instant.
+        # year_n[n_d] named the year after the death, disagreeing with the summary.
+        partial_year = int(plan.year_n[plan.n_d - 1])
         cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
         col += 1
     cols[col].metric(estate_label, f"${bequest:,.0f}")
