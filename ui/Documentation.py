@@ -1833,6 +1833,53 @@ validated for production use; see the [*Modeling Capabilities*](https://github.c
 reference for details.
 """)
 
+    with st.expander(":orange[**Spending vs Bequest**]", expanded=expand_all, type="compact"):
+        st.markdown("""
+Every dollar reserved for an estate is a dollar not spent. This page traces that trade-off
+directly, answering:
+
+> *What does leaving this inheritance cost me in spending?* — or, read the other way,
+> *if I spend this much, what is left behind?*
+
+##### How it works
+
+You give a list of bequest levels, in today's $k. The plan is re-optimized at each one, with
+that level as a floor on the estate, and the resulting net spending is plotted against it.
+Because the floor constrains the estate rather than spending, the optimizer is still free to
+choose the spending level, so every point on the curve is a full optimization rather than a
+single fixed operating point.
+
+##### Choosing a scenario method
+
+- **This case's rates** solves each level once, on the rates the case is configured with. It
+  is fast enough to use interactively, but it says nothing about how much the answer depends
+  on when returns arrive.
+- **Historical range** and **Monte Carlo** solve every level across the whole set of
+  scenarios, and report spending at the 50%, 75% and 90% success rates. The spread between
+  those three curves, shaded on the plot, is the sequence-of-returns risk: a wide fan means
+  the outcome depends heavily on the order in which returns happen. This costs one solve per
+  level per scenario, so keep the list of levels short.
+
+##### Reading the results
+
+- **Savings** is what the accounts leave after the heirs' tax, net of any remaining debt. This
+  is the level being swept, and it is what the plot's horizontal axis shows.
+- **Fixed assets** are the house and anything else still held at the end of the plan. They pass
+  to heirs outside the savings accounts, with a step-up in basis, so no tax is applied. Their
+  value is set by the assets table rather than by the plan, which is why it is identical on
+  every row; it adds straight on top to give the **total estate**.
+- **short** counts the scenarios that could not reach that bequest level at all. Each is
+  recorded as a full shortfall, so a rising count is what drags the high-confidence curves down.
+- The largest estate the plan can leave is reported as a **bracket**, since a sweep only ever
+  establishes that it lies between the highest level that solved and the lowest that did not.
+
+Assets sold *during* the plan are not counted here: their proceeds land in the savings accounts
+and are already inside the Savings column.
+
+A bequest level the plan cannot reach is marked *unreachable* and drawn as a dotted line,
+so a curve that stops short is not mistaken for the trade-off simply ending.
+""")
+
 # --- Tools tab ---
 with tab_tools:
     st.markdown("This section describes tools available to the user.")

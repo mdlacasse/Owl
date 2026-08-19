@@ -165,6 +165,32 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_spending_bequest_frontier(
+        self,
+        bequest_dollars,
+        spending,
+        year_n,
+        labels=None,
+        scenario_method="deterministic",
+        level_failed=None,
+    ):
+        """Trade-off plot: net spending against the bequest left behind.
+
+        One curve per confidence level. In the stochastic modes the spread between
+        the outermost curves is the sequence-of-returns risk, and is shaded.
+
+        Parameters
+        ----------
+        bequest_dollars : ndarray (K,) — bequest floors in today's dollars
+        spending : ndarray (K, R) — spending at each floor, one column per curve
+        year_n : ndarray — plan calendar years (for axis label)
+        labels : list of str, optional — one legend label per column of spending
+        scenario_method : str — "deterministic", "historical" or "mc" (titles the plot)
+        level_failed : ndarray (K,) of bool, optional — floors that could not be reached
+        """
+        pass
+
+    @abstractmethod
     def plot_stochastic_outcomes(
         self, start_years, bases, g_opt, target_success_rate_pct, year_n, with_longevity=False
     ):

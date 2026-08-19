@@ -72,7 +72,6 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "bigMss",
     "bendersMaxIter",
     "epsilon",
-    "fixedSpending",
     "gap",
     "maxIter",
     "maxRothConversion",

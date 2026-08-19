@@ -18,7 +18,7 @@ def _run(coro):
 
 def test_all_tools_registered():
     tools = _run(mcp.list_tools())
-    assert len(tools) == len(MCP_TOOLS) == 17
+    assert len(tools) == len(MCP_TOOLS) == 18
     names = {t.name for t in tools}
     assert {"run_from_params", "save_case", "compare_to_baseline", "explain_results"} <= names
 

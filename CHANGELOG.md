@@ -1,3 +1,44 @@
+### Version 2026.8.18
+
+#### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
+Issue #140. Set below what a plan can afford, it produced ordinary tax above the top statutory
+rate — 46.7% on \$292,001 in the reporter's worst year, against about \$65,300 by hand.
+
+It pinned `g(0)`, and at the default `spendingSlack` of zero the profile rows tie every `g(n)`
+to it, fixing the whole spending vector. The `maxSpending` objective is built only from `g(n)`,
+so it became *constant* over the feasible set. The bracket-fill variables `f_tn` are a
+relaxation of the progressive schedule, tight only because the objective pushes income into the
+cheapest brackets; with nothing left to push, the solver could fill the 37% bracket while lower
+ones sat empty, at no cost to a constant objective. Raising `spendingSlack` does not help — the
+band's ceiling is itself proportional to the pinned `g(0)` — and `epsilon` was not implicated.
+
+Rejected rather than ignored, at config load and in `Plan.solve()`, since a plan that silently
+dropped it would answer a different question than the case file asks. Replaced by the trade-off
+below.
+
+#### New: the spending-vs-bequest trade-off
+Answers *what does leaving an estate cost me in spending?* Sweeps the `bequest` floor under
+`maxSpending`: every point is an ordinary solve, and because the floor constrains the estate
+rather than spending, the objective keeps its gradient.
+
+In `historical` and `mc` modes each level is also solved across the whole scenario ensemble,
+giving a surface *S(B, p)*: down a column, spending versus bequest at fixed confidence, the fan
+across success rates being sequence-of-returns risk; across a row, the spending/success curve of
+`run_stochastic_spending`, which it reuses rather than reimplements.
+
+The swept bequest is the savings accounts after the heirs' tax, net of debt. Assets still held
+at the end of the plan pass outside those accounts, so they are reported separately and added
+into a total estate; set by the asset table rather than the floor, that figure is identical at
+every level. Stochastic rows also carry the count of scenarios that could not reach the level,
+which is what drags the high-confidence curves down. The largest reachable estate is a bracket,
+not a value: a sweep only shows it lies between the highest level that solved and the lowest
+that did not.
+
+Available as `Plan.runSpendingBequestFrontier()` and `owlplanner.run_spending_bequest_frontier()`
+with a `summarize_*` companion, the **Spending vs Bequest** page, `owlcli frontier`, and the
+`run_spending_bequest_frontier` MCP tool (eighteen tools now). The `bequest_floor` shadow price
+is available via `with_duals`, off by default.
+
 ### Version 2026.8.16
 
 #### Bugfix: the reported Social Security taxability was not the one the plan was charged
