@@ -677,8 +677,6 @@ def _render_frontier(result, plotter):
         lines.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
     else:
         lines.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
-    if show_estate:
-        lines.append(f"Add the ${fixed:,.0f} of fixed assets for the total estate.")
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 
