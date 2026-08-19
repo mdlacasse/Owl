@@ -235,7 +235,12 @@ def cmd_frontier(
     click.echo(f"\n  free bequest:       {summary['free_bequest_today_dollars']:>14,.0f}")
     if summary["knee_today_dollars"] is not None:
         click.echo(f"  knee:               {summary['knee_today_dollars']:>14,.0f}")
-    if summary["max_feasible_bequest_today_dollars"] is not None:
-        click.echo(f"  max feasible:       {summary['max_feasible_bequest_today_dollars']:>14,.0f}")
-    if summary["n_levels_failed"]:
-        click.echo(f"  levels unreachable: {summary['n_levels_failed']:>14}")
+
+    lo = summary["max_feasible_bequest_today_dollars"]
+    hi = summary["first_unreachable_bequest_today_dollars"]
+    if hi is None and lo is not None:
+        click.echo(f"\n  Every level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
+    elif lo is None and hi is not None:
+        click.echo(f"\n  No level traced is reachable: even ${hi:,.0f} is out of reach.")
+    elif lo is not None:
+        click.echo(f"\n  The most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")

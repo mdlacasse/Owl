@@ -89,13 +89,10 @@ class TestRenderFrontier:
         return stored
 
     def test_deterministic_table_and_plot(self, monkeypatch):
-        from owlplanner import summarize_spending_bequest_frontier
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
 
         stored = self._capture(monkeypatch)
-        result = _fake_result("deterministic")
-        summary = summarize_spending_bequest_frontier(result)
-        owb._render_frontier(result, summary, MatplotlibBackend())
+        owb._render_frontier(_fake_result("deterministic"), MatplotlibBackend())
 
         assert stored["frontierPlot"] is not None
         text = stored["frontierSummary"]
@@ -104,13 +101,10 @@ class TestRenderFrontier:
         assert "Free bequest" in text
 
     def test_stochastic_table_has_one_column_per_success_rate(self, monkeypatch):
-        from owlplanner import summarize_spending_bequest_frontier
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
 
         stored = self._capture(monkeypatch)
-        result = _fake_result("historical")
-        summary = summarize_spending_bequest_frontier(result, target_success_rate_pct=90.0)
-        owb._render_frontier(result, summary, MatplotlibBackend())
+        owb._render_frontier(_fake_result("historical"), MatplotlibBackend())
 
         text = stored["frontierSummary"]
         for rate in ("50% success", "75% success", "90% success"):
@@ -118,15 +112,45 @@ class TestRenderFrontier:
         # The 90%-confidence column, which is what a cautious planner reads.
         assert "95,000" in text and "83,000" in text
 
+    def test_stochastic_scalars_are_reported_for_every_curve(self, monkeypatch):
+        """
+        No hidden selection: the free bequest, knee and exchange rate are read off
+        one curve each, so all three are shown rather than one being chosen for you.
+        """
+        from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
+
+        stored = self._capture(monkeypatch)
+        owb._render_frontier(_fake_result("historical"), MatplotlibBackend())
+
+        text = stored["frontierSummary"]
+        assert "free bequest" in text and "knee" in text and "$/yr per $" in text
+        # One scalar row per curve, on top of the header row naming the same curves.
+        for rate in ("50% success", "75% success", "90% success"):
+            assert text.count(rate) == 2
+
     def test_unreachable_level_is_labelled(self, monkeypatch):
-        from owlplanner import summarize_spending_bequest_frontier
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
 
         stored = self._capture(monkeypatch)
         result = _fake_result("deterministic")
         result["level_failed"] = np.array([False, False, True])
         result["base_basis"] = np.array([100_000.0, 94_000.0, np.nan])
-        summary = summarize_spending_bequest_frontier(result)
-        owb._render_frontier(result, summary, MatplotlibBackend())
+        owb._render_frontier(result, MatplotlibBackend())
 
         assert "unreachable" in stored["frontierSummary"]
+
+
+class TestOverallExchangeRate:
+    def test_slope_across_the_traced_range(self):
+        b = np.array([0.0, 1_000_000.0, 2_000_000.0])
+        g = np.array([100_000.0, 94_000.0, 88_000.0])
+        assert owb._overall_exchange_rate(b, g) == pytest.approx(-0.006)
+
+    def test_ignores_unreachable_levels(self):
+        b = np.array([0.0, 1_000_000.0, 2_000_000.0])
+        g = np.array([100_000.0, 94_000.0, np.nan])
+        assert owb._overall_exchange_rate(b, g) == pytest.approx(-0.006)
+
+    def test_returns_none_when_there_is_no_range(self):
+        assert owb._overall_exchange_rate(np.array([0.0]), np.array([100_000.0])) is None
+        assert owb._overall_exchange_rate(np.array([0.0, 1.0]), np.array([np.nan, np.nan])) is None

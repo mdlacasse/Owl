@@ -1495,6 +1495,12 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0,
     so it is a partial derivative of a fixed point and runs shallow; a disagreement
     above 20% means the segment is being driven by the loop rather than the LP and
     should not be read as a local slope.
+
+    The largest reachable estate is reported as a bracket, not a value: it lies at
+    or above ``max_feasible_bequest_today_dollars`` and below
+    ``first_unreachable_bequest_today_dollars``, which is None when every traced
+    level was reachable. Both are grid points, so neither is a property of the plan
+    on its own — the highest success merely echoes the grid when nothing failed.
     """
     grid = np.asarray(result["bequest_dollars"], float)
     failed = np.asarray(result["level_failed"], bool)
@@ -1570,7 +1576,13 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0,
                     knee = e["from_bequest"]
                     break
 
-    reachable = grid[~failed & (np.asarray(result["n_infeasible"]) == 0)]
+    # A sweep can only bracket the largest reachable estate: it lies at or above the
+    # highest level that solved, and below the lowest that did not. Reporting the
+    # highest success alone would just echo the grid back when nothing failed, and
+    # would understate the true maximum by a whole grid step when something did.
+    ok = ~failed & (np.asarray(result["n_infeasible"]) == 0)
+    reachable = grid[ok]
+    unreachable = grid[~ok]
     gaps = np.asarray(result["max_gap"], float)
 
     return {
@@ -1583,6 +1595,9 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0,
         "free_bequest_today_dollars": round(free_bequest, 2),
         "knee_today_dollars": None if knee is None else round(float(knee), 2),
         "max_feasible_bequest_today_dollars": None if not len(reachable) else round(float(reachable.max()), 2),
+        "first_unreachable_bequest_today_dollars": (
+            None if not len(unreachable) else round(float(unreachable.min()), 2)
+        ),
         "n_levels_failed": int(failed.sum()),
         "max_achieved_gap": None if not len(gaps) or gaps.max() < 0 else round(float(gaps.max()), 6),
     }

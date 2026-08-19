@@ -3233,7 +3233,11 @@ def _build_frontier_json(plan, result, summary):
         "target_success_rate_pct": summary["target_success_rate_pct"],
         "free_bequest_today_dollars": summary["free_bequest_today_dollars"],
         "knee_today_dollars": summary["knee_today_dollars"],
+        # A bracket, not a value: the true maximum is at or above the first and below
+        # the second. first_unreachable is null when every traced level was reachable,
+        # in which case the maximum lies above the top of the grid.
         "max_feasible_bequest_today_dollars": summary["max_feasible_bequest_today_dollars"],
+        "first_unreachable_bequest_today_dollars": summary["first_unreachable_bequest_today_dollars"],
         "frontier": summary["frontier"],
         "exchange_rate": summary["exchange_rate"],
     }

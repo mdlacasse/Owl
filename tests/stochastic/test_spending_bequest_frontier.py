@@ -193,6 +193,10 @@ class TestAwkwardCases:
 
         s = summarize_spending_bequest_frontier(res, target_success_rate_pct=90.0)
         assert s["n_levels_failed"] == 1
+        # The maximum is bracketed by the grid, not claimed to be the last success.
+        # Reporting that alone would say "$0" here, for a plan that can leave millions.
+        assert s["max_feasible_bequest_today_dollars"] == 0.0
+        assert s["first_unreachable_bequest_today_dollars"] == 100_000 * 1000.0
 
     def test_mc_uses_common_random_numbers(self, case):
         """
@@ -267,8 +271,10 @@ def test_summarize_is_pure():
     s = summarize_spending_bequest_frontier(result)
 
     assert s["free_bequest_today_dollars"] == 0.0
-    assert s["max_feasible_bequest_today_dollars"] == 2_000_000.0
     assert s["n_levels_failed"] == 0
+    # Nothing failed, so the maximum is only known to lie above the top of the grid.
+    assert s["max_feasible_bequest_today_dollars"] == 2_000_000.0
+    assert s["first_unreachable_bequest_today_dollars"] is None
     # -6000 spending per $1M of bequest.
     assert s["exchange_rate"][0]["spending_per_dollar_of_bequest"] == pytest.approx(-0.006)
     # The dual is a lifetime figure; dividing by the profile sum puts it in basis units.

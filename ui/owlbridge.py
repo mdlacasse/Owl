@@ -599,7 +599,20 @@ def _parse_bequest_grid(raw):
     return out
 
 
-def _render_frontier(result, summary, plotter):
+def _overall_exchange_rate(bequest, spending):
+    """Spending given up per dollar of estate, across the whole traced range."""
+    import numpy as np
+
+    ok = np.isfinite(spending)
+    if ok.sum() < 2:
+        return None
+    b, g = np.asarray(bequest, float)[ok], np.asarray(spending, float)[ok]
+    if b[-1] - b[0] <= 0:
+        return None
+    return float((g[-1] - g[0]) / (b[-1] - b[0]))
+
+
+def _render_frontier(result, plotter):
     """Draw the frontier and its summary. Split out so the page can redraw from cache."""
     deterministic = result["scenario_method"] == "deterministic"
     if deterministic:
@@ -608,6 +621,14 @@ def _render_frontier(result, summary, plotter):
     else:
         spending = result["g_at_success"]
         labels = [f"{r:g}% success" for r in result["success_rates"]]
+
+    # The free bequest, the knee and the exchange rate are single numbers, so each is
+    # read off one curve. Report them for every curve rather than making the user pick:
+    # they move with confidence, and the spread is the point of the stochastic modes.
+    rates = list(result["success_rates"])
+    summary = owl.summarize_spending_bequest_frontier(
+        result, target_success_rate_pct=(90.0 if deterministic else rates[-1])
+    )
 
     fig = plotter.plot_spending_bequest_frontier(
         result["bequest_dollars"],
@@ -640,13 +661,31 @@ def _render_frontier(result, summary, plotter):
         lines.append(line)
 
     lines.append("")
-    lines.append(f"Free bequest (costs no spending): ${summary['free_bequest_today_dollars']:,.0f}")
-    if summary["knee_today_dollars"] is not None:
-        lines.append(f"Knee (cost per dollar starts rising): ${summary['knee_today_dollars']:,.0f}")
-    if summary["max_feasible_bequest_today_dollars"] is not None:
-        lines.append(f"Largest reachable bequest: ${summary['max_feasible_bequest_today_dollars']:,.0f}")
-    if summary["n_levels_failed"]:
-        lines.append(f"Levels out of reach: {summary['n_levels_failed']}")
+    if deterministic:
+        lines.append(f"Free bequest (costs no spending): ${summary['free_bequest_today_dollars']:,.0f}")
+        if summary["knee_today_dollars"] is not None:
+            lines.append(f"Knee (cost per dollar starts rising): ${summary['knee_today_dollars']:,.0f}")
+    else:
+        lines.append(f"{'':>16}{'free bequest':>16}{'knee':>16}{'$/yr per $':>14}")
+        for j, r in enumerate(rates):
+            s = owl.summarize_spending_bequest_frontier(result, target_success_rate_pct=r)
+            knee = s["knee_today_dollars"]
+            rate = _overall_exchange_rate(result["bequest_dollars"], result["g_at_success"][:, j])
+            lines.append(
+                f"{labels[j]:>16}"
+                f"{s['free_bequest_today_dollars']:>16,.0f}"
+                + (f"{knee:>16,.0f}" if knee is not None else f"{'n/a':>16}")
+                + (f"{rate:>14.5f}" if rate is not None else f"{'n/a':>14}")
+            )
+
+    lo = summary["max_feasible_bequest_today_dollars"]
+    hi = summary["first_unreachable_bequest_today_dollars"]
+    if hi is None:
+        lines.append(f"\nEvery level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
+    elif lo is None:
+        lines.append(f"\nNo level traced is reachable: even ${hi:,.0f} is out of reach.")
+    else:
+        lines.append(f"\nThe most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 
@@ -661,10 +700,7 @@ def runSpendingBequestFrontier(plan):
         return
 
     scenario_method = kz.getCaseKey("frontier_scenario_method") or "deterministic"
-    target_sr_pct = float(kz.getCaseKey("frontier_target_success_rate_pct") or 90.0)
     rates_pct = [50.0, 75.0, 90.0]
-    if target_sr_pct not in rates_pct:
-        rates_pct = sorted(set(rates_pct + [target_sr_pct]))
 
     _objective, options = kz.getSolveParameters()
     # The sweep sets the floor per level; the case's own value would flatten the curve.
@@ -684,31 +720,13 @@ def runSpendingBequestFrontier(plan):
             with_duals=bool(kz.getCaseKey("frontier_with_duals")),
             progcall=mybar,
         )
-        summary = owl.summarize_spending_bequest_frontier(result, target_success_rate_pct=target_sr_pct)
         kz.storeCaseKey("frontierData", result)
-        _render_frontier(result, summary, plan1._plotter)
+        _render_frontier(result, plan1._plotter)
     except Exception as e:
         kz.storeCaseKey("frontierPlot", None)
         kz.storeCaseKey("frontierSummary", None)
         kz.storeCaseKey("frontierData", None)
         st.error(f"Spending/bequest frontier failed: {e}", icon=":material/error:")
-
-
-@_checkPlan
-def updateFrontierTarget(plan):
-    """Reapply a new target success rate to cached frontier data — nothing is re-solved."""
-    result = kz.getCaseKey("frontierData")
-    if result is None:
-        return  # no data yet; the selector fired before the first run
-    widget_key = kz.genCaseKey("frontier_target_sr_selector")
-    raw = kz.ss.get(widget_key)
-    target_sr_pct = float(raw) if raw is not None else (kz.getCaseKey("frontier_target_success_rate_pct") or 90.0)
-    kz.storeCaseKey("frontier_target_success_rate_pct", target_sr_pct)
-    try:
-        summary = owl.summarize_spending_bequest_frontier(result, target_success_rate_pct=target_sr_pct)
-        _render_frontier(result, summary, plan._plotter)
-    except Exception as e:
-        st.error(f"Could not reapply the target success rate: {e}", icon=":material/error:")
 
 
 @_checkPlan

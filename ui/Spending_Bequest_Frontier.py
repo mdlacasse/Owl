@@ -35,7 +35,6 @@ if ret is None or kz.caseHasNoPlan():
 else:
     kz.initCaseKey("frontier_scenario_method", "deterministic")
     kz.initCaseKey("frontier_bequest_grid", "0, 500, 1000, 2000, 4000")
-    kz.initCaseKey("frontier_target_success_rate_pct", 90.0)
     kz.initCaseKey("frontier_ystart", owb.FROM)
     kz.initCaseKey("frontier_yend", owb.TO)
     kz.initCaseKey("frontier_N_mc", 100)
@@ -159,24 +158,12 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
 
     if kz.getCaseKey("frontierSummary"):
         st.markdown("#### :orange[Frontier]")
-        result = kz.getCaseKey("frontierData")
-        if result is not None and result["scenario_method"] != "deterministic":
-            rates = list(result["success_rates"])
-            cur = kz.getCaseKey("frontier_target_success_rate_pct") or 90.0
-            st.selectbox(
-                "Read the single-number figures from",
-                options=rates,
-                index=rates.index(cur) if cur in rates else len(rates) - 1,
-                format_func=lambda r: f"the {r:g}% success curve",
-                on_change=owb.updateFrontierTarget,
-                key=kz.genCaseKey("frontier_target_sr_selector"),
-                help="The plot always shows every curve. The free bequest, the knee and the "
-                "exchange rate are single numbers, so each has to be read off one of them. "
-                "Nothing is re-solved.",
-            )
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
             "*Free bequest* is the estate the plan leaves behind anyway, so it costs no "
             "spending. Past the *knee*, each further dollar reserved costs materially more. "
-            "Both are read off the curve selected above, and both move with it."
+            "*$/yr per $* is the annual spending given up for each dollar of estate across "
+            "the whole range. Each of the three is read off a single curve, so in the "
+            "stochastic modes all three are reported per curve: what an inheritance costs "
+            "depends on the confidence you demand, and not always in the direction expected."
         )
