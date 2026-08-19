@@ -1245,7 +1245,9 @@ def _frontier_base_solve(plan, options, with_duals):
 
     This is the whole answer in deterministic mode, and the reference point that
     carries the shadow price in the stochastic modes. Returns
-    (basis, shadow_price, max_gap), with basis None when the level is infeasible.
+    (basis, shadow_price, max_gap, fixed_assets), with basis None when the level
+    is infeasible. Fixed assets are only known after a solve, and are the same at
+    every level, being set by the asset table rather than by the bequest floor.
     """
     p = clone(plan, verbose=False)
     opts = dict(options)
@@ -1254,11 +1256,12 @@ def _frontier_base_solve(plan, options, with_duals):
     try:
         p.solve("maxSpending", opts)
     except Exception:
-        return None, np.nan, -1.0
+        return None, np.nan, -1.0, np.nan
     if p.caseStatus != "solved":
-        return None, np.nan, -1.0
+        return None, np.nan, -1.0, np.nan
     shadow = _bequest_shadow_price(p) if with_duals else np.nan
-    return float(p.basis), shadow, float(getattr(p, "solverGap", -1.0))
+    fixed = float(p.getFixedAssetsBequestValueInTodaysDollars())
+    return float(p.basis), shadow, float(getattr(p, "solverGap", -1.0)), fixed
 
 
 def run_spending_bequest_frontier(
@@ -1336,6 +1339,10 @@ def run_spending_bequest_frontier(
         "n_infeasible"         : ndarray (K,) int
         "level_failed"         : ndarray (K,) bool — level too high to solve at all
         "bequest_shadow_price" : ndarray (K,) — lifetime spending $ per today's-$ of bequest
+        "fixed_assets_today_dollars" : float — value of fixed assets still held at the end
+                                 of the plan, in today's dollars. Set by the asset table
+                                 rather than by the floor, so it is the same at every
+                                 level, and it is on top of every bequest figure here
         "max_gap"              : ndarray (K,) — largest achieved MIP gap; -1 when pure LP
         "xi_sum"               : float — sum of the spending profile, converting a basis
                                  difference into the lifetime units of the shadow price
@@ -1389,6 +1396,7 @@ def run_spending_bequest_frontier(
     g_at_success = np.full((K, R), np.nan)
     lam_at_success = np.full((K, R), np.nan)
     bases_rows, frontier_rows, start_years, n_scenarios = [None] * K, [None] * K, None, 1
+    fixed_assets = np.nan
 
     plan.mylog.print(f"Spending/bequest frontier: {K} bequest level(s), {scenario_method} scenarios.")
     progcall.start()
@@ -1396,11 +1404,13 @@ def run_spending_bequest_frontier(
     for k, bequest in enumerate(grid):
         opts = dict(myoptions)
         opts["bequest"] = bequest
-        basis, dual, gap = _frontier_base_solve(plan, opts, with_duals)
+        basis, dual, gap, fixed = _frontier_base_solve(plan, opts, with_duals)
         shadow[k] = dual
         max_gap[k] = gap
         if basis is not None:
             base_basis[k] = basis
+        if np.isfinite(fixed) and not np.isfinite(fixed_assets):
+            fixed_assets = fixed
 
         if scenario_method == "deterministic":
             if basis is None:
@@ -1470,6 +1480,7 @@ def run_spending_bequest_frontier(
         "n_infeasible": n_infeasible,
         "level_failed": level_failed,
         "bequest_shadow_price": shadow,
+        "fixed_assets_today_dollars": 0.0 if not np.isfinite(fixed_assets) else fixed_assets,
         "max_gap": max_gap,
         "xi_sum": float(np.sum(plan.xi_n)),
         "success_rates": tuple(rates_pct),
@@ -1513,6 +1524,7 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
     xi_sum = float(result["xi_sum"])
     rates_pct = list(result["success_rates"])
     deterministic = result["scenario_method"] == "deterministic"
+    fixed_assets = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
 
     if deterministic:
         g_col = np.asarray(result["base_basis"], float)
@@ -1528,6 +1540,7 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
     for k, bequest in enumerate(grid):
         row = {
             "bequest_today_dollars": round(float(bequest), 2),
+            "total_estate_today_dollars": round(float(bequest) + fixed_assets, 2),
             "feasible": not bool(failed[k]),
             "n_infeasible_scenarios": int(result["n_infeasible"][k]),
             "shadow_price": None if np.isnan(shadow[k]) else round(float(shadow[k]), 4),
@@ -1587,6 +1600,7 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
         "first_unreachable_bequest_today_dollars": (
             None if not len(unreachable) else round(float(unreachable.min()), 2)
         ),
+        "fixed_assets_today_dollars": round(fixed_assets, 2),
         "n_levels_failed": int(failed.sum()),
         "max_achieved_gap": None if not len(gaps) or gaps.max() < 0 else round(float(gaps.max()), 6),
     }

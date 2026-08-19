@@ -599,19 +599,6 @@ def _parse_bequest_grid(raw):
     return out
 
 
-def _overall_exchange_rate(bequest, spending):
-    """Spending given up per dollar of estate, across the whole traced range."""
-    import numpy as np
-
-    ok = np.isfinite(spending)
-    if ok.sum() < 2:
-        return None
-    b, g = np.asarray(bequest, float)[ok], np.asarray(spending, float)[ok]
-    if b[-1] - b[0] <= 0:
-        return None
-    return float((g[-1] - g[0]) / (b[-1] - b[0]))
-
-
 def _render_frontier(result, plotter):
     """Draw the frontier and its summary. Split out so the page can redraw from cache."""
     deterministic = result["scenario_method"] == "deterministic"
@@ -640,16 +627,27 @@ def _render_frontier(result, plotter):
     )
     kz.storeCaseKey("frontierPlot", fig)
 
+    # Fixed assets sit on top of every bequest figure and do not vary with the floor,
+    # so they get their own column rather than being folded silently into one number.
+    fixed = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
+    show_estate = fixed > 0
+
     lines = []
+    head = f"{'Savings':>16}"
+    if show_estate:
+        head += f"{'Fixed assets':>16}{'Total estate':>16}"
     if deterministic:
-        lines.append(f"{'Bequest':>16}{'Net spending':>16}{'$/yr per $':>14}")
+        head += f"{'Net spending':>16}{'$/yr per $':>14}"
     else:
-        lines.append(f"{'Bequest':>16}" + "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}")
+        head += "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}"
+    lines.append(head)
     for k, row in enumerate(summary["frontier"]):
         if not row["feasible"]:
             lines.append(f"{row['bequest_today_dollars']:>16,.0f}{'unreachable':>16}")
             continue
         line = f"{row['bequest_today_dollars']:>16,.0f}"
+        if show_estate:
+            line += f"{fixed:>16,.0f}{row['total_estate_today_dollars']:>16,.0f}"
         if deterministic:
             line += f"{row['spending_today_dollars']:>16,.0f}"
             rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
@@ -664,22 +662,23 @@ def _render_frontier(result, plotter):
             line += f"{row['n_infeasible_scenarios']:>8}"
         lines.append(line)
 
-    if not deterministic:
-        lines.append("")
-        lines.append(f"{'':>16}{'$/yr per $ over the whole range':>32}")
-        for j in range(len(rates)):
-            rate = _overall_exchange_rate(result["bequest_dollars"], result["g_at_success"][:, j])
-            lines.append(f"{labels[j]:>16}" + (f"{rate:>32.5f}" if rate is not None else f"{'n/a':>32}"))
-
     lines.append("")
+    if show_estate:
+        lines.append(
+            f"Fixed assets add ${fixed:,.0f} to every level: the house and other assets still held "
+            "at the end of the plan, which pass outside the savings accounts."
+        )
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
+    what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
     if hi is None:
-        lines.append(f"Every level traced is reachable; the most this plan can leave is above ${lo:,.0f}.")
+        lines.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
     elif lo is None:
-        lines.append(f"No level traced is reachable: even ${hi:,.0f} is out of reach.")
+        lines.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
     else:
-        lines.append(f"The most this plan can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+        lines.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+    if show_estate:
+        lines.append(f"Add the ${fixed:,.0f} of fixed assets for the total estate.")
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 

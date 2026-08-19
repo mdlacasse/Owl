@@ -3229,6 +3229,9 @@ def _build_frontier_json(plan, result, summary):
         "scenario_method": summary["scenario_method"],
         "n_scenarios_run": summary["n_scenarios"],
         "n_levels_failed": summary["n_levels_failed"],
+        # Fixed assets pass outside the savings accounts, so they are on top of every
+        # bequest figure here and are the same at every level.
+        "fixed_assets_today_dollars": summary["fixed_assets_today_dollars"],
         "success_rates_pct": summary["success_rates"],
         "target_success_rate_pct": summary["target_success_rate_pct"],
         # A bracket, not a value: the true maximum is at or above the first and below

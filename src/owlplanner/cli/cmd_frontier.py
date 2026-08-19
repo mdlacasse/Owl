@@ -206,22 +206,28 @@ def cmd_frontier(
         return
 
     deterministic = summary["scenario_method"] == "deterministic"
+    fixed = float(summary.get("fixed_assets_today_dollars", 0.0) or 0.0)
     click.echo(f"\nSpending/bequest frontier — {plan._name}")
     click.echo(f"  scenarios: {summary['scenario_method']} ({summary['n_scenarios']})")
     if not deterministic:
         click.echo(f"  reporting at {summary['target_success_rate_pct']:g}% success")
 
+    head = f"\n{'savings':>14}"
+    if fixed > 0:
+        head += f"{'fixed assets':>14}{'total estate':>14}"
     if deterministic:
-        click.echo(f"\n{'bequest':>14}{'spending':>14}{'$/yr per $':>14}")
+        head += f"{'spending':>14}{'$/yr per $':>14}"
     else:
-        head = f"\n{'bequest':>14}" + "".join(f"{r:>13g}%" for r in summary["success_rates"])
-        click.echo(head)
+        head += "".join(f"{r:>13g}%" for r in summary["success_rates"])
+    click.echo(head)
 
     for k, row in enumerate(summary["frontier"]):
         if not row["feasible"]:
             click.echo(f"{row['bequest_today_dollars']:>14,.0f}{'unreachable':>14}")
             continue
         line = f"{row['bequest_today_dollars']:>14,.0f}"
+        if fixed > 0:
+            line += f"{fixed:>14,.0f}{row['total_estate_today_dollars']:>14,.0f}"
         if deterministic:
             line += f"{row['spending_today_dollars']:>14,.0f}"
             rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
@@ -231,6 +237,12 @@ def cmd_frontier(
                 v = row.get(f"spending_at_{r:g}pct")
                 line += f"{v:>14,.0f}" if v is not None else f"{'n/a':>14}"
         click.echo(line)
+
+    if fixed > 0:
+        click.echo(
+            f"\n  Fixed assets add ${fixed:,.0f} to every level: assets still held at the end "
+            "of the plan, passing outside the savings accounts."
+        )
 
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]

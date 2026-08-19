@@ -160,11 +160,10 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
         st.markdown("#### :orange[Frontier]")
         st.code(kz.getCaseKey("frontierSummary"), language=None)
         st.caption(
-            "**Bequest** here means the savings accounts left after the heirs' tax, net of "
-            "any remaining debt. It does **not** include the house or other fixed assets, "
-            "so the estate your heirs actually receive is larger by their value. "
-            "*$/yr per $* is the annual spending given up for each dollar of estate; it is "
-            "read off a single curve, so in the stochastic modes it is reported per curve. "
+            "**Savings** is what the accounts leave after the heirs' tax, net of any remaining "
+            "debt, and it is the level being swept. **Fixed assets** are the house and anything "
+            "else still held at the end of the plan; they pass outside the accounts, so they are "
+            "the same at every level and add straight on top to give the **total estate**. "
             "*short* counts the scenarios that could not reach that level at all — each is "
             "recorded as a full shortfall, which is what pulls the high-confidence curves down."
         )
