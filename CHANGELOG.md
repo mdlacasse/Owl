@@ -1,60 +1,46 @@
 ### Version 2026.8.18
 
 #### New: the spending-vs-bequest trade-off
-Answers *what does leaving an estate cost me in spending?*, and replaces what `fixedSpending`
-was reaching for. Sweeps the `bequest` floor under `maxSpending`, so each point is an ordinary
-solve and no new optimization structure is involved. Because the floor constrains the estate
-rather than spending, `g(0)` stays free and the objective keeps a nonzero gradient — every
-point is a genuine optimum, which is precisely what pinning the spending level destroyed.
+Answers *what does leaving an estate cost me in spending?* Sweeps the `bequest` floor under
+`maxSpending`, so every point is an ordinary solve and no new optimization structure is
+involved. The floor constrains the estate rather than spending, so `g(0)` stays free and each
+point is a genuine optimum.
 
-In the `historical` and `mc` modes each level is additionally solved across the whole scenario
-ensemble, turning the curve into a surface *S(B, p)*. Read down a column it gives spending
-versus bequest at fixed confidence, and the fan across success rates is the
-sequence-of-returns risk; read across a row it gives the spending/success curve of
+In `historical` and `mc` modes each level is also solved across the whole scenario ensemble,
+giving a surface *S(B, p)*: down a column, spending versus bequest at fixed confidence, the fan
+across success rates being sequence-of-returns risk; across a row, the spending/success curve of
 `run_stochastic_spending`, which it reuses rather than reimplements.
 
-Available as `Plan.runSpendingBequestFrontier()` and
-`owlplanner.run_spending_bequest_frontier()` with a `summarize_*` companion, as the
-**Spending vs Bequest** page under Stress Tests, as `owlcli frontier`, and as the
-`run_spending_bequest_frontier` MCP tool (the server now exposes eighteen tools).
+The swept bequest is the savings accounts after the heirs' tax, net of debt. Assets still held
+at the end of the plan pass outside those accounts, so they are reported separately and added
+into a total estate; set by the asset table rather than the floor, that figure is identical at
+every level. Stochastic rows also carry the count of scenarios that could not reach the level,
+which is what drags the high-confidence curves down. The largest reachable estate is a bracket,
+not a value: a sweep only shows it lies between the highest level that solved and the lowest
+that did not.
 
-The bequest being swept is the savings accounts after the heirs' tax, net of debt. Assets still
-held at the end of the plan pass to heirs outside those accounts, so they are reported
-separately and added into a total estate; being set by the asset table rather than by the floor,
-that figure is the same at every level. In the stochastic modes each row also carries the count
-of scenarios that could not reach the level at all, which is what drags the high-confidence
-curves down. The largest reachable estate is given as a bracket rather than a value, since a
-sweep only establishes that it lies between the highest level that solved and the lowest that
-did not.
-
-The `bequest_floor` shadow price is available per level via `with_duals`, off by default: the
-exchange rate is measured directly off the curve, and the dual — that of the final LP with the
-self-consistent loop's parameters frozen — runs about 9% shallow, so it serves as a cross-check
-rather than as the answer.
+Available as `Plan.runSpendingBequestFrontier()` and `owlplanner.run_spending_bequest_frontier()`
+with a `summarize_*` companion, the **Spending vs Bequest** page, `owlcli frontier`, and the
+`run_spending_bequest_frontier` MCP tool (eighteen tools now). The `bequest_floor` shadow price
+is available via `with_duals`, off by default: it costs a solve per level and only cross-checks
+an exchange rate already measured from the curve.
 
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
-Reported as issue #140: with `fixedSpending` set below what a plan can afford, the ordinary
-tax `T_n` could exceed the top statutory rate applied to all of ordinary income — 46.7% on
-\$292,001 in the reporter's worst year, against about \$65,300 by hand.
+Issue #140. Set below what a plan can afford, it produced ordinary tax above the top statutory
+rate — 46.7% on \$292,001 in the reporter's worst year, against about \$65,300 by hand.
 
-`fixedSpending` pinned `g(0)`, and at the default `spendingSlack` of zero the spending-profile
-rows tie every `g(n)` to `g(0)`, so the whole spending vector was fixed. The `maxSpending`
-objective is assembled solely from the `g(n)` coefficients, so it became *constant* over the
-feasible set. The bracket-fill variables `f_tn` are a relaxation of the progressive schedule —
-tight only because the objective pushes ordinary income into the cheapest brackets — so with
-nothing left to push, the solver was free to fill the 37% bracket while lower ones sat empty.
-The excess tax cost the objective nothing, being absorbed by an estate whose floor defaults to
-one dollar. The existing LTCG degeneracy warning fired on the same years, for the same reason.
+`fixedSpending` pinned `g(0)`, and at the default `spendingSlack` of zero the profile rows tie
+every `g(n)` to it, fixing the whole spending vector. The `maxSpending` objective is built only
+from `g(n)`, so it became *constant* over the feasible set. The bracket-fill variables `f_tn`
+are a relaxation of the progressive schedule, tight only because the objective pushes income
+into the cheapest brackets; with nothing left to push, the solver could fill the 37% bracket
+while lower ones sat empty, at no cost to a constant objective. Raising `spendingSlack` does
+not help — the band's ceiling is itself proportional to the pinned `g(0)` — and `epsilon` was
+not implicated.
 
-Raising `spendingSlack` did not help: the top of the slack band is itself proportional to the
-pinned `g(0)`, so the solver saturated it and the objective went flat again — more excess tax,
-not less. `epsilon` was not implicated either; at `epsilon = 0` the symptom is marginally worse.
-
-The option is **rejected rather than ignored**, both when a case file is loaded and when
-`Plan.solve()` is called, because a plan that silently dropped it would answer a different
-question than the case file asks. Sweep the `bequest` floor under `maxSpending` instead to
-trace the spending-vs-bequest trade-off, where `g(0)` stays free, the objective keeps a
-nonzero gradient, and every point is a genuine optimum.
+Rejected rather than ignored, at config load and in `Plan.solve()`, since a plan that silently
+dropped it would answer a different question than the case file asks. Use the
+spending-vs-bequest trade-off instead.
 
 ### Version 2026.8.16
 
