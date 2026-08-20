@@ -1,3 +1,24 @@
+### Version 2026.8.19
+
+#### Changed: `Case_cameron` now describes a household that can afford to live
+The example carried a Social Security benefit of \$200/month, which implies almost no covered
+earnings record and does not belong with \$119,000 of savings. It left the plan spending
+\$7,192/yr in today's dollars — below the poverty guideline for one person, and about three
+times the Medicare premium the plan pays in its first year.
+
+Cameron now has a lifetime low-to-middle earner's record: a PIA of \$1,250/month, worth about
+\$1,550/month deferred to 70. The state is New York rather than California and the bequest
+target is \$20,000 rather than \$40,000. Spending rises to \$18,996/yr.
+
+What the case exists to cover is unchanged. The benefit stays below the threshold where Social
+Security becomes taxable, so the plan still owes no federal, state or capital-gains tax in any
+of its 27 years, still solves as a pure linear program, and still exercises the degeneracy that
+a zero marginal rate creates. New York widens that: its retirement income exclusion is another
+variable free to move when there is no income to shelter.
+
+#### Maintenance: Updated dependecies (again) to silence GitHub's dependabot.
+Upgrade to Streamlit 1.62.
+
 ### Version 2026.8.18
 
 #### Maintenance: Updated dependecies to silence GitHub's dependabot.

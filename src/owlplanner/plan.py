@@ -3623,9 +3623,12 @@ class Plan:
             # resolves them exactly. It is too small to be seen through a MIP gap: at 1e-8
             # against a few thousand dollars of benefit it moves the objective by ~1e-5,
             # below the solver's own optimality tolerance, and the branch stays arbitrary.
-            # Measured on Case_cameron, years reported wrong out of 23: all of them at 1e-7,
-            # 16 at 1e-6, one at 1e-5, none at 1e-4, and the objective is identical from 1e-4
-            # through 1e-3. A case that settles on a cycle can still report a wrong share:
+            # Measured on an earlier, much lower-benefit configuration of Case_cameron, years
+            # reported wrong out of 23: all of them at 1e-7, 16 at 1e-6, one at 1e-5, none at
+            # 1e-4, and the objective is identical from 1e-4 through 1e-3. That case now keeps
+            # provisional income under P^lo in every year and no longer exercises this, so the
+            # figures above are not reproducible from a shipped example.
+            # A case that settles on a cycle can still report a wrong share:
             # it is answered from a best-of-cycle iterate, and raising the preference far
             # enough to pin that starts to move the objective instead.
             if "tss" in self.vm:

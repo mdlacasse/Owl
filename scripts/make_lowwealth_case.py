@@ -1,10 +1,12 @@
 """Generate the modest-portfolio example case (Case_cameron.toml + HFP_cameron.xlsx).
 
-Cameron is Dana scaled to roughly a tenth of the savings, with Social Security scaled to
-match and no home. The point of the case is the regime it lands in: a household whose
-income sits entirely under the standard deduction and whose capital gains sit entirely
-in the 0% bracket pays no tax in any year. Solved with the old exclusion binaries this
-case took 577 seconds; the same case in a state with no income tax took 0.06.
+Cameron is Dana scaled to roughly a tenth of the savings, with no home and a lifetime
+low-to-middle earner's Social Security record rather than Dana's. The point of the case
+is the regime it lands in: a household whose benefit stays below the Social Security
+taxability threshold, whose remaining ordinary income sits under the standard deduction,
+and whose capital gains sit entirely in the 0% bracket pays no tax in any year. Solved
+with the old exclusion binaries this case took 577 seconds; the same case in a state with
+no income tax took 0.06.
 
     uv run python scripts/make_lowwealth_case.py
 
@@ -40,8 +42,8 @@ PERSON_COLUMNS = [
 DEBT_COLUMNS = ["active", "name", "type", "year", "term", "amount", "rate"]
 ASSET_COLUMNS = ["active", "name", "type", "year", "basis", "value", "rate", "yod", "commission"]
 
-TOML = '''case_name = "cameron"
-description = "Cameron is a single retiree of modest means: 66, retired, renting in California, with about $119,000 of savings and a Social Security benefit of $200/month at 70. There is no pension and no wage income.\\n\\nThe case exists to cover a regime the other examples miss. Every other shipped scenario has enough income to owe federal tax; Cameron does not. With ordinary income entirely absorbed by the standard deduction and every realized gain inside the 0% long-term capital gains bracket, the plan pays nothing in tax in any year of the horizon.\\n\\nThat matters more than it sounds. Owl distinguishes the three account types only through their tax treatment, so at a zero marginal rate a dollar is worth the same wherever it sits, and the optimizer becomes indifferent between plans that look very different on paper. California compounds it: a state that taxes income carries its own deduction and exemption variables, and at zero income those are free to move as well. Cameron is the regression case for that degeneracy -- the objective must stay stable even though the individual withdrawal path is not uniquely determined.\\n"
+TOML = r'''case_name = "cameron"
+description = "Cameron is a single retiree of modest means: 66, retired, renting in New York, with about $119,000 of savings and a lifetime low-to-middle earner's Social Security record. There is no pension and no wage income. Claiming is deferred to 70, which raises the benefit to about $1,550/month.\n\nThe plan settles on roughly $19,000 a year of spending in today's dollars. Savings carry the first four years and drop to about $52,000 by the time Social Security starts, then hold near that level for the rest of the horizon, with a $20,000 bequest left at the end.\n\nThe case also covers a regime the other examples miss. Every other shipped scenario has enough income to owe federal tax; Cameron does not. The benefit is small enough that provisional income never reaches the threshold where Social Security becomes taxable, the rest of the ordinary income is absorbed by the standard deduction, and every realized gain sits inside the 0% long-term capital gains bracket, so the plan pays nothing in tax in any year of the horizon.\n\nThat matters more than it sounds. Owl distinguishes the three account types only through their tax treatment, so at a zero marginal rate a dollar is worth the same wherever it sits, and the optimizer becomes indifferent between plans that look very different on paper. New York compounds it: a state that taxes income carries its own deduction, and New York adds a retirement income exclusion on top, so at zero income those are free to move as well. Cameron is the regression case for that degeneracy -- the objective must stay stable even though the individual withdrawal path is not uniquely determined.\n"
 
 [basic_info]
 status = "single"
@@ -49,7 +51,7 @@ names = [ "Cameron",]
 date_of_birth = [ "1960-03-20",]
 life_expectancy = [ 92,]
 start_date = "2026-01-01"
-state = "CA"
+state = "NY"
 
 [savings_assets]
 taxable_savings_balances = [ 15.0,]
@@ -67,7 +69,7 @@ pension_monthly_amounts = [ 0,]
 pension_ages = [ 65.0,]
 pension_indexed = [ false,]
 pension_survivor_fraction = [ 0.0,]
-social_security_pia_amounts = [ 200,]
+social_security_pia_amounts = [ 1_250,]
 social_security_ages = [ 70.0,]
 
 [rates_selection]
@@ -94,7 +96,7 @@ objective = "maxSpending"
 [solver_options]
 noRothConversions = "none"
 startRothConversions = 2026
-bequest = 40
+bequest = 20
 solver = "default"
 spendingSlack = 0
 withMedicare = "loop"
