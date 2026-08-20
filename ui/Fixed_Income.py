@@ -107,7 +107,7 @@ else:
     _iname1 = kz.getCaseKey("iname1")
     ss_age0_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname0
     ss_age1_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname1
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns((1, 1, 0.5), gap="large", vertical_alignment="top")
     with col1:
         dob0 = kz.getCaseKey("dob0")
         specialcase0 = dob0.endswith("01") or dob0.endswith("02")
@@ -355,7 +355,7 @@ to estimate {iname1}'s PIA.""")
         "If you elected a joint-and-survivor (J&S) option, the surviving spouse receives "
         "this percentage of your pension after your death. 0 = single-life annuity."
     )
-    col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+    col1, col2, col3 = st.columns((1, 1, 0.5), gap="large", vertical_alignment="top")
     with col1:
         kz.initCaseKey("pAge_y0", 65)
         kz.initCaseKey("pAge_m0", 0)
