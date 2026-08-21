@@ -36,6 +36,7 @@ from openpyxl.utils import get_column_letter
 
 import owlplanner as owl
 from owlplanner.export import (
+    _ACCOUNT_FINAL_BALANCES,
     _FORMAT_STRINGS,
     _format_col_sheet,
     _format_debts_sheet,
@@ -626,6 +627,59 @@ def test_save_workbook_accounts_sheet_includes_age_column(joe_plan_with_ages):
 
 
 # ---------------------------------------------------------------------------
+# Accounts sheet — terminal balance row alignment
+# ---------------------------------------------------------------------------
+
+
+def _accounts_final_row(plan, i=0):
+    """Return (header, final row) of an individual's Accounts sheet, as tuples."""
+    wb = plan.saveWorkbook(saveToFile=False)
+    ws = wb[plan.inames[i] + "'s Accounts"]
+    rows = list(ws.values)
+    return rows[0], rows[-1]
+
+
+def _check_accounts_final_row(plan, i=0, scale=1.0):
+    """
+    The terminal balance row is appended positionally, after the data rows written
+    from a dict. Adding a column to that dict must not shift the row: check every
+    cell by header name, so a future insertion fails here rather than silently
+    reporting the bequest under the wrong account.
+    """
+    header, last = _accounts_final_row(plan, i)
+    assert len(last) == len(header), "terminal row width does not match the header"
+
+    cell = dict(zip(header, last))
+    assert cell["year"] == plan.year_n[-1] + 1
+    for name, j in _ACCOUNT_FINAL_BALANCES.items():
+        assert name in header, f"{name!r} column missing from Accounts sheet"
+        assert cell[name] == pytest.approx(plan.b_ijn[i, j, -1] * scale, abs=0.01), (
+            f"terminal {name!r} does not match b_ijn[{i},{j},-1]"
+        )
+    # Every remaining column carries no flow in the terminal row.
+    for name in header:
+        if name == "year" or name in _ACCOUNT_FINAL_BALANCES:
+            continue
+        if isinstance(name, str) and name.startswith("age ("):
+            continue
+        assert cell[name] == 0, f"terminal row should be 0 under {name!r}, got {cell[name]!r}"
+
+
+def test_accounts_final_row_aligns_with_headers(joe_plan):
+    _check_accounts_final_row(joe_plan)
+
+
+def test_accounts_final_row_aligns_with_ages_shown(joe_plan_with_ages):
+    """The age column is inserted after 'year' in both the header and this row."""
+    _check_accounts_final_row(joe_plan_with_ages)
+
+
+def test_accounts_final_row_aligns_for_couple(alex_jamie_plan):
+    for i in range(alex_jamie_plan.N_i):
+        _check_accounts_final_row(alex_jamie_plan, i)
+
+
+# ---------------------------------------------------------------------------
 # worksheetRealDollars — inflation-adjusted values
 # ---------------------------------------------------------------------------
 
@@ -653,6 +707,12 @@ def test_save_workbook_real_dollars_scales_income(joe_plan_real):
     real_val = real_rows[0][1]
     gamma0 = p.gamma_n[0]
     assert abs(real_val - nom_val / gamma0) <= 1.0
+
+
+def test_accounts_final_row_aligns_in_real_dollars(joe_plan_real):
+    """The terminal balances are discounted to today's $, but stay in their own columns."""
+    p = joe_plan_real
+    _check_accounts_final_row(p, scale=1.0 / p.gamma_n[p.N_n])
 
 
 def test_save_workbook_real_dollars_does_not_scale_rates(joe_plan_real):

@@ -20,7 +20,7 @@ def test_read_time_horizons_dict_input():
     """Test read with dictionary input."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     df_dict = {
         "Joe": pd.DataFrame(
@@ -41,7 +41,7 @@ def test_read_time_horizons_dict_input():
         )
     }
 
-    finput, time_lists, house_lists, _ = hfp_io.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _, _ = hfp_io.read(df_dict, inames, horizons, mylog)
     # When dict is passed, finput is set to "dictionary of DataFrames" string
     assert finput == "dictionary of DataFrames"
     assert "Joe" in time_lists
@@ -51,7 +51,7 @@ def test_read_time_horizons_file_with_name():
     """Test read with explicit filename."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     # Create a simple Excel file in memory
     df = pd.DataFrame(
@@ -76,7 +76,7 @@ def test_read_time_horizons_file_with_name():
         df.to_excel(writer, sheet_name="Joe", index=False)
     buffer.seek(0)
 
-    finput, time_lists, house_lists, _ = hfp_io.read(buffer, inames, horizons, mylog, filename="test_file.xlsx")
+    finput, time_lists, house_lists, _, _ = hfp_io.read(buffer, inames, horizons, mylog, filename="test_file.xlsx")
     assert "Joe" in time_lists
 
 
@@ -84,7 +84,7 @@ def test_read_time_horizons_file_error():
     """Test read with file that can't be read."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     # Create invalid file content
     buffer = BytesIO(b"invalid excel content")
@@ -116,7 +116,7 @@ def test_condition_timetables_missing_sheet():
     """Test _conditionTimetables with missing sheet."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     df_dict = {
         "Jane": pd.DataFrame()  # Wrong name
@@ -130,7 +130,7 @@ def test_condition_timetables_negative_values():
     """Test _conditionTimetables with negative values (should raise error)."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df = pd.DataFrame(
@@ -160,7 +160,7 @@ def test_condition_timetables_big_ticket_can_be_negative():
     """Test _conditionTimetables allows negative big-ticket items."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df = pd.DataFrame(
@@ -182,7 +182,7 @@ def test_condition_timetables_big_ticket_can_be_negative():
 
     df_dict = {"Joe": df}
 
-    result = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
+    result, _ = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
     assert "Joe" in result
 
 
@@ -190,7 +190,7 @@ def test_condition_timetables_roth_conv_can_be_negative():
     """Test _conditionTimetables allows negative Roth conv (force-zero override sentinel)."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df = pd.DataFrame(
@@ -212,7 +212,7 @@ def test_condition_timetables_roth_conv_can_be_negative():
 
     df_dict = {"Joe": df}
 
-    result = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
+    result, _ = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
     assert "Joe" in result
 
 
@@ -221,7 +221,7 @@ def test_condition_timetables_roth_conv_negative_in_past_years_rejected():
     rule, not the useRothConvOverrides sentinel) must still raise."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df = pd.DataFrame(
@@ -249,7 +249,7 @@ def test_condition_timetables_roth_conv_negative_in_past_years_rejected():
 
 def test_condition_house_tables():
     """Test _conditionHouseTables."""
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df_dict = {
@@ -287,7 +287,7 @@ def test_read_with_house_tables_active_column_string():
     """Test read with string active column in house tables."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df_dict = {
@@ -320,7 +320,7 @@ def test_read_with_house_tables_active_column_string():
         ),
     }
 
-    finput, time_lists, house_lists, _ = hfp_io.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _, _ = hfp_io.read(df_dict, inames, horizons, mylog)
     assert "Joe" in time_lists
     assert "Debts" in house_lists
 
@@ -329,7 +329,7 @@ def test_read_with_house_tables_active_column_numeric():
     """Test read with numeric active column in house tables."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df_dict = {
@@ -362,7 +362,7 @@ def test_read_with_house_tables_active_column_numeric():
         ),
     }
 
-    finput, time_lists, house_lists, _ = hfp_io.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _, _ = hfp_io.read(df_dict, inames, horizons, mylog)
     assert "Joe" in time_lists
     assert "Debts" in house_lists
 
@@ -371,7 +371,7 @@ def test_read_with_house_tables_active_column_nan():
     """Test read with NaN in active column (defaults to True)."""
     inames = ["Joe"]
     horizons = [20]
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df_dict = {
@@ -404,7 +404,7 @@ def test_read_with_house_tables_active_column_nan():
         ),
     }
 
-    finput, time_lists, house_lists, _ = hfp_io.read(df_dict, inames, horizons, mylog)
+    finput, time_lists, house_lists, _, _ = hfp_io.read(df_dict, inames, horizons, mylog)
     assert "Joe" in time_lists
     assert "Debts" in house_lists
 
@@ -413,7 +413,7 @@ def test_condition_timetables_adds_missing_years():
     """Test _conditionTimetables adds missing years."""
     inames = ["Joe"]
     horizons = [5]  # Short horizon for testing
-    mylog = type("Logger", (), {"vprint": lambda self, *args: None})()
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
 
     thisyear = date.today().year
     df = pd.DataFrame(
@@ -434,7 +434,7 @@ def test_condition_timetables_adds_missing_years():
     )
 
     df_dict = {"Joe": df}
-    result = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
+    result, _ = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
     assert "Joe" in result
     # Should have added missing years
     result_df = result["Joe"]

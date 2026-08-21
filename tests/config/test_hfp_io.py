@@ -29,6 +29,7 @@ from datetime import date
 import pytest
 
 import owlplanner as owl
+from owlplanner import hfp_io
 
 # Get current year for calculating life expectancies
 thisyear = date.today().year
@@ -77,8 +78,8 @@ class TestHFPWriteRead:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
-    def test_hfp_rejects_missing_other_inc_column(self):
-        """HFP must include 'other inc'; missing column raises ValueError."""
+    def test_hfp_accepts_missing_other_inc_column(self):
+        """An absent optional column loads as zeros and is recorded, not rejected."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
@@ -93,8 +94,104 @@ class TestHFPWriteRead:
             alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
 
             p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
+            p2.readHFP(tmp_path)
+
+            assert "other inc" in p2.hfpAbsentCols["Alice"]
+            assert (p2.other_inc_in == 0).all()
+            # The column exists in the conditioned table so downstream code is uniform.
+            assert "other inc" in p2.timeLists["Alice"].columns
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_hfp_rejects_missing_year_column(self):
+        """'year' is the row index, not a value: its absence stays a hard error."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"].drop(columns=["year"])
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
             with pytest.raises(Exception, match="missing required column"):
                 p2.readHFP(tmp_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_hfp_rejects_misspelled_header(self):
+        """A header that folds to a recognized one is a typo, not a helper column."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"].rename(columns={"401k ctrb": "401K  Ctrb"})
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
+            with pytest.raises(Exception, match="did you mean"):
+                p2.readHFP(tmp_path)
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_hfp_keeps_dropping_genuine_helper_columns(self):
+        """Unrecognized columns that are not near-misses are still dropped silently."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"].copy()
+        alice_df["total ctrb"] = 1234
+        alice_df["my notes"] = 0
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
+            p2.readHFP(tmp_path)
+            assert "total ctrb" not in p2.timeLists["Alice"].columns
+            assert "my notes" not in p2.timeLists["Alice"].columns
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_hfp_year_only_sheet(self):
+        """A sheet carrying only 'year' loads; every derived array is zero."""
+        birth_year = 1970
+        remaining_years = 30
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"][["year"]]
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
+            p2.readHFP(tmp_path)
+
+            assert len(p2.hfpAbsentCols["Alice"]) == len(hfp_io.timeHorizonItems()) - 1
+            assert (p2.omega_in == 0).all()
+            assert (p2.kappa_ijn == 0).all()
+            assert (p2.qcd_in == 0).all()
+            assert (p2.Lambda_in == 0).all()
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -357,15 +454,25 @@ class TestHFPWriteRead:
         assert processed_df.loc[2, "active"]  # pd.NA -> True
         assert not processed_df.loc[3, "active"]  # False
 
-    def test_hfp_rejects_missing_net_inv_column(self):
-        """HFP must include 'net inv'; missing column raises ValueError."""
+    @pytest.mark.parametrize(
+        "column, array_name",
+        [
+            ("net inv", "netinv_in"),
+            ("anticipated wages", "omega_in"),
+            ("big-ticket items", "Lambda_in"),
+            ("QCD", "qcd_in"),
+            ("HSA ctrb", None),
+            ("Roth conv", "myRothX_in"),
+        ],
+    )
+    def test_hfp_accepts_missing_optional_column(self, column, array_name):
+        """Every column but 'year' may be omitted; it is then zero for all years."""
         birth_year = 1970
         remaining_years = 30
         expectancy = (thisyear - birth_year) + remaining_years
         p = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
-        alice_df = p.timeLists["Alice"].drop(columns=["net inv"])
-        p.timeLists["Alice"] = alice_df
+        alice_df = p.timeLists["Alice"].drop(columns=[column])
 
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
             tmp_path = tmp.name
@@ -373,8 +480,51 @@ class TestHFPWriteRead:
             alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
 
             p2 = owl.Plan(["Alice"], ["1970-01-15"], [expectancy], "Test Plan 2", verbose=False)
-            with pytest.raises(Exception, match="missing required column"):
-                p2.readHFP(tmp_path)
+            p2.readHFP(tmp_path)
+
+            assert column in p2.hfpAbsentCols["Alice"]
+            assert column in p2.timeLists["Alice"].columns
+            if array_name is not None:
+                assert (getattr(p2, array_name) == 0).all()
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    def test_roth_conv_overrides_require_the_column(self):
+        """In override mode the column carries semantics, so absence is ambiguous."""
+        birth_year = 1950
+        remaining_years = 25
+        expectancy = (thisyear - birth_year) + remaining_years
+        p = owl.Plan(["Alice"], ["1950-01-15"], [expectancy], "Test Plan", verbose=False)
+        p.zeroWagesAndContributions()
+        alice_df = p.timeLists["Alice"].drop(columns=["Roth conv"])
+
+        with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            alice_df.to_excel(tmp_path, sheet_name="Alice", index=False)
+
+            p2 = owl.Plan(["Alice"], ["1950-01-15"], [expectancy], "Test Plan 2", verbose=False)
+            p2.readHFP(tmp_path)
+            p2.setAccountBalances(taxable=[100], taxDeferred=[500], taxFree=[100])
+            p2.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+            p2.setRates("historical average", 1990, 2020)
+            p2.setSpendingProfile("flat", 60)
+
+            # Off: the absent column is simply zero, and the plan solves.
+            p2.solve("maxSpending", options={"maxRothConversion": 100e3, "bequest": 0})
+            assert p2.caseStatus == "solved"
+
+            # On: refuse rather than silently read "no year is pinned".
+            with pytest.raises(Exception, match="useRothConvOverrides"):
+                p2.solve("maxSpending", options={"useRothConvOverrides": True, "bequest": 0})
+
+            # Rebuilding the tables restores the column, so the refusal must lift:
+            # a record of what one workbook lacked must not outlive that workbook.
+            p2.zeroWagesAndContributions()
+            assert p2.hfpAbsentCols["Alice"] == []
+            p2.solve("maxSpending", options={"useRothConvOverrides": True, "bequest": 0})
+            assert p2.caseStatus == "solved"
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)

@@ -1,0 +1,87 @@
+case_name = "jordan+taylor-qcd"
+description = """
+Jordan and Taylor as in the base case, with one change: they give to charity through Qualified Charitable Distributions. Jordan gives $50k/year and Taylor $25k/year, each starting the year they reach age 70½ (2029 and 2030). Everything else—balances, real estate, mortgage, Minnesota residency, seeded IRMAA brackets—is identical, so a comparison against Case_jordan+taylor isolates what the QCD does.
+
+A QCD goes straight from the tax-deferred account to the charity. It never enters AGI, so it is invisible to federal and state income tax, to the taxability of Social Security, and to the MAGI that sets IRMAA and NIIT. It counts toward the required minimum distribution, and it is not spendable cash.
+
+Run against the same gift funded from after-tax cash instead, the household gives an identical $1.17M (today's dollars) and ends with about $148k more estate—$220k less in tax and Medicare premiums, partly given back through a larger portfolio. About $1.30M of the giving satisfies RMDs outright. The freed ordinary-income headroom does not go unused: the optimizer converts it to Roth dollar-for-dollar, so taxable income barely moves and the benefit lands in the estate.
+
+This case demonstrates the QCD age-70½ eligibility gate engaging mid-plan, the RMD credit, and the AGI exclusion propagating to state tax and IRMAA.
+"""
+
+[basic_info]
+status = "married"
+names = [ "Jordan", "Taylor",]
+sexes = [ "M", "F",]
+date_of_birth = [ "1959-01-15", "1960-01-15",]
+life_expectancy = [ 92, 93,]
+start_date = "2026-01-01"
+state = "MN"
+
+[savings_assets]
+taxable_savings_balances = [ 1_000.0, 100.0,]
+tax_deferred_savings_balances = [ 4_000.0, 750.0,]
+tax_free_savings_balances = [ 2_000.0, 50.0,]
+hsa_savings_balances = [ 50.0, 0.0,]
+beneficiary_fractions = [ 0.28, 0.28, 0.28, 1.0,]
+spousal_surplus_deposit_fraction = 0.0
+
+[household_financial_profile]
+HFP_file_name = "HFP_jordan+taylor-qcd.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 1_000, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ true, false,]
+pension_survivor_fraction = [ 0.5, 0.0,]
+social_security_pia_amounts = [ 3_500, 2_000,]
+social_security_ages = [ 70.0, 62.75,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 33.0
+dividend_rate = 1.7
+obbba_expiration_year = 2032
+method = "user"
+values = [ 6.5, 4.0, 3.3, 2.8,]
+from = 1928
+to = 2025
+reverse_sequence = false
+roll_sequence = 0
+
+[asset_allocation]
+interpolation_method = "s-curve"
+interpolation_center = 15.0
+interpolation_width = 6.0
+type = "individual"
+generic = [ [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],], [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "smile"
+surviving_spouse_spending_percent = 60
+objective = "maxBequest"
+smile_dip = 15
+smile_increase = 12
+smile_delay = 0
+
+[solver_options]
+netSpending = 240.0
+maxRothConversion = 400.0
+noRothConversions = "Taylor"
+startRothConversions = 2026
+solver = "default"
+spendingSlack = 0
+noLateSurplus = false
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "none"
+withSSTaxability = 0.85
+minTaxableBalance = [ 120.0, 0.0,]
+previousMAGIs = [ 400.0, 420.0,]
+gap = 0.003
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = true
