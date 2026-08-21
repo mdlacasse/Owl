@@ -146,6 +146,22 @@ hsaContributionLimit = {
 # inflation-indexed) since HSAs were introduced in 2003.
 HSA_CATCHUP_55 = 1_000
 
+# Annual per-person exclusion limit for Qualified Charitable Distributions
+# (IRC 408(d)(8)), inflation-indexed since SECURE 2.0.
+qcdLimit = {2025: 108_000, 2026: 115_000}
+
+# IRS sets the limit above one year at a time, but plans run decades, so beyond the
+# table it is carried forward at this fixed rate: the geometric mean of CPI over
+# Owl's full rate history, 1928-2025 (data/rates.csv). Deliberately a constant and
+# not the scenario's own inflation -- this figure only ever validates user input,
+# and a scenario-dependent bound would accept an entry on one Monte Carlo path and
+# reject it on the next.
+QCD_LIMIT_INFLATION = 0.030
+
+# A QCD may be made on or after the day the owner reaches age 70 1/2 -- which is
+# not the RMD start age (see rho_in), and did not move with SECURE 1.0/2.0.
+QCD_MIN_AGE = 70.5
+
 ###############################################################################
 # End of section where rates need to be actualized every year.
 ###############################################################################
@@ -827,6 +843,19 @@ def _limit_for_year(table, year):
     if year >= years[-1]:
         return table[years[-1]]
     return table[year]
+
+
+def qcdLimitForYear(year):
+    """
+    Per-person QCD exclusion limit for a calendar year.
+
+    Published figures are exact; later years carry the last published figure
+    forward at QCD_LIMIT_INFLATION. Earlier years clamp to the first figure.
+    """
+    last = max(qcdLimit)
+    if year <= last:
+        return float(_limit_for_year(qcdLimit, year))
+    return float(qcdLimit[last] * (1.0 + QCD_LIMIT_INFLATION) ** (year - last))
 
 
 def contributionLimits(birth_year, tax_year=None):

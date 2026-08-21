@@ -49,6 +49,11 @@ first solve, confirm a short summary of everything collected.
 - Debts (balance, rate, years remaining) and fixed assets (home, real estate,
   collectibles: basis, value, planned sale year).
 - Planned large expenses (big_ticket_items): weddings, cars, travel budgets.
+- Charitable giving, for anyone 70 or older: ask whether they already give, or would
+  consider giving, from an IRA.  Routed as a qualified charitable distribution (qcds)
+  rather than as cash, the same gift is excluded from AGI and counts toward the RMD —
+  worth real money to a charitably-inclined retiree with a large tax-deferred balance,
+  and worth raising because most people do not know the option exists.
 - Heirs: desired bequest and the heirs' marginal tax rate on inherited tax-deferred/HSA.
 - Prior two years' MAGI — sets Medicare IRMAA for the first two plan years; ask when
   anyone is 63 or older.

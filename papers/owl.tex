@@ -279,10 +279,15 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{Roth conv} --- planned or historical Roth conversion amounts;
     the five years preceding the plan start date are used to implement the
     five-year lookback rule (Section~\ref{sec:roth});
+  \item \textit{QCD} --- qualified charitable distributions paid directly from
+    the tax-deferred account to a charity (Section~\ref{sec:qcd});
   \item \textit{big-ticket items} --- large planned expenses such as a home
     purchase or college tuition that must be funded from the portfolio in a
     specific year.
 \end{itemize}
+
+Only \textit{year} is required. Any other column may be omitted from a person
+sheet, in which case it is read as zero for every year.
 
 \subsection*{Fixed Assets table}
 
@@ -1779,6 +1784,14 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	These are large expenses or influx of money
 	that can be planned. Therefore, $\Lambda^\pm$ can be positive
 	(e.g., gift received, inheritance) or negative (e.g., buy a house, large gifts).
+\item [$\Xi_{in}$]
+	Qualified charitable distribution (QCD) made by individual $i$ in year $n$:
+	a transfer paid directly from the tax-deferred account to a charity.
+	Unlike $\Lambda^\pm_{in}$, it is a parameter of the tax-deferred account
+	rather than of the cash flow. It is excluded from adjusted gross income,
+	counts toward the required minimum distribution, and never becomes
+	spendable cash (Section~\ref{sec:qcd}). $\Xi_{in} \ge 0$.
+
 \item [$\lambda$]
         Allowed deviation from the desired net spending profile during one year. Parameter
         $\lambda$ can be better understood as a percentage. If $\lambda = 0.10$, then the net spending
@@ -2176,8 +2189,11 @@ add the market returns to the savings balances.
 	than or equal to the required minimum distributions, and therefore,
 	\begin{equation}
 		\label{Eq:C1}
-		w_{i1n} -  \rho_{in}b_{i1n} \geq 0.
+		w_{i1n} + \Xi_{in} -  \rho_{in}b_{i1n} \geq 0.
 	\end{equation}
+	The qualified charitable distribution $\Xi_{in}$ appears here because a QCD
+	satisfies the RMD dollar for dollar, so it lowers the floor on the taxable
+	withdrawal the plan is forced to take (Section~\ref{sec:qcd}).
 	As $b_{ijn}$ are the balances at the beginning of year $n$, they are also the balances
 	at December 31 of the previous year, which is the amount on which the IRS bases the RMDs.
 	Eq.~(\ref{Eq:C1}) has to hold for each year $n$ and each individual $i$, and therefore, there
@@ -2186,6 +2202,61 @@ add the market returns to the savings balances.
 	on amounts not withdrawn when RMDs are required.
 	Note that aggregate rules need to be considered separately as this approach only considers
 	the sum of assets in a class with similar tax treatment (e.g., IRA and 401k).
+
+\subsection{Qualified charitable distributions}
+\label{sec:qcd}
+	A qualified charitable distribution (QCD) is a transfer paid directly from a
+	tax-deferred account to a qualified charity, authorized by IRC~\S408(d)(8).
+	It is a prescribed parameter $\Xi_{in} \ge 0$ rather than a decision variable:
+	how much to give is a preference of the household, not a quantity to optimize.
+	It is worth modeling because it is not equivalent to withdrawing the money and
+	then donating it, and it enters the formulation in four places.
+
+	First, it is excluded from adjusted gross income. In this formulation that
+	exclusion requires no term at all: $\Xi_{in}$ simply never appears in the
+	taxable ordinary income of Eq.~(\ref{Eq:Tx2}), and it therefore propagates
+	automatically to every quantity derived from it --- the state taxable income,
+	the provisional income governing the taxability of Social Security, and the
+	modified adjusted gross income driving IRMAA and the net investment income tax.
+	This is a stronger benefit than a charitable deduction, which is unavailable to
+	the majority of retirees who claim the standard exemption $\bar{\sigma}_n$.
+
+	Second, it counts toward the required minimum distribution, which is why
+	$\Xi_{in}$ appears in Eq.~(\ref{Eq:C1}). A QCD large enough to cover the RMD
+	releases the plan from taking any taxable distribution at all that year.
+
+	Third, the money leaves the tax-deferred account, so $\Xi_{in}$ appears in the
+	balance carryover Eq.~(\ref{Eq:C3b}) and in the withdrawal limit of
+	Section~\ref{Sec:WithdrawalLimits}. A consequence worth noting is that a QCD
+	shrinks the base on which later RMDs are computed.
+
+	Fourth, it never becomes spendable cash, and so is absent from the net spending
+	of Section~\ref{Sec:NetSpending}. This is what distinguishes $\Xi_{in}$ from a
+	negative big-ticket item $\Lambda^-_{in}$, which is an after-tax outflow from
+	the household budget.
+
+	The freed capacity does not go to waste. Because the QCD removes ordinary income
+	that the RMD would otherwise have forced, it opens room under the tax brackets,
+	and an optimizing plan fills that room with a Roth conversion of the same size:
+	taxable income is left essentially unchanged and the benefit accrues to the estate.
+
+	Two statutory limits are enforced on the input rather than in the model.
+	The donor must have reached age~70\textonehalf{} --- which is not the age at
+	which RMDs begin --- and the amount is capped per person per year, indexed for
+	inflation. Since the cap is published only a year in advance, later years carry
+	the last published figure forward at a fixed assumed inflation rate. That rate is
+	deliberately a constant rather than the scenario's own inflation: the cap
+	validates user input, and a scenario-dependent bound would accept an entry on one
+	Monte Carlo path and reject it on the next.
+
+	Two simplifications are worth stating. A QCD must be paid from an IRA and not
+	directly from a 401k, while this formulation aggregates both into a single
+	tax-deferred account $j=1$ and so cannot distinguish them. This is less
+	restrictive than it appears: rolling the employer plan over to an IRA makes the
+	money eligible, and such a rollover is a non-event here, since both balances
+	already occupy the same account. Ensuring it has been done is left to the user.
+	The anti-abuse provision, under which deductible IRA contributions made after
+	age~70\textonehalf{} cumulatively reduce the excludable amount, is not modeled.
 
 \subsection{Income tax brackets}
 	Taxable ordinary income is divided into tax brackets as defined in Eq.~(\ref{Eq:G_n}),
@@ -2212,9 +2283,11 @@ add the market returns to the savings balances.
 	As withdrawals and conversions are at the beginning of the year 
 	we impose that
 	\begin{equation}
-		w_{ijn} + \delta_{j, 1} x_{in} \le b_{ijn},
+		w_{ijn} + \delta_{j, 1} \left( x_{in} + \Xi_{in} \right) \le b_{ijn},
 	\end{equation}
-	which just states that account balances need to be at least as large as withdrawals and possible Roth conversions.
+	which just states that account balances need to be at least as large as withdrawals,
+	possible Roth conversions, and any qualified charitable distribution, all of which
+	are drawn from the same account.
 
 \subsection{Withdrawal ordering}
 \label{Sec:WithdrawalOrdering}
@@ -2522,16 +2595,20 @@ add the market returns to the savings balances.
 		\label{Eq:C3b}
 		b_{ij(n+1)}
 		% && \nonumber \\
-		- \ [b_{ijn} + \delta_{j, 0} d_{in} - w_{ijn} + (\delta_{j, 2} - \delta_{j, 1})x_{in}]
+		- \ [b_{ijn} + \delta_{j, 0} d_{in} - w_{ijn} + (\delta_{j, 2} - \delta_{j, 1})x_{in}
+		- \delta_{j, 1}\Xi_{in}]
 		(1 + \mathcal{T}_{ijn})
 		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
 		\nonumber
 	\end{eqnarray}
+The term in $\Xi_{in}$ removes any qualified charitable distribution from the
+tax-deferred account, on the same timing as a withdrawal (Section~\ref{sec:qcd}).
 This is the current approach used in Owl, coupled with
 binary variables excluding simultaneous overwithdrawals and deposits, and
 	simultaneous Roth conversions and withdrawals from tax-free accounts.
 
 \subsection{Net spending}
+\label{Sec:NetSpending}
 	For calculating the net spending $g_n$, we consider the cash flow of all withdrawals,
 	wages, other ordinary income, Social Security and pension benefits, proceeds from liquidation of fixed assets, and big-ticket items.
 	Then we subtract potential surplus $s_{n}$ and all taxes, penalties, debts, Medicare premiums, and ACA premiums paid:
@@ -2544,6 +2621,9 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 	It is a decision variable when \code{withACA="optimize"},
 	or a fixed SC-loop parameter when \code{withACA="loop"}.
 	Notice how big-ticket items $\Lambda^\pm$ contribute directly to the cash flow.
+	Qualified charitable distributions $\Xi_{in}$ are deliberately absent: the money moves
+	from the tax-deferred account to the charity without ever reaching the household,
+	so it funds no spending (Section~\ref{sec:qcd}).
 	Replacing intermediate variables and bringing all variables to the left-hand side, we get
 	\begin{eqnarray}
 		\label{Eq:C4}
@@ -3599,18 +3679,19 @@ To account for that event in year $n_d$, Eq.~(\ref{Eq:C3b}) needs to be rewritte
 \begin{eqnarray}
 	b_{ij(n+1)} &=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}] \nonumber \\
 	&&\times \Bigl\{\left[b_{ijn} + \delta_{j, 0}d_{in} - w_{ijn}
-	+ (\delta_{j, 2} - \delta_{j, 1})x_{in}
+	+ (\delta_{j, 2} - \delta_{j, 1})x_{in} - \delta_{j, 1}\Xi_{in}
 	\right](1 + \mathcal{T}_{ijn})
-	+ \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2) 
+	+ \kappa_{ijn}(1 + \mathcal{T}_{ijn}/2)
 	\Bigr\}\nonumber \\
 	&& + [\phi_j\delta_{n, n_d-1}\delta_{i, i_s}] \nonumber  \\
 	&& \times \Bigl\{\left[b_{i_djn}
 	+ \delta_{j, 0}d_{i_dn}
 	- w_{i_djn}
 	+ (\delta_{j, 2} - \delta_{j, 1})x_{i_dn}
+	- \delta_{j, 1}\Xi_{i_dn}
 	\right] (1 + \mathcal{T}_{i_djn})
 	\nonumber\\
-	&& + \kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2) 
+	&& + \kappa_{i_djn}(1 + \mathcal{T}_{i_djn}/2)
 	\Bigr\}.
 \end{eqnarray}
 The first multiplier $[\ldots]$ on the right-hand side will always be one except for $i_d$ in
@@ -3620,6 +3701,10 @@ The second special multiplier $[\ldots]$ before the second set of curly braces
 $\{\}$ will always be zero except for the surviving
 spouse $i_s$ in year $n_d-1$, who will then inherit a fraction $\phi_j$ of account $j$ that
 was scheduled to go into $i_d$'s $j$ account at the beginning of year $n_d$.
+Note that $\Xi_{i_dn}$ has to appear in the second set of curly braces as well: the
+first multiplier has already zeroed $i_d$'s own row in year $n_d-1$, so a qualified
+charitable distribution made in that final year is only ever accounted for in the
+balance the surviving spouse inherits.
 
 Rewriting the last equation as a constraint results in
 \begin{eqnarray}

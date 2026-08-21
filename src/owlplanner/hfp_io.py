@@ -21,14 +21,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from datetime import date
+import re
 import numpy as np
 import pandas as pd
 
 from . import utils as u
 
 
-# Expected headers in each excel sheet, one per individual (all required).
-# Unused concepts should be filled with 0; see examples/HFP_template.xlsx.
+# Recognized headers in each excel sheet, one per individual.
+# Only "year" is required; any other column may be omitted and is then treated
+# as zero for every year. See examples/HFP_template.xlsx for the full set.
 _timeHorizonItems = [
     "year",
     "anticipated wages",
@@ -41,9 +43,14 @@ _timeHorizonItems = [
     "Roth IRA ctrb",
     "HSA ctrb",
     "Roth conv",
+    "QCD",
     "big-ticket items",
 ]
-_requiredTimeHorizonItems = list(_timeHorizonItems)
+
+# "year" is the row index, not a value: its absence is unrecoverable rather than
+# zero, so it stays a hard error. Every other column means zero when absent.
+_requiredTimeHorizonItems = ["year"]
+_optionalTimeHorizonItems = [c for c in _timeHorizonItems if c not in _requiredTimeHorizonItems]
 
 
 _debtItems = [
@@ -103,15 +110,20 @@ def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
-    Use one sheet for each individual with required columns (exact header text):
+    Use one sheet for each individual with these columns (exact header text):
     year, anticipated wages, other inc, net inv, taxable ctrb, 401k ctrb,
-    Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv,
-    big-ticket items. Column order may vary; omitting a column is an error
-    (use 0 for unused rows). Legacy header "other inc." is accepted as "other inc".
+    Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv, QCD,
+    big-ticket items. Column order may vary. Only "year" is required: any other
+    column may be omitted and is then treated as zero for every year. A header
+    that differs from a recognized one only by case, spacing, or punctuation is
+    rejected as a typo rather than silently dropped.
+    Legacy header "other inc." is accepted as "other inc".
     "anticipated wages" is expected net of all contribution columns
     (see Plan.readHFP).
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
-    Return a dictionary of dataframes by individual's names.
+    Return the input handle, the time lists by individual's name, the household
+    tables, the raw sheet dictionary, and the absent optional columns per
+    individual.
 
     Parameters
     ----------
@@ -149,25 +161,60 @@ def read(finput, inames, horizons, mylog, filename=None):
         except Exception as e:
             raise Exception(f"Could not read file {streamName}: {e}.") from e
 
-    timeLists = _conditionTimetables(dfDict, inames, horizons, mylog)
+    timeLists, absentCols = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
     houseLists = _conditionHouseTables(dfDict, mylog)
     mylog.vprint(f"Successfully read household tables from {streamName}.")
 
-    return finput, timeLists, houseLists, dfDict
+    return finput, timeLists, houseLists, dfDict, absentCols
+
+
+def timeHorizonItems():
+    """Recognized person-sheet column headers, in canonical order."""
+    return list(_timeHorizonItems)
+
+
+def _normalizeHeader(col):
+    """
+    Fold a column header for near-miss comparison: case, surrounding and internal
+    whitespace, and punctuation are all ignored. "401K ctrb" -> "401kctrb".
+    """
+    return re.sub(r"[^a-z0-9]", "", str(col).casefold())
 
 
 def _checkColumns(df, iname, colList, required_cols=None):
     """
     Ensure required columns are present. Keep allowed columns. Remove others.
     If required_cols is None, colList is treated as required.
+
+    Unrecognized columns are dropped, since users legitimately keep helper and
+    calculated columns on their sheets. But a dropped column whose header folds
+    to a recognized one is almost certainly a typo, and dropping it would
+    silently zero real data -- so that case is rejected with the intended
+    spelling named.
     """
     # Drop all columns not in the list (and unnamed columns).
     # Make an explicit copy to avoid SettingWithCopyWarning
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")].copy()
 
     cols_to_drop = [col for col in df.columns if col == "" or col not in colList]
+
+    # Catch misspelled headers before they are dropped. Only exact matches after
+    # folding are flagged -- no fuzzy/edit-distance matching, which would fire on
+    # legitimate helper columns such as "total ctrb".
+    canonical = {_normalizeHeader(c): c for c in colList}
+    for col in cols_to_drop:
+        suggestion = canonical.get(_normalizeHeader(col))
+        # If the properly spelled column is also present, this one is a duplicate
+        # or a display column; dropping it loses nothing.
+        if suggestion is not None and suggestion not in df.columns:
+            raise ValueError(
+                f"Unrecognized column {col!r} in HFP sheet {iname!r}: did you mean {suggestion!r}? "
+                "Headers are matched exactly. Rename the column, or remove it if it is not "
+                f"meant to be a {suggestion!r} column."
+            )
+
     if cols_to_drop:
         df = df.drop(cols_to_drop, axis=1)
 
@@ -176,7 +223,6 @@ def _checkColumns(df, iname, colList, required_cols=None):
     if missing:
         raise ValueError(
             f"HFP sheet {iname!r} is missing required column(s): {missing}. "
-            "Every listed header must be present; enter 0 where a concept does not apply. "
             "See examples/HFP_template.xlsx."
         )
 
@@ -187,8 +233,12 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
     """
     Make sure that time horizons contain all years up to life expectancy,
     and that values are positive (except big-ticket items and Roth conv).
+
+    Return the conditioned time lists and, per individual, the list of optional
+    columns that were absent from the sheet and filled with zeros.
     """
     timeLists = {}
+    absentCols = {}
     thisyear = date.today().year
     for i, iname in enumerate(inames):
         endyear = thisyear + horizons[i]
@@ -203,6 +253,18 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
             df = df.rename(columns={"other inc.": "other inc"})
 
         df = _checkColumns(df, iname, _timeHorizonItems, required_cols=_requiredTimeHorizonItems)
+
+        # Fill in any optional column the sheet does not carry. This must happen
+        # before the reorder below, which requires every column to be present.
+        absent = [col for col in _optionalTimeHorizonItems if col not in df.columns]
+        for col in absent:
+            df[col] = 0
+        absentCols[iname] = absent
+        if absent:
+            mylog.print(
+                f"Column(s) absent from HFP sheet {iname!r}, treated as zero: {absent}.",
+                tag="WARNING",
+            )
 
         # Ensure columns are in the correct order
         df = df[_timeHorizonItems].copy()
@@ -250,7 +312,7 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                 f"{df['year'].iloc[-1]}, expected {last_expected} (inclusive end of plan for this person)."
             )
 
-    return timeLists
+    return timeLists, absentCols
 
 
 def _conditionHouseTables(dfDict, mylog):
@@ -402,8 +464,11 @@ def build_hfp_dataframes(plan):
     This is used to export an HFP workbook from a Plan that was populated
     programmatically (i.e., without readHFP or setContributions). Values are
     read from the plan's arrays (omega_in, other_inc_in, netinv_in, Lambda_in,
-    kappa_ijn, myRothX_in), including the 5 lead-in years preceding the current
-    year that feed the Roth 5-year maturation rule.
+    qcd_in, kappa_ijn, myRothX_in), including the 5 lead-in years preceding the
+    current year that feed the Roth 5-year maturation rule.
+
+    The full column set is always written, so exporting a workbook that was read
+    with optional columns absent fills them in explicitly with zeros.
 
     Note that the internal arrays merge '401k ctrb' with 'IRA ctrb'
     (tax-deferred) and 'Roth 401k ctrb' with 'Roth IRA ctrb' (tax-free);
@@ -438,6 +503,7 @@ def build_hfp_dataframes(plan):
             df.at[row, "other inc"] = float(plan.other_inc_in[i, n])
             df.at[row, "net inv"] = float(plan.netinv_in[i, n])
             df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
+            df.at[row, "QCD"] = float(plan.qcd_in[i, n])
             df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
             df.at[row, "401k ctrb"] = float(plan.kappa_ijn[i, 1, n])
             df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
@@ -491,6 +557,7 @@ def time_lists_agree(a, b):
         "taxable ctrb",
         "HSA ctrb",
         "Roth conv",
+        "QCD",
         "big-ticket items",
     ]
     mergedCols = [("401k ctrb", "IRA ctrb"), ("Roth 401k ctrb", "Roth IRA ctrb")]

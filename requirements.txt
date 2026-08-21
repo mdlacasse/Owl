@@ -92,7 +92,7 @@ mcp-types==2.0.0
     # via mcp
 mosek==11.2.3
     # via owlplanner
-narwhals==2.24.0
+narwhals==2.25.0
     # via
     #   altair
     #   plotly
@@ -143,7 +143,7 @@ pillow==12.3.0
     #   streamlit
 plotly==6.9.0
     # via owlplanner
-protobuf==7.35.1
+protobuf==7.36.0
     # via streamlit
 pyarrow==25.0.1
     # via streamlit

@@ -339,18 +339,19 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 12 columns titled as follows:
+The **Wages and Contributions** table contains 13 columns titled as follows:
 
-|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | | |
-| ... | | | | | | | | | | |
-|2026 | | | | | | | | | | |
-|2027 | | | | | | | | | | |
-| ... | | | | | | | | | | |
-|20XX | | | | | | | | | | |
+|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|QCD|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | |
+|2026 | | | | | | | | | | | | |
+|2027 | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | |
+|20XX | | | | | | | | | | | | |
 
-All twelve columns **must be present** on each person's sheet; fill a column with 0 or leave it blank where it does not apply.
+Only the *year* column **must be present** on each person's sheet; fill any other column with 0 or
+leave it blank where it does not apply, or leave the column out altogether (see below).
 Any other column on that sheet is dropped on read (see *Input and Output Files*).
 Note that column names are case sensitive and headers use lower case (the legacy header *other inc.* is read as *other inc*).
 The easiest way to complete the process of filling this file is either to start from the template
@@ -431,6 +432,22 @@ leave it blank where it does not apply), where:
   losing it -- handy for comparing an optimized run against "what if I skip this year?"). This column
   is provided for flexibility, e.g. to compare an optimized solution against your own guesses or a
   previously executed conversion.
+- *QCD* is a Qualified Charitable Distribution: money sent from your tax-deferred account straight to
+  a qualified charity. It is not the same as withdrawing the money and then donating it. The amount
+  never enters your taxable income, so it is invisible to federal and state income tax, to the
+  taxability of your Social Security, and to the MAGI that sets your Medicare premiums and the Net
+  Investment Income Tax. That is stronger than a charitable deduction, which most retirees cannot use
+  because they take the standard deduction. It also counts toward your required minimum distribution
+  dollar-for-dollar, so it reduces the taxable withdrawal you are forced to take. The money leaves the
+  tax-deferred account and never reaches your budget, so unlike a withdrawal it does not fund spending.
+  Two rules are checked and a violation is reported as an error rather than quietly adjusted: you must
+  have reached age 70½ (not the same as the age your RMDs begin), and the amount is capped per person
+  per year (\\$115,000 in 2026, indexed for inflation; later years are projected at 3%, since the IRS
+  sets the figure only a year at a time). Note that a QCD must be paid from an IRA and not directly
+  from a 401k or 403b, while **Owl** keeps all of these in a single tax-deferred account and cannot
+  tell them apart. This is a step to take rather than an obstacle: roll the employer plan over to an
+  IRA first and the money becomes eligible. That rollover needs nothing entered in **Owl**, since
+  both balances already sit in the same account.
 - *big-ticket items* are used for accounting for the sale or purchase of a house, or any other major
   expense or money that you would give or receive (e.g., inheritance, or large gifts to or from you).
   Therefore, the **sign (+/-) of entries in this column is important**: positive numbers are considered
@@ -440,6 +457,13 @@ leave it blank where it does not apply), where:
 
 Along with *Roth conv*, *big-ticket items* is one of the only two columns that can contain negative
 numbers; all other column entries must be positive.
+
+Only the *year* column is required. If your household has no use for a column, you can leave it out of
+the workbook entirely and it is read as zero for every year; **Owl** reports which columns were absent
+when it loads the file. The one exception is *Roth conv* while the Roth conversion overrides toggle is
+on: there a `0` means "optimize this year", so an absent column cannot be told apart from "no year is
+pinned", and **Owl** asks you to add it rather than guess. A header that differs from a recognized one
+only by capitalization, spacing, or punctuation is reported as a typo instead of being dropped.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your

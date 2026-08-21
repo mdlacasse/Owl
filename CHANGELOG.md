@@ -1,3 +1,62 @@
+### Version 2026.8.21
+
+#### Added: Qualified Charitable Distributions - Issue #137
+A QCD sends money from a tax-deferred account straight to a charity. It is not the
+same as withdrawing the money and donating it, and the difference is worth real money
+to a charitably-inclined retiree with a large IRA. Enter amounts in the new `QCD`
+column of the HFP workbook, per person and per year.
+
+Owl models the four properties that make it distinct. The amount is excluded from AGI,
+so it is invisible to federal and state income tax, to the taxability of Social Security,
+and to the MAGI behind IRMAA and the NII tax — a stronger benefit than a charitable
+deduction, which most retirees cannot use because they take the standard deduction. It
+counts toward the RMD dollar-for-dollar, lowering the taxable distribution the plan is
+forced to take. It leaves the tax-deferred balance, which shrinks later RMDs too. And it
+never reaches the household budget, so it funds no spending.
+
+Age 70½ and the annual per-person limit (\$108,000 in 2025, \$115,000 in 2026) are
+enforced as errors rather than silent adjustments. IRS publishes the limit a year at a
+time, so later years carry the last published figure forward at a fixed 3.0% — the
+geometric mean of CPI across Owl's full 1928–2025 rate history. The rate is deliberately
+a constant and not the scenario's own inflation: the cap validates user input, and a
+scenario-dependent bound would accept an entry on one Monte Carlo path and reject it on
+the next.
+
+`Case_jordan+taylor-qcd` is the worked example: `Case_jordan+taylor` with a giving
+schedule added and nothing else changed, so a comparison isolates one variable. Jordan
+and Taylor give \$1.17M (today's dollars) between 2029 and the end of the plan. Funded
+from after-tax cash they end with \$1,057,269; routed through QCDs, \$1,205,027 — about
+\$148,000 more estate, from \$220,000 less in tax and Medicare premiums. \$1.30M of the
+giving satisfies RMDs outright. The freed ordinary-income headroom is not wasted: the
+optimizer converts it to Roth dollar-for-dollar, so taxable income barely moves and the
+benefit lands in the estate rather than in a smaller tax bill.
+
+Limitations, all stated in the documentation. QCDs must be paid from an IRA, not directly
+from a 401(k)/403(b), and Owl aggregates both into one tax-deferred account so it cannot
+tell them apart. That is a planning step rather than a real obstacle: rolling the employer
+plan over to an IRA first makes the money eligible, and the rollover is itself a non-event
+in the model, since both balances already live in the same account. The anti-abuse offset
+for deductible IRA contributions after 70½ is not applied, and the one-time
+split-interest-entity QCD is not modeled.
+
+#### Changed: HFP person sheets no longer require every column
+Version 2026.03.26 made all person-sheet columns mandatory. That is reversed for
+robustness: only `year` is required now, and any other recognized column may be omitted
+and is read as zero for every year, with a message naming the columns that were absent.
+List the columns your household actually uses.
+
+Strictness was worth having for one reason — it caught a misspelled header, because the
+misspelling was dropped and the properly named column then came up missing. That
+protection no longer depends on it. A header differing from a recognized one only by
+capitalization, spacing, or punctuation is now reported as a typo and names the intended
+spelling. Matching is on exact equality after folding, never fuzzy, so genuine helper and
+calculated columns are still dropped silently as documented.
+
+One column is exempt. Under `useRothConvOverrides`, `Roth conv` carries meaning rather
+than dollars: `0` means "leave this year unconstrained". An absent column would read as
+"no year is pinned" — the one case where absence is ambiguous rather than simply zero — so
+Owl refuses to run instead of guessing. With the option off it is optional like the rest.
+
 ### Version 2026.8.19
 
 #### Changed: `Case_cameron` now describes a household that can afford to live

@@ -109,6 +109,17 @@ SUMMARY_SECTION_PARTIAL_BEQUEST = "--- Partial bequest ---"
 SUMMARY_SECTION_FINAL_BEQUEST = "--- Final bequest ---"
 SUMMARY_SECTION_PLAN = "--- Plan & solver ---"
 
+# Columns of an Accounts worksheet that carry a terminal balance in the extra row
+# appended past the last plan year, mapped to their account index j. Every other
+# column in that row is zero. Keyed by header so the row cannot drift out of
+# alignment when a column is added to the sheet.
+_ACCOUNT_FINAL_BALANCES = {
+    "taxable bal": 0,
+    "tax-deferred bal": 1,
+    "tax-free bal": 2,
+    "HSA bal": 3,
+}
+
 
 def _summary_section(dic, title):
     """Insert a visual section divider row (empty value)."""
@@ -395,6 +406,16 @@ def build_summary_dic(plan, N=None):
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Roth conversions", totRothNow, totRoth)
+
+    # Only reported when the household actually gives this way, to keep the
+    # summary of an ordinary plan unchanged.
+    totQCD = np.sum(plan.qcd_in[:, :N], axis=(0, 1))
+    if totQCD > 0:
+        totQCDNow = np.sum(np.sum(plan.qcd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+        _summary_currency_pair(dic, "Total qualified charitable distributions", totQCDNow, totQCD)
+        totQCDRmd = np.sum(plan.qcd_rmd_in[:, :N], axis=(0, 1))
+        totQCDRmdNow = np.sum(np.sum(plan.qcd_rmd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+        _summary_currency_pair(dic, "Satisfying RMDs", totQCDRmdNow, totQCDRmd, prefix="»  ")
 
     _summary_section(dic, SUMMARY_SECTION_TAXES)
     taxPaid = np.sum(plan.T_n[:N], axis=0)
@@ -723,6 +744,7 @@ def plan_metrics(plan, N=None) -> dict:
 
     streams = fixedIncomeStreams(plan, N)
     roth_n = np.sum(plan.x_in[:, :N], axis=0)  # per-year total Roth conversions (N_n,)
+    qcd_n = np.sum(plan.qcd_in[:, :N], axis=0)  # per-year total QCDs (N_n,)
 
     estate, heirs_tax, savings_estate, total_estate, _ = _compute_estate(plan, N)
 
@@ -756,6 +778,8 @@ def plan_metrics(plan, N=None) -> dict:
         "wages_nominal": _s(streams["wages"]),
         "roth_conversions_today": _st(roth_n),
         "roth_conversions_nominal": _s(roth_n),
+        "qcd_today": _st(qcd_n),
+        "qcd_nominal": _s(qcd_n),
         # Taxes & premiums
         "federal_income_tax_today": _st(plan.T_n[:N]),
         "federal_income_tax_nominal": _s(plan.T_n[:N]),
@@ -820,6 +844,8 @@ METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     "wages_nominal": (f"»  Wages{_N}", "usd"),
     "roth_conversions_today": (f"Total Roth conversions{_T}", "usd"),
     "roth_conversions_nominal": (f"Total Roth conversions{_N}", "usd"),
+    "qcd_today": (f"Total qualified charitable distributions{_T}", "usd"),
+    "qcd_nominal": (f"Total qualified charitable distributions{_N}", "usd"),
     "federal_income_tax_today": (f"Total tax paid on ordinary income{_T}", "usd"),
     "federal_income_tax_nominal": (f"Total tax paid on ordinary income{_N}", "usd"),
     "ltcg_tax_today": (f"Total tax paid on gains and dividends{_T}", "usd"),
@@ -998,6 +1024,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "tax-deferred ctrb": plan.kappa_ijn[:, 1, : plan.N_n],
         "tax-deferred wdrwl": plan.w_ijn[:, 1, :],
         "(included RMDs)": plan.rmd_in[:, :],
+        "QCD": plan.qcd_in,
+        "(RMD met by QCD)": plan.qcd_rmd_in,
         "Roth conv": plan.x_in,
         "tax-free bal": plan.b_ijn[:, 2, :-1],
         "tax-free ctrb": plan.kappa_ijn[:, 2, : plan.N_n],
@@ -1013,24 +1041,12 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         scale_final = (1.0 / plan.gamma_n[plan.N_n]) if real else 1.0
         final_year = plan.year_n[-1] + 1
 
-        lastRow = [
-            final_year,
-            float(u.roundCents(plan.b_ijn[i][0][-1] * scale_final)),
-            0,
-            0,
-            0,
-            float(u.roundCents(plan.b_ijn[i][1][-1] * scale_final)),
-            0,
-            0,
-            0,
-            0,
-            float(u.roundCents(plan.b_ijn[i][2][-1] * scale_final)),
-            0,
-            0,
-            float(u.roundCents(plan.b_ijn[i][3][-1] * scale_final)),
-            0,
-            0,
-        ]
+        # Terminal balances, appended after the data rows. Built from accDic's own keys
+        # so that inserting a column above cannot shift this row out of alignment.
+        lastRow = [final_year]
+        for key in accDic:
+            j = _ACCOUNT_FINAL_BALANCES.get(key)
+            lastRow.append(0 if j is None else float(u.roundCents(plan.b_ijn[i][j][-1] * scale_final)))
         if plan.worksheetShowAges:
             last_y = _last_alive_calendar_year(plan, i)
             age_cell = _worksheet_age_int_cell(final_year, plan, i, last_y)  # None or int
@@ -1226,6 +1242,7 @@ def plan_to_csv(plan, basename, mylog):
         planData[plan.inames[i] + " tx-def ctrb"] = plan.kappa_ijn[i, 1, : plan.N_n]
         planData[plan.inames[i] + " tx-def wdrl"] = plan.w_ijn[i, 1, :]
         planData[plan.inames[i] + " (RMD)"] = plan.rmd_in[i, :]
+        planData[plan.inames[i] + " QCD"] = plan.qcd_in[i, :]
         planData[plan.inames[i] + " Roth conv"] = plan.x_in[i, :]
         planData[plan.inames[i] + " tx-free bal"] = plan.b_ijn[i, 2, :-1]
         planData[plan.inames[i] + " tx-free ctrb"] = plan.kappa_ijn[i, 2, : plan.N_n]

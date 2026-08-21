@@ -252,6 +252,10 @@ class Plan:
         # Year index when each individual turns 59½ (IRS threshold). Born Jul–Dec: +1 year.
         self.n595 = 59 - thisyear + self.yobs + (self.mobs > 6).astype(np.int32)
         self.n595[self.n595 < 0] = 0
+        # Year index when each individual turns 70½, the QCD eligibility threshold.
+        # Same half-year convention as n595; unrelated to the RMD start age.
+        self.n_qcd_i = 70 - thisyear + self.yobs + (self.mobs > 6).astype(np.int32)
+        self.n_qcd_i[self.n_qcd_i < 0] = 0
         # Handle passing of one spouse before the other.
         if self.N_i == 2 and np.min(self.horizons) != np.max(self.horizons):
             self.n_d = np.min(self.horizons)
@@ -315,6 +319,9 @@ class Plan:
         self.other_inc_in = np.zeros((self.N_i, self.N_n))
         self.netinv_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
+        # Qualified Charitable Distributions: leave the tax-deferred account for
+        # charity, so they are excluded from AGI and are not spendable cash.
+        self.qcd_in = np.zeros((self.N_i, self.N_n))
         # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
@@ -376,6 +383,8 @@ class Plan:
         self.timeLists = {}
         self.houseLists = {}
         self.rawHFP = {}  # raw dict of DataFrames from the HFP xlsx (horizon-independent)
+        # Optional HFP columns absent from each individual's sheet and filled with zeros.
+        self.hfpAbsentCols = {}
         self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
@@ -731,6 +740,10 @@ class Plan:
             "healthcare": float(np.sum((self.medicare_n + self.aca_costs_n) * inv_g)),
             "debt": float(np.sum(self.debt_payments_n * inv_g)),
             "bti": bti_out,
+            # QCDs leave the portfolio for charity without passing through the budget.
+            # Counting them here makes the gift visible; the portfolio slice below is a
+            # residual, so it absorbs the same amount and both sides still balance.
+            "charity": float(np.sum(np.sum(self.qcd_in, axis=0) * inv_g)),
             "bequest": self.bequest + self.partialBequest,
             "heirtax": self.heir_tax_liability + self.partial_heir_tax_liability,
         }
@@ -778,6 +791,8 @@ class Plan:
             "healthcare": (self.medicare_n + self.aca_costs_n) * inv_g,
             "debt": self.debt_payments_n * inv_g,
             "bti": np.maximum(0.0, -Lambda_n),
+            # See lifetime_allocation: charity is funded from the portfolio residual.
+            "charity": np.sum(self.qcd_in, axis=0) * inv_g,
         }
         guaranteed = {
             "ss": np.sum(self.zetaBar_in, axis=0) * inv_g,
@@ -1599,8 +1614,7 @@ class Plan:
         The HFP file contains wages, contributions, Roth conversions,
         big-ticket items (per individual), and optionally Debts and Fixed Assets.
         File can be an excel, or odt file with one tab named after each
-        spouse and must have the following column headers (all required;
-        use 0 where a concept does not apply):
+        spouse and recognizing the following column headers:
 
                 'year',
                 'anticipated wages',
@@ -1613,9 +1627,14 @@ class Plan:
                 'Roth IRA ctrb',
                 'HSA ctrb',
                 'Roth conv',
+                'QCD',
                 'big-ticket items'
 
-        in any order. Legacy header 'other inc.' is read as 'other inc'.
+        in any order. Only 'year' is required: list the columns your household
+        actually uses, and any other column that is absent is treated as zero
+        for every year. A header differing from a recognized one only by case,
+        spacing, or punctuation is rejected as a typo rather than dropped.
+        Legacy header 'other inc.' is read as 'other inc'.
         Optional workbook sheets 'Debts' and 'Fixed Assets' follow HFP formats.
         A template is provided as an example.
         Missing rows (years) are populated with zero values.
@@ -1633,7 +1652,7 @@ class Plan:
             in log messages instead of trying to extract it from filename.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists, self.rawHFP = hfp_io.read(
+            returned_filename, self.timeLists, self.houseLists, self.rawHFP, self.hfpAbsentCols = hfp_io.read(
                 filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
             )
         except Exception as e:
@@ -1651,6 +1670,12 @@ class Plan:
         """
         if timeLists is not None:
             self.timeLists = timeLists
+            # These tables carry every column, so none is absent (see readHFP).
+            self.hfpAbsentCols = {iname: [] for iname in self.inames}
+
+        # Staged, not assigned: validateQCD() below rejects the whole table on a bad
+        # cell, and self.qcd_in must not be left holding values that were refused.
+        qcd_in = np.zeros((self.N_i, self.N_n))
 
         # Now fill in parameters which are in $.
         for i, iname in enumerate(self.inames):
@@ -1659,6 +1684,7 @@ class Plan:
             self.other_inc_in[i, :h] = self.timeLists[iname]["other inc"].iloc[5 : 5 + h]
             self.netinv_in[i, :h] = self.timeLists[iname]["net inv"].iloc[5 : 5 + h]
             self.Lambda_in[i, :h] = self.timeLists[iname]["big-ticket items"].iloc[5 : 5 + h]
+            qcd_in[i, :h] = self.timeLists[iname]["QCD"].iloc[5 : 5 + h]
 
             # Values for last 5 years of Roth conversion and contributions stored at the end
             # of array and accessed with negative index.
@@ -1689,9 +1715,59 @@ class Plan:
             self.kappa_ijn[i, 3, -5:] = self.timeLists[iname]["HSA ctrb"][:5]
             self.myRothX_in[i, -5:] = self.timeLists[iname]["Roth conv"][:5]
 
+        self.validateQCD(qcd_in=qcd_in)
+        self.qcd_in[:, :] = qcd_in
+
         self.caseStatus = "modified"
 
         return self.timeLists
+
+    def validateQCD(self, qcd_in=None, inames=None):
+        """
+        Check Qualified Charitable Distributions against the two statutory rules Owl
+        can verify: the age-70½ threshold and the annual per-person exclusion limit.
+
+        Raises ValueError on a violation. Pass qcd_in to check candidate values
+        without touching the plan -- editors use this to reject a bad cell at entry
+        rather than at solve time.
+
+        The limit is published a year at a time, so beyond the table it is carried
+        forward at a fixed assumed inflation (tx.qcdLimitForYear). Projecting rather
+        than holding the last published figure flat matters: giving indexed to
+        inflation, the natural way to express a constant real gift, crosses a flat
+        cap within a few years and would otherwise be rejected wholesale.
+        """
+        qcd_in = self.qcd_in if qcd_in is None else np.atleast_2d(qcd_in)
+        inames = self.inames if inames is None else inames
+
+        thisyear = date.today().year
+        last_published = max(tx.qcdLimit)
+        for i, iname in enumerate(inames):
+            for n in range(min(self.horizons[i], qcd_in.shape[1])):
+                amount = qcd_in[i, n]
+                if amount <= 0:
+                    continue
+                year = thisyear + n
+                if n < self.n_qcd_i[i]:
+                    age = year - self.yobs[i]
+                    raise ValueError(
+                        f"QCD of ${amount:,.0f} for {iname} in {year}: a Qualified Charitable "
+                        f"Distribution requires age 70½, and {iname} turns {age} that year."
+                    )
+                cap = tx.qcdLimitForYear(year)
+                if amount > cap:
+                    basis = (
+                        "the annual per-person exclusion limit"
+                        if year <= last_published
+                        else (
+                            f"the projected annual per-person exclusion limit "
+                            f"({last_published}'s ${tx.qcdLimit[last_published]:,.0f} carried forward at "
+                            f"{100 * tx.QCD_LIMIT_INFLATION:.1f}% inflation)"
+                        )
+                    )
+                    raise ValueError(
+                        f"QCD of ${amount:,.0f} for {iname} in {year} exceeds {basis} of ${cap:,.0f}."
+                    )
 
     def processDebtsAndFixedAssets(self):
         """
@@ -1912,23 +1988,16 @@ class Plan:
         self.other_inc_in[:, :] = 0.0
         self.netinv_in[:, :] = 0.0
         self.Lambda_in[:, :] = 0.0
+        self.qcd_in[:, :] = 0.0
         self.myRothX_in[:, :] = 0.0
         self.kappa_ijn[:, :, :] = 0.0
 
-        cols = [
-            "year",
-            "anticipated wages",
-            "other inc",
-            "net inv",
-            "taxable ctrb",
-            "401k ctrb",
-            "Roth 401k ctrb",
-            "IRA ctrb",
-            "Roth IRA ctrb",
-            "HSA ctrb",
-            "Roth conv",
-            "big-ticket items",
-        ]
+        # Single source of truth: adding an HFP column must not require editing this.
+        cols = list(hfp_io.timeHorizonItems())
+        # The tables built below carry every column, so none is absent any more. Left
+        # stale, a 'Roth conv' entry here would make useRothConvOverrides refuse to run
+        # on a table that does have the column.
+        self.hfpAbsentCols = {iname: [] for iname in self.inames}
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             df = pd.DataFrame(0, index=np.arange(0, h + 5), columns=cols)
@@ -2290,7 +2359,9 @@ class Plan:
                         self.vm["w"].idx(i, 1, n): 1,
                         self.vm["b"].idx(i, 1, n): -self.rho_in[i, n],
                     }
-                    self.A.addNewRow(rowDic, 0, np.inf, tag=("rmd", i, n))
+                    # A QCD counts toward the RMD dollar-for-dollar, so it lowers the
+                    # floor on the withdrawal that has to be taken as taxable income.
+                    self.A.addNewRow(rowDic, -self.qcd_in[i, n], np.inf, tag=("rmd", i, n))
 
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
@@ -2486,6 +2557,17 @@ class Plan:
         # policy constraints above: positive values pin x[i,n] to that exact amount
         # (bypassing the cap), negative values (any magnitude) force x[i,n] to 0.
         if options.get("useRothConvOverrides", False):
+            # In override mode this column carries semantics, not dollars: 0 means
+            # 'leave this year unconstrained'. An absent column was zero-filled on
+            # load, which would silently read as 'no year is pinned' -- the one
+            # case where a missing column is ambiguous rather than simply zero.
+            lacking = [iname for iname, cols in self.hfpAbsentCols.items() if "Roth conv" in cols]
+            if lacking:
+                raise ValueError(
+                    f"Solver option 'useRothConvOverrides' is on, but the 'Roth conv' column is "
+                    f"absent from the HFP sheet(s) for {', '.join(repr(n) for n in lacking)}. "
+                    "Add the column with per-year overrides, or turn the option off."
+                )
             for i in range(self.N_i):
                 if i == i_xcluded:
                     continue
@@ -2521,7 +2603,8 @@ class Plan:
             # for n in range(self.N_n):
             for n in range(self.horizons[i]):
                 rowDic = {self.vm["w"].idx(i, 1, n): -1, self.vm["x"].idx(i, n): -1, self.vm["b"].idx(i, 1, n): 1}
-                self.A.addNewRow(rowDic, 0, np.inf, tag=("withdrawal_limit", i, 1, n))
+                # A QCD is drawn from the same account and consumes its capacity.
+                self.A.addNewRow(rowDic, self.qcd_in[i, n], np.inf, tag=("withdrawal_limit", i, 1, n))
                 for j in [0, 2, 3]:
                     rowDic = {self.vm["w"].idx(i, j, n): -1, self.vm["b"].idx(i, j, n): 1}
                     self.A.addNewRow(rowDic, 0, np.inf, tag=("withdrawal_limit", i, j, n))
@@ -2596,6 +2679,13 @@ class Plan:
                     continue
                 # Tax-deferred beyond the RMD only once taxable is exhausted:
                 # w[i,1,n] - rho*b[i,1,n] - M*z1 <= 0  (mirrors the RMD floor row).
+                # Deliberately NOT credited with the QCD the way the RMD row is. The
+                # true cash floor is max(rho*b - qcd, 0), and rho*b is an expression, so
+                # subtracting qcd here would demand w <= rho*b - qcd — infeasible for any
+                # household whose QCD exceeds its gross RMD while taxable is not yet
+                # exhausted. This keeps the gate loose by at most the QCD amount, which
+                # only ever permits (never forces) an extra withdrawal under a policy
+                # that exists to model a naive baseline.
                 self.A.addNewRow(
                     {
                         self.vm["w"].idx(i, 1, n): 1,
@@ -2693,6 +2783,8 @@ class Plan:
                     # SPIA premium: non-taxable IRA rollover — reduces tax-deferred balance directly.
                     if j == 1:
                         rhs -= self.spia_premiums_in[i, n]
+                        # QCD leaves the tax-deferred account for charity.
+                        rhs -= fac1 * Tau1_ijn[i, 1, n] * self.qcd_in[i, n]
 
                     row = self.A.newRow()
                     row.addElem(self.vm["b"].idx(i, j, n + 1), 1)
@@ -2707,6 +2799,10 @@ class Plan:
                     if self.N_i == 2 and self.n_d < self.N_n and i == self.i_s and n == self.n_d - 1:
                         fac2 = self.phi_j[j]
                         rhs += fac2 * self.kappa_ijn[self.i_d, j, n] * Tauh_ijn[self.i_d, j, n]
+                        if j == 1:
+                            # fac1 == 0 zeroed the deceased's own row, so their final-year
+                            # QCD has to be accounted for here, in the inherited balance.
+                            rhs -= fac2 * Tau1_ijn[self.i_d, 1, n] * self.qcd_in[self.i_d, n]
                         row.addElem(self.vm["b"].idx(self.i_d, j, n), -fac2 * Tau1_ijn[self.i_d, j, n])
                         row.addElem(self.vm["w"].idx(self.i_d, j, n), fac2 * Tau1_ijn[self.i_d, j, n])
                         row.addElem(self.vm["d"].idx(self.i_d, n), -fac2 * u.krond(j, 0) * Tau1_ijn[self.i_d, 0, n])
@@ -5687,9 +5783,15 @@ class Plan:
 
         self._netSurplusRoundTrip()
 
-        self.rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
+        # Split the tax-deferred withdrawal into the part the RMD forced and the
+        # discretionary remainder. A QCD satisfies the RMD without being a withdrawal,
+        # so w can legitimately fall below the gross RMD; clamping keeps the reported
+        # halves non-negative and, critically, still summing exactly to w[:,1,:] —
+        # the sources decomposition is a cash identity and must not gain or lose a dollar.
+        gross_rmd_in = self.rho_in * self.b_ijn[:, 1, :-1]
+        self.qcd_rmd_in = np.minimum(self.qcd_in, gross_rmd_in)
+        self.rmd_in = np.minimum(np.maximum(gross_rmd_in - self.qcd_in, 0), self.w_ijn[:, 1, :])
         self.dist_in = self.w_ijn[:, 1, :] - self.rmd_in
-        self.dist_in[self.dist_in < 0] = 0
 
         # Make derivative variables.
         # Putting it all together in a dictionary.

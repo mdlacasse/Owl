@@ -56,6 +56,7 @@ _OUTFLOW_COLORS = {
     "healthcare": "#FF9800",
     "debt": "#9E9E9E",
     "bti": "#FF6F00",
+    "charity": "#00897B",
     "bequest": "#4CAF50",
     "heirtax": "#E91E63",
 }
@@ -1777,6 +1778,7 @@ class PlotlyBackend(PlotBackend):
             "healthcare": "Healthcare",
             "debt": "Debt payments",
             "bti": "Big-ticket items",
+            "charity": "Charitable giving",
             "bequest": "Bequest",
             "heirtax": "Est. heir taxes",
         }
@@ -1856,6 +1858,7 @@ class PlotlyBackend(PlotBackend):
             "healthcare": "Healthcare",
             "debt": "Debt payments",
             "bti": "Big-ticket items",
+            "charity": "Charitable giving",
         }
         # portfolio is first so it anchors the bottom of the income stack.
         income_labels = {

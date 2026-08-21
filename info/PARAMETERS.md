@@ -65,16 +65,18 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 
 - **Person sheets (required):** One worksheet per individual. The sheet name must **exactly** match the corresponding entry in `[basic_info]` `names` (e.g. `Jack` and `Jill`).
 - **Years:** On read, each person’s sheet is trimmed to calendar years from five years before the **current** year through that person’s last plan year (from date of birth and `life_expectancy`). Rows with `year` outside that window are dropped. **Any missing calendar year inside that window—including the terminal year—is inserted with zeros**; you do not need a spreadsheet row for every year. After loading, the in-memory table for each person always ends on that person’s final plan year.
-- **Column headers:** Use the **exact** strings below (lowercase; column order may vary). **Every column must be present** on each person sheet; enter `0` where a concept does not apply. The legacy header `other inc.` is accepted and normalized to `other inc`. **Any other column** on a person sheet (including helper or calculated columns), and blank or `Unnamed` columns, are **dropped** when the file is read; they are not preserved in the planner. A blank template is [HFP_template.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
+- **Column headers:** Use the **exact** strings below (lowercase; column order may vary). Only `year` is **required**: list the columns your household actually uses, and any other recognized column that is absent is treated as `0` for every year (a message reports which ones). You may still list every column and enter `0` where a concept does not apply. The legacy header `other inc.` is accepted and normalized to `other inc`. **Any other column** on a person sheet (including helper or calculated columns), and blank or `Unnamed` columns, are **dropped** when the file is read; they are not preserved in the planner. As a safeguard, a header that differs from a recognized one only by capitalization, spacing, or punctuation (e.g. `401K  Ctrb`) is **rejected as a typo** rather than silently dropped, since dropping it would zero real data. A blank template is [HFP_template.xlsx](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
 - **Units:** All numeric cells on person sheets are **nominal dollars** (full dollars), not thousands. This is independent of `[solver_options]` `units` (`k` / `1` / `M`), which applies to amounts in the TOML case file and solver options such as `bequest` and `netSpending`.
 - **Optional household sheets:** The workbook may include sheets named **`Debts`** and **`Fixed Assets`**. If omitted, debts and fixed assets are treated as empty. See column lists under *Optional sheets* below.
-- **Per-cell Roth conversion overrides:** When `[solver_options]` `useRothConvOverrides` is `true`, the `Roth conv` column of the HFP time lists pins individual years: a positive entry pins that year's conversion to the exact amount (bypassing `maxRothConversion`), a negative entry forces that year's conversion to 0, and `0` leaves the year unconstrained (see solver options).
+- **Per-cell Roth conversion overrides:** When `[solver_options]` `useRothConvOverrides` is `true`, the `Roth conv` column of the HFP time lists pins individual years: a positive entry pins that year's conversion to the exact amount (bypassing `maxRothConversion`), a negative entry forces that year's conversion to 0, and `0` leaves the year unconstrained (see solver options). In this mode the column carries meaning rather than dollars, so an absent `Roth conv` column would read as *no year is pinned*. That is the one case where absence is ambiguous rather than simply zero, and Owl refuses to run instead of guessing.
 
-#### Person sheet columns (all required)
+#### Person sheet columns
+
+`year` is the only required column. Every other column may be omitted and is then `0` for all years.
 
 | Header | Meaning |
 |--------|---------|
-| `year` | Calendar year |
+| `year` | Calendar year (**required**) |
 | `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal \$ |
 | `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$ |
 | `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal \$ |
@@ -85,7 +87,26 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 | `Roth IRA ctrb` | Roth IRA contributions, nominal \$ |
 | `HSA ctrb` | HSA contributions, nominal **dollars** (not \$k). Pre-tax; reduce AGI, MAGI, and SS provisional income. Values after Medicare enrollment (~65) are ignored. 2026 IRS limits: \$4,400 (self-only) / \$8,750 (family); +\$1,000 catch-up if 55+ |
 | `Roth conv` | Roth conversions from tax-deferred accounts, nominal \$ |
+| `QCD` | Qualified Charitable Distributions: money sent from the tax-deferred account straight to a charity, nominal \$. See below |
 | `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal \$ |
+
+#### Qualified Charitable Distributions (`QCD`)
+
+A QCD is a direct transfer from an IRA to a qualified charity. Owl models the four things that make it different from simply withdrawing the money and donating it:
+
+- **Excluded from AGI.** It never enters taxable income, so it is invisible to federal and state income tax, to the taxability of Social Security, and to the MAGI that drives IRMAA and the NII tax. This is stronger than a deduction, which most retirees cannot use because they take the standard deduction.
+- **Counts toward the RMD.** It satisfies the required minimum distribution dollar-for-dollar, lowering the taxable withdrawal the plan is forced to take.
+- **Leaves the tax-deferred account.** The balance drops accordingly, which also reduces later RMDs.
+- **Is not spendable cash.** Unlike a withdrawal, it never reaches the household budget, so it does not fund spending.
+
+Two rules are checked when the value is read, and a violation is an error rather than a silent adjustment:
+
+- **Age.** The donor must have reached 70½. Owl applies the same whole-year convention it uses for the 59½ threshold: someone born in the second half of the year becomes eligible in the year they turn 71. Note this is *not* the RMD start age.
+- **Annual limit.** \$108,000 per person in 2025 and \$115,000 in 2026, indexed for inflation. IRS publishes the figure a year at a time, so for later years Owl carries the last published figure forward at a fixed 3.0% (the geometric mean of CPI over its full 1928–2025 rate history). The projection is a deliberate constant rather than the scenario's own inflation: it validates your input, and a scenario-dependent bound would accept an entry on one Monte Carlo path and reject it on the next.
+
+**Not modeled.** QCDs must be paid from an IRA, not directly from a 401(k)/403(b), and Owl aggregates both into a single tax-deferred account, so it cannot check this for you. In practice this is a step to take rather than an obstacle: roll the employer plan over to an IRA first and the money becomes eligible. Such a rollover needs no representation in Owl, since both balances already sit in the same account. The anti-abuse offset, whereby deductible IRA contributions made after 70½ cumulatively reduce the excludable amount, is not applied. Neither is the one-time larger distribution to a split-interest entity such as a charitable gift annuity or remainder trust.
+
+See `examples/Case_jordan+taylor-qcd.toml`, which is `Case_jordan+taylor` with a giving schedule added and nothing else changed.
 
 #### Optional sheet `Debts`
 

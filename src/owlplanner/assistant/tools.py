@@ -809,6 +809,7 @@ def _build_plan_from_params(
     wages=None,
     contributions=None,
     big_ticket_items=None,
+    qcds=None,
     roth_conversions=None,
     debts=None,
     fixed_assets=None,
@@ -1038,6 +1039,24 @@ def _build_plan_from_params(
                 if start_yr <= thisyear + n < end_yr:
                     plan.Lambda_in[i, n] += amount
 
+    # Time-series: qualified charitable distributions → qcd_in (annual $/year).
+    # Excluded from AGI, credited against the RMD, and drawn from the tax-deferred
+    # account -- so unlike a big-ticket item this never touches spendable cash.
+    if qcds:
+        for q in qcds:
+            i = int(q.get("person", 0))
+            _check_person_index(i, N_i, "qcds")
+            amount = float(_get_field(q, "annual_amount"))
+            start_yr = int(_get_field(q, "start_year", thisyear))
+            end_yr = int(_get_field(q, "end_year", thisyear + int(plan.horizons[i])))
+            # Clamped to this person's own horizon. Past it their balances are pinned to
+            # zero, so a stray QCD would be an unexplained infeasibility rather than a
+            # number the user could see and correct.
+            for n in range(int(plan.horizons[i])):
+                if start_yr <= thisyear + n < end_yr:
+                    plan.qcd_in[i, n] += amount
+        plan.validateQCD()
+
     # Roth conversion overrides → myRothX_in (see _apply_roth_conversion_overrides)
     if roth_conversions:
         _apply_roth_conversion_overrides(plan, roth_conversions, N_i, thisyear)
@@ -1154,6 +1173,7 @@ def _run_from_params_blocking(
     wages=None,
     contributions=None,
     big_ticket_items=None,
+    qcds=None,
     roth_conversions=None,
     debts=None,
     fixed_assets=None,
@@ -1221,6 +1241,7 @@ def _run_from_params_blocking(
         wages,
         contributions,
         big_ticket_items,
+        qcds,
         roth_conversions,
         debts,
         fixed_assets,
@@ -1315,6 +1336,7 @@ async def run_from_params(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -1439,6 +1461,17 @@ async def run_from_params(
                         "end_year": 2030, "label": "healthcare"}.  Use for planned large
                         purchases or recurring costs NOT covered by the spending floor.
                         Distinct from debts (which have an amortization schedule).
+        qcds:           Qualified charitable distributions: money paid from the tax-deferred
+                        account straight to a charity.  Each entry: {"person": 0,
+                        "annual_amount": 20000, "start_year": 2029, "end_year": 2040,
+                        "label": "church"}.  NOT the same as donating a withdrawal: the
+                        amount is excluded from AGI (so it is invisible to income tax, to
+                        Social Security taxability, and to the MAGI behind IRMAA and NIIT),
+                        counts toward the RMD dollar-for-dollar, and leaves the tax-deferred
+                        balance.  It never reaches the spending budget, so unlike a
+                        big_ticket_item it funds nothing.  Requires the donor to have reached
+                        age 70.5, and is capped per person per year (indexed for inflation);
+                        both are enforced as errors.
         roth_conversions: Per-cell Roth conversion overrides, only enforced when
                         use_roth_conv_overrides is true.  Each entry: {"person": 0,
                         "year": 2026, "amount": 20000}.  A positive amount pins that
@@ -1672,6 +1705,7 @@ async def run_from_params(
             wages,
             contributions,
             big_ticket_items,
+            qcds,
             roth_conversions,
             debts,
             fixed_assets,
@@ -1758,6 +1792,7 @@ def save_case(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -1841,6 +1876,7 @@ def save_case(
             wages,
             contributions,
             big_ticket_items,
+            qcds,
             roth_conversions,
             debts,
             fixed_assets,
@@ -2085,6 +2121,7 @@ async def compare_to_baseline(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -2246,6 +2283,7 @@ async def compare_to_baseline(
             wages=wages,
             contributions=contributions,
             big_ticket_items=big_ticket_items,
+            qcds=qcds,
             roth_conversions=roth_conversions,
             debts=debts,
             fixed_assets=fixed_assets,
@@ -2360,6 +2398,7 @@ async def explain_results(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -2514,6 +2553,7 @@ async def explain_results(
             wages=wages,
             contributions=contributions,
             big_ticket_items=big_ticket_items,
+            qcds=qcds,
             roth_conversions=roth_conversions,
             debts=debts,
             fixed_assets=fixed_assets,
@@ -2845,6 +2885,7 @@ async def run_stochastic(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -2932,6 +2973,8 @@ async def run_stochastic(
         contributions:        Contributions: [{"person":0,"account":"tax_deferred","annual_amount":23000}].
                               Use list_contribution_limits to find IRS max amounts (incl. catch-up).
         big_ticket_items:     Extra annual expenses: [{"person":0,"annual_amount":5000,"start_year":2027}].
+        qcds:                 Qualified charitable distributions, same shape. IRA-to-charity:
+                              excluded from AGI and credited against the RMD.
         debts:                Debts: [{"label":"mortgage","type":"mortgage","balance":300000,
                               "rate":3.5,"years_remaining":20}].
         fixed_assets:         Assets: [{"label":"house","type":"residence","value":800000,
@@ -3074,6 +3117,7 @@ async def run_stochastic(
                 wages,
                 contributions,
                 big_ticket_items,
+                qcds,
                 roth_conversions,
                 debts,
                 fixed_assets,
@@ -3277,6 +3321,7 @@ async def run_spending_bequest_frontier(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -3477,6 +3522,7 @@ async def run_spending_bequest_frontier(
                 wages,
                 contributions,
                 big_ticket_items,
+                qcds,
                 roth_conversions,
                 debts,
                 fixed_assets,
@@ -3673,6 +3719,7 @@ async def run_year1_robustness(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -3807,6 +3854,7 @@ async def run_year1_robustness(
                 wages,
                 contributions,
                 big_ticket_items,
+                qcds,
                 roth_conversions,
                 debts,
                 fixed_assets,
@@ -3924,6 +3972,7 @@ def _longevity_stochastic_blocking(
     wages,
     contributions,
     big_ticket_items,
+    qcds,
     roth_conversions,
     debts,
     fixed_assets,
@@ -3987,6 +4036,7 @@ def _longevity_stochastic_blocking(
         wages,
         contributions,
         big_ticket_items,
+        qcds,
         roth_conversions,
         debts,
         fixed_assets,
@@ -4085,6 +4135,7 @@ async def run_longevity_stochastic(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -4181,6 +4232,7 @@ async def run_longevity_stochastic(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Extra annual expenses (see run_from_params).
+        qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
         spias:            Single Premium Immediate Annuities (see run_from_params).
@@ -4301,6 +4353,7 @@ async def run_longevity_stochastic(
             wages,
             contributions,
             big_ticket_items,
+            qcds,
             roth_conversions,
             debts,
             fixed_assets,
@@ -4376,6 +4429,7 @@ async def run_historical(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -4460,6 +4514,7 @@ async def run_historical(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Extra annual expenses (see run_from_params).
+        qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
         spias:            Single Premium Immediate Annuities (see run_from_params).
@@ -4583,6 +4638,7 @@ async def run_historical(
                 wages,
                 contributions,
                 big_ticket_items,
+                qcds,
                 roth_conversions,
                 debts,
                 fixed_assets,
@@ -4687,6 +4743,7 @@ async def run_monte_carlo(
     wages: list[dict] | None = None,
     contributions: list[dict] | None = None,
     big_ticket_items: list[dict] | None = None,
+    qcds: list[dict] | None = None,
     roth_conversions: list[dict] | None = None,
     debts: list[dict] | None = None,
     fixed_assets: list[dict] | None = None,
@@ -4775,6 +4832,7 @@ async def run_monte_carlo(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Extra annual expenses (see run_from_params).
+        qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
         spias:            Single Premium Immediate Annuities (see run_from_params).
@@ -4904,6 +4962,7 @@ async def run_monte_carlo(
                 wages,
                 contributions,
                 big_ticket_items,
+                qcds,
                 roth_conversions,
                 debts,
                 fixed_assets,

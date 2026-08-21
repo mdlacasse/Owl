@@ -105,6 +105,19 @@ that has not yet been uploaded.""")
             helpmsg = "Load associated HFP workbook from GitHub"
             st.button("Load example workbook", help=helpmsg, type=mytype, on_click=loadWCExample, args=[tomlexcase])
 
+    # An absent column is read as zero. That is usually what the user meant, but it
+    # is a change of meaning they never typed, so say it here rather than leaving it
+    # to the Logs page.
+    absentCols = kz.getCaseKey("hfpAbsentCols") or {}
+    reported = {iname: cols for iname, cols in absentCols.items() if cols}
+    if reported:
+        lines = "\n".join(f"- **{iname}**: {', '.join(cols)}" for iname, cols in reported.items())
+        st.warning(
+            "The workbook did not contain the following column(s), which are treated as zero "
+            f"for every year:\n\n{lines}\n\nAdd them to the workbook if that is not what you intended.",
+            icon=":material/info:",
+        )
+
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual.
@@ -119,15 +132,16 @@ For these initial five years, only Roth-related entries are read; all other colu
             df = kz.getCaseKey("timeList" + str(i))
             if df is None:
                 continue
+            # Keyed by name, not position: the column list is free to grow.
+            # "Roth conv" allows negatives as a "skip this year" override sentinel,
+            # and "big-ticket items" can be an expense; everything else is >= 0.
+            negativeOK = ("Roth conv", "big-ticket items")
             formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
-            cols = list(df.columns)
-            for col in cols[1:-1]:
-                if col == "Roth conv":
-                    # Negative values are a valid "skip this year" override sentinel.
-                    formatdic[col] = st.column_config.NumberColumn(None, format="accounting")
-                else:
-                    formatdic[col] = st.column_config.NumberColumn(None, min_value=0.0, format="accounting")
-            formatdic[cols[-1]] = st.column_config.NumberColumn(None, format="accounting")
+            for col in df.columns:
+                if col == "year":
+                    continue
+                minValue = None if col in negativeOK else 0.0
+                formatdic[col] = st.column_config.NumberColumn(None, min_value=minValue, format="accounting")
 
             styled_df = df.style.apply(owb.highlight_year_row, axis=1)
             newdf = st.data_editor(
@@ -139,6 +153,11 @@ For these initial five years, only Roth-related entries are read; all other colu
             st.caption("Values are in nominal $.")
             newdf = newdf.fillna(0)
             kz.storeCaseKey("_timeList" + str(i), newdf)
+
+            # Report a bad QCD entry against this table, not later at run time.
+            qcdError = owb.checkQCDColumn(newdf, i)
+            if qcdError:
+                st.error(qcdError, icon=":material/error:")
 
             if not df.equals(newdf):
                 kz.setCaseKey("timeList" + str(i), newdf)

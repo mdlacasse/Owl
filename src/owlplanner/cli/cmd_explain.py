@@ -22,6 +22,28 @@ from .formatters import _NumpyEncoder
 from .set_override import apply_overrides
 
 
+def _runs(values, first_year):
+    """
+    Compress a per-year array into runs of equal non-zero amounts.
+
+    Returned as {start_year, end_year, annual_amount} with an exclusive end_year,
+    the same shape the run_from_params 'qcds' and 'big_ticket_items' arguments
+    accept, so a described case reads back as tool input.
+    """
+    runs = []
+    for n, amount in enumerate(float(v) for v in values):
+        if amount == 0:
+            continue
+        year = first_year + n
+        if runs and runs[-1]["end_year"] == year and runs[-1]["annual_amount"] == amount:
+            runs[-1]["end_year"] = year + 1
+        else:
+            runs.append({"start_year": year, "end_year": year + 1, "annual_amount": amount})
+    for r in runs:
+        r["annual_amount"] = int(round(r["annual_amount"]))
+    return runs
+
+
 def _plan_to_explain(plan, filename, set_overrides) -> dict:
     current_year = datetime.date.today().year
     N_i = plan.N_i
@@ -125,6 +147,15 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         if account_balances
         else 0
     )
+    # Per-person schedules from the HFP time lists. Reported only when the household
+    # actually uses them, so an ordinary case is described exactly as before.
+    first_year = int(plan.year_n[0])
+    qcds, big_ticket_items = [], []
+    for i in range(N_i):
+        name = plan.inames[i]
+        qcds += [{"person": name, **r} for r in _runs(plan.qcd_in[i], first_year)]
+        big_ticket_items += [{"person": name, **r} for r in _runs(plan.Lambda_in[i], first_year)]
+
     opening_balance_sheet = {
         "savings_total": savings_total,
         "fixed_assets_total": fixed_assets_total,
@@ -152,6 +183,8 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "account_balances": account_balances,
         "fixed_assets": fixed_assets,
         "debts": debts,
+        "qcds": qcds,
+        "big_ticket_items": big_ticket_items,
         "opening_balance_sheet": opening_balance_sheet,
         "liquidation_tax_rate": round(float(plan.liquidationTaxRate), 4),
         "liquidation_capgains_rate": round(float(plan.liquidationCapGainsRate), 4),

@@ -2,10 +2,11 @@
 """
 Migration helper: add 'other inc' (and related columns) to older HFP Excel files.
 
-Current Owl releases require every person sheet to include all time-horizon headers
-(see PARAMETERS.md and owlplanner.timelists._timeHorizonItems). This script was
-written when *other inc* was new; run it (or merge columns manually) if you have a
-legacy workbook missing *other inc* or the legacy *other inc.* header.
+Recognized person-sheet headers are listed in owlplanner.hfp_io._timeHorizonItems
+(see also PARAMETERS.md). Only *year* is required, so a workbook missing *other inc*
+loads fine and reads as zero; this script is a convenience for filling the column in
+explicitly. It also predates the automatic normalization of the legacy *other inc.*
+header, which Owl now handles on read.
 
 Inserts *other inc* after *anticipated wages* when missing. Run from project root:
   python scripts/add_other_inc_column.py

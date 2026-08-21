@@ -38,6 +38,7 @@ CASES = [
     "john+sally",
     "jon+jane",
     "jordan+taylor",
+    "jordan+taylor-qcd",
     "kim+sam-bequest",
     "kim+sam-spending",
     "morgan",

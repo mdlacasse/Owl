@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # flake8: noqa: E402
 
 import streamlit as st
+import numpy as np
 import pandas as pd
 from io import StringIO, BytesIO
 from functools import wraps
@@ -1100,11 +1101,19 @@ def _setContributions(plan, action):
     try:
         plan.readHFP(dicDf)
     except Exception as e:
-        st.error(f"Failed to parse Household Financial Profile Workbook: {e}", icon=":material/error:")
+        # These tables came from the editor, so they always parse. What can fail here
+        # is a value rule -- a QCD before age 70½, say -- and calling that a parse
+        # failure sends the user looking in the wrong place.
+        st.error(f"Could not accept the Wages and Contributions tables: {e}", icon=":material/error:")
         return False
 
     # Sync houseLists from UI to Plan
     syncHouseLists(plan)
+
+    # readHFP above re-derived this from the edited tables, which carry every column,
+    # so it now reads as empty. Refresh rather than leave the file-load notice standing
+    # over values the user has since filled in.
+    kz.setCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
 
     # Check if data actually changed
     data_changed = False
@@ -1193,7 +1202,36 @@ def readHFP(plan, stFile, file=None):
     kz.setCaseKey("houseListDebts", plan.houseLists["Debts"])
     kz.setCaseKey("houseListFixedAssets", plan.houseLists["Fixed Assets"])
 
+    # Columns the workbook did not carry, so the page can say so. Absent columns are
+    # read as zero, which is a silent change of meaning if the user did not intend it.
+    kz.setCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
+
     return True
+
+
+@_checkPlan
+def checkQCDColumn(plan, df, i):
+    """
+    Validate an edited timetable's QCD column against the age and limit rules.
+
+    Returns an error message, or None if the column is acceptable. Called as the
+    table is edited so a bad cell is reported next to it, rather than surfacing
+    much later when the case is run.
+    """
+    if "QCD" not in df.columns or i >= len(plan.inames):
+        return None
+    h = int(plan.horizons[i])
+    # Populate the full array with only this person's column: validateQCD indexes
+    # horizons, yobs and n_qcd_i positionally, so a one-row array would check the
+    # spouse's entries against the wrong person's age.
+    # Rows 0-4 are the lead-in years, which carry no QCD; plan year n is row 5 + n.
+    values = np.zeros((plan.N_i, plan.N_n))
+    values[i, :h] = pd.to_numeric(df["QCD"].iloc[5 : 5 + h], errors="coerce").fillna(0).to_numpy(dtype=float)
+    try:
+        plan.validateQCD(qcd_in=values)
+    except ValueError as e:
+        return str(e)
+    return None
 
 
 @_checkPlan

@@ -49,6 +49,9 @@ CONSTRAINT_FAMILIES = {
         "class": "policy",
         "label": "required minimum distribution floor",
         "indices": ("person", "year"),
+        # No "note" here: this family has a dedicated handler (_explain_rmd), which
+        # supplies its own. The generic explainer, and hence "note", is only reached
+        # for families without one.
     },
     "bequest_floor": {
         "class": "policy",
@@ -593,7 +596,9 @@ def _explain_rmd(plan, dd):
     return {
         "binding_years": rmd,
         "note": "Years where required minimum distributions force withdrawals the optimizer "
-        "would not otherwise make, and the marginal cost of each forced dollar.",
+        "would not otherwise make, and the marginal cost of each forced dollar. A qualified "
+        "charitable distribution lowers that floor dollar-for-dollar, so a binding year here "
+        "is also where a QCD is worth the most.",
     }
 
 
