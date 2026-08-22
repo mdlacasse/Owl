@@ -466,6 +466,12 @@ def _regret_worker(args):
     v_at = []
     v_at_osc = []
     for x in grid:
+        # The grid is validated non-negative and may include 0, which has to reach
+        # the solver as the negative "force zero" sentinel: 0 in myRothX_in means
+        # "optimizer decides", not "convert nothing". That convention is load-bearing
+        # here -- inverting it would silently turn this arm from "commit to zero
+        # conversion in year 1" into "optimize year 1", changing published sweep
+        # results rather than failing.
         p.myRothX_in[person, 0] = float(x) if x > 0 else -1.0
         p.solve(objective, opts_pin)
         max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
