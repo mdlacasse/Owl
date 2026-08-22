@@ -651,9 +651,14 @@ def test_example_hfp_workbooks_have_required_person_sheet_columns():
 
     from owlplanner.hfp_io import _timeHorizonItems
 
-    root = Path(__file__).resolve().parents[1]
+    # parents[2] is the repo root: this file sits at tests/config/. Getting the depth
+    # wrong globs a directory that does not exist, which makes the loop below run zero
+    # times and the whole test pass while checking nothing -- hence the assert.
+    root = Path(__file__).resolve().parents[2]
     required = set(_timeHorizonItems)
-    for path in sorted((root / "examples").glob("HFP*.xlsx")):
+    paths = sorted((root / "examples").glob("HFP*.xlsx"))
+    assert paths, f"no example workbooks found under {root / 'examples'}"
+    for path in paths:
         xl = pd.ExcelFile(path)
         for sheet in xl.sheet_names:
             if sheet in ("Debts", "Fixed Assets"):
