@@ -402,3 +402,90 @@ def test_taxdeferred_relocation_maxBequest_no_other_income():
     tx_terminal = float(np.sum(p.b_ijn[:, 0, p.N_n]))
     assert td_terminal < 1.0, f"expected relocation; terminal TD={td_terminal}"
     assert tx_terminal > 1000.0, f"expected taxable terminal balance; got {tx_terminal}"
+
+
+# ---------------------------------------------------------------------------
+# Savings retention margin
+#
+# The margin is 1 - (net draw / balances), less the real break-even rate. The
+# denominator is total balances, which shrink for every dollar that leaves the
+# portfolio. The numerator must therefore count every such dollar, and not all
+# of them pass through w_ijn: qualified charitable distributions and SPIA
+# premiums are paid straight out of the tax-deferred account. Omitting either
+# makes the margin read healthier in exactly the years it occurs.
+# ---------------------------------------------------------------------------
+
+
+def _margin_from_scratch(p, *, include_bypass):
+    """Recompute the margin, with or without the drains that bypass w_ijn."""
+    net_w = p.w_ijn.copy()
+    net_w[:, 0, :] -= p.d_in
+    net_w[:, 1:, :] -= p.kappa_ijn[:, 1:, : p.N_n]
+    draw = np.sum(net_w, axis=(0, 1))
+    if include_bypass:
+        draw = draw + np.sum(p.qcd_in, axis=0) + np.sum(p.spia_premiums_in, axis=0)
+    b_n = np.sum(p.b_ijn[:, :, :-1], axis=(0, 1))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        rate = np.where(b_n > 0, (1 - draw / b_n) * 100, 0.0)
+    num_n = np.einsum(
+        "ijn,ijkn,kn->n", p.b_ijn[:, :, : p.N_n], p.alpha_ijkn[:, :, :, : p.N_n], p.tau_kn[:, : p.N_n]
+    )
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r_n = np.where(b_n > 0, num_n / b_n, 0.0)
+    inflation_n = p.gamma_n[1 : p.N_n + 1] / p.gamma_n[: p.N_n]
+    return rate - inflation_n / (1.0 + r_n) * 100.0
+
+
+def _retention_plan(name):
+    """A retiree old enough for a QCD, with enough tax-deferred wealth to give from."""
+    thisyear = date.today().year
+    p = owl.Plan(["Joe"], [f"{thisyear - 75}-01-15"], [95], name, verbose=False)
+    p.zeroWagesAndContributions()
+    p.setAccountBalances(taxable=[400], taxDeferred=[1500], taxFree=[200])
+    p.setAllocationRatios("individual", generic=[[[60, 20, 20, 0], [60, 20, 20, 0]]])
+    p.setRates("user", values=[6.0, 4.0, 3.0, 2.5])
+    p.setSpendingProfile("flat", 60)
+    p.setSocialSecurity([2000], [70])
+    return p
+
+
+def test_retention_margin_counts_qcd_as_a_draw():
+    """A QCD leaves the portfolio without being a withdrawal; the margin must feel it."""
+    p = _retention_plan("qcd_margin")
+    n = 3
+    p.qcd_in[0, n] = 60_000
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
+    assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
+
+    margin = p.retentionMargin()
+    np.testing.assert_allclose(margin, _margin_from_scratch(p, include_bypass=True), rtol=0, atol=1e-9)
+
+    # Pin the fix: ignoring the gift would report a strictly healthier year.
+    naive = _margin_from_scratch(p, include_bypass=False)
+    assert naive[n] > margin[n], "omitting the QCD must overstate retention"
+    assert naive[n] - margin[n] > 0.5, f"expected a material gap, got {naive[n] - margin[n]:.3f} pp"
+
+
+def test_retention_margin_counts_spia_premium_as_a_draw():
+    """A SPIA premium is a non-taxable IRA rollover, so it bypasses w_ijn too."""
+    p = _retention_plan("spia_margin")
+    n = 2
+    p.addSPIA(0, int(p.year_n[0]) + n, premium=200, monthly_income=1.2)
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
+    assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
+
+    margin = p.retentionMargin()
+    np.testing.assert_allclose(margin, _margin_from_scratch(p, include_bypass=True), rtol=0, atol=1e-9)
+
+    naive = _margin_from_scratch(p, include_bypass=False)
+    assert naive[n] > margin[n], "omitting the SPIA premium must overstate retention"
+
+
+def test_retention_margin_unchanged_without_bypass_flows():
+    """A plan with neither flow is untouched by the correction."""
+    p = _retention_plan("plain_margin")
+    p.solve("maxSpending", options={**_BASE, "bequest": 0})
+    assert p.caseStatus == "solved", f"Solve failed: {p.caseStatus}"
+    np.testing.assert_allclose(
+        p.retentionMargin(), _margin_from_scratch(p, include_bypass=False), rtol=0, atol=1e-9
+    )

@@ -6079,18 +6079,25 @@ class Plan:
         self._plotter.jupyter_renderer(fig)
         return None
 
-    @_checkCaseStatus
-    def showRetentionMargin(self, tag="", figure=False):
+    def retentionMargin(self):
         """
-        Plot savings retention margin over time: annual excess above the real break-even rate.
+        Return the annual savings retention margin, in percentage points (N_n,).
 
-        Margin = retention − sustainability (in percentage points). Zero = real-wealth-neutral;
-        blue bars = real wealth growing; red bars = real wealth shrinking.
+        Margin = retention − sustainability. Zero is real-wealth-neutral; positive
+        means real wealth is growing that year, negative that it is shrinking.
+
+        Retention is 1 − (net draw / balances). The net draw counts every dollar
+        leaving the portfolio, which is more than w_ijn: deposits and contributions
+        come back off it, while qualified charitable distributions and SPIA premiums
+        are added, since both are paid straight out of the tax-deferred account
+        without passing through a withdrawal. Leaving them out would shrink the
+        balances in the denominator while omitting them from the numerator, making
+        the margin read healthier in exactly the years they occur.
         """
         net_w = self.w_ijn.copy()
         net_w[:, 0, :] -= self.d_in
         net_w[:, 1:, :] -= self.kappa_ijn[:, 1:, : self.N_n]
-        net_draw_n = np.sum(net_w, axis=(0, 1))
+        net_draw_n = np.sum(net_w, axis=(0, 1)) + np.sum(self.qcd_in, axis=0) + np.sum(self.spia_premiums_in, axis=0)
         b_n = np.sum(self.b_ijn[:, :, :-1], axis=(0, 1))
         with np.errstate(invalid="ignore", divide="ignore"):
             rate = np.where(b_n > 0, (1 - net_draw_n / b_n) * 100, 0.0)
@@ -6104,7 +6111,17 @@ class Plan:
             r_n = np.where(b_n > 0, num_n / b_n, 0.0)
         inflation_n = self.gamma_n[1 : self.N_n + 1] / self.gamma_n[: self.N_n]
         sustainability_n = inflation_n / (1.0 + r_n) * 100.0
-        margin_n = rate - sustainability_n
+        return rate - sustainability_n
+
+    @_checkCaseStatus
+    def showRetentionMargin(self, tag="", figure=False):
+        """
+        Plot savings retention margin over time: annual excess above the real break-even rate.
+
+        Margin = retention − sustainability (in percentage points). Zero = real-wealth-neutral;
+        blue bars = real wealth growing; red bars = real wealth shrinking.
+        """
+        margin_n = self.retentionMargin()
         title = self._name + "\nSavings Retention Margin"
         if self.bequest > 0:
             title += f"\n(Note: bequest of {u.d(self.bequest, f=0)} included in balance)"
