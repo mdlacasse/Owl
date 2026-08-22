@@ -118,7 +118,7 @@ def test_case2():
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
 
 
-def test_config1():
+def test_config1(tmp_path):
     name = "testconfig"
     p = createJackAndJillPlan(name)
     p.setRates("historical", 1969)
@@ -126,9 +126,15 @@ def test_config1():
     assert p.caseStatus == "solved"
     assert p.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
-    p.saveConfig()
-    base_filename = "case_" + name
-    full_filename = "case_" + name + ".toml"
+    # Round-trip through a private directory. Written to the repo root, two suites run
+    # against the same checkout race on a single case_testconfig.toml -- one deleting
+    # it while the other sits between saveConfig and readConfig. The working directory
+    # deliberately stays at the repo root: the saved TOML records the HFP path verbatim
+    # ("./examples/HFP_jack+jill.xlsx") and readConfig resolves that against the cwd,
+    # so chdir'ing here would break the round-trip instead.
+    base_filename = str(tmp_path / ("case_" + name))
+    full_filename = base_filename + ".toml"
+    p.saveConfig(basename=base_filename)
     assert os.path.isfile(full_filename)
     p2 = owl.readConfig(base_filename)
     p2.solve("maxBequest", options={"maxRothConversion": 100, "netSpending": 80, "withSSTaxability": 0.85})
@@ -140,7 +146,9 @@ def test_config1():
     assert p3.caseStatus == "solved"
     assert p3.basis == pytest.approx(80_000, rel=REL_TOL, abs=ABS_TOL)
     assert p3.bequest == pytest.approx(BEQUEST1, rel=REL_TOL, abs=ABS_TOL)
-    os.remove(full_filename)
+    # No explicit remove: tmp_path is disposable, and deleting a fixed shared path was
+    # itself a failure mode -- both a race with a concurrent suite and litter left in
+    # the repo root whenever an assertion above fired first.
 
 
 def test_config2():
