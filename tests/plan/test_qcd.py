@@ -292,6 +292,41 @@ class TestQCDReporting:
         ]
         assert _plan_to_explain(makePlan(), "memory", ())["qcds"] == []
 
+    def test_giving_chart_is_drawn_only_when_there_is_giving(self):
+        """
+        Modelled on showHSA: the chart returns None when the feature is unused, so it
+        costs nothing to a household that does not give this way.
+        """
+        p = makePlan()
+        p.qcd_in[0, 2] = 40_000
+        solved(p)
+        for backend in ("plotly", "matplotlib"):
+            p.setPlotBackend(backend)
+            assert p.showCharitableGiving(figure=True) is not None, backend
+
+        base = solved(makePlan())
+        for backend in ("plotly", "matplotlib"):
+            base.setPlotBackend(backend)
+            assert base.showCharitableGiving(figure=True) is None, backend
+
+    def test_giving_chart_splits_at_the_rmd(self):
+        """
+        The two stacked series must add back to the full gift, and the RMD-satisfying
+        half must never exceed the requirement it is credited against.
+        """
+        p = makePlan(taxDeferred=1_500, taxable=800)
+        p.qcd_in[0, 2] = 100_000  # deliberately larger than the gross RMD
+        p.qcd_in[0, 3] = 20_000  # and smaller than it
+        solved(p)
+
+        met = p.qcd_rmd_in
+        beyond = p.qcd_in - met
+        assert np.all(beyond >= -1e-6), "the split must not produce a negative half"
+        assert np.allclose(met + beyond, p.qcd_in, atol=1e-6)
+        assert np.all(met <= p.rho_in * p.b_ijn[:, 1, :-1] + 1e-6)
+        assert beyond[0, 2] > 0, "a gift above the RMD should show a 'beyond' portion"
+        assert beyond[0, 3] == pytest.approx(0.0, abs=1e-6), "a gift below the RMD is fully credited"
+
     def test_cash_flow_identity_holds(self):
         """A QCD touches neither side of the cash balance; the check must stay silent."""
         p = makePlan()

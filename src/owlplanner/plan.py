@@ -6352,6 +6352,38 @@ class Plan:
         return None
 
     @_checkCaseStatus
+    def showCharitableGiving(self, tag="", value=None, figure=False):
+        """
+        Plot qualified charitable distributions over time, split into the part that
+        satisfies the required minimum distribution and the part beyond it, against
+        the gross RMD for context.
+
+        Returns None if the household makes no QCDs, so the plot costs nothing to
+        anyone who does not give this way.
+
+        The value parameter can be set to *nominal* or *today*, overriding
+        the default behavior of setDefaultPlots().
+        """
+        if np.abs(self.qcd_in).sum() < 1.0:
+            return None
+        value = self._checkValueType(value)
+        title = self._name + "\nCharitable Giving (QCD)"
+        if tag:
+            title += " - " + tag
+        qcd_data = {
+            "giving": self.qcd_in,
+            # The RMD-satisfying part is capped by the gross RMD, so the remainder is
+            # giving beyond what was required. Together they add back to the full gift.
+            "satisfying_rmd": self.qcd_rmd_in,
+            "gross_rmd": self.rho_in * self.b_ijn[:, 1, :-1],
+        }
+        fig = self._plotter.plot_charitable_giving(self.year_n, qcd_data, self.gamma_n, value, title, self.inames)
+        if figure:
+            return fig
+        self._plotter.jupyter_renderer(fig)
+        return None
+
+    @_checkCaseStatus
     def showSources(self, tag="", value=None, figure=False):
         """
         Plot income, big-ticket items, and debt payments over time.

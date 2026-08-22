@@ -1405,6 +1405,13 @@ def plotTaxGraphs(plan):
         renderPlot(fig, cols[c])
         c = (c + 1) % n
 
+    # Returns None unless the household actually gives this way.
+    fig = plan.showCharitableGiving(figure=True)
+    if fig:
+        cols[c].markdown("#### :orange[Charitable Giving (QCD)]")
+        renderPlot(fig, cols[c])
+        c = (c + 1) % n
+
 
 @_checkPlan
 def plotPortfolioGraphs(plan):

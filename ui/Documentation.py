@@ -1489,6 +1489,9 @@ Graphs are organized into four tabs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
 - *Taxes and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, IRMAA surcharges, and ACA premiums (when applicable).
 - *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
+- *Charitable Giving (QCD)* *(when the household gives this way)* — annual qualified charitable distributions by
+  individual, split into the part that satisfies that year's required minimum distribution and the part beyond it,
+  with the gross RMD drawn as a dotted line so you can see how much of the requirement the gift covered.
 
 **Portfolio** — savings and asset-mix evolution:
 - *Savings Balance* — per-account balances over time.

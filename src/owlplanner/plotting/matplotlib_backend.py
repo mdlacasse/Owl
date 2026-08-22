@@ -650,6 +650,46 @@ class MatplotlibBackend(PlotBackend):
         fig.tight_layout()
         return fig
 
+    def plot_charitable_giving(self, year_n, qcd_data, gamma_n, value, title, inames):
+        """Plot QCDs split at the RMD they satisfy, with the gross RMD for context."""
+        if value == "nominal":
+            yformat = r"\$k (nominal)"
+            scale = 1.0
+        else:
+            yformat = r"\$k (constant " + str(year_n[0]) + r")"
+            scale = gamma_n[:-1]
+
+        _thr = 1.0e-3
+        fig, ax = plt.subplots(1, 1)
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        n_ind = len(inames)
+        bottom = np.zeros(len(year_n))
+        for i, iname in enumerate(inames):
+            c = colors[i % len(colors)]
+            xc = colors[(i + n_ind) % len(colors)]
+            met = qcd_data["satisfying_rmd"][i] / (scale * 1000)
+            extra = (qcd_data["giving"][i] - qcd_data["satisfying_rmd"][i]) / (scale * 1000)
+            rmd = qcd_data["gross_rmd"][i] / (scale * 1000)
+            if np.max(np.abs(met)) < _thr and np.max(np.abs(extra)) < _thr:
+                continue
+            # Stacked so the two bars add back to the full gift for this person.
+            if np.max(np.abs(met)) > _thr:
+                ax.bar(year_n, met, bottom=bottom, color=c, alpha=0.85, label=f"satisfies RMD {iname}")
+                bottom = bottom + met
+            if np.max(np.abs(extra)) > _thr:
+                ax.bar(year_n, extra, bottom=bottom, color=xc, alpha=0.5, label=f"beyond RMD {iname}")
+                bottom = bottom + extra
+            # Context line: how large the requirement was in the first place.
+            if np.max(np.abs(rmd)) > _thr:
+                ax.plot(year_n, rmd, ":", color=c, label=f"gross RMD {iname}")
+
+        ax.set_title(title)
+        ax.set_ylabel(yformat)
+        ax.legend(loc="upper right", fontsize=8)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+        fig.tight_layout()
+        return fig
+
     def plot_sources(self, year_n, sources_in, gamma_n, value, title, inames):
         """Plot sources over time."""
         stypes = list(sources_in.keys())

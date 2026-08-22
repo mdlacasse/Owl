@@ -111,6 +111,11 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_charitable_giving(self, year_n, qcd_data, gamma_n, value, title, inames):
+        """Plot qualified charitable distributions against the RMD they satisfy."""
+        pass
+
+    @abstractmethod
     def plot_balance_sheet(self, year_n, bs_data, gamma_n, value, title):
         """Plot the combined balance sheet (assets, liabilities, net worth) over time."""
         pass

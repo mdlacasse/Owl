@@ -1717,6 +1717,53 @@ class PlotlyBackend(PlotBackend):
         fig.update_yaxes(tickformat=",.0f")
         return fig
 
+    def plot_charitable_giving(self, year_n, qcd_data, gamma_n, value, title, inames):
+        """Plot QCDs split at the RMD they satisfy, with the gross RMD for context."""
+        if value == "nominal":
+            yformat = "$k (nominal)"
+            scale = 1.0
+        else:
+            yformat = f"$k (constant {year_n[0]})"
+            scale = gamma_n[:-1]
+
+        _thr = 1.0e-3
+        fig = go.Figure()
+        colors = ["#00897B", "#5E35B1", "#00ACC1", "#8E24AA"]
+        for i, iname in enumerate(inames):
+            c = colors[(2 * i) % len(colors)]
+            xc = colors[(2 * i + 1) % len(colors)]
+            met = qcd_data["satisfying_rmd"][i] / (scale * 1000)
+            extra = (qcd_data["giving"][i] - qcd_data["satisfying_rmd"][i]) / (scale * 1000)
+            rmd = qcd_data["gross_rmd"][i] / (scale * 1000)
+            if np.max(np.abs(met)) < _thr and np.max(np.abs(extra)) < _thr:
+                continue
+            # Stacked so the two bars add back to the full gift for this person.
+            if np.max(np.abs(met)) > _thr:
+                fig.add_trace(
+                    go.Bar(x=year_n, y=met, name=f"satisfies RMD {iname}", marker_color=c, opacity=0.85)
+                )
+            if np.max(np.abs(extra)) > _thr:
+                fig.add_trace(
+                    go.Bar(x=year_n, y=extra, name=f"beyond RMD {iname}", marker_color=xc, opacity=0.5)
+                )
+            # Context line: how large the requirement was in the first place.
+            if np.max(np.abs(rmd)) > _thr:
+                fig.add_trace(
+                    go.Scatter(x=year_n, y=rmd, name=f"gross RMD {iname}", line=dict(color=c, dash="dot"))
+                )
+
+        fig.update_layout(
+            title=title.replace("\n", "<br>"),
+            yaxis_title=yformat,
+            barmode="stack",
+            template=self.template,
+            showlegend=True,
+            legend=_LEGEND_BOTTOM,
+            margin=dict(b=150),
+        )
+        fig.update_yaxes(tickformat=",.0f")
+        return fig
+
     def plot_sources(self, year_n, sources_in, gamma_n, value, title, inames):
         """Plot sources over time."""
         # Create figure
