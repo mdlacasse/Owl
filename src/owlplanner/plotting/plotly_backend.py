@@ -61,6 +61,15 @@ _OUTFLOW_COLORS = {
     "heirtax": "#E91E63",
 }
 
+# Charitable-giving chart. Each person's two bars share a hue at two lightnesses,
+# because they are two halves of one gift; people are told apart by hue. The gross
+# RMD line is deliberately in a warm family no bar uses, so "line = the requirement"
+# reads at a glance instead of looking like another slice of the same series.
+_QCD_BAR_MAIN = ["#00897B", "#3949AB", "#00838F", "#4527A0"]
+_QCD_BAR_EXTRA = ["#80CBC4", "#9FA8DA", "#4DD0E1", "#B39DDB"]
+_QCD_RMD_LINE = ["#E65100", "#C2185B", "#F9A825", "#6D4C41"]
+_QCD_RMD_DASH = ["dot", "dash", "dashdot", "longdash"]
+
 # Reusable legend layouts for plotly
 _LEGEND_TOP = dict(
     traceorder="reversed",
@@ -1728,28 +1737,55 @@ class PlotlyBackend(PlotBackend):
 
         _thr = 1.0e-3
         fig = go.Figure()
-        colors = ["#00897B", "#5E35B1", "#00ACC1", "#8E24AA"]
         for i, iname in enumerate(inames):
-            c = colors[(2 * i) % len(colors)]
-            xc = colors[(2 * i + 1) % len(colors)]
+            c = _QCD_BAR_MAIN[i % len(_QCD_BAR_MAIN)]
+            xc = _QCD_BAR_EXTRA[i % len(_QCD_BAR_EXTRA)]
+            rc = _QCD_RMD_LINE[i % len(_QCD_RMD_LINE)]
             met = qcd_data["satisfying_rmd"][i] / (scale * 1000)
             extra = (qcd_data["giving"][i] - qcd_data["satisfying_rmd"][i]) / (scale * 1000)
             rmd = qcd_data["gross_rmd"][i] / (scale * 1000)
             if np.max(np.abs(met)) < _thr and np.max(np.abs(extra)) < _thr:
                 continue
-            # Stacked so the two bars add back to the full gift for this person.
+            # The two halves of one person's gift stack, because together they are that
+            # gift. Different people must NOT stack: their gifts are independent, and
+            # piling them into one column makes the chart unreadable. A distinct
+            # offsetgroup per person puts each spouse in their own slot side by side
+            # while still stacking within the slot.
+            slot = str(i)
             if np.max(np.abs(met)) > _thr:
                 fig.add_trace(
-                    go.Bar(x=year_n, y=met, name=f"satisfies RMD {iname}", marker_color=c, opacity=0.85)
+                    go.Bar(
+                        x=year_n,
+                        y=met,
+                        name=f"satisfies RMD {iname}",
+                        marker_color=c,
+                        opacity=0.85,
+                        offsetgroup=slot,
+                        legendgroup=iname,
+                    )
                 )
             if np.max(np.abs(extra)) > _thr:
                 fig.add_trace(
-                    go.Bar(x=year_n, y=extra, name=f"beyond RMD {iname}", marker_color=xc, opacity=0.5)
+                    go.Bar(
+                        x=year_n,
+                        y=extra,
+                        name=f"beyond RMD {iname}",
+                        marker_color=xc,
+                        opacity=0.5,
+                        offsetgroup=slot,
+                        legendgroup=iname,
+                    )
                 )
             # Context line: how large the requirement was in the first place.
             if np.max(np.abs(rmd)) > _thr:
                 fig.add_trace(
-                    go.Scatter(x=year_n, y=rmd, name=f"gross RMD {iname}", line=dict(color=c, dash="dot"))
+                    go.Scatter(
+                        x=year_n,
+                        y=rmd,
+                        name=f"gross RMD {iname}",
+                        line=dict(color=rc, dash=_QCD_RMD_DASH[i % len(_QCD_RMD_DASH)], width=2.5),
+                        legendgroup=iname,
+                    )
                 )
 
         fig.update_layout(

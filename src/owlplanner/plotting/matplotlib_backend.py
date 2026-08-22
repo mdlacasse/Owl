@@ -63,6 +63,15 @@ _OUTFLOW_COLORS = {
     "heirtax": "#E91E63",
 }
 
+# Charitable-giving chart; kept identical to the plotly backend so the same category
+# is the same color in both. Each person's two bars share a hue at two lightnesses,
+# because they are two halves of one gift; people are told apart by hue. The gross RMD
+# line uses a warm family no bar uses, so it does not read as another slice of the bar.
+_QCD_BAR_MAIN = ["#00897B", "#3949AB", "#00838F", "#4527A0"]
+_QCD_BAR_EXTRA = ["#80CBC4", "#9FA8DA", "#4DD0E1", "#B39DDB"]
+_QCD_RMD_LINE = ["#E65100", "#C2185B", "#F9A825", "#6D4C41"]
+_QCD_RMD_DASH = [(0, (1, 2)), (0, (5, 2)), (0, (5, 1, 1, 1)), (0, (8, 3))]
+
 
 class MatplotlibBackend(PlotBackend):
     """Matplotlib implementation of plot backend."""
@@ -661,27 +670,41 @@ class MatplotlibBackend(PlotBackend):
 
         _thr = 1.0e-3
         fig, ax = plt.subplots(1, 1)
-        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         n_ind = len(inames)
-        bottom = np.zeros(len(year_n))
-        for i, iname in enumerate(inames):
-            c = colors[i % len(colors)]
-            xc = colors[(i + n_ind) % len(colors)]
+        # Only people who actually give get a slot, so a one-giver couple still draws
+        # full-width bars rather than leaving a gap where the other spouse would be.
+        givers = [i for i in range(n_ind) if np.max(np.abs(qcd_data["giving"][i])) > _thr]
+        width = 0.8 / max(len(givers), 1)
+        year_n = np.asarray(year_n, dtype=float)
+        for slot, i in enumerate(givers):
+            iname = inames[i]
+            c = _QCD_BAR_MAIN[i % len(_QCD_BAR_MAIN)]
+            xc = _QCD_BAR_EXTRA[i % len(_QCD_BAR_EXTRA)]
+            rc = _QCD_RMD_LINE[i % len(_QCD_RMD_LINE)]
             met = qcd_data["satisfying_rmd"][i] / (scale * 1000)
             extra = (qcd_data["giving"][i] - qcd_data["satisfying_rmd"][i]) / (scale * 1000)
             rmd = qcd_data["gross_rmd"][i] / (scale * 1000)
-            if np.max(np.abs(met)) < _thr and np.max(np.abs(extra)) < _thr:
-                continue
-            # Stacked so the two bars add back to the full gift for this person.
+            # The two halves of one person's gift stack, because together they are that
+            # gift. Different people get their own x offset instead: their gifts are
+            # independent, and piling them into one column makes the chart unreadable.
+            offset = (slot - (len(givers) - 1) / 2) * width
+            x = year_n + offset
+            bottom = np.zeros(len(year_n))
             if np.max(np.abs(met)) > _thr:
-                ax.bar(year_n, met, bottom=bottom, color=c, alpha=0.85, label=f"satisfies RMD {iname}")
+                ax.bar(x, met, width=width, bottom=bottom, color=c, alpha=0.85, label=f"satisfies RMD {iname}")
                 bottom = bottom + met
             if np.max(np.abs(extra)) > _thr:
-                ax.bar(year_n, extra, bottom=bottom, color=xc, alpha=0.5, label=f"beyond RMD {iname}")
-                bottom = bottom + extra
+                ax.bar(x, extra, width=width, bottom=bottom, color=xc, alpha=0.5, label=f"beyond RMD {iname}")
             # Context line: how large the requirement was in the first place.
             if np.max(np.abs(rmd)) > _thr:
-                ax.plot(year_n, rmd, ":", color=c, label=f"gross RMD {iname}")
+                ax.plot(
+                    year_n,
+                    rmd,
+                    color=rc,
+                    linestyle=_QCD_RMD_DASH[i % len(_QCD_RMD_DASH)],
+                    linewidth=2.0,
+                    label=f"gross RMD {iname}",
+                )
 
         ax.set_title(title)
         ax.set_ylabel(yformat)
