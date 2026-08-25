@@ -30,7 +30,7 @@ import pytest
 import owlplanner as owl
 
 CASE = str(Path(__file__).resolve().parents[1] / "data" / "case_highs_unknown")
-JACK = os.path.join("examples", "case_jack+jill")
+JACK = os.path.join("examples", "Case_jack+jill")
 
 
 def _solve(name, solver, **opts):
@@ -64,9 +64,19 @@ def test_issue_139_is_a_solver_error_not_an_infeasible_plan():
 
 
 def test_issue_139_case_solves_under_mosek():
-    """The other half of the claim: the model is fine, so a working solver finds the plan."""
+    """
+    The other half of the claim: the model is fine, so a working solver finds the plan.
+
+    Whether MOSEK is usable is decided by trying it, not by looking for the package or
+    for MOSEKLM_LICENSE_FILE. Neither answers the question: CI installs MOSEK without a
+    license, and a licensed machine may hold that license at the default path with the
+    variable unset. A license failure is itself reported as a solver error, so the
+    status alone cannot distinguish "no license" from the bug under test.
+    """
     pytest.importorskip("mosek")
     p = _solve(CASE, "MOSEK")
+    if p.caseStatus != "solved" and "License" in p.solverMessage:
+        pytest.skip("MOSEK is installed but not licensed here")
     assert p.caseStatus == "solved"
 
 
