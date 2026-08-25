@@ -120,6 +120,39 @@ def _checkCaseStatus(func):
     return wrapper
 
 
+def _mosekIsInfeasible(task, soltype, mosek):
+    """
+    Whether MOSEK certified that no solution exists.
+
+    An infeasible MIP reports its solution status as merely "unknown" and declares the
+    infeasibility on the problem status, so both have to be consulted.
+    """
+    return (
+        task.getsolsta(soltype) == mosek.solsta.prim_infeas_cer
+        or task.getprosta(soltype) == mosek.prosta.prim_infeas
+    )
+
+
+def _failureMessage(infeasible, solverName, solverMsg):
+    """
+    Explain a solve that produced no plan.
+
+    The distinction is the point: an infeasible problem is the user's to fix, while a
+    solver that failed says nothing about whether the plan is achievable -- issue #139
+    is a case HiGHS abandons with status 'Unknown' and MOSEK solves to optimality.
+    """
+    if infeasible:
+        return (
+            "No plan satisfies all the constraints. An input has to give: most often a bequest "
+            "or a spending floor set higher than the assets can support."
+        )
+    return (
+        f"Solver error: {solverName} could not complete this model (status '{solverMsg}'). "
+        "This is a failure of the optimizer, not an infeasible plan -- the same case may well "
+        "solve with the other solver, or after a small change to the inputs."
+    )
+
+
 def _checkConfiguration(func):
     """
     Decorator to check if problem was configured successfully and
@@ -387,6 +420,10 @@ class Plan:
         self.hfpAbsentCols = {}
         self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
+        # Why the last solve produced no plan, in words; empty when it succeeded.
+        self.solverMessage = ""
+        # Whether the solver certified that no solution exists, as opposed to failing.
+        self._infeasible = False
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
         # Achieved MIP gap of the accepted solution (0 when solved to optimality,
@@ -3937,6 +3974,8 @@ class Plan:
 
         # Assume unsuccessful until problem solved.
         self.caseStatus = "unsuccessful"
+        self.solverMessage = ""
+        self._infeasible = False
         self.convergenceType = "undefined"
         self.solverGap = -1.0
         self.oscillationRel = 0.0
@@ -4380,6 +4419,7 @@ class Plan:
         is_milp = getattr(solverMethod, "__func__", None) is Plan._milpSolve
         is_mosek = getattr(solverMethod, "__func__", None) is Plan._mosekSolve
         is_decomposable = is_milp or is_mosek
+        solverName = "MOSEK" if is_mosek else "HiGHS"
         self._decomp_use_mosek = is_mosek  # consumed by _relax_and_fix_solve / _benders_solve
         # Decomposition only helps when bracket-selector binaries are present in the model.
         # Without them the master problem has nothing to fix; skip decomposition and warn.
@@ -4419,7 +4459,9 @@ class Plan:
             self.solverGap = solgap
 
             if not solverSuccess or objfn is None:
-                self.mylog.print("Solver failed:", solverMsg, solverSuccess)
+                self.caseStatus = "infeasible" if self._infeasible else "solver error"
+                self.solverMessage = _failureMessage(self._infeasible, solverName, solverMsg)
+                self.mylog.print(self.solverMessage, tag="WARNING" if self._infeasible else "ERROR")
                 break
 
             self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
@@ -4574,8 +4616,9 @@ class Plan:
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
             self.caseStatus = "solved"
         else:
-            self.mylog.print("Optimization failed:", solverMsg, solverSuccess, tag="WARNING")
-            self.caseStatus = "unsuccessful"
+            # caseStatus and solverMessage were set where the loop gave up, which is the
+            # only place that knows what the solver said.
+            self.mylog.print(f"Optimization failed: case is {self.caseStatus}.", tag="WARNING")
 
         return None
 
@@ -4782,6 +4825,10 @@ class Plan:
             ms in (highspy.HighsModelStatus.kOptimal, highspy.HighsModelStatus.kObjectiveBound)
             or pstatus == highspy.kSolutionStatusFeasible
         )
+        # Only kInfeasible means no plan exists. Anything else that failed (kUnknown from a
+        # postsolve breakdown, an error, a limit) is the solver giving up on a model that
+        # may well be solvable, and must not be reported as an impossible plan.
+        self._infeasible = ms == highspy.HighsModelStatus.kInfeasible
 
         if success:
             sol = h.getSolution()
@@ -4994,6 +5041,7 @@ class Plan:
         try:
             task.optimize()
         except mosek.Error as e:
+            self._infeasible = False
             return None, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1.0
 
         if int_vars:
@@ -5006,6 +5054,7 @@ class Plan:
             solsta = task.getsolsta(sol)
             success = solsta == mosek.solsta.optimal
             gap = 0.0
+        self._infeasible = _mosekIsInfeasible(task, sol, mosek)
 
         if success:
             return (
@@ -5470,6 +5519,7 @@ class Plan:
         try:
             trmcode = task.optimize()
         except mosek.Error as e:
+            self._infeasible = False
             return 0.0, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1
 
         # The integer solution slot only exists when the problem actually has integer
@@ -5497,6 +5547,8 @@ class Plan:
             solverMsg = f"MOSEK: {symname} - {desc}"
         else:
             solverMsg = f"MOSEK: Solution status {solsta}"
+
+        self._infeasible = _mosekIsInfeasible(task, soltype, mosek)
 
         xx = np.array(task.getxx(soltype))
         solution = task.getprimalobj(soltype)

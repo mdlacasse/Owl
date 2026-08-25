@@ -1,0 +1,86 @@
+case_name = "HiGHS solver-error regression (issue #139)"
+description = """
+Reported in issue #139: with this exact combination of balances and rate seed, HiGHS
+stops with model status 'Unknown' after failing to postsolve, while MOSEK solves the
+same model to optimality and even the failing HiGHS run prints an objective within
+rounding of MOSEK's answer. The plan is feasible; the solver is what breaks.
+
+Kept as a fixture so the classification is exercised on a real failure rather than a
+synthetic one, and so a future highspy release that fixes the underlying trouble is
+noticed (test_solver_status.py reports it rather than silently passing). The inputs
+are fragile by nature -- changing the seed by one, or nudging a balance, makes HiGHS
+solve it -- so nothing here should be edited.
+"""
+
+[basic_info]
+status = "married"
+names = [ "Mabel", "Walter",]
+date_of_birth = [ "1962-06-01", "1962-06-01",]
+life_expectancy = [ 99, 99,]
+sexes = [ "M", "F",]
+start_date = "2026-01-01"
+state = "VA"
+
+[savings_assets]
+taxable_savings_balances = [ 200.00, 0.0,]
+tax_deferred_savings_balances = [ 6000.00, 0.0,]
+tax_free_savings_balances = [ 0.0, 0.0,]
+hsa_savings_balances = [ 2.0, 0.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.0
+
+[household_financial_profile]
+HFP_file_name = ""
+
+[fixed_income]
+pension_monthly_amounts = [ 0, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ false, false,]
+pension_survivor_fraction = [ 0.0, 0.0,]
+social_security_pia_amounts = [ 4000, 1200,]
+social_security_ages = [ 67.0, 67.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 33.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "historical_bootstrap"
+from = 1928
+to = 2025
+reverse_sequence = false
+roll_sequence = 0
+rate_seed = 3693466507
+reproducible_rates = true
+
+[asset_allocation]
+interpolation_method = "linear"
+type = "individual"
+generic = [ [ [ 86.0, 11.0, 0.0, 3.0,], [ 86.0, 11.0, 0.0, 3.0,],], [ [ 86.0, 11.0, 0.0, 3.0,], [ 86.0, 11.0, 0.0, 3.0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[solver_options]
+bequest = 0.0
+maxRothConversion = 1000.0
+noLateSurplus = false
+noRothConversions = "none"
+solver = "HiGHS"
+spendingSlack = 0
+startRothConversions = 2026
+timePreference = 0.0
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withDecomposition = "none"
+withSSTaxability = "loop"
+withSSAges = "fixed"
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = false
+worksheet_real_dollars = false

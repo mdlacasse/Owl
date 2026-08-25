@@ -212,10 +212,12 @@ def runPlan(plan):
     except Exception as e:
         st.error(f"Solution failed: {e}", icon=":material/error:")
         kz.storeCaseKey("caseStatus", "exception")
+        kz.storeCaseKey("solverMessage", f"The solve raised {type(e).__name__}: {e}")
         kz.storeCaseKey("summaryDf", None)
         return
 
     kz.storeCaseKey("caseStatus", plan.caseStatus)
+    kz.storeCaseKey("solverMessage", plan.solverMessage)
     if plan.caseStatus == "solved":
         kz.storeCaseKey("summaryDf", plan.summaryDf())
         kz.storeCaseKey("metricsDict", plan.metricsDict())
@@ -229,6 +231,25 @@ def runPlan(plan):
     else:
         kz.storeCaseKey("summaryDf", None)
         kz.storeCaseKey("casetoml", "")
+
+
+def showCaseStatus():
+    """
+    Explain why there are no results to show.
+
+    An infeasible case is the user's to fix, so it reads as a warning about the inputs.
+    A solver error is not: the optimizer failed on a model that may well be solvable,
+    and the useful next step is the other solver rather than a smaller retirement.
+    """
+    status = kz.getCaseKey("caseStatus")
+    message = kz.getCaseKey("solverMessage")
+    if status == "infeasible":
+        st.warning(message, icon=":material/warning:")
+    elif status in ("solver error", "exception"):
+        st.error(f"{message} The solver is selected under *Solver* on the **Run Options** page.",
+                 icon=":material/error:")
+    else:
+        st.info("Case status is currently '%s'." % status)
 
 
 @_checkPlan

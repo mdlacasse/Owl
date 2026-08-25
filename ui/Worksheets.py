@@ -36,7 +36,7 @@ else:
         st.info("Case definition is not yet complete. Please visit all pages in *Case Setup*.")
 
     if kz.isCaseUnsolved():
-        st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
+        owb.showCaseStatus()
     else:
         kz.initCaseKey("worksheetShowAges", False)
         kz.initCaseKey("worksheetHideZeroColumns", False)

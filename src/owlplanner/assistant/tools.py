@@ -103,6 +103,11 @@ SERVER_INSTRUCTIONS = (
     "always ask the user to clarify 'bonds' before filling in an allocation, "
     "since corporate bonds (index 1) and T-notes/Treasuries (index 2) have "
     "meaningfully different historical return series. "
+    "When a solve returns no plan, 'status' distinguishes two very different things: "
+    "'infeasible' means no plan satisfies the constraints and an input has to give, "
+    "while 'solver error' means the optimizer failed on a model that may well be "
+    "solvable — never tell the user their retirement cannot be funded on the strength "
+    "of one; retry with the other solver (solver='MOSEK' or 'HiGHS') and report that. "
     "Responses from the solve tools may include an 'assumed_defaults' list "
     "describing material assumptions made for parameters the caller omitted; "
     "relay these assumptions to the user and ask for the true values when they "
@@ -664,7 +669,7 @@ async def run_case(
 
     if plan.caseStatus != "solved":
         return json.dumps(
-            {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+            {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
         )
 
     result = plan_to_dict(plan)
@@ -1758,7 +1763,7 @@ async def run_from_params(
         return json.dumps({"error": f"Plan build/solve error: {e}"})
 
     if plan.caseStatus != "solved":
-        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
         if assumed:
             failed["assumed_defaults"] = assumed
         return json.dumps(failed)
@@ -2617,7 +2622,7 @@ async def explain_results(
             return json.dumps({"error": f"Plan build/solve error: {e}"})
 
     if plan.caseStatus != "solved":
-        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": "Case did not solve to optimality."}
+        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
         if assumed:
             failed["assumed_defaults"] = assumed
         return json.dumps(failed)
@@ -2661,7 +2666,7 @@ def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts,
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)
@@ -3633,7 +3638,7 @@ def _year1_robustness_blocking(plan, scenario_method, ystart, yend, n_scenarios,
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
     base_year1 = _year1_snapshot(plan)
 
     if seed is not None:
@@ -4077,7 +4082,7 @@ def _longevity_stochastic_blocking(
 
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
-        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}).")
+        raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)

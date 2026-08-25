@@ -220,11 +220,15 @@ def cmd_run(
         else:
             import json
 
-            sys.stdout.write(json.dumps({"status": plan.caseStatus, "case_name": plan._name}))
+            sys.stdout.write(
+                json.dumps({"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage})
+            )
             sys.stdout.write("\n")
             sys.exit(1)
     else:
         click.echo(f"Case status: {plan.caseStatus}")
+        if plan.solverMessage:
+            click.echo(plan.solverMessage)
         if plan.caseStatus == "solved":
             output_filename = filename.with_name(filename.stem + "_results.xlsx")
             plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)

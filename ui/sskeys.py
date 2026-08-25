@@ -181,7 +181,7 @@ def isIncomplete():
 
 
 def caseHasNotRun():
-    return getCaseKey("caseStatus") not in ["solved", "unsuccessful"]
+    return getCaseKey("caseStatus") not in ["solved", "infeasible", "solver error", "unsuccessful", "exception"]
 
 
 def isCaseUnsolved():

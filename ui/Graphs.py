@@ -61,7 +61,7 @@ else:
 
     if kz.isCaseUnsolved():
         st.divider()
-        st.info("Case status is currently '%s'." % kz.getCaseKey("caseStatus"))
+        owb.showCaseStatus()
     else:
         kz.divider("orange")
         col1, col2 = st.columns(2, gap="large", vertical_alignment="bottom")
