@@ -456,9 +456,9 @@ Update gitpython due to vulnerability identified by GitHub bots.
 #### New: example case `devon`
 `examples/Case_devon.toml` (+ `HFP_devon.xlsx`): the wealth-axis companion to `dana` — a
 single Californian at the retirement threshold with the same balance sheet scaled four-fold,
-≈$4.75M of savings concentrated in a $3.75M traditional IRA ($600k taxable, $400k Roth), a
-near-maximum Social Security benefit (PIA $4,000/month) at 70 from a career at the earnings
-cap, RMDs at 75, and a $1.6M bequest target beside a home left to heirs. Everything else —
+≈\$4.75M of savings concentrated in a \$3.75M traditional IRA (\$600k taxable, \$400k Roth), a
+near-maximum Social Security benefit (PIA \$4,000/month) at 70 from a career at the earnings
+cap, RMDs at 75, and a \$1.6M bequest target beside a home left to heirs. Everything else —
 single filer, California, fixed 60/40 allocation, uncapped conversions, `historical_average`
 base rates — matches `dana`, so wealth is the only moving part: at this level the conversion
 moves from the 12–22% brackets into 24–32–35%, straddles multiple Medicare IRMAA tiers,
@@ -476,7 +476,7 @@ regret `R = V* − V(x)` against the clairvoyant optimum; where the self-consist
 not settle cleanly, it also records the residual oscillation amplitude of each end (`v_star_osc`
 for `V*`, `v_at_osc` for `V(x)`). The summary reports the dispersion of scenario-optimal
 conversions, the valley (lowest-mean-regret commitment), the over- versus under-conversion
-asymmetry at ±$15k/$30k/$45k (under-conversion floored at zero, since a conversion cannot be
+asymmetry at ±\$15k/\$30k/\$45k (under-conversion floored at zero, since a conversion cannot be
 negative), infeasible-scenario counts, and the never-convert cost.
 
 #### New: objective error bar for unsettled self-consistent solves
@@ -508,17 +508,17 @@ the scenario distribution.
 - The `filename=` path of the scenario MCP tools (`run_stochastic`,
   `run_year1_robustness`, `run_historical`, `run_monte_carlo`) silently dropped the
   case file's `[solver_options]` — bequest, maxRothConversion, previousMAGIs,
-  startRothConversions, and the rest — and solved with defaults instead (a $1 bequest,
+  startRothConversions, and the rest — and solved with defaults instead (a \$1 bequest,
   uncapped conversions), so results could differ materially from `run_case` on the
-  same file. The case's options are now the base, rescaled from the file's $k units to
+  same file. The case's options are now the base, rescaled from the file's \$k units to
   the MCP tools' full dollars, with explicit MCP arguments overriding
   (`_merge_case_opts`); regression tests pin the behavior. `run_case`,
   `explain_results`, and `compare_to_baseline` were already correct.
 
 #### New: example case `dana`
 `examples/Case_dana.toml` (+ `HFP_dana.xlsx`): a single Californian at the retirement
-threshold — retired at the end of last year at 65, ≈$1M of after-tax savings
-concentrated in a $937k traditional IRA, Social Security at 70, RMDs at 75, a $400k
+threshold — retired at the end of last year at 65, ≈\$1M of after-tax savings
+concentrated in a \$937k traditional IRA, Social Security at 70, RMDs at 75, a \$400k
 bequest target beside a home left to heirs. Designed for first-year
 decision-robustness studies: plan year 1 is the first retirement year, so every
 scenario shares one information set at the moment of the conversion decision;
@@ -535,8 +535,8 @@ scenarios and reports the distribution of the first-year decisions: per-person R
 conversion percentiles with the share of scenarios recommending a conversion and an
 agreement metric (share within 10% of the median), withdrawals by account, net
 spending, and the modal top tax bracket — next to the deterministic base-case
-decisions for comparison. Answers "should I really convert $X this year?" with
-"convert $45k–$60k in 87% of scenarios" instead of a single-path number. The
+decisions for comparison. Answers "should I really convert \$X this year?" with
+"convert \$45k–\$60k in 87% of scenarios" instead of a single-path number. The
 underlying per-scenario decisions are available programmatically via the
 `year1_decisions` key of `runStochasticSpending()` and the new `summarize_year1()`
 helper exported from `owlplanner`.
@@ -1004,7 +1004,7 @@ MCP-compatible client.
 - **`convert_ss_benefit`**: Utility tool that converts between a Social Security PIA
   (Primary Insurance Amount, the benefit at Full Retirement Age) and the actual monthly
   benefit at a given claiming age, in either direction. Lets an AI assistant turn a
-  statement like "I'm 65 and I get a $2,800 check" into the PIA value expected by
+  statement like "I'm 65 and I get a \$2,800 check" into the PIA value expected by
   `ss_monthly_pias` in `run_from_params`, `save_case`, `run_stochastic`,
   `run_longevity_stochastic`, `run_historical`, and `run_monte_carlo`.
 
@@ -1304,7 +1304,7 @@ The `NIIT` column also appears in the CSV export.
 #### Bug fix
 
 - **Reports comparison** — `build_summary_dic()` now always emits `Total debt payments`
-  and `Total ACA premiums paid` fields (with $0 when none apply), so `compareSummaries()`
+  and `Total ACA premiums paid` fields (with \$0 when none apply), so `compareSummaries()`
   no longer silently drops cases whose column sets differ when one case has debts or ACA
   costs and another does not.
 
@@ -1386,7 +1386,7 @@ nominal." All bundled example HFP files have been updated (residence and real es
 
 - **TOML parse errors now raise `ValueError`** instead of the misleading `FileNotFoundError`
   when a case file contains invalid TOML (e.g. a mixed int/float array like `[10.0, 2_000]`).
-- **`Case_jack+jill` example** — corrected Jill's pension from `10.5` to `2_000.0` $/month
+- **`Case_jack+jill` example** — corrected Jill's pension from `10.5` to `2_000.0` \$/month
   (issue #125); expected spending basis updated in regression tests.
 
 ---
