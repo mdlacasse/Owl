@@ -859,6 +859,13 @@ def _build_plan_from_params(
     When *reproducible_seed* is given, it is applied before setRates so that
     stochastic rate methods draw identical return series across plans built
     with the same seed (used by compare_to_baseline for fair pairing).
+
+    Every caller that accepts a seed must pass it here, not only call
+    setReproducible() afterwards. A rate model that is fitted rather than merely
+    sampled -- gmm fits a mixture by EM from a random start -- consumes its
+    randomness at setRates() time, and seeding later cannot undo that: it reseeds
+    sampling and leaves the fitted mixture as it was. Omitting it leaves a tool
+    documented as reproducible returning a different answer for the same seed.
     """
     if assumed is None:
         assumed = []
@@ -3154,6 +3161,7 @@ async def run_stochastic(
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
+                reproducible_seed=seed,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3559,6 +3567,7 @@ async def run_spending_bequest_frontier(
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
+                reproducible_seed=seed,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3891,6 +3900,7 @@ async def run_year1_robustness(
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
+                reproducible_seed=seed,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4073,6 +4083,7 @@ def _longevity_stochastic_blocking(
         obbba_expiration_year=obbba_expiration_year,
         dividend_rate=dividend_rate,
         assumed=assumed,
+        reproducible_seed=seed,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4083,9 +4094,6 @@ def _longevity_stochastic_blocking(
     plan.solve(plan.objective, opts)
     if plan.caseStatus != "solved":
         raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
-
-    if seed is not None:
-        plan.setReproducible(True, seed=seed)
 
     _ystart = ystart if ystart is not None else FROM
     _yend = yend if yend is not None else TO
@@ -4099,6 +4107,7 @@ def _longevity_stochastic_blocking(
             yend=_yend,
             with_longevity=True,
             sexes=list(sexes),
+            seed=seed,
         )
     elif scenario_method == "mc":
         if getattr(plan, "rateModel", None) is None or getattr(plan.rateModel, "deterministic", True):
@@ -4114,6 +4123,7 @@ def _longevity_stochastic_blocking(
             N=n_scenarios,
             with_longevity=True,
             sexes=list(sexes),
+            seed=seed,
         )
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")

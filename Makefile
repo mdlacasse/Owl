@@ -38,6 +38,9 @@ lock: ## Upgrade uv.lock (owlplanner version is recorded natively)
 	uv sync
 	@echo "uv.lock updated."
 
+outdated: ## List packages 'make update' would upgrade, without changing anything
+	uv lock --upgrade --dry-run
+
 update: sync-version lock requirements ## Sync version, upgrade uv.lock, and regenerate requirements.txt
 
 tests-mosek:

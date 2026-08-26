@@ -24,18 +24,16 @@ cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
 charset-normalizer==3.5.1
     # via requests
-click==8.4.2
+click==8.5.0
     # via
     #   owlplanner
     #   streamlit
     #   uvicorn
 colorama==0.4.6 ; sys_platform == 'win32'
-    # via
-    #   click
-    #   loguru
+    # via loguru
 contourpy==1.3.3
     # via matplotlib
-cryptography==50.0.0
+cryptography==50.0.1
     # via pyjwt
 cycler==0.12.1
     # via matplotlib
@@ -86,9 +84,9 @@ matplotlib==3.11.1
     # via
     #   owlplanner
     #   seaborn
-mcp==2.0.0
+mcp==2.1.1
     # via owlplanner
-mcp-types==2.0.0
+mcp-types==2.1.1
     # via mcp
 mosek==11.2.3
     # via owlplanner
@@ -141,7 +139,7 @@ pillow==12.3.0
     # via
     #   matplotlib
     #   streamlit
-plotly==6.9.0
+plotly==7.0.0
     # via owlplanner
 protobuf==7.36.0
     # via streamlit
@@ -184,7 +182,7 @@ rpds-py==2026.6.3
     #   referencing
 scipy==1.17.1 ; python_full_version < '3.12'
     # via owlplanner
-scipy==1.18.0 ; python_full_version >= '3.12'
+scipy==1.18.1 ; python_full_version >= '3.12'
     # via owlplanner
 seaborn==0.13.2
     # via owlplanner

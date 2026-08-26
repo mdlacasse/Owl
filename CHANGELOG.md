@@ -1,3 +1,25 @@
+### Version 2026.8.26
+
+#### Bugfix: a seeded MCP stochastic tool did not repeat itself
+`run_stochastic`, `run_longevity_stochastic`, `run_year1_robustness` and
+`run_spending_bequest_frontier` document a `seed`, but none passed it to the plan
+builder. Seeding afterwards is too late for a rate model that is *fitted* rather than
+sampled: `gmm` fits its mixture by EM from a random start while `setRates()` runs, and
+a later reseed only affects sampling. Under `gmm`, `seed=42` gave a different answer
+every call — spending at the top of the frontier ranged over 3.8x on one household.
+Sampled methods such as `lognormal` were unaffected.
+
+`run_longevity_stochastic` also sampled lifespans unseeded, and solved its gating plan
+before any seeding at all — which made it fail outright when that unseeded draw
+happened to defeat the solver.
+
+#### Added: `make outdated`
+Lists the packages `make update` would upgrade, without changing anything.
+
+#### Maintenance: Updated dependencies
+`click` 8.4.2 → 8.5.0, `cryptography` 50.0.0 → 50.0.1, `mcp` and `mcp-types` 2.0.0 →
+2.1.1, `platformdirs` 4.11.3 → 4.11.4, `plotly` 6.9.0 → 7.0.0, `scipy` 1.18.0 → 1.18.1.
+
 ### Version 2026.8.21
 
 #### Added: Qualified Charitable Distributions - Issue #137
