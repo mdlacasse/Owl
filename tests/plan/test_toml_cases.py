@@ -92,100 +92,47 @@ def getHFP(exdir, case, check_exists=True):
 # oscillation fixed point shifted again, 103_015 -> 102_978.
 # Updated after the MAGI SS-basis fix (IRMAA/NIIT/OBBBA now use AGI-basis MAGI = taxable SS
 # only; ACA and SS-taxability keep full-SS MAGI_aca_n): jack+jill net 102_978 -> 102_880
-# (darwin, verified). linux/win32 received the same -98 delta as a best-effort estimate and
-# should be confirmed by CI / a native run.
+# (darwin, verified); the same -98 delta was carried to linux/win32 as an estimate.
 # Updated after removing the explicit HSA deduction (wages are now entered net of all
 # contributions, HSA included): all six cases carry HSA contributions, so every value
-# shifted slightly down (darwin, verified). jack+jill linux/win32 received the same -259
-# delta as a best-effort estimate and should be confirmed by CI.
+# shifted slightly down (darwin, verified); jack+jill carried the same -259 delta to
+# linux/win32 as an estimate.
 # Updated after the AMO exclusion binaries were removed (restored by post-processing instead).
 # Only john+sally moved: same spending basis, bequest 82_934 -> 84_252 under HiGHS, i.e. the
 # same plan with more left over. That case converges oscillatory, so the self-consistent loop
 # settles on a best-of-cycle iterate and the removal shifted which one. MOSEK still lands on
 # 82_934, hence the override below. Every other case is unchanged to the cent.
-if platform == "darwin":
-    EXPECTED_OBJECTIVE_VALUES = {
-        "Case_john+sally": {
-            "net_spending_basis": 145_000,
-            "bequest": 84_252,
-        },
-        "Case_jack+jill": {
-            "net_spending_basis": 102_515,
-            "bequest": 400_000,
-        },
-        "Case_joe": {
-            "net_spending_basis": 93_044,
-            "bequest": 300_000,
-        },
-        "Case_kim+sam-spending": {
-            "net_spending_basis": 186_498,
-            "bequest": 0,
-        },
-        "Case_kim+sam-bequest": {
-            "net_spending_basis": 145_000,
-            "bequest": 1_972_270,
-        },
-        "Case_robin": {
-            "net_spending_basis": 44_365,
-            "bequest": 50_000,
-        },
-    }
-elif platform == "linux":
-    EXPECTED_OBJECTIVE_VALUES = {
-        "Case_john+sally": {
-            "net_spending_basis": 145_000,
-            "bequest": 84_252,
-        },
-        "Case_jack+jill": {
-            "net_spending_basis": 102_515,
-            "bequest": 400_000,
-        },
-        "Case_joe": {
-            "net_spending_basis": 93_044,
-            "bequest": 300_000,
-        },
-        "Case_kim+sam-spending": {
-            "net_spending_basis": 186_498,
-            "bequest": 0,
-        },
-        "Case_kim+sam-bequest": {
-            "net_spending_basis": 145_000,
-            "bequest": 1_972_270,
-        },
-        "Case_robin": {
-            "net_spending_basis": 44_365,
-            "bequest": 50_000,
-        },
-    }
-elif platform == "win32":
-    EXPECTED_OBJECTIVE_VALUES = {
-        "Case_john+sally": {
-            "net_spending_basis": 145_000,
-            "bequest": 84_252,
-        },
-        "Case_jack+jill": {
-            "net_spending_basis": 102_697,
-            "bequest": 400_000,
-        },
-        "Case_joe": {
-            "net_spending_basis": 93_044,
-            "bequest": 300_000,
-        },
-        "Case_kim+sam-spending": {
-            "net_spending_basis": 186_498,
-            "bequest": 0,
-        },
-        "Case_kim+sam-bequest": {
-            "net_spending_basis": 145_000,
-            "bequest": 1_972_270,
-        },
-        "Case_robin": {
-            "net_spending_basis": 44_365,
-            "bequest": 50_000,
-        },
-    }
-else:
-    raise RuntimeError(f"Unknown platform {platform!r}: no reference objective values defined")
+# Those linux/win32 estimates were finally measured on a native Windows run (2026-08-28):
+# jack+jill comes back at 102_515, i.e. exactly the darwin/linux value, so the estimated
+# deltas were wrong and win32 never diverged at all. With that corrected, all three
+# platforms agree to the cent under HiGHS and the per-platform tables collapse into one.
+# Platform still matters under MOSEK -- see the override block in test_reproducibility.
+EXPECTED_OBJECTIVE_VALUES = {
+    "Case_john+sally": {
+        "net_spending_basis": 145_000,
+        "bequest": 84_252,
+    },
+    "Case_jack+jill": {
+        "net_spending_basis": 102_515,
+        "bequest": 400_000,
+    },
+    "Case_joe": {
+        "net_spending_basis": 93_044,
+        "bequest": 300_000,
+    },
+    "Case_kim+sam-spending": {
+        "net_spending_basis": 186_498,
+        "bequest": 0,
+    },
+    "Case_kim+sam-bequest": {
+        "net_spending_basis": 145_000,
+        "bequest": 1_972_270,
+    },
+    "Case_robin": {
+        "net_spending_basis": 44_365,
+        "bequest": 50_000,
+    },
+}
 
 
 def test_reproducibility():
@@ -200,15 +147,20 @@ def test_reproducibility():
     is successfully loaded for each case.
     """
     # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # (~103_129 vs HiGHS ~102_622) after the LTCG bracket-partition and state-tax LP fixes
-    # and the HSA-deduction removal.
+    # after the LTCG bracket-partition and state-tax LP fixes and the HSA-deduction removal.
     if _active_solver() == "MOSEK":
         EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 102_556
         # MOSEK keeps the pre-removal fixed point on this oscillatory case.
         EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
         # Both kim+sam cases settle a little lower under MOSEK.
         EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_403
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = 1_965_320
+        # kim+sam-bequest is the one case where MOSEK also differs by platform: measured on
+        # win32 2026-08-28, where it lands ~1_014 below darwin/linux. Two Windows runs gave
+        # 1_964_306 and 1_964_386, so this value carries ~4e-5 of run-to-run wobble under
+        # MOSEK -- well inside rel_tol, but it is why the pin is not exact.
+        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = (
+            1_964_306 if platform == "win32" else 1_965_320
+        )
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version

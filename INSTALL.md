@@ -147,23 +147,25 @@ pip install -e ".[notebooks]"      # optional: add Jupyter
 ---
 
 ### Publishing a release (maintainers only)
+Assuming N processors as NPROC
+(using less than actual number avoid memory bandwidth saturation):
 
 Run checks before all commits:
 ```shell
 flake8 ui src tests
-pytest -n auto
+uv run pytest -n $NPROC
 ```
 
 On macOS / Linux, to test against specific solvers:
 ```shell
-OWL_TEST_SOLVER="HiGHS" pytest -n auto
-OWL_TEST_SOLVER="MOSEK" pytest -n auto
+OWL_TEST_SOLVER="HiGHS" uv run pytest -n $NPROC
+OWL_TEST_SOLVER="MOSEK" uv run pytest -n $NPROC
 ```
 
 On Windows (PowerShell):
 ```powershell
-$env:OWL_TEST_SOLVER="HiGHS" ; pytest -n auto
-$env:OWL_TEST_SOLVER="MOSEK" ; pytest -n auto
+$env:OWL_TEST_SOLVER="HiGHS" ; uv run pytest -n $NPROC
+$env:OWL_TEST_SOLVER="MOSEK" ; uv run pytest -n $NPROC
 ```
 
 Bump the version in `pyproject.toml` (`[project].version`, the single source of

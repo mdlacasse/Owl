@@ -44,9 +44,9 @@ outdated: ## List packages 'make update' would upgrade, without changing anythin
 update: sync-version lock requirements ## Sync version, upgrade uv.lock, and regenerate requirements.txt
 
 tests-mosek:
-	OWL_TEST_SOLVER=mosek uv --verbose run pytest -n auto
+	OWL_TEST_SOLVER=mosek uv --verbose run pytest -n 2
 
 tests-highs:
-	OWL_TEST_SOLVER=highs uv --verbose run pytest -n auto
+	OWL_TEST_SOLVER=highs uv --verbose run pytest -n 2
 
 tests: tests-mosek tests-highs

@@ -29,6 +29,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+from sys import platform
 
 import numpy as np
 import pytest
@@ -75,19 +76,31 @@ def test_seeded_case_series_matches_reference():
 
 # Identical inputs should give an identical plan, so the objective is pinned too: it is
 # the number a reader would try to reproduce, and pinning the series alone would not tell
-# us whether it carried through to a result. Recorded on darwin, 2026-08-12.
-CHRIS_PAT_BASIS = {"HiGHS": 117_194.50, "MOSEK": 117_050.45}
+# us whether it carried through to a result.
+#
+# The series above is bit-identical on every platform, so what varies here is the solve,
+# not the draw: the basis has to be keyed by platform as well as by solver. darwin was
+# recorded 2026-08-12, win32 measured 2026-08-28. linux/HiGHS is confirmed by CI;
+# linux/MOSEK is untested (CI installs MOSEK without a license) and inherits the darwin
+# value until someone runs it on a licensed Linux machine.
+CHRIS_PAT_BASIS = {
+    "darwin": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
+    "linux": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
+    "win32": {"HiGHS": 117_069.00, "MOSEK": 116_967.00},
+}
 
 
 @pytest.mark.toml
 def test_seeded_case_objective_matches_reference():
     """A reproducible series should give a reproducible plan."""
     solver = "MOSEK" if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
+    if platform not in CHRIS_PAT_BASIS:
+        pytest.skip(f"No reference basis recorded for platform {platform!r}")
     p = owl.readConfig(os.path.join("examples", "Case_chris+pat"))
     p.solverOptions["solver"] = solver
     p.resolve()
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(CHRIS_PAT_BASIS[solver], rel=5e-4, abs=50)
+    assert p.basis == pytest.approx(CHRIS_PAT_BASIS[platform][solver], rel=5e-4, abs=50)
 
 
 @pytest.mark.toml

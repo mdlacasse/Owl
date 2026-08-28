@@ -34,7 +34,7 @@ All subsequent `uv run` commands use that environment automatically.
 uv run pytest
 
 # Run in parallel (recommended before a PR)
-uv run pytest -n auto
+uv run pytest -n 2
 
 # Run a single file or test
 uv run pytest tests/test_plan_edge_cases.py
@@ -47,6 +47,13 @@ uv run pytest -m toml
 uv run pytest -v --cov=owlplanner
 ```
 
+Use a small, explicit worker count rather than `-n auto`. The suite is
+memory-bound, so the speedup saturates early: on a Windows/Intel laptop the run
+goes from 29m22s serial to 6m20s at `-n 2`, while `-n 4` only reaches 5m18s. Past
+that it stops being a trade-off — `-n auto` sizes itself on *logical* processors
+and has been observed killing xdist workers on Windows with
+`Windows fatal exception: access violation`.
+
 ### Testing against specific solvers
 
 The default solver is HiGHS. To run the suite against a specific solver, set
@@ -54,14 +61,14 @@ The default solver is HiGHS. To run the suite against a specific solver, set
 
 **macOS / Linux:**
 ```shell
-OWL_TEST_SOLVER="HiGHS" uv run pytest -n auto
-OWL_TEST_SOLVER="MOSEK" uv run pytest -n auto
+OWL_TEST_SOLVER="HiGHS" uv run pytest -n 2
+OWL_TEST_SOLVER="MOSEK" uv run pytest -n 2
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:OWL_TEST_SOLVER="HiGHS" ; uv run pytest -n auto
-$env:OWL_TEST_SOLVER="MOSEK" ; uv run pytest -n auto
+$env:OWL_TEST_SOLVER="HiGHS" ; uv run pytest -n 2
+$env:OWL_TEST_SOLVER="MOSEK" ; uv run pytest -n 2
 ```
 
 MOSEK requires a separate licence. HiGHS is free and is the default.
