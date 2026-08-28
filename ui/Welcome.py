@@ -60,15 +60,14 @@ with col1:
     kz.divider("orange")
     st.markdown("""
 ### :orange[Stop guessing. Start optimizing.]
-No more guesswork—just a clear, optimized plan.
-**Owl** builds a sophisticated mathematical model of your entire financial landscape—mapping
-everything from taxable accounts to Roth conversions and Medicare premiums.
+**Owl** builds a mathematical model of your entire financial landscape—mapping everything from
+taxable accounts to Roth conversions and Medicare premiums.
 
-Unlike basic calculators, **Owl** doesn’t just project a single outcome;
-it solves for the optimal strategy. You’ll receive an actionable roadmap that tells you exactly how much
-to spend, when to convert to Roth, and which accounts to draw from first.
-Plus, you can stress-test your plan against market volatility and changing regulations
-to see exactly how robust your future really is.
+Unlike basic calculators, **Owl** doesn’t just project a single outcome; it solves for the optimal
+strategy—how much to spend, when to convert to Roth, and which accounts to draw from first. And
+from there you can stress-test that plan: re-optimize it under every market sequence since 1928, or
+under Monte Carlo scenarios from a choice of stochastic return models, to see the *range* of
+outcomes those futures would have produced rather than a single number.
 
 ### :orange[Built for US Retirees]
 **Owl** integrates US federal and state income taxes (all 50 states + DC), Social Security
@@ -117,20 +116,43 @@ st.markdown("""
 **Owl** is open source. Your data stays private in all cases—we don’t store, track,
 or resell your financial data, whether cloud-hosted, or self-hosted on your device.
 - **No Sign-ups:** Start planning immediately.
-- **No Fees:** Professional-grade modeling, free for everyone.
+- **No Fees:** Full modeling capability, free for everyone.
 - **Total Privacy:** Your data always remains private.
 """)
+
+st.markdown("""
+### :orange[A range, not just a number]
+A plan that names one spending level hides how much that number depends on the market sequence you
+happen to get. If you want that context, **Owl** can sweep the plan rather than solve it once:
+
+- **Spending floor** — the highest spending level that survived *every* sequence in nearly a century
+of market history, computed for your own accounts, taxes, and Social Security.
+- **Efficient frontier** — the full trade-off between committed spending and shortfall risk, in
+dollars, so a 70% target becomes a quantity you can weigh rather than a number that merely sounds
+alarming.
+- **Spending vs. bequest** — what an estate costs in annual spending, swept level by level, each
+point a full re-optimization, on this case's rates or across scenarios.
+
+The floor is a foundation to move up from, not a place to live.
+""")
+sr1, sr2 = st.columns(2)
+with sr1:
+    st.page_link("Spending_Optimization.py", label="Spending Optimization", icon=":material/query_stats:")
+with sr2:
+    st.page_link("Spending_vs_Bequest.py", label="Spending vs Bequest", icon=":material/balance:")
 
 # Benefits
 st.markdown("### :orange[How is **Owl** different? Optimization, not just projection.]")
 st.markdown(
     "Most **retirement calculators** give you one rigid path. **Owl** *optimizes* "
-    "your plan given your assumptions so you can:"
+    "your plan given your assumptions—and shows you how much that plan depends on assumptions "
+    "you don’t control—so you can:"
 )
 col1, col2, col3 = st.columns(3, gap="medium")
 with col1:
-    st.markdown("""**:material/trending_up: Spend with confidence**
-\nKnow exactly how much you can enjoy each year without the fear of outliving your savings.""")
+    st.markdown("""**:material/trending_up: Spend with quantified confidence**
+\nSee the range of sustainable spending levels and what each one risks—in dollars,
+not just a success percentage.""")
 with col2:
     st.markdown("""**:material/account_balance: Minimize lifetime taxes**
 \nAutomatically identify Roth conversion windows to lower your total tax bill and Medicare (IRMAA) premiums.""")
