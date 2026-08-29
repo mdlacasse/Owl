@@ -862,6 +862,7 @@ def run_historical_range(
     fig, description = plan._plotter.plot_histogram_results(
         objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x
     )
+    _prependObjectiveConstraint(description, plan, objective, options)
     plan.mylog.print(description.getvalue())
 
     fig2 = None
@@ -874,6 +875,28 @@ def run_historical_range(
         return fig, description.getvalue(), fig2
 
     return N, df
+
+
+def _prependObjectiveConstraint(description, plan, objective, options):
+    """
+    Put the constraint accompanying the objective at the top of the summary.
+
+    Maximizing net spending holds the bequest fixed, and maximizing bequest holds
+    net spending fixed. The distribution of results across scenarios only reads
+    correctly next to the value that was held fixed while producing it.
+    """
+    thisyear = int(plan.year_n[0])
+    if objective == "maxSpending":
+        value = u.get_monetary_option(options, "bequest", 0)
+        line = f"Bequest constraint ({thisyear} $): {u.d(value)}"
+    else:
+        value = u.get_monetary_option(options, "netSpending", 0)
+        line = f"Net spending constraint ({thisyear} $): {u.d(value)}"
+
+    body = description.getvalue()
+    description.seek(0)
+    description.truncate(0)
+    description.write(f"{line}\n{body}")
 
 
 MC_TIME_LIMIT = 120  # per-scenario solver time limit for MC runs (overrides the single-run default)
@@ -931,6 +954,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     fig, description = plan._plotter.plot_histogram_results(
         objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x
     )
+    _prependObjectiveConstraint(description, plan, objective, myoptions)
     plan.mylog.print(description.getvalue())
 
     if figure:

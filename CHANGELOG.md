@@ -89,6 +89,25 @@ The check now compares only what the arrays actually represent: those five colum
 years, contributions and `Roth conv` everywhere. A plan-year divergence still reports stale,
 which is what the check is for.
 
+#### Bugfix: stress-test results did not say what was being held fixed
+
+A histogram of outcomes over historical scenarios or Monte Carlo trials only means
+something next to the quantity that was *not* free to move. Maximizing net spending holds
+the bequest at its target; maximizing bequest holds net spending at its target. Neither
+appeared anywhere in the results, so a range of spending figures could not be read without
+going back to the **Goals** page to recall which bequest produced it.
+
+The summary beside the histogram on the **Historical Range** and **Monte Carlo** pages now
+opens with that value — `Bequest constraint (2026 $): $500,000` when maximizing spending,
+`Net spending constraint (2026 $): $90,000` when maximizing bequest — in today's dollars,
+like the statistics below it.
+
+#### Bugfix: the historical bar chart was always labelled "bequest"
+
+The heading over the chart of results by historical start year on the **Historical Range**
+page read *Optimal bequest by historical start year* whatever was being maximized. It now
+follows the objective, and says *net spending* when that is what the bars are.
+
 #### Docs: the UI manual audited against the app
 
 The **Documentation** page is written by hand and no test checks it, so it drifts. A pass

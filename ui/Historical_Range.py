@@ -133,7 +133,7 @@ Changing any of these options only affects the next run.
         col2.code(kz.getCaseKey("histoSummary"), language=None)
         fig2 = kz.getCaseKey("histoBarPlot")
         if fig2:
-            objective = kz.getCaseKey("objective") or "maxSpending"
-            label = "spending" if objective == "maxSpending" else "bequest"
+            objective = kz.getCaseKey("objective") or "Net spending"
+            label = "net spending" if objective == "Net spending" else "bequest"
             st.markdown(f"#### Optimal {label} by historical start year")
             owb.renderPlot(fig2)
