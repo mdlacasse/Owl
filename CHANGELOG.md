@@ -89,6 +89,25 @@ The check now compares only what the arrays actually represent: those five colum
 years, contributions and `Roth conv` everywhere. A plan-year divergence still reports stale,
 which is what the check is for.
 
+#### Docs: the UI manual audited against the app
+
+The **Documentation** page is written by hand and no test checks it, so it drifts. A pass
+over it brought it back in line: the *Qualified Medical Expenses* and *ACA Marketplace
+(Pre-65)* fields are now described, a *When there are no results* section explains the case
+where a plan is achievable and the solver is what gave up, and the MCP server section says
+what an assistant can actually drive.
+
+Smaller corrections along the way: the AI page advertised 16 tools when there are 18 and did
+not mention `run_year1_robustness`; the fixed-rate help pointed at Morningstar's 2025 return
+forecast, now the 2026 one; and a *Settings* link pointed at an anchor that does not exist.
+
+#### Maintenance: Updated dependencies
+
+`anthropic` 1.0.0 → 1.2.0, `ipython` 9.16.1 → 9.17.0, `jupyter-client` 8.9.1 → 8.10.0,
+`jupyter-server` 2.20.0 → 2.21.0, `kiwisolver` 1.5.0 → 1.5.1, `platformdirs` 4.11.4 →
+4.11.5, `pydantic` 2.13.4 → 2.13.5, `pydantic-core` 2.46.4 → 2.46.5, `wcwidth` 0.8.2 →
+0.8.3, `websocket-client` 1.9.0 → 1.9.1.
+
 ### Version 2026.8.26
 
 #### Bugfix: a seeded MCP stochastic tool did not repeat itself
