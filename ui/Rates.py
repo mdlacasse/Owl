@@ -113,9 +113,9 @@ Unless historical, S&P 500 can be used to represent any mix of equities
     helpmsgBaa = "Investment-grade corporate debt from issuers with a moderate risk of default."
     helpmsgTnote = "T-Notes are medium-term, low-risk U.S. government debt."
     helpmsgCash = """Here, "Cash Assets" are TIPS-like securities assumed to track inflation."""
-    helpFixed = """A 2025 roundup of expert opinions on stock and bond return
+    helpFixed = """A 2026 roundup of expert opinions on stock and bond return
 forecasts for the next decade can be found
-[here](https://www.morningstar.com/portfolios/experts-forecast-stock-bond-returns-2025-edition)."""
+[here](https://www.morningstar.com/markets/experts-forecast-stock-bond-returns-2026-edition)."""
     helpVarying = "Select the method used to generate annual rates of return. See the description on the right."
     helpYfrm = "First year of historical data included in the range. Must be at least 2 years before the ending year."
     helpYto = (

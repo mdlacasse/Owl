@@ -99,7 +99,7 @@ guided interview that collects exactly the information Owl needs before the firs
 """
 )
 
-with st.expander("What the AI can do — 16 tools"):
+with st.expander("What the AI can do — 18 tools"):
     st.markdown(
         """
 - **Solve and iterate** — `run_from_params` builds and optimizes a plan from conversational
@@ -114,6 +114,9 @@ with st.expander("What the AI can do — 16 tools"):
 - **Stress-test** — `run_historical`, `run_monte_carlo`, `run_stochastic`, and
   `run_longevity_stochastic` for backtests, Monte Carlo, spending frontiers, and longevity
   risk.
+- **Weigh the trade-offs** — `run_spending_bequest_frontier` traces what an estate costs in
+  spending; `run_year1_robustness` reports how much this year's decisions vary across
+  scenarios, i.e. how much to trust them.
 - **Reference** — rate models, mortality tables, IRS contribution limits, and Social
   Security benefit conversion.
 """

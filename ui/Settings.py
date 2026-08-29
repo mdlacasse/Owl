@@ -92,7 +92,7 @@ st.markdown("""
 #### :orange[Full Screen]
 Running Owl in full screen provides a more immersive user experience.
 Use the F11 key to toggle your browser in full screen mode. Or better, use the Streamlit app on your device.
-See [documentation](Documentation#settings-settings) for details.
+See [documentation](Documentation#full-screen) for details.
 """)
 
 st.divider()

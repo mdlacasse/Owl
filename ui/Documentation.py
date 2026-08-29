@@ -70,7 +70,7 @@ to visualize the results.
 
 A `Case selector` box located at the top of each page allows you
 to navigate between the different cases created.
-This box is present on all pages in **Case Setup** and **Results** sections.
+This box is present on all pages in the **Case Setup**, **Results**, and **Stress Tests** sections.
 The *case* being currently displayed is marked with a small red triangle 🔻.
 
 A typical workflow for exploring different cases involves starting with a base
@@ -111,7 +111,8 @@ debts, and fixed assets) are held in an optional ancillary *Household Financial 
 > A *Household Financial Profile* (HFP) is an
 optional Excel workbook with one **Wages and Contributions** sheet per person
 and optional household sheets *Debts* and *Fixed Assets*. Time-series fields include wages, *other inc*, *net inv*,
-tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*, and *big-ticket items*.
+tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*,
+*QCD* (Qualified Charitable Distribution), and *big-ticket items*.
 When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* below and *Case Setup* -> *Financial Profile* below for more detail.
 
@@ -142,8 +143,10 @@ the planner can explore the impacts of differing assumptions and strategies on t
 
     with st.expander(":orange[**Input and Output Files**]", expanded=expand_all, type="compact"):
         st.markdown("""
-Every *case* in **Owl** is fully described by two input files and produces three output files.
+Every *case* in **Owl** is fully described by two input files and produces two output files.
 Together they capture the complete data flow from configuration to results.
+The **Reports** page offers all four for download, re-exporting the two input files so that
+a run can always be reproduced.
 In the file names below, `<case_name>` stands for the *case* name and `<individual>` stands
 for an individual's first name (e.g., *Jack* or *Jill*).
 
@@ -156,6 +159,7 @@ individual demographics (names, birth dates, life expectancies),
 savings account balances, asset allocation ratios,
 fixed income sources (Social Security, pensions, SPIAs),
 run options (objective, Roth conversion strategy, solver options),
+spending-goal parameters, ACA/SLCSP settings, worksheet display preferences,
 the rates selection, and the filename of the associated *HFP* workbook (if any).
 It does **not** contain the time-series data from the *Household Financial Profile* itself.
 
@@ -173,21 +177,30 @@ The naming convention when saving from the interface is `Case_<case_name>.toml`.
 
 This Excel workbook holds year-by-year data that are not stored in the case TOML file.
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
-(e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table: **all** of the following
-headers must be present (lowercase; column order may vary); enter `0` where a column does not apply:
+(e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table with the following
+headers (they must match exactly, including capitalization; column order may vary):
 `year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
-`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `big-ticket items`. The legacy header `other inc.` is read as `other inc`.
+`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `QCD`, `big-ticket items`. Only `year` **must be present**: enter `0`
+where a column does not apply, or leave the column out of the workbook entirely and it is read as zero for
+every year, with **Owl** reporting which columns were absent. The one exception is `Roth conv` while the Roth
+conversion overrides toggle is on (see *Case Setup* -> *Financial Profile*).
+The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
 On load, the planner keeps rows from five calendar years before the **current** year through each person's
 last plan year (from demographics). Years outside that window are ignored; **every missing year inside the window,
 including the last plan year, is added with zeros**—you need not type every year in Excel. **Any other column**
 on a person sheet (including scratch/helper columns) is
-**dropped** when the file is read and is not used in the model.
+**dropped** when the file is read and is not used in the model. The one exception is a header that differs
+from a recognized one only by capitalization, spacing, or punctuation: that is reported as a probable typo
+rather than dropped, so a misspelled column never silently becomes zeros.
 
 Two optional **worksheets** (separate tabs) extend the workbook:
 - **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`.
 - **`Fixed Assets`** — columns `active`, `name`, `type`, `year`, `basis`, `value`, `rate`, `yod`, `commission`
   (allowed `type` values are listed under *Financial Profile → Debts and Fixed Assets*).
+
+Unlike the person sheets, **all** of the columns above must be present when one of these two sheets
+exists; there is no optional-column behavior here.
 
 A blank template is available
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
@@ -215,13 +228,15 @@ The HFP workbook as currently loaded or edited in the session. Saving it alongsi
 **`Synopsis_<case_name>.txt`** — *Case summary*
 
 A plain-text table of key metrics (spending, bequest, taxes, etc.) for the solved *case*.
-When multiple *cases* sharing the same individuals' names have been solved, additional columns
-show the differences between cases for a quick side-by-side comparison.
+When other *cases* have also been solved, additional columns show the differences between them
+for a quick side-by-side comparison. Only metrics the *cases* have in common are shown, so
+comparing *cases* built around different individuals simply yields fewer rows.
 
 **`Workbook_<case_name>.xlsx`** — *Plan workbook*
 
-The primary numerical output of a solved *case*. Contains one worksheet per topic,
-most indexed by year:
+The primary numerical output of a solved *case*
+(saved as `Workbook_<case_name>_real.xlsx` when the real-dollar worksheet toggle is on).
+Contains one worksheet per topic, most indexed by year:
 - **Income** — net spending, taxable ordinary income, taxable capital gains and dividends,
   total tax bills and Medicare premiums.
 - **Cash Flow** — full breakdown of household inflows and outflows that balance to net spending.
@@ -234,12 +249,17 @@ most indexed by year:
   and debt payments.
 - **`<individual>`'s Accounts** *(one sheet per individual)* — balances, contributions,
   deposits, withdrawals, and Roth conversions for each of the four account types
-  (taxable, tax-deferred, tax-free, HSA).
+  (taxable, tax-deferred, tax-free, HSA), along with the RMD included in each withdrawal,
+  any `QCD`, and the portion of the RMD that the QCD satisfied.
+- **Balance Sheet** and **Liquid Balance Sheet** — consolidated assets and liabilities at the
+  beginning of each year, plus a final end-of-plan (bequest) row. See the **Worksheets** section
+  for the full column list.
 - **Taxes** — income allocated to each federal tax bracket, NIIT, LTCG tax,
-  early-withdrawal penalty, state income tax (when applicable), and the fraction of Social Security that is taxable.
+  early-withdrawal penalty, state income tax (when applicable), the fraction of Social Security that is taxable,
+  the total tax bill, Medicare (+IRMAA) premiums, and ACA premiums when applicable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
-  (stocks, corporate bonds, T-notes, cash assets) for each account type over time.
-- **Rates** — year-by-year return rates used in this run (stocks, bonds, T-notes, cash assets).
+  (`stocks`, `C bonds`, `T notes`, `common`) for each account type over time.
+- **Rates** — year-by-year return rates used in this run (`S&P 500`, `Bonds Baa`, `T-Notes`, `Inflation`).
 - **Summary** — aggregate totals over the planning horizon: spending, taxes, Medicare,
   Roth conversions, and bequests (not indexed by year).
 """)
@@ -301,6 +321,9 @@ state-tax modeling.
 Birth date is required because Social Security has special rules for people born on
 the 1st or 2nd of the month; any other day of the month produces the same results.
 
+An optional **Brief description** field lets you record a note about what this *case* represents.
+It is stored with the *case* and is useful once several variants accumulate in the case selector.
+
 For estimating longevity, several online calculators are available:
 - [longevityillustrator](https://longevityillustrator.org)
 - [livingto100](https://www.livingto100.com/calculator)
@@ -319,7 +342,7 @@ Copying appends a number in parentheses to the case name (as on Windows);
 it is good practice to then rename each copy to reflect what changed, and to
 visit all **Case Setup** pages to confirm the parameters are as intended.
 Once all *cases* have run, their results can be compared side-by-side on the **Reports** page.
-Cases are considered related when they share the same individuals' names.
+The **Typical Workflow** section of the *Tips* tab walks through a worked example.
 """)
 
     with st.expander(":orange[**Financial Profile**]", expanded=expand_all, type="compact"):
@@ -328,8 +351,9 @@ The *Household Financial Profile* (HFP) contains two major sections,
 one representing *Wages and Contributions* for each individual, and
 the other capturing the household's *Debts and Fixed Assets*.
 While the values can be entered manually in each table,
-an option is given to upload an Excel file containing all the data,
-thus avoiding this tedious exercise.
+an option is given to upload a workbook containing all the data,
+thus avoiding this tedious exercise. Both Excel (`.xlsx`) and OpenDocument (`.ods`)
+workbooks are accepted.
 After a case is created, an HFP upload widget also appears directly on the
 **Create Case** page, so both uploads can be done
 without leaving that page.
@@ -389,7 +413,7 @@ each person's plan span (plus the five-year lookback) are ignored.
 After loading, each person's table always runs through that individual's final plan year—even if you omitted
 those rows in the file.
 
-The twelve columns are described below, in the order they appear in the table (fill a column with 0 or
+The thirteen columns are described below, in the order they appear in the table (fill a column with 0 or
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
 - *anticipated wages* is the annual employment income you anticipate, entered **net of all
@@ -487,9 +511,12 @@ If a file was originally associated with a *case* file, a message will remind th
 
 If values were entered or edited directly in the table,
 values can be saved directly in Excel format by clicking
-the `Download Financial Profile workbook` on the
+the **HFP workbook** button in the *Downloads* section of the
 **Reports** page. This allows you to rerun the same *case* at a later time
 by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
+
+A **Reset to zero** button below the tables clears every value back to zero, which is the quickest
+way to start over after experimenting with entries typed directly into the tables.
 
 ##### Debts and Fixed Assets
 These tables contain current or future debts and existing fixed assets.
@@ -624,7 +651,8 @@ duration) pass to heirs with a step-up in basis and are not taxed, as noted abov
 This page is for entering data related to the individual's anticipated fixed income
 from Social Security, pensions, and Single Premium Immediate Annuities (SPIAs).
 Unlike other parts of the user interface, amounts on this page are
-monthly amounts in today's \\$ and not in thousands.
+monthly amounts in today's \\$ and not in thousands — the one exception being the
+SPIA **Premium (\\$k)** column, which is in thousands like the rest of the interface.
 The monthly amounts to be entered for Social Security are the Primary Insurance Amounts (PIA)
 which are a critical part used by the Social Security Administration (SSA) for calculating benefits.
 The PIA monthly amounts are always in today's \\$: this means that PIA numbers need to
@@ -642,7 +670,7 @@ is treated and where Owl's model diverges from the actual law:
 | Social Security benefits | Always inflation-adjusted | CPI-W COLA | Small: CPI-W ≈ CPI-U − 0.1–0.3%/yr |
 | CSRS / military pensions (indexed) | Inflation-adjusted | Full CPI-W COLA | Small |
 | FERS pension (indexed) | Inflation-adjusted | "Diet COLA": CPI-W−1pp (2–3%), cap 2% (>3%) | Meaningful in high-inflation years |
-| Private/state pensions (not indexed) | Fixed | Fixed | None — use *Not indexed* toggle |
+| Private/state pensions (not indexed) | Fixed | Fixed | None — leave *Inflation adjusted* off |
 | Income tax brackets & standard deduction | Inflation-adjusted | Chained CPI-U (≈ CPI-U − 0.2–0.3%/yr) | Small |
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
@@ -653,7 +681,7 @@ The most significant real-world deviation is for the Federal Employee Retirement
 with the so-called **diet COLA**: when inflation is high
 (e.g., 2022, CPI-W ~8.7%), FERS retirees received only 7.7% while **Owl** would apply the full
 rate. FERS retirees planning under high-inflation scenarios may wish to model their pension
-as *Not indexed* and enter a conservatively reduced monthly amount.
+with *Inflation adjusted* left off, entering a conservatively reduced monthly amount.
 
 The frozen **Social Security taxability thresholds** deserve special mention: because they
 have not been adjusted since 1984, nominal income growth due to inflation causes progressively
@@ -727,7 +755,8 @@ best one. If the date you enter cannot be honored, because it falls before the f
 or past the survivor's FRA, the plan log says which date was used instead.
 
 By default, **Owl** uses the claiming ages you enter and does not change them.
-However, on the **Run Options** page, under *Optimize SS claiming age*, you can select which
+However, on the **Run Options** page, under *Social Security Claiming Ages*, the
+*Optimize SS claiming age for...* selector lets you choose which
 individuals should have their SS claiming month optimized (any month between age 62 and 70,
 i.e., 97 monthly choices).
 For a single individual the choices are `none` and the individual's name.
@@ -743,7 +772,8 @@ and the corresponding input fields are shown as read-only while that individual 
 in the *claiming at age...* fields, **Owl** always treats that person's claiming age as fixed —
 regardless of the optimize setting. For a couple where one spouse is already receiving benefits,
 enter that spouse's *actual* claiming age here so the solver can recognize them as already claimed;
-their age fields will remain editable as reference values, while the other spouse's age can still be optimized.
+their age fields remain editable as reference values while the other spouse's name is the one selected.
+Choosing `both` makes both individuals' age fields read-only, whether or not either has already claimed.
 Selecting `none` always uses the entered ages as-is for all individuals.
 A great website for guidance on when to start taking Social Security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
@@ -816,8 +846,9 @@ assumed for the first year. If withdrawals contributing to the
 net spending were already performed for the current year,
 true account balances should be corrected to reflect values as of Jan 1st.
 
-For married couples, the spousal `Beneficiary fractions` associated with each account
-can be configured, as well as a surplus deposit fraction. The first one controls
+For married couples, the *Advanced options* expander holds a
+*Survivor's Spousal Beneficiary Fractions* section, where the spousal `Beneficiary fractions`
+associated with each account can be configured, as well as a surplus deposit fraction. The first one controls
 how much is left to the surviving spouse while the second determines
 how to split potential surplus budget moneys between the taxable accounts of the spouses.
 The HSA beneficiary fraction defaults to 1.0: a surviving spouse inherits an HSA intact,
@@ -872,11 +903,11 @@ increasing total tax drag and reducing the maximum achievable spending or beques
     with st.expander(":orange[**Asset Allocation**]", expanded=expand_all, type="compact"):
         st.markdown("""
 This page allows you to select how to partition your assets between 4 investment options,
-one equity and three fixed-income securities:
-- S&P 500,
-- Corporate Bonds Baa,
-- 10-year Treasury Notes,
-- Cash assets assumed to follow inflation.
+one equity and three fixed-income securities, labelled in the interface as:
+- *S&P 500*,
+- *Bonds Baa* (corporate bonds),
+- *T-Notes* (10-year Treasury notes),
+- *Cash Assets*, assumed to follow inflation.
 
 When using historical data, the term S&P 500 represents the real index. However,
 when selecting non-historical rates, the term can represent any mix of stocks or equities
@@ -890,7 +921,9 @@ considered to merely track inflation and therefore remain at constant value.
 Two choices of asset allocations are possible:
 `account` and `individual`. For `account` type, each type
 of individual savings account is associated with its own asset allocation ratios,
-including a separate allocation for the HSA account (defaults to the same as tax-free if not set).
+including a separate allocation for the HSA account. In the interface the HSA rows are always
+shown and start at 60/20/10/10; the fallback to the tax-free allocation applies only when a *case*
+is built through the TOML file or the Python API and leaves the HSA allocation unset.
 It is wise to be more aggressive in tax-exempt accounts and more conservative in
 taxable investment accounts. This choice will naturally push the optimizer
 to load more assets into the tax-exempt accounts through Roth conversions.
@@ -922,9 +955,9 @@ All rates are **nominal** (not inflation-adjusted) and expressed as yearly perce
 Owl tracks four asset classes:
 - **S&P 500** — U.S. large-cap equities; rates include dividends. When not using historical
   data, this label can represent any mix of equities (domestic, international, emerging, etc.).
-- **Corporate Bonds Baa** — Investment-grade corporate debt with moderate default risk.
-- **10-year Treasury Notes** — Medium-term U.S. government debt; interest is state/local tax-exempt.
-- **Cash Assets / Inflation** — TIPS-like securities assumed to track inflation, holding constant
+- **Bonds Baa** — Investment-grade corporate debt with moderate default risk.
+- **10-y Treasury Notes** — Medium-term U.S. government debt; interest is state/local tax-exempt.
+- **Cash Assets/Inflation** — TIPS-like securities assumed to track inflation, holding constant
   real value.
 
 ---
@@ -949,7 +982,7 @@ A roundup of expert stock and bond return forecasts can be found
 ---
 ##### Varying rates
 Varying rates change year by year, enabling realistic uncertainty modeling.
-There are nine methods:
+There are eleven methods:
 
 **`historical`** — Replays the exact year-by-year returns from a selected historical window
 in chronological order. Each year of the plan receives the return from one calendar year of
@@ -1105,13 +1138,15 @@ Inflation is floored at −5% to exclude Great Depression tail artefacts.
 For all methods that reference history (`historical`, `historical_gaussian`, `historical_lognormal`,
 `historical_bootstrap`, `historical_copula`, `historical_average`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`), a **Starting year / Ending year** selector appears.
 The range determines which calendar years are included in the dataset from which rates
-are drawn or statistics are computed. At least two years are required. For `historical`,
+are drawn or statistics are computed. The range must span at least three calendar years, and some
+methods need more: `gmm` and `hmm` require at least as many years as regimes, and `garch_dcc`
+requires fifteen. For `historical`,
 the ending year is fixed by the starting year plus the plan horizon.
 
 ---
 ##### Constrain mean
 For history-fitted stochastic methods (`historical_gaussian`, `historical_lognormal`,
-`historical_copula`, `garch_dcc`, `gmm`, `hmm`), a **Constrain mean** checkbox appears
+`historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, `hmm`), a **Constrain mean** checkbox appears
 next to the year-range selectors.
 
 When checked, each generated rate series is post-processed so its arithmetic mean
@@ -1145,9 +1180,11 @@ When `gaussian` or `lognormal` is selected, a panel with three sub-sections appe
 - **Volatility (%)** — standard deviation of annual returns for each asset class.
 - **Correlation matrix** — Pearson correlations between every pair of asset classes.
   Values range from −1 (perfect inverse) to +1 (perfect co-movement); 0 means no
-  linear relationship. The diagonal is always 1. The matrix must be positive semi-definite,
-  i.e., you cannot set correlations to arbitrary values — the optimizer will warn if the
-  matrix is invalid.
+  linear relationship. The diagonal is always 1. Each entry is clamped to the range −1 to +1,
+  but the matrix as a whole is not checked for positive semi-definiteness and an inconsistent
+  set of correlations is not rejected: sampling silently falls back from a Cholesky to an SVD
+  factorization, which still produces sensible draws but costs the seed-for-seed reproducibility
+  described under *Reproducible rates*. Prefer correlations taken from data over hand-picked values.
 
 For the other varying methods, these fields are displayed but disabled; the statistical
 parameters are derived automatically from the historical data.
@@ -1205,7 +1242,7 @@ plotted, so it will differ from the plan horizon for stochastic methods.
 
 ---
 ##### Which method enables Monte Carlo?
-Monte Carlo simulations (see the **Stress Tests** page) require a **stochastic** method —
+Monte Carlo simulations (see the pages under **Stress Tests**) require a **stochastic** method —
 one that generates a fresh random sample for each simulation trial. The methods that
 support Monte Carlo are: `historical_gaussian`, `historical_lognormal`, `gaussian`,
 `lognormal`, `historical_bootstrap`, `historical_copula`, `vector_ar`, `garch_dcc`, `gmm`, and `hmm`.
@@ -1218,12 +1255,19 @@ An option to set the dividend rate for your stock portfolio is available under
 *Advanced options*. This [reference](https://us500.com/tools/data/sp500-dividend-yield)
 provides historical S&P 500 dividend yields over different periods.
 
-Two tax-related settings are also accessible:
+Four tax-related settings are also accessible:
 - **Heirs marginal tax rate** — the marginal rate your beneficiaries would pay on
   inherited tax-deferred and HSA balances. Used to compute the after-tax value of a bequest.
 - **OBBBA expiration year** — the projected year when the One Big Beautiful Bill Act
   tax rates are expected to revert to pre-Tax Cuts and Jobs Act levels. Owl uses different
   tax brackets before and after this year.
+
+Under a *Liquid balance sheet* heading, two more rates drive the **Liquid Balance Sheet**
+worksheet and graph, and affect nothing else in the optimization:
+- **Liquidation tax rate (%)** — the ordinary income tax rate assumed on tax-deferred and HSA
+  balances, i.e. the tax owed were those accounts liquidated. Defaults to 24.
+- **Liquidation cap-gains rate (%)** — the capital-gains rate applied to fixed-asset
+  disposition, on top of the commission. Defaults to 15.
 
 ---
 ##### Rate sequence controls (Advanced options)
@@ -1243,6 +1287,12 @@ an option to **Enable reproducible rates** is available. When checked, the rando
 generator is seeded with a fixed value so the same rate sequence is produced every time
 the case is run. This is useful for isolating the effect of other parameters (spending
 targets, allocations, Roth strategy) while holding the random scenario constant.
+
+Two companion controls sit beside it:
+- **Random seed** — the integer seed itself (1 or greater), editable only while reproducible
+  rates are on. Changing it explores a different sequence that remains reproducible.
+- **Regenerate rates** — draws a fresh random sequence on demand. It is disabled while
+  reproducible rates are on, since the whole point of that mode is that the draw does not change.
 
 ---
 ##### References
@@ -1281,9 +1331,16 @@ All objective and constraint values are in today's dollars (thousands).
 
 ##### Safety Net
 You can enforce a **minimum taxable balance** (today's \\$k) for each spouse from year 2 through
-life expectancy. The amount is inflation-adjusted over the plan. This should ideally be smaller
-than each spouse's initial taxable balance; the page shows a warning if the minimum exceeds 60%
-of initial taxable balance or if it is larger than the desired bequest when maximizing spending.
+life expectancy. The amount is inflation-adjusted over the plan. The first year is excluded so the
+constraint cannot conflict with the initial balances you entered.
+Use this to keep a reserve of liquid assets for emergencies or opportunities, or simply to reflect
+a preference for a buffer in taxable accounts.
+
+The minimum should ideally be smaller than each spouse's initial taxable balance, otherwise the
+optimizer may find the problem infeasible or return unexpected results. The page shows a warning
+if the minimum exceeds 60% of the initial taxable balance, or if it is larger than the desired
+bequest when maximizing spending — when maximizing spending against a bequest target, that target
+should be at least as large as the survivor's safety net.
 
 ##### Spending Profile
 The **type of profile** can be *flat* (constant real spending over time) or *smile* (adjusted for
@@ -1324,12 +1381,16 @@ it exceeds the **Maximum annual Roth conversion** set above.
 For married couples, the **Swap Roth converters mid-plan** toggle lets one spouse perform Roth
 conversions up to a given year, after which the other spouse takes over for the remainder of the
 plan. This is useful when, e.g., one spouse retires (and thus has a lower tax bracket) before the
-other. This setting overrides the **Exclude Roth conversions for...** selection above.
+other. Turning it on reveals a **Converts first** selector, naming the spouse who converts up to the
+switch, and a **Year to switch converters** field.
+This setting and the **Exclude Roth conversions for...** selection above are mutually exclusive:
+choosing an exclusion disables the swap toggle, and turning the swap on disables the exclusion.
 
 The **Health Insurance** section groups three related subsections:
 
-**Other Qualified Medical Expenses** sets annual non-Medicare qualified medical expenses
-(dental, vision, co-pays, deductibles, etc.) in today's dollars.
+**Qualified Medical Expenses** holds the *Other medical expenses (\\$k/year)* field, which sets
+annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.)
+in today's dollars. Like most fields in the interface, it is **in thousands**.
 IRS rules allow HSA withdrawals only up to total qualified medical expenses (QMEs).
 This field, combined with Medicare costs, caps tax-free HSA withdrawals each year.
 If zero, HSA withdrawals are limited to Medicare costs only.
@@ -1338,8 +1399,9 @@ Note: these expenses are treated as part of general living costs in the cash flo
 appear separately in the *Healthcare* slice of the spending pie chart, which covers insurance
 premiums only.
 
-**ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan (SLCSP) premium
-for years before Medicare. Set to 0 to omit ACA costs.
+**ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan premium in the
+*Benchmark Silver plan premium (SLCSP) (\\$k/year)* field, in thousands, for years before Medicare.
+Set to 0 to omit ACA costs.
 For couples, enter the **combined household premium** (both spouses on the same marketplace plan).
 When the older spouse transitions to Medicare, the tool automatically scales the SLCSP down to the
 remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
@@ -1366,7 +1428,8 @@ It can be significantly slower (sometimes many minutes) due to additional binary
 Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
-If anyone in the case is age 64 or older, inputs appear for `MAGI for [year] ($k)`
+While the *Medicare and IRMAA calculations* toggle is on and anyone in the case is age 64 or older,
+inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for
 IRMAA surcharges. Values default to zero.
 *Include Part D premiums* is on by default; Part B and Part D IRMAA surcharges (same MAGI brackets) are then included.
@@ -1388,19 +1451,9 @@ re-solves, and repeats until convergence.
 The loop always runs. It cannot be switched off, because two of the quantities it settles
 have no place inside the optimization at all: the phase-out of the senior deduction, which
 depends on the MAGI the solution produces, and the cost basis of the taxable account, which
-depends on the withdrawals taken. The *Maximum iterations* setting bounds how long it may
-run, should a case prove slow to settle.
-
-**Safety Net** settings allow you to enforce a minimum balance in each spouse's taxable account.
-The amount is specified in today's dollars and is indexed for inflation over the plan horizon.
-These constraints apply from year 2 onward through each individual's life horizon (the first year
-is excluded to avoid conflicts with initial balances).
-The minimum should ideally be smaller than each spouse's initial taxable balance, otherwise the
-optimizer may find the problem infeasible or produce unexpected results.
-When maximizing spending with a bequest target, the desired bequest should be at least as large
-as the survivor's safety net (in today's \\$), otherwise optimization may be infeasible.
-Use this to ensure a reserve of liquid assets is maintained for emergencies or opportunities,
-or to reflect a personal preference for keeping a buffer in taxable accounts.
+depends on the withdrawals taken. An internal iteration cap bounds how long the loop may run,
+should a case prove slow to settle; it is reachable from the TOML file and the Python API
+(`maxIter`) but is not exposed in the interface.
 
 The *Advanced options* expander contains:
 - *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
@@ -1425,10 +1478,10 @@ against future IRMAA simultaneously.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
   Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
-- *Disallow cash-flow surpluses in the last two years of the plan*
+- *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
-- *Solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
+- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
+- *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
@@ -1459,7 +1512,8 @@ Each run applies one scenario — a single series of rates, either constant or v
 as configured in the **Case Setup** section.
 The outcome is optimized according to the chosen parameters: either maximize the
 net spending, or maximize the bequest under the constraint of a net spending amount.
-All plots can be displayed in today's \\$ or in nominal value using the radio buttons at the top.
+Most plots can be displayed in today's \\$ or in nominal value using the radio buttons at the top;
+the two cash-flow charts are always drawn in today's \\$, as their titles indicate.
 
 A **Re-run** button re-executes the *case*, which generates a different result
 if the chosen rate method is stochastic (`historical_gaussian`, `historical_lognormal`, `gaussian`,
@@ -1468,12 +1522,23 @@ in full screen, and are interactive when using the `plotly` library.
 Graphs can be drawn using the `matplotlib` or `plotly` libraries as
 selected in the Settings section (Tools tab).
 
+##### When there are no results
+When a *case* cannot be solved, this page (like **Worksheets** and **Reports**) explains which of
+two very different things happened:
+- **Infeasible** — no plan satisfies all the constraints at once. This is yours to fix: relax the
+  spending floor, the bequest target, or a safety net, and try again. It is shown as a warning.
+- **Solver error** — the optimizer gave up on a model that may well be solvable, for instance by
+  stalling or hitting a limit. Nothing about your inputs is necessarily wrong. It is shown as an
+  error, and the usual remedy is to switch solvers under *Linear programming solver* on the
+  **Run Options** page.
+
 Graphs are organized into four tabs:
 
 **Spending** — income and cash-flow perspective:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
-  (portfolio, Social Security, pension, wages, SPIA, other); right shows where it goes
-  (living expenses, federal taxes, state taxes when configured, healthcare, debt, bequest).
+  (portfolio, Social Security, pension, wages, SPIA, fixed assets, big-ticket items, other);
+  right shows where it goes (living expenses, federal taxes, state taxes when configured,
+  healthcare, debt, big-ticket items, charitable giving, estimated heir taxes, bequest).
   *Taxes* is federal only (ordinary income, LTCG/dividends, NIIT); *State taxes* appears as a
   separate slice when a state of residence is configured.
   *Healthcare* covers insurance premiums only (Medicare Part B/D + IRMAA surcharges, ACA marketplace premiums);
@@ -1487,7 +1552,7 @@ Graphs are organized into four tabs:
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
-- *Taxes and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, IRMAA surcharges, and ACA premiums (when applicable).
+- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it.
 - *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
 - *Charitable Giving (QCD)* *(when the household gives this way)* — annual qualified charitable distributions by
   individual, split into the part that satisfies that year's required minimum distribution and the part beyond it,
@@ -1498,10 +1563,11 @@ Graphs are organized into four tabs:
 - *Savings Retention Margin* — how far the savings retention rate sits above or below the real break-even threshold each year.
   The retention rate is `1 − net draw / balance`; the real break-even is `(1 + inflation) / (1 + portfolio return) × 100%`.
   **Blue bars** (above zero) mean real wealth is growing; **red bars** (below zero) mean it is shrinking.
-- *Asset Composition* — allocation-weighted asset mix across all accounts over time.
 - *Balance Sheet* — assets (taxable, tax-deferred, tax-free, HSA, fixed assets) stacked above zero and
   liabilities (debt, deferred income tax, fixed-asset disposition costs) below, with the traditional and
   liquid net-worth lines overlaid. The graph companion to the **Balance Sheets** worksheets.
+- *Asset Composition* — the asset mix over time, drawn as one chart per account type
+  (taxable, tax-deferred, tax-free, HSA) for each individual, laid out in its own full-width section.
 
 **Rates** — return and rate assumptions used for this run:
 - *Selected Rates Over Time Horizon* — the rate sequence used for this run.
@@ -1519,7 +1585,7 @@ are for the full year.
 Withdrawals are also assumed to occur at the beginning of the year,
 so that the retiree has funds available to cover expenses throughout the year.
 Each table can be downloaded separately in csv format, or all tables can be downloaded
-jointly as a single Excel workbook by clicking on the `Download Worksheets` on the
+jointly as a single Excel workbook with the **Plan workbook** button on the
 **Reports** page.
 Note that all values here (worksheets and workbook) are in \\$, not in thousands.
 
@@ -1527,9 +1593,10 @@ Worksheets are organized into five tabs:
 
 **Accounts** *(shown first as most actionable)* — per-individual savings account detail:
 - *`<individual>`'s Accounts* — balances, contributions, deposits, withdrawals, and Roth conversions
-  for each of the four account types (taxable, tax-deferred, tax-free, HSA). Opening balance as of
+  for each of the four account types (taxable, tax-deferred, tax-free, HSA), plus the RMD included in
+  each withdrawal, any `QCD`, and the share of the RMD the QCD satisfied. Opening balance as of
   Jan 1st of that year. The current-year row is highlighted in blue.
-- *HSA* *(when HSA is present)* — HSA diagnostics: `Medicare`, `QME`, `HSA total wdrwl`,
+- *HSA* — HSA diagnostics: `Medicare`, `QME`, `HSA total wdrwl`,
   `HSA→Medicare`, `HSA→QME`, and per-individual HSA balances, contributions, and withdrawals.
   Presented separately so the **Cash Flow** table remains a balancing identity.
 
@@ -1548,17 +1615,18 @@ beginning of each year, plus a final end-of-plan (bequest) row:
 **Cash Flow** — household cash flow:
 - *Cash Flow* — full breakdown of inflows and outflows that balance to net spending.
 - *`<individual>`'s Sources* — per-person year-by-year income sources (wages, Social Security, pension,
-  account withdrawals, RMDs, Roth conversions, big-ticket items). The first row is highlighted in blue
-  to mark actionable items for the current year.
+  account withdrawals, RMDs, Roth conversions, big-ticket items). The first rows carry the actionable
+  numbers for the current and upcoming years.
 - *Household Sources* — fixed-asset proceeds (ordinary income, capital gains, tax-free) and debt payments.
 
 **Income & Taxes** — income summary and tax detail:
 - *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
 - *Taxes* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
-  state income tax (when applicable), and the fraction of Social Security that is taxable.
+  state income tax (when applicable), the fraction of Social Security that is taxable, the total tax
+  bill, `Medicare+IRMAA`, and `ACA premiums` when applicable.
 
 **Allocations & Rates** — asset mix and return rates:
-- *`<individual>`'s Allocations* — asset allocation percentages (stocks, corporate bonds, T-notes, cash assets)
+- *`<individual>`'s Allocations* — asset allocation percentages (`stocks`, `C bonds`, `T notes`, `common`)
   for each account type over time.
 - *Rates* — the year-by-year return rates used in this run.
 
@@ -1571,7 +1639,10 @@ Use the toggles at the top of the page to control how worksheets are shown and s
   converting nominal to today's dollars. Applies to both the on-screen tables and the saved Excel workbook;
   the saved filename gains a `_real` suffix.
 
-These settings are saved in the case parameter file under `[results]` (see
+A fourth toggle, **Expand all**, opens every section across all five tabs at once. Unlike the three
+above it is a display convenience only and is not saved with the *case*.
+
+The other three settings are saved in the case parameter file under `[results]` (see
 **Help → Parameters Reference** for `worksheet_show_ages`, `worksheet_hide_zero_columns`,
 and `worksheet_real_dollars`).
 """)
@@ -1582,15 +1653,17 @@ This page provides a summary of the most recent *run* and offers file downloads.
 
 Key metrics are shown at the top: yearly spending (or spending target), liquid bequest
 (or target), fixed-assets bequest (when applicable), partial bequest at the passing of the
-first spouse (when `Beneficiary fractions` are not all 1 and the plan has two individuals),
+first spouse (when the plan has two individuals, the `Beneficiary fractions` are not all 1, and the
+first passing falls inside the plan horizon),
 and planning horizon — all in today's \\$.
 
 The page is organized into two tabs:
 
 **Synopsis** — comparison table summarizing income, spending, taxes, and bequest over the plan
 duration, with all values shown in both nominal and today's \\$.
-If multiple *cases* share the same individuals and year span, they are compared side-by-side:
-the left column shows the selected *case* and the remaining columns show differences.
+Every other *case* that has been run is compared side-by-side: the left column shows the selected
+*case* and the remaining columns show differences. Only metrics the *cases* have in common appear,
+so comparing *cases* built around different individuals simply yields fewer rows.
 A **Rerun all cases** button re-executes all *cases* to ensure the comparison is up to date.
 Tables are scrollable and can be viewed in full-screen mode.
 
@@ -1610,7 +1683,7 @@ the **Create Case** or **Financial Profile** page.
 # --- Stress Tests tab ---
 with tab_sim:
     st.markdown("""
-There are three pages for stress-testing your plan under different market scenarios.
+There are four pages for stress-testing your plan under different market scenarios.
 """)
 
     with st.expander(":orange[**Historical Range**]", expanded=True, type="compact"):
@@ -1635,7 +1708,7 @@ runs: one run per year in that range by default.
   only when self-hosting Owl** as it is likely to timeout on the
   Community Cloud server due to the long computing time.
 - **Log scale (x-axis)** – When on, the result histogram uses log-spaced bins and a log-scale x-axis
-  (log-normal style). Values below $1k are excluded from the histogram. Useful when the
+  (log-normal style). Values below \\$1k are excluded from the histogram. Useful when the
   distribution is right-skewed.
 - **Rate sequence** – When augmented sampling is off, **Reverse sequence** and **Roll (years)** can
   be applied to the rate sequence for each run
@@ -1668,7 +1741,8 @@ The mean outcome $\\bar{x}$ and the median $M$ are provided in the graph, as are
 of trials $N$ and the probability of success $P$, which is the fraction of trials for which
 the optimizer found a feasible solution. Trials that failed are termed *infeasible* — the
 optimizer could not simultaneously satisfy all constraints (spending floor, bequest target, etc.)
-for that particular rate sequence.
+for that particular rate sequence. This is distinct from a *solver error*, described under
+**Graphs**, where the plan may well be achievable and the solver is what gave up.
 
 ##### Prerequisite: a stochastic rate method
 Monte Carlo requires a rate method that generates a new random sequence for each trial.
@@ -1691,10 +1765,15 @@ The eligible methods (set on the **Rates** page) are:
   fitted Markov transition matrix; produces temporally correlated multi-year regime runs.
 
 The `historical` method is deterministic (always the same sequence for a given starting
-year) and therefore cannot be used for Monte Carlo; the **Run** button is disabled when it
-is selected.
+year) and therefore cannot be used for Monte Carlo. When a non-stochastic method is selected the
+page hides the run controls altogether and shows an explanatory message in their place.
+
+*Advanced options* offers one setting:
+- **Log scale (x-axis)** – uses log-spaced bins and a log-scale x-axis for the result histogram.
+  Values below \\$1k are excluded. Useful when the distribution is right-skewed.
 
 ##### Choosing the number of trials
+The **Number of trials** field sets $N$ (up to 10,000), and **Run simulation** starts the run.
 A few hundred trials is usually sufficient for a rough success-rate estimate. Increasing $N$
 narrows the confidence interval on $P$ but increases run time proportionally. For final
 analysis consider 500–1000 trials; for quick exploration 100–200 suffices.
@@ -1743,6 +1822,9 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
 - **Scenario method** — *Historical range*: uses historical rate sequences over the
   selected year range (one run per year). *Monte Carlo*: uses the active stochastic rate
   method; requires a stochastic method to be set on the **Rates** page.
+- **Starting year** / **Ending year** — the historical window, shown in *Historical range* mode.
+- **Number of MC scenarios** — how many scenarios to draw in *Monte Carlo* mode
+  (default 200, between 10 and 5000). More scenarios give a smoother frontier and a longer run.
 - **Stochastic lifespan** — available with Monte Carlo scenarios. When enabled, each
   scenario also draws lifespan(s) from the selected mortality table using each individual's
   sex (`M`/`F`) and current age; the scenario horizon becomes the last-survivor horizon.
@@ -1753,8 +1835,6 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
   **Mortality tables** — eight actuarial tables are provided, covering different population
   sub-groups. Choose the one that best matches your situation:
 
-  | Table | Population | When to use |
-  |-------|-----------|-------------|
   Tables are ordered shortest to longest life expectancy at age 65 (average M+F).
 
   | Table | LE@65 | Population | When to use |
@@ -1768,9 +1848,9 @@ The LP is swept over a range of $\\lambda$ values to trace the **efficient front
   | `IAM2012` | 87 | Individual annuity purchasers (SOA IAM 2012) | People who buy annuities tend to be in excellent health; represents an optimistic longevity scenario |
   | `Pub2010-Teacher` | 87 | Public school teachers and college professors (SOA Pub-2010) | Teachers have the longest life expectancy of all public-sector groups |
 
-- **Lifespan reproducibility** — optional seed control for lifespan sampling. When set,
-  identical lifespan draws are reproduced across runs; rate reproducibility remains controlled
-  separately on the **Rates** page.
+- **Reproducible draws** and **Longevity seed** — optional seed control for lifespan sampling.
+  With reproducible draws on, the seed you enter reproduces identical lifespan draws across runs;
+  rate reproducibility remains controlled separately on the **Rates** page.
 - **Target success rate** — the minimum fraction of scenarios that must meet the
   commitment with no shortfall. The page finds the least conservative $\\lambda$ that
   achieves this rate.
@@ -1819,6 +1899,12 @@ A text summary above the charts reports the following metrics:
   gives a clearer picture of how bad things are when they go wrong. A CVaR of \\$5,000/yr means
   that in the scenarios where you do fall short, the average gap is \\$5,000/yr — regardless
   of how many such scenarios there are.
+- **Rate method** — the stochastic method the scenarios were drawn from; shown for
+  non-historical runs, where the choice of method materially shapes the frontier.
+- **Mortality table** — the table used, shown only when stochastic lifespan is enabled.
+- **Scenarios** — how many scenarios were run, and how many of them came back infeasible.
+  A large infeasible count means the commitment is out of reach for much of the sample rather
+  than merely risky.
 
 ##### Charts
 
@@ -1855,7 +1941,7 @@ RES = (committed spending − floor) / CVaR, and finds the success rate that max
 the point where each extra dollar of committed spending is best compensated for the downside
 risk it adds. A radio selects the **floor**: the historical spending floor (HSF) or a custom
 value. Two extra charts appear: **CVaR vs. probability** and **RES vs. CVaR**, with the
-optimal point marked. This feature is most meaningful in *Historical range* mode and is not
+optimal point marked. The expander appears only in *Historical range* mode. It is not
 validated for production use; see the [*Modeling Capabilities*](https://github.com/mdlacasse/Owl/blob/main/info/modeling-capabilities.md)
 reference for details.
 """)
@@ -1870,7 +1956,7 @@ directly, answering:
 
 ##### How it works
 
-You give a list of bequest levels, in today's $k — so `1_000` means \\$1,000,000. Group digits
+You give a list of bequest levels, in today's \\$k — so `1_000` means \\$1,000,000. Group digits
 with **underscores**, never commas: a comma separates one level from the next, so `1,000` reads
 as two levels, \\$1k and \\$0k.
 
@@ -1890,6 +1976,10 @@ single fixed operating point.
   those three curves, shaded on the plot, is the sequence-of-returns risk: a wide fan means
   the outcome depends heavily on the order in which returns happen. This costs one solve per
   level per scenario, so keep the list of levels short.
+
+*Historical range* exposes **Starting year** and **Ending year** for the historical window;
+*Monte Carlo* exposes **Scenarios per level** (default 100, between 10 and 2000). The run is
+launched with the **Trace trade-off** button.
 
 ##### Reading the results
 
@@ -1935,6 +2025,36 @@ so a curve that stops short is not mistaken for the trade-off simply ending.
 # --- Tools tab ---
 with tab_tools:
     st.markdown("This section describes tools available to the user.")
+    with st.expander(":orange[**Connect your AI**]", expanded=True, type="compact"):
+        st.markdown("""
+**Owl** ships an *MCP server* that lets an AI assistant drive the optimizer through conversation:
+you describe your situation in plain language, and the assistant runs the optimizations, computes
+probability-of-success frontiers, and explains why a plan looks the way it does — without TOML
+files or forms.
+
+This page does not connect anything by itself. It **generates the configuration** you paste into
+your AI client: pick the client, say how **Owl** is installed, and the page prints the exact
+configuration block along with the steps around it. The MCP server then runs on your own computer,
+which is also why the *case* files it reads and writes are your local ones.
+
+The page itself carries the current client list, the setup steps, and examples of what you can ask,
+so it is the place to look rather than this section. Clients supporting MCP prompts also expose a
+guided intake interview that collects what **Owl** needs before a first run.
+""")
+
+    with st.expander(":orange[**Assistant**]", expanded=True, type="compact"):
+        st.markdown("""
+An AI chat page can be embedded directly in the application, as an alternative to connecting an
+external client. It is **opt-in and intended for self-hosted or Docker installations**: the page
+appears only when `OWL_ASSISTANT=1` is set in the environment, so the hosted application on the
+Streamlit Community Cloud never shows it. An API key for the model provider is required as well,
+and conversations are sent to that provider.
+
+When the variable is not set, the page is absent from the **Tools** menu entirely. The page
+explains what else it needs — the optional `assistant` extra, and the environment variables that
+point it at a different model or an Anthropic-compatible endpoint.
+""")
+
     with st.expander(":orange[**Settings**]", expanded=True, type="compact"):
         st.markdown("""
 This page allows you to select different backends for plotting the graphs.
@@ -1951,7 +2071,7 @@ graphs can be seen in full-screen mode.
 
 The position of the menubar can be selected to be at the top or as a sidebar.
 The sidebar menu can also be collapsed if needed.
-Default behavior is to have the menubar at the top, unless on a mobile device.
+Default behavior is to have the menubar at the top.
 
 The **Header** section lets you choose whether the case selector bar stays sticky (fixed at the top when
 scrolling) or scrolls with the page (static).
@@ -1983,16 +2103,35 @@ can also greatly improve the visualization of graphs and worksheets
 (achieved by pressing F11 on Windows, or Ctl+Cmd+F on MacOS).
 
 ###### App Theme
-**Owl**’s default Streamlit look is set in the repository’s `.streamlit/config.toml` (for example
-`base = "dark"`). To change light/dark or colors, adjust that configuration when you run the app
-yourself, and follow Streamlit’s
-[theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming).
+Streamlit's theme is fixed at launch time and cannot be changed from within the app.
+By default **Owl** inherits whichever light or dark theme is configured on the system it runs on.
+To override that, pass `--theme.base` to the launcher script when self-hosting:
+
+```
+owlplanner.sh --theme.base=light
+owlplanner.cmd --theme.base=light
+```
+
+Under Docker, set the `STREAMLIT_THEME_BASE` environment variable instead — through the Docker
+Desktop GUI, in `docker-compose.yml`, or on the command line:
+
+```
+docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.static
+```
+
+Streamlit's [theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming)
+covers the full set of options.
 """)
 
     with st.expander(":orange[**Logs**]", expanded=True, type="compact"):
         st.markdown("""
 Messages coming from the underlying **Owl** calculation engine are displayed on this page.
 This page is mainly used for debugging purposes.
+
+Logs are kept per *case* and only for the current session: a **View logs for case** selector
+chooses whose messages to show, a **Filter log messages** box narrows them by substring
+(e.g. `warning`), and a **Clear logs** button empties the selected *case*'s log. Closing the
+session discards them all.
 """)
 
 # --- Help tab ---
@@ -2042,7 +2181,8 @@ will give the "best" approach even if it means only generating one more dollar.
 While considering Roth conversions,
 always keep in mind that all projections rely on our current best assumptions.
 To account for the effects of potential changes in future income tax rates,
-one can use a termination year for current tax rates to revert to higher rates.
+one can set the **OBBBA expiration year** on the **Rates** page, under *Advanced options*,
+so that current rates revert to higher ones from that year on.
 """)
 
     with st.expander(":orange[**Typical Workflow**]", expanded=expand_all, type="compact"):
@@ -2057,8 +2197,8 @@ each time changing one parameter to explore its effect:
 
 Copying appends a number in parentheses to the case name; rename each copy to reflect
 what changed, and revisit all **Case Setup** pages to confirm parameters are as intended.
-Cases are considered related — and will be compared side-by-side on **Reports** —
-when they share the same individuals' names.
+Every *case* that has been run is compared side-by-side on **Reports**; only the metrics they
+have in common appear, so *cases* built around the same individuals line up most usefully.
 
 Here is a concrete example investigating the effect of Roth conversions on net spending:
 
