@@ -120,6 +120,24 @@ Smaller corrections along the way: the AI page advertised 16 tools when there ar
 not mention `run_year1_robustness`; the fixed-rate help pointed at Morningstar's 2025 return
 forecast, now the 2026 one; and a *Settings* link pointed at an anchor that does not exist.
 
+#### Docs: bubble help on the Wages and Contributions columns
+
+The *Debts* and *Fixed Assets* tables explain every column in a tooltip; the timetables
+above them explained none, leaving fourteen abbreviated headers — *net inv*, *taxable ctrb*,
+*QCD* — to be resolved on the **Documentation** page, in another tab, while you were typing
+into the table.
+
+Each column now carries a one-line description where you are working: what belongs in it,
+in which dollars, and the rule worth knowing before you fill it in — that *anticipated
+wages* is net of every contribution column, that a ticked *Roth conv fixed* with an amount
+of `0` means no conversion that year, that a *QCD* never reaches your budget. The
+*big-ticket items* tooltip says that its sign is the difference between money received and
+money spent. The long form stays on the **Documentation** page.
+
+The five lead-in years get their own wording for the two columns that mean something else
+there: a past *Roth conv* is a conversion you have already performed rather than one you
+are proposing, and *Roth conv fixed* does not apply to it.
+
 #### Maintenance: Updated dependencies
 
 `anthropic` 1.0.0 → 1.2.0, `ipython` 9.16.1 → 9.17.0, `jupyter-client` 8.9.1 → 8.10.0,

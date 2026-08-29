@@ -32,6 +32,86 @@ import tomlexamples as tomlex
 import case_progress as cp
 
 
+# Bubble help for the Wages and Contributions columns, as the debts and fixed assets
+# tables already have. Kept short: the Documentation page carries the full description.
+timetableHelp = {
+    "year": "Calendar year of this row",
+    "anticipated wages": (
+        "Employment income you anticipate this year (nominal $), entered net of every "
+        "contribution column to the right. Employer contributions were never part of your "
+        "wages, so do not subtract those."
+    ),
+    "other inc": (
+        "Other ordinary income that is not wages, pension, or Social Security (nominal $) — "
+        "e.g. consulting income, alimony, or rents you treat as ordinary."
+    ),
+    "net inv": (
+        "Net investment income such as rent or trust distributions (nominal $). Taxed as "
+        "ordinary income and also counted toward the Net Investment Income Tax."
+    ),
+    "taxable ctrb": "Contributions to your taxable savings account (nominal $)",
+    "401k ctrb": (
+        "Contributions to 401k, 403b, and any other tax-deferred account other than an IRA "
+        "(nominal $). Include your employer's contributions."
+    ),
+    "Roth 401k ctrb": "Contributions to your Roth 401k or Roth 403b account (nominal $)",
+    "IRA ctrb": "Contributions to your traditional IRA (nominal $), treated as pre-tax",
+    "Roth IRA ctrb": "Contributions to your Roth IRA (nominal $)",
+    "HSA ctrb": (
+        "Contributions to your health savings account (nominal $). Zeroed automatically at "
+        "Medicare enrollment (~age 65)."
+    ),
+    "Roth conv": (
+        "Roth conversion amount for this year (nominal $), never negative. Documentation only "
+        "unless the year is ticked in the next column."
+    ),
+    "Roth conv fixed": (
+        "Hold this year's conversion at exactly the amount beside it, bypassing the annual cap "
+        "and the start and stop years. An amount of 0 then means no conversion that year. "
+        "Unticked, Owl optimizes the year."
+    ),
+    "QCD": (
+        "Qualified Charitable Distribution (nominal $): money sent from your tax-deferred "
+        "account straight to a charity. Never enters taxable income and counts toward your RMD, "
+        "but does not fund spending. Requires age 70½ and is capped per person per year."
+    ),
+    "big-ticket items": (
+        "A major one-time amount (nominal $): the sign matters. Positive is money received, "
+        "such as an inheritance or the sale of a house; negative is a major expense."
+    ),
+}
+
+# The five lead-in rows record what already happened, so two columns mean something else there.
+timetableHelpPast = dict(timetableHelp)
+timetableHelpPast["Roth conv"] = (
+    "A Roth conversion you already performed that year (nominal $). This is what the IRS "
+    "five-year maturation rule needs, and is the only column read from this table."
+)
+timetableHelpPast["Roth conv fixed"] = (
+    "Not applicable to past years: a conversion already performed always counts"
+)
+
+
+def timetableColumnConfig(df, helpdic):
+    """Column configuration for a Wages and Contributions editor, with bubble help."""
+    # Keyed by name, not position: the column list is free to grow.
+    # "big-ticket items" can be an expense; every other amount is >= 0.
+    negativeOK = ("big-ticket items",)
+    formatdic = {"year": st.column_config.NumberColumn(None, help=helpdic.get("year"), format="%d", disabled=True)}
+    for col in df.columns:
+        if col == "year":
+            continue
+        if col in owb.booleanTimeHorizonItems():
+            formatdic[col] = st.column_config.CheckboxColumn(None, help=helpdic.get(col), default=False)
+            continue
+        minValue = None if col in negativeOK else 0.0
+        formatdic[col] = st.column_config.NumberColumn(
+            None, help=helpdic.get(col), min_value=minValue, format="accounting"
+        )
+
+    return formatdic
+
+
 def loadWCExample(file):
     if file:
         # Use normalized HFP name for the file parameter to match the actual filename
@@ -138,19 +218,6 @@ The second table starts at the current year and covers the rest of the plan.""")
             df = kz.getCaseKey("timeList" + str(i))
             if df is None:
                 continue
-            # Keyed by name, not position: the column list is free to grow.
-            # "big-ticket items" can be an expense; every other amount is >= 0.
-            negativeOK = ("big-ticket items",)
-            formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
-            for col in df.columns:
-                if col == "year":
-                    continue
-                if col in owb.booleanTimeHorizonItems():
-                    formatdic[col] = st.column_config.CheckboxColumn(None, default=False)
-                    continue
-                minValue = None if col in negativeOK else 0.0
-                formatdic[col] = st.column_config.NumberColumn(None, min_value=minValue, format="accounting")
-
             # One table, two editors. Streamlit can only disable whole columns, so the
             # only way to disable a flag on the past rows alone is to give them an editor
             # of their own: there, the column and the rows are the same thing.
@@ -161,7 +228,7 @@ The second table starts at the current year and covers the rest of the plan.""")
             st.markdown("*Past five years*")
             editedpast = st.data_editor(
                 pastdf,
-                column_config=formatdic,
+                column_config=timetableColumnConfig(df, timetableHelpPast),
                 hide_index=True,
                 disabled=owb.booleanTimeHorizonItems(),
                 key=kz.genCaseKey("wagesPast" + str(i)),
@@ -173,7 +240,7 @@ The second table starts at the current year and covers the rest of the plan.""")
             st.markdown("*Plan years*")
             editedplan = st.data_editor(
                 plandf,
-                column_config=formatdic,
+                column_config=timetableColumnConfig(df, timetableHelp),
                 hide_index=True,
                 key=kz.genCaseKey("wages" + str(i)),
             )

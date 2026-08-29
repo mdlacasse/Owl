@@ -211,3 +211,56 @@ def test_condition_time_list_flags_tolerates_a_missing_column():
     df = pd.DataFrame({"year": [THISYEAR], "Roth conv": [0.0]})
     out = owb.conditionTimeListFlags(df.copy())
     assert list(out.columns) == ["year", "Roth conv"]
+
+
+def _timetableHelpDicts():
+    """The two help dictionaries, read out of the page source.
+
+    AppTest does not surface data_editor elements, and importing the page module
+    outside AppTest runs the whole script, so the tooltips are read from the source
+    instead. Both are plain string literals, which literal_eval accepts.
+    """
+    import ast
+
+    tree = ast.parse((UI_DIR / "Financial_Profile.py").read_text())
+    found = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):
+            name = node.targets[0].id
+            if name == "timetableHelp":
+                found[name] = ast.literal_eval(node.value)
+        # timetableHelpPast copies the base dict and overrides two keys.
+        if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Subscript):
+            target = node.targets[0]
+            if getattr(target.value, "id", None) == "timetableHelpPast":
+                found.setdefault("timetableHelpPast", dict(found["timetableHelp"]))
+                found["timetableHelpPast"][ast.literal_eval(target.slice)] = ast.literal_eval(node.value)
+    return found["timetableHelp"], found["timetableHelpPast"]
+
+
+def test_every_timetable_column_has_bubble_help():
+    """The debts and fixed assets editors document every column in a tooltip; the
+    timetables do too. A column added to the workbook without one would render bare,
+    and nothing else in the suite would notice."""
+    from owlplanner.hfp_io import timeHorizonItems
+
+    helpdic, pastdic = _timetableHelpDicts()
+    columns = timeHorizonItems()
+    assert [c for c in columns if c not in helpdic] == []
+    assert [c for c in helpdic if c not in columns] == []
+    assert all(helpdic.values()), helpdic
+    assert set(pastdic) == set(helpdic)
+
+
+def test_past_table_help_differs_where_the_meaning_does():
+    """On the lead-in rows a Roth conversion is a record of what happened, not a
+    proposal, and the flag beside it means nothing. The tooltips have to say so:
+    those rows are the one place the column headers are misleading on their own."""
+    helpdic, pastdic = _timetableHelpDicts()
+
+    assert pastdic["Roth conv"] != helpdic["Roth conv"]
+    assert "already performed" in pastdic["Roth conv"]
+    assert "Not applicable" in pastdic["Roth conv fixed"]
+    # Everything else says the same thing in both tables.
+    same = {k for k in helpdic if helpdic[k] == pastdic[k]}
+    assert set(helpdic) - same == {"Roth conv", "Roth conv fixed"}
