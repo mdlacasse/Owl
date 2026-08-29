@@ -173,8 +173,8 @@ def repair_roth_overlap(x, ctx):
     for i in range(ctx.N_i):
         for n in range(int(ctx.n595[i]), min(ctx.N_n, int(ctx.horizons[i]))):
             ix, i2, i1 = vm["x"].idx(i, n), vm["w"].idx(i, 2, n), vm["w"].idx(i, 1, n)
-            # Never push a variable below its own lower bound: a pinned conversion
-            # (useRothConvOverrides, or a per-year override) has lb == ub.
+            # Never push a variable below its own lower bound: a conversion pinned by
+            # the "Roth conv fixed" column has lb == ub.
             m = min(y[ix], y[i2], y[ix] - ctx.col_lb[ix])
             if m <= TOL_CENT:
                 continue

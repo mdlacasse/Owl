@@ -141,20 +141,27 @@ def _check_person_index(person: int, n_individuals: int, context: str) -> None:
 
 
 def _apply_roth_conversion_overrides(plan, roth_conversions, N_i, thisyear):
-    """Populate plan.myRothX_in from roth_conversions (per-cell pin/force-zero overrides).
+    """Pin the listed (person, year) Roth conversions on the plan.
 
-    Positive amount pins x[i,n] to that exact conversion amount; negative (any
-    magnitude) forces x[i,n] to 0 that year. Only enforced when
-    use_roth_conv_overrides is set on the solve options.
+    Membership in the list is what makes a year bind: each entry sets both the
+    amount in plan.myRothX_in and the flag in plan.rothXfixed_in, so an amount of
+    0 holds that year at no conversion. Years not listed stay free, governed by
+    the other Roth options.
     """
     for rc in roth_conversions:
         i = int(rc.get("person", 0))
         _check_person_index(i, N_i, "roth_conversions")
         amount = float(_get_field(rc, "annual_amount"))
         year = int(_get_field(rc, "start_year"))
+        if amount < 0:
+            raise ValueError(
+                f"roth_conversions: amount for person {i} in {year} is negative ({amount}). "
+                "Amounts are dollars; to hold a year at no conversion, give an amount of 0."
+            )
         n = year - thisyear
         if 0 <= n < plan.N_n:
             plan.myRothX_in[i, n] = amount
+            plan.rothXfixed_in[i, n] = True
 
 
 def _swap_roth_converters_value(inames, first_name, year):
@@ -174,6 +181,7 @@ def _build_mcp_opts(
     net_spending=None,
     min_taxable_balance=None,
     start_roth_year=None,
+    stop_roth_year=None,
     no_roth_person=None,
     max_roth_conversion=None,
     bequest=None,
@@ -181,7 +189,6 @@ def _build_mcp_opts(
     previous_magis=None,
     with_medicare=None,
     with_aca=None,
-    use_roth_conv_overrides=None,
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
     withdrawal_order=None,
@@ -199,6 +206,8 @@ def _build_mcp_opts(
         opts["minTaxableBalance"] = list(min_taxable_balance)
     if start_roth_year is not None:
         opts["startRothConversions"] = int(start_roth_year)
+    if stop_roth_year is not None:
+        opts["stopRothConversions"] = int(stop_roth_year)
     if no_roth_person is not None:
         opts["noRothConversions"] = no_roth_person
     if max_roth_conversion is not None:
@@ -214,8 +223,6 @@ def _build_mcp_opts(
         opts["withMedicare"] = with_medicare
     if with_aca is not None:
         opts["withACA"] = with_aca
-    if use_roth_conv_overrides is not None:
-        opts["useRothConvOverrides"] = bool(use_roth_conv_overrides)
     if withdrawal_order is not None:
         opts["withdrawalOrder"] = withdrawal_order
     _swap = _swap_roth_converters_value(inames, swap_roth_converters_first, swap_roth_converters_year)
@@ -603,9 +610,14 @@ def _build_opts(plan, solver, max_time, verbose_flag, solver_opts_raw):
     return parse_solver_options(opts)
 
 
-def _solve_blocking(diconf, dirname, solver, max_time, seed, solver_opts_raw):
+def _solve_blocking(diconf, dirname, solver, max_time, seed, solver_opts_raw, *, clear_roth_pins=False):
     """Load, configure, solve, and return the Plan. Runs in a thread executor."""
     plan = config_to_plan(diconf, dirname, verbose=True, logstreams=[sys.stderr], loadHFP=True)
+    if clear_roth_pins:
+        # A year flagged in the workbook's "Roth conv fixed" column outranks every policy
+        # option, including maxRothConversion=0, so a "never convert" baseline has to
+        # release the flags outright to mean what it says.
+        plan.rothXfixed_in[:, :] = False
     if seed is not None:
         plan.setReproducible(True, seed=seed)
     opts = _build_opts(plan, solver, max_time, None, solver_opts_raw)
@@ -1207,9 +1219,9 @@ def _run_from_params_blocking(
     smile_increase=12,
     smile_delay=0,
     start_roth_year=None,
+    stop_roth_year=None,
     no_roth_person=None,
     max_roth_conversion=None,
-    use_roth_conv_overrides=None,
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
     bequest=None,
@@ -1306,6 +1318,7 @@ def _run_from_params_blocking(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -1313,7 +1326,6 @@ def _run_from_params_blocking(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -1390,9 +1402,9 @@ async def run_from_params(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -1484,14 +1496,12 @@ async def run_from_params(
                         big_ticket_item it funds nothing.  Requires the donor to have reached
                         age 70.5, and is capped per person per year (indexed for inflation);
                         both are enforced as errors.
-        roth_conversions: Per-cell Roth conversion overrides, only enforced when
-                        use_roth_conv_overrides is true.  Each entry: {"person": 0,
-                        "year": 2026, "amount": 20000}.  A positive amount pins that
-                        person's conversion for that year to exactly this value
-                        (bypassing max_roth_conversion and other Roth policy options);
-                        a negative amount forces zero conversion that year (the
-                        magnitude is ignored, so flipping the sign toggles a value on/off
-                        without losing it).  Years/cells not listed remain free, governed
+        roth_conversions: Roth conversions held fixed instead of optimized.  Each entry:
+                        {"person": 0, "year": 2026, "amount": 20000}.  Listing a year is
+                        what pins it: the conversion is held at exactly that amount,
+                        bypassing max_roth_conversion and the other Roth policy options.
+                        An amount of 0 holds that year at no conversion; negative amounts
+                        are an error.  Years not listed remain free, governed
                         by the other Roth options.  Use this to pin a conversion you've
                         already made this year, test skipping a specific year, or supply
                         your own bracket-surfing schedule for some years while letting
@@ -1599,16 +1609,15 @@ async def run_from_params(
                         (e.g. 2030 = no conversions until 2030).  Useful when the user expects
                         to remain in a high bracket for several years and wants conversions
                         deferred until a lower-bracket window opens.
+        stop_roth_year: 4-digit calendar year from which no Roth conversions are allowed
+                        (e.g. 2035 = nothing converted in 2035 or later).  The mirror of
+                        start_roth_year; the two together bound conversions to a window.
         no_roth_person: Name of the individual to exclude from all Roth conversions
                         (e.g. "Alice").  The other person's conversions are unaffected.
                         Couples only; ignored for single-person plans.
         max_roth_conversion: Annual cap on Roth conversions in $/year per person
                         (e.g. 50000).  The optimizer will never convert more than this
                         amount in any single year for any individual.
-        use_roth_conv_overrides: When true, enforce the per-cell pins/exclusions given in
-                        roth_conversions as hard constraints (see roth_conversions for the
-                        positive/negative semantics).  Default false: roth_conversions
-                        entries, if any, are ignored.
         swap_roth_converters_first: Name of the individual who performs Roth conversions
                         first (e.g. "Alice").  Couples only.  Combine with
                         swap_roth_converters_year to switch which spouse converts partway
@@ -1739,9 +1748,9 @@ async def run_from_params(
             smile_increase,
             smile_delay,
             start_roth_year,
+            stop_roth_year,
             no_roth_person,
             max_roth_conversion,
-            use_roth_conv_overrides,
             swap_roth_converters_first,
             swap_roth_converters_year,
             bequest,
@@ -1829,9 +1838,9 @@ def save_case(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -1938,12 +1947,12 @@ def save_case(
         plan.solverOptions["minTaxableBalance"] = list(min_taxable_balance)
     if start_roth_year is not None:
         plan.solverOptions["startRothConversions"] = int(start_roth_year)
+    if stop_roth_year is not None:
+        plan.solverOptions["stopRothConversions"] = int(stop_roth_year)
     if no_roth_person is not None:
         plan.solverOptions["noRothConversions"] = no_roth_person
     if max_roth_conversion is not None:
         plan.solverOptions["maxRothConversion"] = max_roth_conversion
-    if use_roth_conv_overrides is not None:
-        plan.solverOptions["useRothConvOverrides"] = bool(use_roth_conv_overrides)
     _swap = _swap_roth_converters_value(plan.inames, swap_roth_converters_first, swap_roth_converters_year)
     if _swap is not None:
         plan.solverOptions["swapRothConverters"] = _swap
@@ -2014,8 +2023,8 @@ def _apply_baseline_policies_params(build_kwargs, opts_kwargs, policies):
         base_build["roth_conversions"] = None
         base_opts.update(
             max_roth_conversion=0,
-            use_roth_conv_overrides=None,
             start_roth_year=None,
+            stop_roth_year=None,
             no_roth_person=None,
             swap_roth_converters_first=None,
             swap_roth_converters_year=None,
@@ -2035,8 +2044,8 @@ def _apply_baseline_policies_config(diconf, policies):
     so = base.setdefault("solver_options", {})
     if "no_roth_conversions" in policies:
         so["maxRothConversion"] = 0
-        so["useRothConvOverrides"] = False  # a pinned override would bypass the cap
         so.pop("startRothConversions", None)
+        so.pop("stopRothConversions", None)
         so.pop("swapRothConverters", None)
     if "no_ss_age_optimization" in policies:
         so.pop("withSSAges", None)
@@ -2059,9 +2068,17 @@ def _compare_to_baseline_params_blocking(build_kwargs, opts_kwargs, objective, p
     return plan_opt, plan_base
 
 
-def _compare_to_baseline_file_blocking(diconf_opt, diconf_base, dirname, solver, max_time):
+def _compare_to_baseline_file_blocking(diconf_opt, diconf_base, dirname, solver, max_time, policies=()):
     plan_opt = _solve_blocking(diconf_opt, dirname, solver, max_time, None, [])
-    plan_base = _solve_blocking(diconf_base, dirname, solver, max_time, None, [])
+    plan_base = _solve_blocking(
+        diconf_base,
+        dirname,
+        solver,
+        max_time,
+        None,
+        [],
+        clear_roth_pins="no_roth_conversions" in policies,
+    )
     return plan_opt, plan_base
 
 
@@ -2159,9 +2176,9 @@ async def compare_to_baseline(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -2256,6 +2273,7 @@ async def compare_to_baseline(
                 dirname,
                 solver,
                 max_time,
+                policies,
             )
         except Exception as e:
             return json.dumps({"error": f"Solver error: {e}"})
@@ -2336,6 +2354,7 @@ async def compare_to_baseline(
             net_spending=net_spending,
             min_taxable_balance=min_taxable_balance,
             start_roth_year=start_roth_year,
+            stop_roth_year=stop_roth_year,
             no_roth_person=no_roth_person,
             max_roth_conversion=max_roth_conversion,
             bequest=bequest,
@@ -2343,7 +2362,6 @@ async def compare_to_baseline(
             previous_magis=previous_magis,
             with_medicare=with_medicare,
             with_aca=with_aca,
-            use_roth_conv_overrides=use_roth_conv_overrides,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2436,9 +2454,9 @@ async def explain_results(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -2605,6 +2623,7 @@ async def explain_results(
             net_spending=net_spending,
             min_taxable_balance=min_taxable_balance,
             start_roth_year=start_roth_year,
+            stop_roth_year=stop_roth_year,
             no_roth_person=no_roth_person,
             max_roth_conversion=max_roth_conversion,
             bequest=bequest,
@@ -2612,7 +2631,6 @@ async def explain_results(
             previous_magis=previous_magis,
             with_medicare=with_medicare,
             with_aca=with_aca,
-            use_roth_conv_overrides=use_roth_conv_overrides,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2922,9 +2940,9 @@ async def run_stochastic(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -3027,12 +3045,12 @@ async def run_stochastic(
         min_taxable_balance:  Minimum taxable account balance (safety net / emergency fund),
                               in $ per person, e.g. [20000] or [15000, 15000].
         start_roth_year:      4-digit year before which Roth conversions are disabled.
+        stop_roth_year:       4-digit year from which Roth conversions are disabled.
         no_roth_person:       Name of individual excluded from all Roth conversions (couples only).
         max_roth_conversion:  Annual per-person Roth conversion cap in $/year.
-        roth_conversions:     Per-cell Roth conversion pins/exclusions, only enforced when
-                              use_roth_conv_overrides is true. See run_from_params for the
-                              {"person","year","amount"} format and sign semantics.
-        use_roth_conv_overrides: Enforce roth_conversions as hard per-cell constraints.
+        roth_conversions:     Roth conversions held fixed instead of optimized; listing a
+                              year is what pins it. See run_from_params for the
+                              {"person","year","amount"} format.
         swap_roth_converters_first: Name of individual converting first (couples only); pair
                               with swap_roth_converters_year. See run_from_params for details.
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
@@ -3172,6 +3190,7 @@ async def run_stochastic(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -3179,7 +3198,6 @@ async def run_stochastic(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3357,9 +3375,9 @@ async def run_spending_bequest_frontier(
     smile_delay: int = 0,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     heirs_tax_rate: float | None = None,
@@ -3577,13 +3595,13 @@ async def run_spending_bequest_frontier(
         max_time=max_time,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         optimize_ss_ages=optimize_ss_ages,
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3758,9 +3776,9 @@ async def run_year1_robustness(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -3911,6 +3929,7 @@ async def run_year1_robustness(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -3918,7 +3937,6 @@ async def run_year1_robustness(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4175,9 +4193,9 @@ async def run_longevity_stochastic(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -4275,12 +4293,12 @@ async def run_longevity_stochastic(
         net_spending:     Annual spending floor in $/year for maxBequest objective.
         min_taxable_balance: Minimum taxable account safety net in $ per person.
         start_roth_year:  Year before which Roth conversions are disabled.
+        stop_roth_year:   Year from which Roth conversions are disabled.
         no_roth_person:   Name of individual excluded from Roth conversions.
         max_roth_conversion: Annual per-person Roth conversion cap in $/year.
-        roth_conversions:     Per-cell Roth conversion pins/exclusions, only enforced when
-                              use_roth_conv_overrides is true. See run_from_params for the
-                              {"person","year","amount"} format and sign semantics.
-        use_roth_conv_overrides: Enforce roth_conversions as hard per-cell constraints.
+        roth_conversions:     Roth conversions held fixed instead of optimized; listing a
+                              year is what pins it. See run_from_params for the
+                              {"person","year","amount"} format.
         swap_roth_converters_first: Name of individual converting first (couples only); pair
                               with swap_roth_converters_year. See run_from_params for details.
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
@@ -4332,6 +4350,7 @@ async def run_longevity_stochastic(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -4339,7 +4358,6 @@ async def run_longevity_stochastic(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=names,
@@ -4469,9 +4487,9 @@ async def run_historical(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -4557,12 +4575,12 @@ async def run_historical(
                           floor in $/year (e.g. 90000).  Ignored for maxSpending.
         min_taxable_balance: Minimum taxable account balance (safety net) in $ per person.
         start_roth_year:  Year before which Roth conversions are disabled.
+        stop_roth_year:   Year from which Roth conversions are disabled.
         no_roth_person:   Name of individual excluded from Roth conversions.
         max_roth_conversion: Annual per-person Roth conversion cap in $/year.
-        roth_conversions:     Per-cell Roth conversion pins/exclusions, only enforced when
-                              use_roth_conv_overrides is true. See run_from_params for the
-                              {"person","year","amount"} format and sign semantics.
-        use_roth_conv_overrides: Enforce roth_conversions as hard per-cell constraints.
+        roth_conversions:     Roth conversions held fixed instead of optimized; listing a
+                              year is what pins it. See run_from_params for the
+                              {"person","year","amount"} format.
         swap_roth_converters_first: Name of individual converting first (couples only); pair
                               with swap_roth_converters_year. See run_from_params for details.
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
@@ -4694,6 +4712,7 @@ async def run_historical(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -4701,7 +4720,6 @@ async def run_historical(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4783,9 +4801,9 @@ async def run_monte_carlo(
     net_spending: float | None = None,
     min_taxable_balance: list[float] | None = None,
     start_roth_year: int | None = None,
+    stop_roth_year: int | None = None,
     no_roth_person: str | None = None,
     max_roth_conversion: float | None = None,
-    use_roth_conv_overrides: bool | None = None,
     swap_roth_converters_first: str | None = None,
     swap_roth_converters_year: int | None = None,
     bequest: float | None = None,
@@ -4882,12 +4900,12 @@ async def run_monte_carlo(
                           floor in $/year (e.g. 90000).  Ignored for maxSpending.
         min_taxable_balance: Minimum taxable account balance (safety net) in $ per person.
         start_roth_year:  Year before which Roth conversions are disabled.
+        stop_roth_year:   Year from which Roth conversions are disabled.
         no_roth_person:   Name of individual excluded from Roth conversions.
         max_roth_conversion: Annual per-person Roth conversion cap in $/year.
-        roth_conversions:     Per-cell Roth conversion pins/exclusions, only enforced when
-                              use_roth_conv_overrides is true. See run_from_params for the
-                              {"person","year","amount"} format and sign semantics.
-        use_roth_conv_overrides: Enforce roth_conversions as hard per-cell constraints.
+        roth_conversions:     Roth conversions held fixed instead of optimized; listing a
+                              year is what pins it. See run_from_params for the
+                              {"person","year","amount"} format.
         swap_roth_converters_first: Name of individual converting first (couples only); pair
                               with swap_roth_converters_year. See run_from_params for details.
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
@@ -5019,6 +5037,7 @@ async def run_monte_carlo(
         net_spending=net_spending,
         min_taxable_balance=min_taxable_balance,
         start_roth_year=start_roth_year,
+        stop_roth_year=stop_roth_year,
         no_roth_person=no_roth_person,
         max_roth_conversion=max_roth_conversion,
         bequest=bequest,
@@ -5026,7 +5045,6 @@ async def run_monte_carlo(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
-        use_roth_conv_overrides=use_roth_conv_overrides,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,

@@ -417,7 +417,7 @@ class TestLTCGScLoopConsistency:
 
 
 # ---------------------------------------------------------------------------
-# useRothConvOverrides: q-variable partition must stay tight even with a
+# Pinned conversions: q-variable partition must stay tight even with a
 # large pinned Roth conversion that pushes G_n into higher brackets.
 # ---------------------------------------------------------------------------
 
@@ -430,9 +430,8 @@ class TestLTCGPartitionBoundRothFile:
     Before this bound was added, q[1,n]/q[2,n] could be inflated along a flat LP
     direction shared with f_tn's per-bracket split, while cash flow and the
     objective stayed numerically identical -- producing q_pn far in excess of the
-    actual realized LTCG Q_n. A large pinned Roth conversion (via
-    useRothConvOverrides) is a realistic trigger for this, and previously had
-    no dedicated test coverage.
+    actual realized LTCG Q_n. A large pinned Roth conversion is a realistic
+    trigger for this, and previously had no dedicated test coverage.
     """
 
     def _make_plan_with_fixed_conversion(self, name, roth_conversion_year0):
@@ -449,6 +448,7 @@ class TestLTCGPartitionBoundRothFile:
         p.setRates("historical", 2000)
         # Pin a large Roth conversion in year 0 (mimics an already-executed conversion).
         p.myRothX_in[0, 0] = roth_conversion_year0
+        p.rothXfixed_in[0, 0] = True
         return p
 
     def test_q_partition_bounded_by_q_n_with_file_conversion(self):
@@ -456,7 +456,7 @@ class TestLTCGPartitionBoundRothFile:
         p = self._make_plan_with_fixed_conversion("ltcg_roth_file_partition", 200_000)
         p.solve(
             "maxSpending",
-            {"withMedicare": "None", "useRothConvOverrides": True, "withDecomposition": "none"},
+            {"withMedicare": "None", "withDecomposition": "none"},
         )
         assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
 

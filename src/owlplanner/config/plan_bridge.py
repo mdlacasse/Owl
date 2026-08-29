@@ -38,9 +38,24 @@ def _get_known(diconf: dict) -> dict:
     return {k: v for k, v in diconf.items() if k in KNOWN_SECTIONS}
 
 
+# UI bookkeeping that is not a file name. " *" is appended to mark a workbook edited since
+# it was loaded; "edited values" stands in when the tables were typed with no file behind
+# them. Neither can be reloaded, so neither belongs in a case file.
+_HFP_EDITED_MARKER = " *"
+_HFP_PLACEHOLDERS = ("dictionary of DataFrames", "edited values")
+
+
 def _normalize_hfp_file_name(name: str) -> str:
-    """Map UI/legacy placeholders to the canonical no-HFP sentinel (string 'None')."""
-    if name == "" or name.lower() == "none" or name == "dictionary of DataFrames":
+    """
+    Map UI/legacy placeholders to the canonical no-HFP sentinel (string 'None').
+
+    Applied on the way in and on the way out, so a case file always records something that
+    can actually be reloaded -- and one that already carries a stale marker is repaired
+    when it is read.
+    """
+    if isinstance(name, str) and name.endswith(_HFP_EDITED_MARKER):
+        name = name[: -len(_HFP_EDITED_MARKER)]
+    if name == "" or name.lower() == "none" or name in _HFP_PLACEHOLDERS:
         return "None"
     return name
 

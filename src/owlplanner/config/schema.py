@@ -342,8 +342,8 @@ class SolverOptions(BaseModel):
     noRothConversions: Optional[str] = None
 
     startRothConversions: Optional[int] = None
+    stopRothConversions: Optional[int] = None
     swapRothConverters: Optional[int] = None
-    useRothConvOverrides: Optional[bool] = None
 
     # Objectives and constraints
     bequest: Optional[float] = None

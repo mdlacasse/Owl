@@ -51,21 +51,12 @@ else:
     col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
     with col1:
         iname0 = kz.getCaseKey("iname0")
-        helpmsg = "Value is in nominal \\$k."
-        kz.initCaseKey("useRothConvOverrides", False)
+        helpmsg = (
+            "Value is in nominal \\$k. A year held fixed with the *Roth conv fixed* column "
+            "of the *Wages and Contributions* table is not subject to this maximum."
+        )
         kz.initCaseKey("maxRothConversion", 50)
         ret = kz.getNum("Maximum annual Roth conversion (\\$k)", "maxRothConversion", help=helpmsg)
-        helpmsg = (
-            "Use the *Roth conv* column of the *Wages and Contributions* table to override "
-            "individual years: 0 (the default) lets Owl optimize that year, subject to the "
-            "Maximum annual Roth conversion above, a positive value pins the conversion to "
-            "exactly that amount (even above the maximum), and a negative value forces no "
-            "conversion that year (the magnitude is ignored, so flipping the sign keeps the "
-            "value for later)."
-        )
-        ret = kz.getToggle(
-            "Use Roth conversion overrides from Wages and Contributions tables", "useRothConvOverrides", help=helpmsg
-        )
         # kz.initCaseKey("oppCostX", 0.)
         # helpmsg = "Estimated opportunity cost for paying estimated tax on Roth conversions."
         # ret = kz.getNum("Opportunity cost for conversion (%)", "oppCostX", step=0.01, format="%.2f",
@@ -78,6 +69,21 @@ else:
         ret = kz.getIntNum(
             "Year to start considering Roth conversions", "startRothConversions", min_value=thisyear, help=helpmsg
         )
+        # An explicit toggle, not a year derived from the plan horizon: a derived default
+        # is stored once and never revisited, so extending life expectancy later would
+        # leave a stale year quietly blocking conversions the user never meant to block.
+        kz.initCaseKey("stopRothConversionsEnabled", False)
+        helpmsg = (
+            "Stop Roth conversions partway through the plan. Off means they are considered "
+            "to the end. Together with the year above, this bounds conversions to a window."
+        )
+        ret = kz.getToggle("Stop Roth conversions mid-plan", "stopRothConversionsEnabled", help=helpmsg)
+        if kz.getCaseKey("stopRothConversionsEnabled"):
+            kz.initCaseKey("stopRothConversions", thisyear + 10)
+            helpmsg = "No Roth conversions are performed in this year or later."
+            ret = kz.getIntNum(
+                "Year to stop considering Roth conversions", "stopRothConversions", min_value=thisyear, help=helpmsg
+            )
     with col3:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")

@@ -490,14 +490,16 @@ class TestHFPWriteRead:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
-    def test_roth_conv_overrides_require_the_column(self):
-        """In override mode the column carries semantics, so absence is ambiguous."""
+    def test_absent_roth_conv_fixed_column_pins_nothing(self):
+        """The flag column is optional: absent means no year is pinned, so the plan
+        solves and every conversion is optimized. Unlike the old sign-sentinel
+        encoding, absence is never ambiguous."""
         birth_year = 1950
         remaining_years = 25
         expectancy = (thisyear - birth_year) + remaining_years
         p = owl.Plan(["Alice"], ["1950-01-15"], [expectancy], "Test Plan", verbose=False)
         p.zeroWagesAndContributions()
-        alice_df = p.timeLists["Alice"].drop(columns=["Roth conv"])
+        alice_df = p.timeLists["Alice"].drop(columns=["Roth conv fixed"])
 
         with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
             tmp_path = tmp.name
@@ -511,19 +513,17 @@ class TestHFPWriteRead:
             p2.setRates("historical average", 1990, 2020)
             p2.setSpendingProfile("flat", 60)
 
-            # Off: the absent column is simply zero, and the plan solves.
+            assert "Roth conv fixed" in p2.hfpAbsentCols["Alice"]
+            assert not p2.rothXfixed_in.any()
+
             p2.solve("maxSpending", options={"maxRothConversion": 100e3, "bequest": 0})
             assert p2.caseStatus == "solved"
 
-            # On: refuse rather than silently read "no year is pinned".
-            with pytest.raises(Exception, match="useRothConvOverrides"):
-                p2.solve("maxSpending", options={"useRothConvOverrides": True, "bequest": 0})
-
-            # Rebuilding the tables restores the column, so the refusal must lift:
-            # a record of what one workbook lacked must not outlive that workbook.
+            # Rebuilding the tables restores the column, still with nothing pinned.
             p2.zeroWagesAndContributions()
             assert p2.hfpAbsentCols["Alice"] == []
-            p2.solve("maxSpending", options={"useRothConvOverrides": True, "bequest": 0})
+            assert not p2.rothXfixed_in.any()
+            p2.solve("maxSpending", options={"maxRothConversion": 100e3, "bequest": 0})
             assert p2.caseStatus == "solved"
         finally:
             if os.path.exists(tmp_path):

@@ -350,31 +350,43 @@ def test_big_ticket_items_single_year():
 
 
 # ---------------------------------------------------------------------------
-# _build_plan_from_params — roth_conversions (myRothX_in overrides)
+# _build_plan_from_params — roth_conversions (per-year pins)
 # ---------------------------------------------------------------------------
 
 
 def test_roth_conversions_positive_pins_amount():
     plan = _single(roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 20_000}])
     assert plan.myRothX_in[0, 0] == pytest.approx(20_000)
+    assert plan.rothXfixed_in[0, 0]
     assert plan.myRothX_in[0, 1] == pytest.approx(0)
+    # Listing a year is what pins it, so an unlisted year stays free.
+    assert not plan.rothXfixed_in[0, 1]
 
 
-def test_roth_conversions_negative_forces_zero_marker():
-    """A negative amount stores the (negative) marker as-is; sign, not magnitude, matters."""
-    plan = _single(roth_conversions=[{"person": 0, "year": THISYEAR + 1, "amount": -1}])
-    assert plan.myRothX_in[0, 1] < 0
+def test_roth_conversions_zero_pins_no_conversion():
+    """An amount of 0 is a pin like any other: that year converts nothing."""
+    plan = _single(roth_conversions=[{"person": 0, "year": THISYEAR + 1, "amount": 0}])
+    assert plan.myRothX_in[0, 1] == pytest.approx(0)
+    assert plan.rothXfixed_in[0, 1]
+
+
+def test_roth_conversions_negative_rejected():
+    """The old negative 'force zero' marker is now an error pointing at amount 0."""
+    with pytest.raises(ValueError, match="negative"):
+        _single(roth_conversions=[{"person": 0, "year": THISYEAR + 1, "amount": -1}])
 
 
 def test_roth_conversions_multi_person():
     plan = _couple(
         roth_conversions=[
             {"person": 0, "year": THISYEAR, "amount": 15_000},
-            {"person": 1, "year": THISYEAR, "amount": -1},
+            {"person": 1, "year": THISYEAR, "amount": 0},
         ]
     )
     assert plan.myRothX_in[0, 0] == pytest.approx(15_000)
-    assert plan.myRothX_in[1, 0] < 0
+    assert plan.rothXfixed_in[0, 0]
+    assert plan.myRothX_in[1, 0] == pytest.approx(0)
+    assert plan.rothXfixed_in[1, 0]
 
 
 def test_roth_conversions_out_of_range_year_ignored():
@@ -569,15 +581,19 @@ def test_build_hfp_dataframes_roth_conv_roundtrip():
     plan = _single(
         roth_conversions=[
             {"person": 0, "year": THISYEAR, "amount": 20_000},
-            {"person": 0, "year": THISYEAR + 1, "amount": -1},
+            {"person": 0, "year": THISYEAR + 1, "amount": 0},
         ]
     )
     tl, _ = build_hfp_dataframes(plan)
     df = tl["Martin"]
     # Row 5 = THISYEAR (offset 5 past the 5 preamble years)
     assert df["Roth conv"].iloc[5] == pytest.approx(20_000)
-    assert df["Roth conv"].iloc[6] < 0
+    assert df["Roth conv fixed"].iloc[5]
+    # A pinned zero is indistinguishable in the amount column, so the flag carries it.
+    assert df["Roth conv"].iloc[6] == pytest.approx(0)
+    assert df["Roth conv fixed"].iloc[6]
     assert df["Roth conv"].iloc[7] == pytest.approx(0)
+    assert not df["Roth conv fixed"].iloc[7]
 
 
 def test_build_hfp_dataframes_year_column():
@@ -704,11 +720,13 @@ def test_save_case_custom_name():
 
 
 # ---------------------------------------------------------------------------
-# save_case — useRothConvOverrides / swapRothConverters solver options
+# save_case — Roth conversion window / swapRothConverters solver options
 # ---------------------------------------------------------------------------
 
 
-def test_save_case_use_roth_conv_overrides_written():
+def test_save_case_roth_conversion_window_written():
+    """The start/stop year pair persists to solver_options. Per-year pins do not:
+    they are time-series data, and a case file records only the HFP file name."""
     import tempfile
     from owlplanner.config import load_toml
 
@@ -722,13 +740,14 @@ def test_save_case_use_roth_conv_overrides_written():
             roth=[100_000],
             ss_monthly_pias=[2500],
             ss_ages=[67],
-            roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 20_000}],
-            use_roth_conv_overrides=True,
+            start_roth_year=THISYEAR + 1,
+            stop_roth_year=THISYEAR + 6,
             output_dir=td,
         )
         data = json.loads(result)
         diconf, _, _ = load_toml(data["toml_file"])
-        assert diconf["solver_options"]["useRothConvOverrides"] is True
+        assert diconf["solver_options"]["startRothConversions"] == THISYEAR + 1
+        assert diconf["solver_options"]["stopRothConversions"] == THISYEAR + 6
 
 
 def test_save_case_swap_roth_converters_first_spouse_positive():
@@ -1210,7 +1229,7 @@ def test_run_from_params_min_taxable_balance_full_dollars():
 
 
 # ---------------------------------------------------------------------------
-# roth_conversions / use_roth_conv_overrides / swap_roth_converters_* (end-to-end)
+# roth_conversions / stop_roth_year / swap_roth_converters_* (end-to-end)
 # ---------------------------------------------------------------------------
 
 _ROTH_OVERRIDE_PARAMS = dict(
@@ -1234,39 +1253,46 @@ _ROTH_OVERRIDE_PARAMS = dict(
 
 @pytest.mark.toml
 def test_run_from_params_roth_conversion_pin_positive():
-    """A positive roth_conversions entry pins x_in[0,0] to that exact amount when
-    use_roth_conv_overrides is true, bypassing max_roth_conversion."""
+    """Listing a year pins x_in[0,0] to that exact amount, bypassing max_roth_conversion."""
     plan = _run_from_params_blocking(
         **_ROTH_OVERRIDE_PARAMS,
         roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 20_000}],
-        use_roth_conv_overrides=True,
     )
     assert plan.caseStatus == "solved"
     assert plan.x_in[0, 0] == pytest.approx(20_000)
 
 
 @pytest.mark.toml
-def test_run_from_params_roth_conversion_forced_zero():
-    """A negative roth_conversions entry forces x_in[0,n] to 0 that year when
-    use_roth_conv_overrides is true."""
+def test_run_from_params_roth_conversion_pinned_zero():
+    """An amount of 0 pins that year at no conversion."""
     plan = _run_from_params_blocking(
         **_ROTH_OVERRIDE_PARAMS,
-        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": -1}],
-        use_roth_conv_overrides=True,
+        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 0}],
     )
     assert plan.caseStatus == "solved"
     assert plan.x_in[0, 0] == pytest.approx(0)
 
 
 @pytest.mark.toml
-def test_run_from_params_roth_conversions_ignored_without_override():
-    """roth_conversions entries are inert unless use_roth_conv_overrides is true."""
+def test_run_from_params_unlisted_years_stay_free():
+    """Only the listed year is pinned; the rest are optimized under the cap."""
     plan = _run_from_params_blocking(
         **_ROTH_OVERRIDE_PARAMS,
-        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": -1}],
+        roth_conversions=[{"person": 0, "year": THISYEAR, "amount": 0}],
     )
     assert plan.caseStatus == "solved"
-    assert "useRothConvOverrides" not in plan.solverOptions or not plan.solverOptions["useRothConvOverrides"]
+    assert not plan.rothXfixed_in[0, 1:].any()
+    assert plan.x_in[0, 1:].max() > 0
+
+
+@pytest.mark.toml
+def test_run_from_params_stop_roth_year():
+    """stop_roth_year disallows conversions from that year onward."""
+    stop = THISYEAR + 3
+    plan = _run_from_params_blocking(**_ROTH_OVERRIDE_PARAMS, stop_roth_year=stop)
+    assert plan.caseStatus == "solved"
+    assert plan.solverOptions["stopRothConversions"] == stop
+    assert plan.x_in[0, stop - THISYEAR :].max() == pytest.approx(0, abs=1e-6)
 
 
 @pytest.mark.toml

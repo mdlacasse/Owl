@@ -62,6 +62,7 @@ ACC_CONF = ACCOUNT_TYPES
 #   previousMAGIs      -> MAGI0 / MAGI1
 #   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
+#   stopRothConversions -> stopRothConversionsEnabled / stopRothConversions (absent = no end)
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "bequest",
@@ -86,7 +87,6 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "startRothConversions",
     "timePreference",
     "units",
-    "useRothConvOverrides",
     "verbose",
 ]
 
@@ -345,6 +345,13 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
     dic["useDecomposition"] = so.get("withDecomposition", "none")
+
+    # An absent stop year means "no end". The UI carries that as an explicit toggle rather
+    # than a magic year, so a stop year can never be left behind by a horizon change.
+    stop_roth = so.get("stopRothConversions")
+    dic["stopRothConversionsEnabled"] = stop_roth is not None
+    if stop_roth is not None:
+        dic["stopRothConversions"] = int(stop_roth)
 
     enabled, swap_year, swap_first = parse_swap_roth_converters(so.get("swapRothConverters", 0), names)
     dic["swapRothConvertersEnabled"] = enabled
@@ -642,6 +649,11 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
         use_decomp = "none"
     diconf["solver_options"]["withDecomposition"] = use_decomp
+
+    if uidic.get("stopRothConversionsEnabled", False):
+        diconf["solver_options"]["stopRothConversions"] = _get_ui(
+            uidic, "stopRothConversions", date.today().year, int
+        )
 
     swap_year = _get_ui(uidic, "swapRothConvertersYear", date.today().year, int)
     swap_first = uidic.get("swapRothConvertersFirst")

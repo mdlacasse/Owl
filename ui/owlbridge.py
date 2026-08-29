@@ -39,7 +39,7 @@ from owlplanner.utils import (
     parse_swap_roth_converters,
 )
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
-from owlplanner.hfp_io import conditionDebtsAndFixedAssetsDF
+from owlplanner.hfp_io import booleanTimeHorizonItems, conditionDebtsAndFixedAssetsDF
 from owlplanner.mylogging import Logger
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
@@ -1513,6 +1513,26 @@ def setGlobalPlotBackend(key):
         plan = kz.getKeyInCase("plan", casename)
         if plan:
             plan.setPlotBackend(val)
+
+
+def conditionTimeListFlags(df):
+    """
+    Normalize the flag columns of an edited timetable.
+
+    The data editor hands back a flag as True/False or, for a cell the user never
+    touched, as the 0 left by the NaN fill, so settle on bool. The five lead-in
+    rows record conversions already performed, which always count, so a flag there
+    would say nothing the amount does not already say: clear it rather than let the
+    user set something the planner will ignore.
+    """
+    thisyear = date.today().year
+    for col in booleanTimeHorizonItems():
+        if col not in df.columns:
+            continue
+        df[col] = df[col].fillna(False).astype(bool)
+        if "year" in df.columns:
+            df.loc[df["year"] < thisyear, col] = False
+    return df
 
 
 def highlight_year_row(row):

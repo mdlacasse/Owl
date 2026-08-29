@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import streamlit as st
+import pandas as pd
 from datetime import date
 
 from owlplanner.hfp_io import getTableTypes
@@ -107,24 +108,29 @@ that has not yet been uploaded.""")
 
     # An absent column is read as zero. That is usually what the user meant, but it
     # is a change of meaning they never typed, so say it here rather than leaving it
-    # to the Logs page.
+    # to the Logs page. The columns are already in the table by now, so point at
+    # saving the workbook rather than asking for them to be added by hand.
     absentCols = kz.getCaseKey("hfpAbsentCols") or {}
     reported = {iname: cols for iname, cols in absentCols.items() if cols}
     if reported:
         lines = "\n".join(f"- **{iname}**: {', '.join(cols)}" for iname, cols in reported.items())
         st.warning(
             "The workbook did not contain the following column(s), which are treated as zero "
-            f"for every year:\n\n{lines}\n\nAdd them to the workbook if that is not what you intended.",
+            f"for every year:\n\n{lines}\n\nThey have been added to the tables below. Edit them "
+            "there if the zeros are not what you intended, then use *Download HFP workbook* at the "
+            "foot of this page to save a copy that has them.",
             icon=":material/info:",
         )
 
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
-    st.markdown("""Wages and contributions for each individual.
+    st.markdown("""Wages and contributions for each individual, in two tables.
 Enter *anticipated wages* net of all contribution columns (see the Documentation page for details).
-Current year is highlighted in blue. The cells before are for the previous five years, used exclusively to track past
-Roth contributions and conversions. This historical data ensures compliance with the IRS five-year maturation rule.
-For these initial five years, only Roth-related entries are read; all other columns are ignored.""")
+The first table holds the five years before this one. Only its Roth entries are read, to comply with the IRS
+five-year maturation rule, but every column is yours to keep: the figures stay in your workbook as the history
+you carry forward and extrapolate from. Because those conversions have already happened, *Roth conv fixed*
+does not apply there and is shown disabled.
+The second table starts at the current year and covers the rest of the plan.""")
 
     with st.expander("*Expand Wages and Contributions timetables*"):
         for i in range(n):
@@ -133,25 +139,54 @@ For these initial five years, only Roth-related entries are read; all other colu
             if df is None:
                 continue
             # Keyed by name, not position: the column list is free to grow.
-            # "Roth conv" allows negatives as a "skip this year" override sentinel,
-            # and "big-ticket items" can be an expense; everything else is >= 0.
-            negativeOK = ("Roth conv", "big-ticket items")
+            # "big-ticket items" can be an expense; every other amount is >= 0.
+            negativeOK = ("big-ticket items",)
             formatdic = {"year": st.column_config.NumberColumn(None, format="%d", disabled=True)}
             for col in df.columns:
                 if col == "year":
                     continue
+                if col in owb.booleanTimeHorizonItems():
+                    formatdic[col] = st.column_config.CheckboxColumn(None, default=False)
+                    continue
                 minValue = None if col in negativeOK else 0.0
                 formatdic[col] = st.column_config.NumberColumn(None, min_value=minValue, format="accounting")
 
-            styled_df = df.style.apply(owb.highlight_year_row, axis=1)
-            newdf = st.data_editor(
-                styled_df,
+            # One table, two editors. Streamlit can only disable whole columns, so the
+            # only way to disable a flag on the past rows alone is to give them an editor
+            # of their own: there, the column and the rows are the same thing.
+            thisyear = date.today().year
+            pastdf = df[df["year"] < thisyear]
+            plandf = df[df["year"] >= thisyear]
+
+            st.markdown("*Past five years*")
+            editedpast = st.data_editor(
+                pastdf,
+                column_config=formatdic,
+                hide_index=True,
+                disabled=owb.booleanTimeHorizonItems(),
+                key=kz.genCaseKey("wagesPast" + str(i)),
+            )
+            st.caption(
+                "Only the Roth columns are read here, but the rest is kept in your workbook as the "
+                "record you carry forward."
+            )
+            st.markdown("*Plan years*")
+            editedplan = st.data_editor(
+                plandf,
                 column_config=formatdic,
                 hide_index=True,
                 key=kz.genCaseKey("wages" + str(i)),
             )
-            st.caption("Values are in nominal $.")
+            st.caption(
+                "Values are in nominal \\$. Tick *Roth conv fixed* to hold that year's "
+                "*Roth conv* amount instead of letting **Owl** optimize it; an amount of 0 "
+                "then means no conversion that year."
+            )
+            # Back to one table. ignore_index restores the 0..h+4 row numbering that
+            # setContributions() and checkQCDColumn() slice positionally.
+            newdf = pd.concat([editedpast, editedplan], ignore_index=True)
             newdf = newdf.fillna(0)
+            newdf = owb.conditionTimeListFlags(newdf)
             kz.storeCaseKey("_timeList" + str(i), newdf)
 
             # Report a bad QCD entry against this table, not later at run time.
@@ -159,7 +194,7 @@ For these initial five years, only Roth-related entries are read; all other colu
             if qcdError:
                 st.error(qcdError, icon=":material/error:")
 
-            if not df.equals(newdf):
+            if not df.reset_index(drop=True).equals(newdf):
                 kz.setCaseKey("timeList" + str(i), newdf)
                 if kz.getCaseKey("stHFP") is not None:
                     fname = kz.getCaseKey("hfpFileName") or ""
@@ -351,6 +386,38 @@ pressing the *Delete* key."""
                 fname = kz.getCaseKey("hfpFileName") or ""
                 if fname and not fname.endswith(" *"):
                     kz.storeCaseKey("hfpFileName", fname + " *")
+            st.rerun()
+
+    st.divider()
+    # One workbook holds every table on this page, so it is offered below all of them
+    # rather than under the first. Building it needs the tables, not a solved plan, so
+    # this stays available even for a case that cannot run -- unlike the same download
+    # on the Reports page, which is gated behind a successful solve.
+    if not kz.caseHasNoPlan():
+        caseName = kz.getCaseKey("name")
+        st.markdown("### :material/download: :orange[Save your Financial Profile]")
+        st.markdown(
+            """Download every table on this page as one **Household Financial Profile** workbook:
+the *Wages and Contributions* sheet for each individual, plus *Debts* and *Fixed Assets*."""
+        )
+        hfpClicked = st.download_button(
+            "Download HFP workbook",
+            data=owb.saveContributions(),
+            file_name=f"HFP_{caseName}.xlsx",
+            help="Excel workbook holding every table on this page, including any column Owl added on load.",
+            mime="application/vnd.ms-excel",
+            icon=":material/download:",
+        )
+        st.caption(
+            "Your browser chooses where the file lands. To be asked each time, turn on "
+            "*Ask where to save each file before downloading* (Chrome, Edge), "
+            "*Always ask you where to save files* (Firefox), or *Ask for each download* (Safari)."
+        )
+        if hfpClicked:
+            owb.markHFPAsSaved()
+            gcs = owb.getCaseString()
+            if gcs:
+                kz.storeCaseKey("casetoml", gcs.getvalue())
             st.rerun()
 
     # Show progress bar at bottom (only when case is defined)

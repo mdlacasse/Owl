@@ -26,6 +26,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from datetime import date
 
 import numpy as np
+import pytest
 
 import owlplanner as owl
 
@@ -62,12 +63,22 @@ def test_no_roth_conversions_excludes_spouse():
     assert np.any(p.x_in[0, :] > 0)
 
 
-def test_no_roth_conversions_excludes_spouse_even_with_positive_override():
-    """A positive per-cell useRothConvOverrides pin for the excluded individual must not
-    bypass noRothConversions -- exclusion takes precedence over per-cell overrides."""
-    p = _make_couple_plan("roth_exclude_jill_with_override")
+def test_pin_for_excluded_individual_is_a_contradiction():
+    """Pinning a year for someone noRothConversions excludes states two incompatible
+    things. Owl raises rather than silently picking a winner."""
+    p = _make_couple_plan("roth_exclude_jill_with_pin")
     p.myRothX_in[1, 0] = 30_000
-    options = dict(_BASE_OPTIONS, maxRothConversion=50, noRothConversions="Jill", useRothConvOverrides=True)
+    p.rothXfixed_in[1, 0] = True
+    options = dict(_BASE_OPTIONS, maxRothConversion=50, noRothConversions="Jill")
+    with pytest.raises(ValueError, match="Contradictory Roth conversion settings"):
+        p.solve("maxSpending", options)
+
+
+def test_amount_without_flag_does_not_disturb_exclusion():
+    """An unflagged amount is only a proposal, so it cannot bypass noRothConversions."""
+    p = _make_couple_plan("roth_exclude_jill_unflagged")
+    p.myRothX_in[1, 0] = 30_000
+    options = dict(_BASE_OPTIONS, maxRothConversion=50, noRothConversions="Jill")
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
     np.testing.assert_allclose(p.x_in[1, :], 0)

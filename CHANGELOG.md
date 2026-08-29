@@ -1,3 +1,94 @@
+### Version 2026.8.29
+
+#### Changed: Roth conversion overrides are now a checkbox, not a negative number
+
+The `Roth conv` column of the HFP workbook was doing three jobs at once: recording
+conversions already performed, carrying an amount to pin, and encoding *which* of those
+two it meant through the **sign** of the number. That made `0` mean "let Owl optimize
+this year" rather than "convert nothing" — the opposite of what anyone typing a zero
+expects — and it forced two workarounds. An absent column could not be told apart from a
+column of zeros, so Owl had to refuse to run; and because `0` could not say
+"unspecified", a global `useRothConvOverrides` toggle was needed to declare that the
+column held instructions at all.
+
+The column now does one job: **Roth conversion amounts in dollars, never negative**. On
+the five lead-in rows they are conversions you have made; on plan years, conversions you
+are proposing. A new optional boolean column, **`Roth conv fixed`**, says which of those
+proposals bind. Ticked, the conversion is held at exactly the amount beside it, bypassing
+the annual cap and the start and stop years. Unticked — the default, and what an absent
+column means — Owl optimizes that year and the amount is documentation only.
+
+Three things fall out of the separation. `0` means zero: a ticked year with an amount of
+`0` converts nothing. Un-ticking a year keeps its figure in the sheet, which is what
+flipping the sign used to be for. And an absent column is now unambiguous, so the refusal
+and the toggle are both gone.
+
+**This is a breaking change.** A negative `Roth conv` entry is now an error naming the new
+column, and the `useRothConvOverrides` solver option has been removed, along with the
+`use_roth_conv_overrides` parameter of the MCP tools. In the MCP `roth_conversions` list,
+membership is what pins a year: give an amount of `0` where you used to give `-1`. The
+shipped example workbooks and `HFP_template.xlsx` carry the new column.
+
+#### Changed: the Wages and Contributions table is now two tables
+
+In the workbook it remains one sheet per person; in the user interface it is shown as the
+five lead-in years and then the plan years. This is what lets `Roth conv fixed` be disabled
+on the past rows, where those conversions have already happened and the flag means nothing:
+Streamlit can only disable whole columns, so the only way to disable a column on some rows
+is to give those rows a table of their own.
+
+Every column stays visible and editable on the past table. Workbooks get reused year over
+year and the past wage and contribution figures are the record you extrapolate the next
+year's from, even where the planner itself does not read them.
+
+#### Added: `stopRothConversions`
+
+The mirror of `startRothConversions`: no Roth conversions from the given year onward. The
+two together bound conversions to a window, so "convert until Medicare starts, then stop"
+is one number rather than a pinned zero on every remaining year. Exposed in the UI beside
+the start year, and to the MCP tools as `stop_roth_year`.
+
+#### Added: an HFP workbook download on the Financial Profile page
+
+**Owl** adds any recognized column your workbook is missing and reads it as zero. It said
+so, then told you to add the column yourself — but by then the column is already in the
+table in front of you, and the only thing left to do is keep it. The notice now points at
+a *Download HFP workbook* button at the foot of the same page, below every table the
+workbook holds: the *Wages and Contributions* sheets, *Debts*, and *Fixed Assets*.
+
+The existing download on the **Reports** page could not serve here: it is gated behind a
+successful solve, which is no use to someone who has just loaded a workbook, and no use at
+all if the case turns out to be infeasible. Building the workbook needs only the tables, so
+this one is available as soon as a case has a plan.
+
+Both pages now also note that the browser, not **Owl**, decides where a downloaded file
+lands, and name the preference that makes it ask each time.
+
+#### Bugfix: a case file could record a workbook name that cannot exist
+
+The UI appends `" *"` to the workbook name to mark it edited since it was loaded, and uses
+`"edited values"` when the tables were typed with no file behind them. Neither is a file
+name, but both reached the case file — saving one produced
+`HFP_file_name = "HFP_jack+jill.xlsx *"`, a reference that can never be reloaded.
+
+The name is now normalized where it is written and where it is read, so a case file always
+records something real, and one that already carries a stale marker is repaired the next
+time it is loaded. A trailing marker only: a workbook whose own name contains `" *"` is
+left alone.
+
+#### Bugfix: saving an HFP discarded past wages
+
+`saveHFP` rebuilds the time lists from the plan's arrays whenever it judges the stored ones
+stale, and the staleness check compared `anticipated wages`, `other inc`, `net inv`, `QCD`
+and `big-ticket items` on the five lead-in rows. The arrays are sized for plan years and
+carry nothing for the past, so the rebuild has zeros there and any real past figure read as
+"stale" — after which the save wrote those zeros over it. Loading `Case_alex+jamie` and
+saving it lost \$215,000 of Alex's recorded wage history.
+
+The check now compares only what the arrays actually represent: those five columns on plan
+years, contributions and `Roth conv` everywhere. A plan-year divergence still reports stale,
+which is what the check is for.
+
 ### Version 2026.8.26
 
 #### Bugfix: a seeded MCP stochastic tool did not repeat itself

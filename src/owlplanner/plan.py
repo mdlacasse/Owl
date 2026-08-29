@@ -357,6 +357,10 @@ class Plan:
         self.qcd_in = np.zeros((self.N_i, self.N_n))
         # Go back 5 years for maturation rules on IRA and Roth.
         self.myRothX_in = np.zeros((self.N_i, self.N_n + 5))
+        # Which of those conversion amounts are held fixed rather than optimized.
+        # Only the plan years [0, N_n) are read: the 5 lead-in years are conversions
+        # already performed, and those always count.
+        self.rothXfixed_in = np.zeros((self.N_i, self.N_n + 5), dtype=bool)
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
 
         # Debt payments array (length N_n)
@@ -1701,6 +1705,26 @@ class Plan:
 
         return True
 
+    def validateRothConversions(self):
+        """
+        Check that every "Roth conv" amount is non-negative.
+
+        A negative amount used to mean "force no conversion this year". That mode now
+        lives in the "Roth conv fixed" flag, so the sign carries no meaning and a
+        negative figure is an input error rather than an instruction.
+        """
+        for iname in self.inames:
+            df = self.timeLists[iname]
+            if "Roth conv" not in df.columns:
+                continue
+            bad = df.loc[df["Roth conv"] < 0, "year"]
+            if len(bad):
+                years = ", ".join(str(int(y)) for y in bad)
+                raise ValueError(
+                    f"Negative 'Roth conv' amount for {iname} in year(s) {years}. To hold a year "
+                    "at no conversion, enter 0 and tick 'Roth conv fixed' for that year."
+                )
+
     def setContributions(self, timeLists=None):
         """
         If no argument is given, use the values that have been stored in self.timeLists.
@@ -1713,6 +1737,10 @@ class Plan:
         # Staged, not assigned: validateQCD() below rejects the whole table on a bad
         # cell, and self.qcd_in must not be left holding values that were refused.
         qcd_in = np.zeros((self.N_i, self.N_n))
+
+        # Reject a negative amount here as well as on the file-read path: a table can
+        # also arrive from the UI editor or from a caller writing it directly.
+        self.validateRothConversions()
 
         # Now fill in parameters which are in $.
         for i, iname in enumerate(self.inames):
@@ -1742,6 +1770,9 @@ class Plan:
             if n_stop < h:
                 self.kappa_ijn[i, 3, n_stop:h] = 0.0
             self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"][5 : h + 5]
+            self.rothXfixed_in[i, :h] = np.asarray(
+                self.timeLists[iname]["Roth conv fixed"][5 : h + 5], dtype=bool
+            )
 
             # Last 5 years are at the end of the N_n array.
             self.kappa_ijn[i, 0, -5:] = self.timeLists[iname]["taxable ctrb"][:5]
@@ -2027,18 +2058,19 @@ class Plan:
         self.Lambda_in[:, :] = 0.0
         self.qcd_in[:, :] = 0.0
         self.myRothX_in[:, :] = 0.0
+        self.rothXfixed_in[:, :] = False
         self.kappa_ijn[:, :, :] = 0.0
 
         # Single source of truth: adding an HFP column must not require editing this.
         cols = list(hfp_io.timeHorizonItems())
-        # The tables built below carry every column, so none is absent any more. Left
-        # stale, a 'Roth conv' entry here would make useRothConvOverrides refuse to run
-        # on a table that does have the column.
+        # The tables built below carry every column, so none is absent any more.
         self.hfpAbsentCols = {iname: [] for iname in self.inames}
         for i, iname in enumerate(self.inames):
             h = self.horizons[i]
             df = pd.DataFrame(0, index=np.arange(0, h + 5), columns=cols)
             df["year"] = np.arange(self.year_n[0] - 5, self.year_n[h - 1] + 1)
+            # Flags are checkboxes, not amounts, so they must not start life as ints.
+            df[hfp_io.booleanTimeHorizonItems()] = False
             self.timeLists[iname] = df
 
         self.caseStatus = "modified"
@@ -2566,6 +2598,17 @@ class Plan:
                 for n in range(0, nstart):
                     self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
+        if "stopRothConversions" in options:
+            rhsopt = int(u.get_numeric_option(options, "stopRothConversions", 0))
+            thisyear = date.today().year
+            yearn = max(rhsopt - thisyear, 0)
+            for i in range(self.N_i):
+                if i == i_xcluded:
+                    continue
+                nstop = min(yearn, self.horizons[i])
+                for n in range(nstop, self.horizons[i]):
+                    self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
+
         if "swapRothConverters" in options and i_xcluded == -1:
             rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
             if self.N_i == 2 and rhsopt != 0:
@@ -2590,30 +2633,30 @@ class Plan:
             for n in range(max(0, self.horizons[i] - 2), self.horizons[i]):
                 self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
-        # Per-cell overrides from the "Roth conv" column take precedence over all
-        # policy constraints above: positive values pin x[i,n] to that exact amount
-        # (bypassing the cap), negative values (any magnitude) force x[i,n] to 0.
-        if options.get("useRothConvOverrides", False):
-            # In override mode this column carries semantics, not dollars: 0 means
-            # 'leave this year unconstrained'. An absent column was zero-filled on
-            # load, which would silently read as 'no year is pinned' -- the one
-            # case where a missing column is ambiguous rather than simply zero.
-            lacking = [iname for iname, cols in self.hfpAbsentCols.items() if "Roth conv" in cols]
-            if lacking:
-                raise ValueError(
-                    f"Solver option 'useRothConvOverrides' is on, but the 'Roth conv' column is "
-                    f"absent from the HFP sheet(s) for {', '.join(repr(n) for n in lacking)}. "
-                    "Add the column with per-year overrides, or turn the option off."
-                )
-            for i in range(self.N_i):
-                if i == i_xcluded:
-                    continue
-                for n in range(self.horizons[i]):
-                    v = self.myRothX_in[i][n]
-                    if v > 0:
-                        self.B.setRange(self.vm["x"].idx(i, n), v, v)
-                    elif v < 0:
-                        self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
+        # Years flagged in the "Roth conv fixed" column are held at the amount given in
+        # "Roth conv", taking precedence over every policy constraint above: a pinned
+        # year bypasses the cap, the start/stop years, swapRothConverters, and the
+        # last-two-years zeroing. An amount of 0 is a pin like any other -- it holds that
+        # year at no conversion.
+        #
+        # noRothConversions is the one that refuses instead of yielding, a few lines down.
+        # It is a categorical statement about a person, so a pin against it is a
+        # contradiction; a swap is only a schedule, so a pin simply overrides it.
+        for i in range(self.N_i):
+            pinned = np.flatnonzero(self.rothXfixed_in[i, : self.horizons[i]])
+            if i == i_xcluded:
+                if pinned.size:
+                    years = ", ".join(str(int(self.year_n[n])) for n in pinned)
+                    verb = "is" if pinned.size == 1 else "are"
+                    raise ValueError(
+                        f"Contradictory Roth conversion settings for '{self.inames[i]}': "
+                        f"noRothConversions excludes them entirely, but {years} "
+                        f"{verb} flagged in the 'Roth conv fixed' column. Remove one of the two."
+                    )
+                continue
+            for n in pinned:
+                v = self.myRothX_in[i][n]
+                self.B.setRange(self.vm["x"].idx(i, n), v, v)
 
     def _add_safety_net(self, options):
         """
@@ -4004,8 +4047,8 @@ class Plan:
             "spendingSlack",
             "timePreference",  # Subjective time discount rate (%/year) to front-load spending
             "startRothConversions",
+            "stopRothConversions",
             "swapRothConverters",
-            "useRothConvOverrides",
             "maxTime",
             "numThreads",  # cap MOSEK threads/solve (0=all cores) for matched parallelism
             "units",

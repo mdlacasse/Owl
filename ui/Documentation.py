@@ -111,8 +111,8 @@ debts, and fixed assets) are held in an optional ancillary *Household Financial 
 > A *Household Financial Profile* (HFP) is an
 optional Excel workbook with one **Wages and Contributions** sheet per person
 and optional household sheets *Debts* and *Fixed Assets*. Time-series fields include wages, *other inc*, *net inv*,
-tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv*,
-*QCD* (Qualified Charitable Distribution), and *big-ticket items*.
+tax-deferred and Roth contributions (*ctrb* columns), *HSA ctrb*, *Roth conv* with its
+*Roth conv fixed* flag, *QCD* (Qualified Charitable Distribution), and *big-ticket items*.
 When no HFP is provided, wages and contributions are assumed to be zero.
 See *Input and Output Files* below and *Case Setup* -> *Financial Profile* below for more detail.
 
@@ -180,10 +180,9 @@ It must contain **one sheet per individual**, with a tab name that **exactly** m
 (e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table with the following
 headers (they must match exactly, including capitalization; column order may vary):
 `year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
-`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `QCD`, `big-ticket items`. Only `year` **must be present**: enter `0`
-where a column does not apply, or leave the column out of the workbook entirely and it is read as zero for
-every year, with **Owl** reporting which columns were absent. The one exception is `Roth conv` while the Roth
-conversion overrides toggle is on (see *Case Setup* -> *Financial Profile*).
+`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`. Only `year` **must be
+present**: enter `0` where a column does not apply, or leave the column out of the workbook entirely and it is
+read as zero for every year, with **Owl** reporting which columns were absent.
 The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
 On load, the planner keeps rows from five calendar years before the **current** year through each person's
@@ -211,7 +210,10 @@ The case file stores the HFP filename internally; matching `<case_name>` names s
 
 ##### Output Files
 
-After a *case* has been solved, the **Reports** page offers the following downloads:
+After a *case* has been solved, the **Reports** page offers the following downloads.
+Your browser decides where a downloaded file lands, not **Owl**. If you would rather be
+asked each time, turn on *Ask where to save each file before downloading* (Chrome, Edge),
+*Always ask you where to save files* (Firefox), or *Ask for each download* (Safari).
 
 **`Case_<case_name>.toml`** — *Saved case parameter file*
 
@@ -363,16 +365,20 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 13 columns titled as follows:
+The **Wages and Contributions** table contains 14 columns titled as follows:
 
-|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|QCD|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | |
-|2026 | | | | | | | | | | | | |
-|2027 | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | |
-|20XX | | | | | | | | | | | | |
+In the workbook this is a single sheet per person. In the user interface it is shown as two
+tables, the five lead-in years and the plan years, so that *Roth conv fixed* can be disabled
+on the past rows where those conversions have already happened.
+
+|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | |
+|2026 | | | | | | | | | | | | | |
+|2027 | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | |
+|20XX | | | | | | | | | | | | | |
 
 Only the *year* column **must be present** on each person's sheet; fill any other column with 0 or
 leave it blank where it does not apply, or leave the column out altogether (see below).
@@ -386,7 +392,8 @@ Excel capabilities for cross-column calculations.
 This file goes five years back in time in order to capture previous contributions and
 conversions to Roth accounts.
 Entries in columns other than contributions or conversions to Roth accounts
-for past years will be ignored by **Owl** but can be left there for documentation purposes.
+for past years are not read by **Owl**, but they are preserved when the workbook is saved:
+keep them as the record you carry forward and extrapolate next year's figures from.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the five-year maturation rule.
@@ -445,17 +452,18 @@ leave it blank where it does not apply), where:
   from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
   taxable income. Values are
   automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
-- *Roth conv* lets you override **Owl**'s Roth conversion optimization on a year-by-year,
-  individual-by-individual basis, when the toggle `Use Roth conversion overrides from Wages and
-  Contributions tables` is enabled on the **Run Options** page. Each cell can take one of three kinds
-  of values: `0` (the default) lets **Owl** optimize that year's conversion as usual, subject to the
-  other Roth conversion settings on the **Run Options** page; a positive value pins that year's
-  conversion to exactly this amount (e.g., a conversion you've already made, or a value computed with
-  another tool), bypassing the maximum annual conversion cap; a negative value forces *no* conversion
-  that year (the magnitude is ignored, so you can flip the sign of a value you are considering without
-  losing it -- handy for comparing an optimized run against "what if I skip this year?"). This column
-  is provided for flexibility, e.g. to compare an optimized solution against your own guesses or a
-  previously executed conversion.
+- *Roth conv* is a Roth conversion amount in nominal dollars. On the five lead-in rows it records a
+  conversion you have already performed, which the five-year maturation rule needs. On a plan year it
+  is a conversion you are proposing: a figure you have already committed to, or one computed with
+  another tool. Amounts are never negative.
+- *Roth conv fixed* decides whether that proposal binds. Left unticked -- the default -- the amount
+  beside it is documentation only, and **Owl** optimizes that year's conversion as usual, subject to
+  the other Roth conversion settings on the **Run Options** page. Ticked, the conversion is held at
+  exactly the amount in *Roth conv*, bypassing the maximum annual conversion cap and the start and
+  stop years. An amount of `0` on a ticked year therefore means *no conversion that year*. Because
+  the flag is separate from the amount, un-ticking a year leaves its figure in place for later --
+  handy for comparing an optimized run against "what if I skip this year?". The flag has no effect on
+  the five lead-in rows, where past conversions always count.
 - *QCD* is a Qualified Charitable Distribution: money sent from your tax-deferred account straight to
   a qualified charity. It is not the same as withdrawing the money and then donating it. The amount
   never enters your taxable income, so it is invisible to federal and state income tax, to the
@@ -479,15 +487,14 @@ leave it blank where it does not apply), where:
   negative numbers will potentially generate additional withdrawals and distributions from retirement
   accounts.
 
-Along with *Roth conv*, *big-ticket items* is one of the only two columns that can contain negative
-numbers; all other column entries must be positive.
+*big-ticket items* is the only column that can contain negative numbers; every other amount must be
+positive. *Roth conv fixed* holds a checkbox rather than an amount.
 
 Only the *year* column is required. If your household has no use for a column, you can leave it out of
 the workbook entirely and it is read as zero for every year; **Owl** reports which columns were absent
-when it loads the file. The one exception is *Roth conv* while the Roth conversion overrides toggle is
-on: there a `0` means "optimize this year", so an absent column cannot be told apart from "no year is
-pinned", and **Owl** asks you to add it rather than guess. A header that differs from a recognized one
-only by capitalization, spacing, or punctuation is reported as a typo instead of being dropped.
+when it loads the file. An absent *Roth conv fixed* column simply means no year is held fixed, so
+every conversion is optimized. A header that differs from a recognized one only by capitalization,
+spacing, or punctuation is reported as a typo instead of being dropped.
 
 For the purpose of planning, there is no clear definition of retirement age. There will be a year,
 however, from which you will stop having anticipated income, or diminished income due to decreasing your
@@ -510,10 +517,13 @@ match the names used when creating the case
 If a file was originally associated with a *case* file, a message will remind the user to upload the file.
 
 If values were entered or edited directly in the table,
-values can be saved directly in Excel format by clicking
-the **HFP workbook** button in the *Downloads* section of the
-**Reports** page. This allows you to rerun the same *case* at a later time
-by reloading the same **Household Financial Profile** workbook (which contains the Wages and Contributions data).
+they can be saved in Excel format with the **Download HFP workbook** button at the foot of the
+**Financial Profile** page. That download covers every table on the page — the
+*Wages and Contributions* sheet for each individual, plus *Debts* and *Fixed Assets* — and is
+available as soon as the *case* has a plan, so it does not wait for a successful run.
+The same workbook is offered again as **HFP workbook** in the *Downloads* section of the
+**Reports** page once the *case* has been solved. Either one lets you rerun the same *case*
+at a later time by reloading the workbook.
 
 A **Reset to zero** button below the tables clears every value back to zero, which is the quickest
 way to start over after experimenting with entries typed directly into the tables.
@@ -1371,12 +1381,16 @@ Roth conversions are optimized for reducing taxes and maximizing the selected ob
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-Turning on the `Use Roth conversion overrides from Wages and Contributions tables` toggle lets
-the *Roth conv* column on the **Wages and Contributions** page pin or block conversions for
-individual years -- see the description of that column on the **Wages and Contributions** page
-for the full semantics. Years left at `0` continue to be optimized subject to the cap, start
-year, and exclusion settings above, while a pinned (positive) year bypasses the cap, even if
-it exceeds the **Maximum annual Roth conversion** set above.
+A **Year to stop considering Roth conversions** can also be selected: no Roth conversions will be
+allowed from that year onward. It is the mirror of the start year, and the two together bound
+conversions to a window -- useful for saying "convert until Medicare starts, then stop" without
+touching individual years.
+
+Individual years can be held fixed instead of optimized with the *Roth conv fixed* column on the
+**Wages and Contributions** page -- see the description of that column there for the full
+semantics. Years left unticked continue to be optimized subject to the cap, start and stop years,
+and exclusion settings above, while a year held fixed is pinned to its *Roth conv* amount, even if
+that exceeds the **Maximum annual Roth conversion** set above.
 
 For married couples, the **Swap Roth converters mid-plan** toggle lets one spouse perform Roth
 conversions up to a given year, after which the other spouse takes over for the remainder of the

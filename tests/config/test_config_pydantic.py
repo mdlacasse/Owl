@@ -276,3 +276,37 @@ def test_plan_to_config_linear_omits_interpolation_center_width():
     assert out["asset_allocation"]["interpolation_method"] == "linear"
     assert "interpolation_center" not in out["asset_allocation"]
     assert "interpolation_width" not in out["asset_allocation"]
+
+
+def test_hfp_file_name_normalization_strips_ui_bookkeeping():
+    """The UI appends " *" to mark a workbook edited since it was loaded, and uses
+    "edited values" when the tables were typed with no file behind them. Neither is a
+    file name, so neither may reach a case file: saving one would record a reference
+    that cannot be reloaded."""
+    from owlplanner.config.plan_bridge import _normalize_hfp_file_name as norm
+
+    assert norm("HFP_case.xlsx *") == "HFP_case.xlsx"
+    assert norm("edited values") == "None"
+    assert norm("dictionary of DataFrames") == "None"
+    assert norm("") == "None"
+    assert norm("None") == "None"
+    assert norm("none") == "None"
+
+    # A clean name is untouched, and only a *trailing* marker counts -- a file whose own
+    # name contains " *" must survive.
+    assert norm("HFP_case.xlsx") == "HFP_case.xlsx"
+    assert norm("HFP_a *b.xlsx") == "HFP_a *b.xlsx"
+
+
+def test_edited_workbook_saves_a_reloadable_file_name(tmp_path):
+    """End to end: a case saved while its workbook is marked edited records the real
+    file name, so the pair can be reloaded together."""
+    from owlplanner.config import load_toml
+
+    plan = owl.readConfig("examples/Case_jack+jill.toml", verbose=False)
+    plan.hfpFileName = "HFP_jack+jill.xlsx *"
+    dest = tmp_path / "Case_saved.toml"
+    plan.saveConfig(str(dest))
+
+    diconf, _, _ = load_toml(str(dest))
+    assert diconf["household_financial_profile"]["HFP_file_name"] == "HFP_jack+jill.xlsx"

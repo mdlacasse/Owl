@@ -186,8 +186,8 @@ def test_condition_timetables_big_ticket_can_be_negative():
     assert "Joe" in result
 
 
-def test_condition_timetables_roth_conv_can_be_negative():
-    """Test _conditionTimetables allows negative Roth conv (force-zero override sentinel)."""
+def test_condition_timetables_roth_conv_negative_rejected():
+    """Test _conditionTimetables rejects a negative Roth conv amount."""
     inames = ["Joe"]
     horizons = [20]
     mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
@@ -205,20 +205,22 @@ def test_condition_timetables_roth_conv_can_be_negative():
             "IRA ctrb": [0, 0],
             "Roth IRA ctrb": [0, 0],
             "HSA ctrb": [0, 0],
-            "Roth conv": [-1, -50000],  # Can be negative regardless of magnitude
+            "Roth conv": [-1, -50000],
             "big-ticket items": [0, 0],
         }
     )
 
     df_dict = {"Joe": df}
 
-    result, _ = hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
-    assert "Joe" in result
+    # A negative amount used to mean "force no conversion". That mode now lives in
+    # the "Roth conv fixed" flag, so the sign is simply invalid.
+    with pytest.raises(ValueError, match="Roth conv fixed"):
+        hfp_io._conditionTimetables(df_dict, inames, horizons, mylog)
 
 
 def test_condition_timetables_roth_conv_negative_in_past_years_rejected():
     """A negative "Roth conv" in the past-5-year tail (feeds the 5-year seasoning
-    rule, not the useRothConvOverrides sentinel) must still raise."""
+    rule) is rejected, as it is for plan years."""
     inames = ["Joe"]
     horizons = [20]
     mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
@@ -439,3 +441,30 @@ def test_condition_timetables_adds_missing_years():
     # Should have added missing years
     result_df = result["Joe"]
     assert len(result_df) >= 2  # At least the original years plus some missing ones
+
+
+def test_as_bool_column_accepts_every_spreadsheet_spelling():
+    """A checkbox round-trips out of Excel as a bool, as 1/0, or as text, and an empty
+    cell arrives as the 0 left by the NaN fill. This is what decides whether a workbook's
+    "Roth conv fixed" entry is honoured, so it must not trust the dtype pandas inferred."""
+    cases = [
+        ([True, False], [True, False]),
+        ([1, 0], [True, False]),
+        ([1.0, 0.0], [True, False]),
+        (["TRUE", "FALSE"], [True, False]),
+        (["true", "false"], [True, False]),
+        (["yes", "no"], [True, False]),
+        (["x", ""], [True, False]),
+        ([0, 0], [False, False]),
+    ]
+    for values, expected in cases:
+        out = hfp_io._asBoolColumn(pd.Series(values))
+        assert out.tolist() == expected, values
+        assert out.dtype == bool, values
+
+
+def test_as_bool_column_treats_unrecognized_text_as_false():
+    """Anything that is neither a non-zero number nor a known truthy word is off, so a
+    stray note in the column cannot silently pin a year."""
+    out = hfp_io._asBoolColumn(pd.Series(["maybe", "-", "n/a", ""]))
+    assert out.tolist() == [False, False, False, False]

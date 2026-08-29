@@ -107,17 +107,55 @@ def test_filename_and_params_mutually_exclusive():
 
 
 def test_baseline_config_mutations():
-    diconf = {"solver_options": {"startRothConversions": 2030, "withSSAges": "optimize"}}
+    diconf = {
+        "solver_options": {
+            "startRothConversions": 2030,
+            "stopRothConversions": 2040,
+            "withSSAges": "optimize",
+        }
+    }
     base = _apply_baseline_policies_config(diconf, list(BASELINE_POLICIES))
     so = base["solver_options"]
     assert so["maxRothConversion"] == 0
-    assert so["useRothConvOverrides"] is False
     assert so["withdrawalOrder"] == "taxable_first"
     assert "startRothConversions" not in so
+    assert "stopRothConversions" not in so
     assert "withSSAges" not in so
     # The original config is untouched.
     assert diconf["solver_options"]["startRothConversions"] == 2030
+    assert diconf["solver_options"]["stopRothConversions"] == 2040
     assert diconf["solver_options"]["withSSAges"] == "optimize"
+
+
+def test_baseline_clears_workbook_roth_pins():
+    """A pin from the workbook outranks maxRothConversion=0, so the no-conversion
+    baseline has to release the flags outright or it would still convert."""
+    import numpy as np
+
+    from owlplanner.assistant.tools import _solve_blocking
+
+    captured = {}
+
+    class _FakePlan:
+        def __init__(self):
+            self.rothXfixed_in = np.ones((1, 3), dtype=bool)
+            self.objective = "maxSpending"
+
+        def solve(self, objective, opts):
+            captured["pinned_at_solve"] = bool(self.rothXfixed_in.any())
+
+    import owlplanner.assistant.tools as tools
+
+    orig_plan, orig_opts = tools.config_to_plan, tools._build_opts
+    tools.config_to_plan = lambda *a, **k: _FakePlan()
+    tools._build_opts = lambda *a, **k: {}
+    try:
+        _solve_blocking({}, None, None, None, None, [], clear_roth_pins=True)
+        assert captured["pinned_at_solve"] is False
+        _solve_blocking({}, None, None, None, None, [])
+        assert captured["pinned_at_solve"] is True
+    finally:
+        tools.config_to_plan, tools._build_opts = orig_plan, orig_opts
 
 
 @pytest.mark.toml

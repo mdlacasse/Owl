@@ -1,15 +1,17 @@
 """
-Tests for per-cell Roth conversion overrides (GitHub discussion #129).
+Tests for per-year Roth conversion pins (GitHub discussion #129).
 
-The "Roth conv" column of the Wages and Contributions / HFP table (read into
-plan.myRothX_in, in raw $) can be used as a per-cell override of the Roth
-conversion decision variable x[i,n] when options["useRothConvOverrides"] is
-True:
-  - 0 (default): x[i,n] is left free, subject to the usual policy options
-    (maxRothConversion cap, noRothConversions, startRothConversions,
-    swapRothConverters, last-2-years zeroing).
-  - > 0: x[i,n] is pinned to that exact value, bypassing the cap.
-  - < 0 (any magnitude): x[i,n] is forced to 0.
+The "Roth conv" column of the Wages and Contributions / HFP table holds the
+amount (read into plan.myRothX_in, in raw $) and the "Roth conv fixed" column
+holds the flag (read into plan.rothXfixed_in) that decides whether that amount
+binds the decision variable x[i,n]:
+  - flag False (default): x[i,n] is left free, subject to the usual policy
+    options (maxRothConversion cap, noRothConversions, startRothConversions,
+    stopRothConversions, swapRothConverters, last-2-years zeroing).
+  - flag True: x[i,n] is pinned to the amount exactly, bypassing every one of
+    those policy options. An amount of 0 is a pin like any other, holding that
+    year at no conversion.
+Amounts are non-negative; a negative amount is rejected on load.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -30,6 +32,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from datetime import date
 
 import numpy as np
+import pytest
 
 import owlplanner as owl
 
@@ -55,33 +58,36 @@ _BASE_OPTIONS = {"withMedicare": "None", "withDecomposition": "none"}
 
 
 def test_pin_positive_bypasses_cap():
-    """A positive override pins x[i,n] to that exact value, even above the maxRothConversion cap."""
+    """A pinned year is held at its exact amount, even above the maxRothConversion cap."""
     p = _make_plan("roth_pin_positive")
     p.myRothX_in[0, 0] = 200_000
-    options = dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True)
+    p.rothXfixed_in[0, 0] = True
+    options = dict(_BASE_OPTIONS, maxRothConversion=50)
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
     assert p.x_in[0, 0] == 200_000
 
 
-def test_negative_forces_zero_any_magnitude():
-    """Any negative override forces x[i,n] to 0, regardless of its magnitude."""
-    for magnitude in (-1, -50_000):
-        p = _make_plan(f"roth_force_zero_{abs(magnitude)}")
-        p.myRothX_in[0, 0] = magnitude
-        options = dict(_BASE_OPTIONS, maxRothConversion=100, useRothConvOverrides=True)
-        p.solve("maxSpending", options)
-        assert p.caseStatus == "solved"
-        assert p.x_in[0, 0] == 0
+def test_pin_zero_forces_no_conversion():
+    """An amount of 0 on a pinned year means exactly that: convert nothing."""
+    p = _make_plan("roth_pin_zero")
+    p.myRothX_in[0, 0] = 0.0
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=100))
+    assert p.caseStatus == "solved"
+    assert p.x_in[0, 0] == 0
+    # The pin is confined to the year it names; later years still convert freely.
+    assert p.x_in[0, 1:].max() > 0
 
 
-def test_zero_cells_unaffected_by_overrides_flag():
-    """All-zero overrides must reproduce the non-override solution exactly."""
+def test_amount_without_flag_is_only_a_proposal():
+    """An amount left unflagged does not constrain the solve, however large."""
     p1 = _make_plan("roth_baseline")
     p1.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=50))
 
-    p2 = _make_plan("roth_with_unused_overrides")
-    p2.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True))
+    p2 = _make_plan("roth_with_unflagged_amounts")
+    p2.myRothX_in[0, : p2.horizons[0]] = 200_000
+    p2.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=50))
 
     assert p1.caseStatus == "solved"
     assert p2.caseStatus == "solved"
@@ -92,7 +98,8 @@ def test_mixed_pin_year0_optimize_rest():
     """Use case #2: pin an already-executed year-0 conversion, optimize the remaining years."""
     p = _make_plan("roth_mixed")
     p.myRothX_in[0, 0] = 30_000
-    options = dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True)
+    p.rothXfixed_in[0, 0] = True
+    options = dict(_BASE_OPTIONS, maxRothConversion=50)
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
     assert p.x_in[0, 0] == 30_000
@@ -101,23 +108,36 @@ def test_mixed_pin_year0_optimize_rest():
 
 
 def test_pin_in_last_two_years_overrides_zeroing():
-    """A positive override in the last two years of life takes precedence over the policy zeroing."""
+    """A pin in the last two years of life takes precedence over the policy zeroing."""
     p = _make_plan("roth_pin_last_year", horizon_years=12)
     last = p.horizons[0] - 1
     p.myRothX_in[0, last] = 25_000
-    options = dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True)
+    p.rothXfixed_in[0, last] = True
+    options = dict(_BASE_OPTIONS, maxRothConversion=50)
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
     assert p.x_in[0, last] == 25_000
 
 
 def test_all_years_pinned_above_cap():
-    """When every year's override exceeds maxRothConversion, every x[i,n] is still pinned
+    """When every year's pin exceeds maxRothConversion, every x[i,n] is still pinned
     exactly -- the cap never clips a pinned cell, no matter how many cells are pinned."""
     p = _make_plan("roth_all_pinned_above_cap", horizon_years=6)
-    override = 70_000
-    p.myRothX_in[0, : p.horizons[0]] = override
-    options = dict(_BASE_OPTIONS, maxRothConversion=50, useRothConvOverrides=True)
+    amount = 70_000
+    p.myRothX_in[0, : p.horizons[0]] = amount
+    p.rothXfixed_in[0, : p.horizons[0]] = True
+    options = dict(_BASE_OPTIONS, maxRothConversion=50)
     p.solve("maxSpending", options)
     assert p.caseStatus == "solved"
-    np.testing.assert_allclose(p.x_in[0, : p.horizons[0]], override)
+    np.testing.assert_allclose(p.x_in[0, : p.horizons[0]], amount)
+
+
+def test_negative_amount_rejected_on_the_in_memory_path():
+    """A table can arrive from the UI editor or a caller writing it directly, not just
+    from a workbook, so the sign check has to live on that path too."""
+    p = _make_plan("roth_negative_amount")
+    tl = p.timeLists[p.inames[0]]
+    row = tl.index[tl["year"] == THISYEAR + 1][0]
+    tl.at[row, "Roth conv"] = -1.0
+    with pytest.raises(ValueError, match="Roth conv fixed"):
+        p.setContributions(p.timeLists)

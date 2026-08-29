@@ -425,34 +425,49 @@ def test_swap_roth_converters_bidirectional_mapping(first_index, sign):
 
 def test_max_roth_conversion_file_no_longer_supported():
     """Legacy maxRothConversion = 'file' is no longer auto-migrated (breaking change);
-    it now fails schema validation with a clear error, pointing users to
-    useRothConvOverrides + the "Roth conv" column instead."""
+    it now fails schema validation with a clear error, pointing users to the
+    "Roth conv" / "Roth conv fixed" column pair instead."""
     import pydantic
 
     with pytest.raises(pydantic.ValidationError):
         parse_solver_options({"maxRothConversion": "file", "bequest": 100})
 
 
-def test_roth_conv_overrides_disabled_by_default():
-    """With no useRothConvOverrides set, the key is simply absent from both dicts (defaults to False)."""
+def test_stop_roth_conversions_absent_by_default():
+    """No stop year means "no end", carried as an explicit toggle rather than a year, so
+    nothing is written back. A year derived from the plan horizon would be stored once and
+    never revisited, and would quietly block conversions after the horizon was extended."""
     diconf = _minimal_married_config()
     diconf["solver_options"] = {}
     uidic = config_to_ui(diconf)
-    assert "useRothConvOverrides" not in uidic
+    assert uidic["stopRothConversionsEnabled"] is False
+    assert "stopRothConversions" not in uidic
 
     back = ui_to_config(uidic)
-    assert "useRothConvOverrides" not in back["solver_options"]
+    assert "stopRothConversions" not in back["solver_options"]
 
 
-def test_roth_conv_overrides_bidirectional_mapping():
-    """useRothConvOverrides round-trips between config and UI under the same name."""
+def test_stop_roth_conversions_bidirectional_mapping():
+    """A stop year present in the config arrives with the toggle on and round-trips."""
     diconf = _minimal_married_config()
-    diconf["solver_options"] = {"useRothConvOverrides": True}
+    diconf["solver_options"] = {"stopRothConversions": 2035}
     uidic = config_to_ui(diconf)
-    assert uidic["useRothConvOverrides"] is True
+    assert uidic["stopRothConversionsEnabled"] is True
+    assert uidic["stopRothConversions"] == 2035
 
     back = ui_to_config(uidic)
-    assert back["solver_options"]["useRothConvOverrides"] is True
+    assert back["solver_options"]["stopRothConversions"] == 2035
+
+
+def test_stop_roth_conversions_toggle_off_drops_the_year():
+    """Turning the toggle off removes the option even when a year is still in session
+    state, so an abandoned year cannot leak back into the case."""
+    uidic = config_to_ui(_minimal_married_config())
+    uidic["stopRothConversionsEnabled"] = False
+    uidic["stopRothConversions"] = 2035
+
+    back = ui_to_config(uidic)
+    assert "stopRothConversions" not in back["solver_options"]
 
 
 def test_solver_options_with_ss_ages_single_name_roundtrip():
@@ -567,7 +582,6 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
         "startRothConversions",
         "timePreference",
         "units",
-        "useRothConvOverrides",
         "verbose",
     }
     assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known

@@ -130,10 +130,10 @@ as commands and lets you attach resources to the conversation):
 | | `min_taxable_balance` | Emergency-fund floor in \$ per person, e.g. `[15_000]` |
 | | `bequest` | Target estate in today's \$ for `maxSpending` objective |
 | | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
+| | `stop_roth_year` | 4-digit year from which Roth conversions are disabled |
 | | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
 | | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
-| | `roth_conversions` | Per-cell conversion overrides `[{"person","year","amount"}]`; enforced only with `use_roth_conv_overrides=True` (positive pins, negative forces zero) |
-| | `use_roth_conv_overrides` | Turn the `roth_conversions` entries into hard per-year overrides |
+| | `roth_conversions` | Conversions held fixed `[{"person","year","amount"}]`; listing a year pins it to that amount, `0` pins no conversion, unlisted years stay optimized |
 | | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
 | | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |

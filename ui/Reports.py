@@ -108,7 +108,11 @@ and can be used, along with the *Household Financial Profile* workbook, to repro
 
         kz.divider("orange")
         st.markdown("#### :orange[Downloads]")
-        st.caption("Click a button to download.")
+        st.caption(
+            "Your browser chooses where a file lands. To be asked each time, turn on "
+            "*Ask where to save each file before downloading* (Chrome, Edge), "
+            "*Always ask you where to save files* (Firefox), or *Ask for each download* (Safari)."
+        )
         left_group, right_group = st.columns(2, gap="large")
         with left_group:
             st.caption("📂 **Input files** — use these to reproduce this run")

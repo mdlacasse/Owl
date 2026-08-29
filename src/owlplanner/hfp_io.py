@@ -43,6 +43,7 @@ _timeHorizonItems = [
     "Roth IRA ctrb",
     "HSA ctrb",
     "Roth conv",
+    "Roth conv fixed",
     "QCD",
     "big-ticket items",
 ]
@@ -51,6 +52,10 @@ _timeHorizonItems = [
 # zero, so it stays a hard error. Every other column means zero when absent.
 _requiredTimeHorizonItems = ["year"]
 _optionalTimeHorizonItems = [c for c in _timeHorizonItems if c not in _requiredTimeHorizonItems]
+
+# Columns holding a flag rather than an amount. They are excluded from the
+# non-negativity check below and coerced to bool on load.
+_booleanTimeHorizonItems = ["Roth conv fixed"]
 
 
 _debtItems = [
@@ -106,14 +111,32 @@ def _convert_to_string(val):
     return str(val)
 
 
+_TRUTHY = {"true", "t", "yes", "y", "x", "1"}
+
+
+def _asBoolColumn(col):
+    """
+    Coerce a flag column to bool. A spreadsheet round-trips a checkbox as a bool,
+    as 1/0, or as text, and an empty cell arrives here as 0 from the NaN fill, so
+    accept all three rather than trusting the dtype pandas inferred.
+    """
+    if col.dtype == bool:
+        return col
+    numeric = pd.to_numeric(col, errors="coerce")
+    text = col.astype(str).str.strip().str.lower().isin(_TRUTHY)
+    # Where the cell parsed as a number, its truth is != 0; otherwise fall back to text.
+    return (numeric.notna() & (numeric != 0)) | (numeric.isna() & text)
+
+
 def read(finput, inames, horizons, mylog, filename=None):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
     Use one sheet for each individual with these columns (exact header text):
     year, anticipated wages, other inc, net inv, taxable ctrb, 401k ctrb,
-    Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv, QCD,
-    big-ticket items. Column order may vary. Only "year" is required: any other
+    Roth 401k ctrb, IRA ctrb, Roth IRA ctrb, HSA ctrb, Roth conv,
+    Roth conv fixed, QCD, big-ticket items. Column order may vary. Only "year"
+    is required: any other
     column may be omitted and is then treated as zero for every year. A header
     that differs from a recognized one only by case, spacing, or punctuation is
     rejected as a typo rather than silently dropped.
@@ -175,6 +198,11 @@ def timeHorizonItems():
     return list(_timeHorizonItems)
 
 
+def booleanTimeHorizonItems():
+    """Person-sheet columns holding a flag rather than an amount."""
+    return list(_booleanTimeHorizonItems)
+
+
 def _normalizeHeader(col):
     """
     Fold a column header for near-miss comparison: case, surrounding and internal
@@ -232,7 +260,7 @@ def _checkColumns(df, iname, colList, required_cols=None):
 def _conditionTimetables(dfDict, inames, horizons, mylog):
     """
     Make sure that time horizons contain all years up to life expectancy,
-    and that values are positive (except big-ticket items and Roth conv).
+    and that values are positive (except big-ticket items, the only signed column).
 
     Return the conditioned time lists and, per individual, the list of optional
     columns that were absent from the sheet and filled with zeros.
@@ -285,15 +313,19 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                 missing.append(year)
             else:
                 for item in _timeHorizonItems:
+                    # Flags carry no magnitude, so the sign check does not apply.
+                    if item in _booleanTimeHorizonItems:
+                        continue
                     if year_rows[item].iloc[0] < 0:
                         if item == "big-ticket items":
                             continue
-                        # Negative "Roth conv" is a useRothConvOverrides sentinel
-                        # ("force conversion to 0 this year") and only applies to
-                        # current/future years (n >= 0). The n < 0 tail feeds the
-                        # 5-year seasoning rule and must stay non-negative.
-                        if item == "Roth conv" and n >= 0:
-                            continue
+                        if item == "Roth conv":
+                            # A negative amount used to mean "force no conversion this
+                            # year". That mode now lives in the "Roth conv fixed" flag.
+                            raise ValueError(
+                                f"Item {item} for {iname} in year {year} is < 0. To hold a year "
+                                "at no conversion, enter 0 and tick 'Roth conv fixed' for that year."
+                            )
                         raise ValueError(f"Item {item} for {iname} in year {year} is < 0.")
 
         if len(missing) > 0:
@@ -302,6 +334,22 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         df.sort_values("year", inplace=True)
         # Replace empty (NaN) cells with 0 value.
         df.fillna(0, inplace=True)
+
+        # Excel round-trips a flag as TRUE/FALSE, 1/0, or a blank; settle on bool.
+        for item in _booleanTimeHorizonItems:
+            df[item] = _asBoolColumn(df[item])
+
+        # The five lead-in rows record conversions already performed, which always bind;
+        # a flag there says nothing the amount does not already say.
+        leadin = df["year"] < thisyear
+        for item in _booleanTimeHorizonItems:
+            if df.loc[leadin, item].any():
+                mylog.print(
+                    f"Column {item!r} is set on one or more past years for {iname!r}, where it has "
+                    "no effect: past conversions always count. Ignored.",
+                    tag="WARNING",
+                )
+                df.loc[leadin, item] = False
 
         timeLists[iname] = df
 
@@ -464,7 +512,7 @@ def build_hfp_dataframes(plan):
     This is used to export an HFP workbook from a Plan that was populated
     programmatically (i.e., without readHFP or setContributions). Values are
     read from the plan's arrays (omega_in, other_inc_in, netinv_in, Lambda_in,
-    qcd_in, kappa_ijn, myRothX_in), including the 5 lead-in years preceding the
+    qcd_in, kappa_ijn, myRothX_in, rothXfixed_in), including the 5 lead-in years preceding the
     current year that feed the Roth 5-year maturation rule.
 
     The full column set is always written, so exporting a workbook that was read
@@ -497,6 +545,7 @@ def build_hfp_dataframes(plan):
         years = list(range(thisyear - lead_in, thisyear + h))
         df = pd.DataFrame(0.0, index=range(len(years)), columns=_timeHorizonItems)
         df["year"] = years
+        df[_booleanTimeHorizonItems] = False
         for n in range(h):
             row = lead_in + n
             df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
@@ -509,6 +558,7 @@ def build_hfp_dataframes(plan):
             df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
             df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n])
             df.at[row, "Roth conv"] = float(plan.myRothX_in[i, n])
+            df.at[row, "Roth conv fixed"] = bool(plan.rothXfixed_in[i, n])
         # Lead-in years live in the last 5 slots of kappa_ijn and myRothX_in.
         for r in range(lead_in):
             slot = plan.N_n + r
@@ -537,6 +587,12 @@ def time_lists_agree(a, b):
     to the plan's arrays (e.g., when a plan was populated by writing directly
     into the arrays).
 
+    Only what the arrays actually represent is compared. Wages, other income,
+    net investment, QCDs and big-ticket items are sized (N_i, N_n) with no
+    lead-in slots, so build_hfp_dataframes() leaves those five rows at zero;
+    comparing them there would report any real past figure as stale, and the
+    caller would then overwrite the user's own history with zeros.
+
     Parameters
     ----------
     a, b : dict
@@ -550,26 +606,38 @@ def time_lists_agree(a, b):
     if a is None or b is None or set(a.keys()) != set(b.keys()):
         return False
 
+    # Carried by the arrays for every row, the five lead-in years included.
     plainCols = [
-        "anticipated wages",
-        "other inc",
-        "net inv",
         "taxable ctrb",
         "HSA ctrb",
         "Roth conv",
+        "Roth conv fixed",
+    ]
+    # Carried by the arrays for plan years only (see the note above).
+    planOnlyCols = [
+        "anticipated wages",
+        "other inc",
+        "net inv",
         "QCD",
         "big-ticket items",
     ]
     mergedCols = [("401k ctrb", "IRA ctrb"), ("Roth 401k ctrb", "Roth IRA ctrb")]
-    allCols = plainCols + [col for pair in mergedCols for col in pair] + ["year"]
+    allCols = plainCols + planOnlyCols + [col for pair in mergedCols for col in pair] + ["year"]
+    thisyear = date.today().year
     for iname in a:
         dfa, dfb = a[iname], b[iname]
         if any(col not in df.columns for df in (dfa, dfb) for col in allCols):
             return False
         if len(dfa) != len(dfb) or not np.array_equal(dfa["year"].to_numpy(), dfb["year"].to_numpy()):
             return False
+        planrows = dfa["year"].to_numpy() >= thisyear
         for col in plainCols:
             if not np.allclose(dfa[col].to_numpy(dtype=float), dfb[col].to_numpy(dtype=float)):
+                return False
+        for col in planOnlyCols:
+            va = dfa[col].to_numpy(dtype=float)[planrows]
+            vb = dfb[col].to_numpy(dtype=float)[planrows]
+            if not np.allclose(va, vb):
                 return False
         for col1, col2 in mergedCols:
             suma = dfa[col1].to_numpy(dtype=float) + dfa[col2].to_numpy(dtype=float)

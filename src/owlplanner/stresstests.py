@@ -458,21 +458,15 @@ def _regret_worker(args):
     v_star_osc = abs(v_star) * v_star_rel
     x_star = float(p.x_in[person, 0])
 
-    # Pin the first-year conversion at each grid value. myRothX_in holds dollar
-    # amounts; a positive value pins x[person, 0] exactly, a negative value
-    # forces it to zero (see _add_roth_conversion_constraints).
+    # Pin the first-year conversion at each grid value. myRothX_in holds the dollar
+    # amount and rothXfixed_in says it binds (see _add_roth_conversion_constraints).
+    # A grid value of 0 needs no special case: it pins year 1 to no conversion.
     opts_pin = dict(options)
-    opts_pin["useRothConvOverrides"] = True
     v_at = []
     v_at_osc = []
+    p.rothXfixed_in[person, 0] = True
     for x in grid:
-        # The grid is validated non-negative and may include 0, which has to reach
-        # the solver as the negative "force zero" sentinel: 0 in myRothX_in means
-        # "optimizer decides", not "convert nothing". That convention is load-bearing
-        # here -- inverting it would silently turn this arm from "commit to zero
-        # conversion in year 1" into "optimize year 1", changing published sweep
-        # results rather than failing.
-        p.myRothX_in[person, 0] = float(x) if x > 0 else -1.0
+        p.myRothX_in[person, 0] = float(x)
         p.solve(objective, opts_pin)
         max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
         _note_conv()
@@ -484,11 +478,11 @@ def _regret_worker(args):
             v_at.append(None)
             v_at_osc.append(None)
     p.myRothX_in[person, 0] = 0.0
+    p.rothXfixed_in[person, 0] = False
 
     v_noconv = None
     if include_never_convert:
         opts_nc = dict(options)
-        opts_nc.pop("useRothConvOverrides", None)
         opts_nc["noRothConversions"] = p.inames[person]
         p.solve(objective, opts_nc)
         max_gap = max(max_gap, getattr(p, "solverGap", -1.0))

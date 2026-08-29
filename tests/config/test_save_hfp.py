@@ -216,6 +216,57 @@ class TestSaveHFPProgrammatic:
         row = read_df[read_df["year"] == thisyear]
         assert row["anticipated wages"].iloc[0] == pytest.approx(80_000)
 
+    def test_past_row_history_survives_save(self, tmp_path):
+        """Wages, other income and big-ticket items on the five lead-in rows are the
+        user's own record: the planner does not read them there, but a workbook reused
+        year over year must not lose them. The arrays carry no lead-in slots for those
+        columns, so a staleness check that compared them there would report every real
+        past figure as stale and the rebuild would write zeros over it."""
+        p1 = _make_plan("History Plan")
+        p1.zeroWagesAndContributions()
+        df = p1.timeLists["Alice"]
+        df.loc[df["year"] == thisyear - 2, "anticipated wages"] = 115_000
+        df.loc[df["year"] == thisyear - 1, "anticipated wages"] = 100_000
+        df.loc[df["year"] == thisyear - 1, "other inc"] = 4_000
+        df.loc[df["year"] == thisyear - 3, "big-ticket items"] = -25_000
+        # A lead-in Roth conversion, which the arrays DO carry, must survive too.
+        df.loc[df["year"] == thisyear - 1, "Roth conv"] = 30_000
+        p1.setContributions()
+
+        fname = str(tmp_path / "HFP_history.xlsx")
+        p1.saveHFP(fname, overwrite=True)
+
+        read_df = pd.read_excel(fname, sheet_name="Alice")
+
+        def cell(year, col):
+            return read_df[read_df["year"] == year][col].iloc[0]
+
+        assert cell(thisyear - 2, "anticipated wages") == pytest.approx(115_000)
+        assert cell(thisyear - 1, "anticipated wages") == pytest.approx(100_000)
+        assert cell(thisyear - 1, "other inc") == pytest.approx(4_000)
+        assert cell(thisyear - 3, "big-ticket items") == pytest.approx(-25_000)
+        assert cell(thisyear - 1, "Roth conv") == pytest.approx(30_000)
+
+    def test_plan_year_divergence_still_reads_as_stale(self, tmp_path):
+        """Narrowing the staleness check to what the arrays represent must not blunt
+        it: a plan-year value that diverges from the arrays is still stale."""
+        from owlplanner.hfp_io import build_hfp_dataframes, time_lists_agree
+
+        p1 = _make_plan("Divergence Plan")
+        p1.zeroWagesAndContributions()
+        df = p1.timeLists["Alice"]
+        df.loc[df["year"] == thisyear - 1, "anticipated wages"] = 90_000
+        p1.setContributions()
+
+        # Past-only history: the arrays cannot carry it, so this is not staleness.
+        rebuilt, _ = build_hfp_dataframes(p1)
+        assert time_lists_agree(p1.timeLists, rebuilt)
+
+        # A plan-year divergence is.
+        p1.omega_in[0, 0] = 80_000
+        rebuilt, _ = build_hfp_dataframes(p1)
+        assert not time_lists_agree(p1.timeLists, rebuilt)
+
     def test_hsa_medicare_clip_does_not_flag_stale(self, tmp_path):
         """HSA contributions past Medicare enrollment are clipped in the arrays by
         setContributions(); this must not cause saveHFP to discard the timeLists
