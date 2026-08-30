@@ -107,6 +107,26 @@ summary now opens with the same `Savings bequest constraint` line. The committed
 reports is the amount sustainable *while leaving that estate*, and the figure moves with the
 bequest target on the **Goals** page.
 
+#### Bugfix: stress-test log messages did not say which scenario they came from
+
+Some stress tests solve their scenarios in parallel, and every worker writes to the one log the
+**Logs** page shows. Nothing in a line said which scenario had produced it, so a message
+about a slow solve or a rate assumption could not be traced back to the year or trial it
+belonged to, and the log read as one interleaved stream. Two workers could also land in the
+middle of each other, splitting a line in half.
+
+A line written by a worker now carries the scenario between its location and its message —
+the historical start year, or `#0`, `#1`, … for Monte Carlo trials:
+
+```
+2026-08-29 23:28:19 | INFO | plan:_build_sc_loop_policy:4213 | 1960 | Using relTol=5.0e-05, ...
+```
+
+This covers the **Spending Optimization** and **Spending vs Bequest** pages, and the
+stochastic tools of the AI assistant, which are the runs that solve scenarios in parallel.
+Lines are also written whole, so they can no longer be cut in half by another worker.
+Anything logged outside such a run keeps the format it had.
+
 #### Bugfix: the historical bar chart was always labelled "bequest"
 
 The heading over the chart of results by historical start year on the **Historical Range**

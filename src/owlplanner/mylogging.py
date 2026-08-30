@@ -24,6 +24,8 @@ import sys
 import copy
 import inspect
 import os
+import threading
+from contextlib import contextmanager
 
 # Conditional import of loguru - only available if package is installed
 try:
@@ -46,6 +48,53 @@ def _loguruLevel(tag, default):
     """Map a tag onto a loguru level name, falling back for one loguru does not know."""
     level = str(tag).strip().upper()
     return level if level in _LOGURU_LEVELS else default
+
+
+# Stress tests fan out over a thread pool, and the worker clones log through the
+# same destination as the parent (often the very same Logger object). Identity
+# therefore cannot live on the Logger: it is kept per thread, and named by the
+# scenario being solved when the caller knows it.
+_threadCtx = threading.local()
+
+# print() writes the message and its terminator separately, so two threads can
+# tear a line in half. Lines are emitted under this lock.
+_printLock = threading.Lock()
+
+
+def setThreadLabel(label):
+    """Name the current thread in the log, or clear its name with None."""
+    _threadCtx.label = None if label is None else str(label)
+
+
+@contextmanager
+def threadLabel(label):
+    """Name the current thread for the duration of the block, restoring any previous name."""
+    previous = getattr(_threadCtx, "label", None)
+    setThreadLabel(label)
+    try:
+        yield
+    finally:
+        setThreadLabel(previous)
+
+
+def _threadTag():
+    """Identify the emitting thread, or None when it is the unlabelled main thread."""
+    label = getattr(_threadCtx, "label", None)
+    if label:
+        return label
+    thread = threading.current_thread()
+    return None if thread is threading.main_thread() else thread.name
+
+
+def _threadMessage(args):
+    """Join a message, prefixed with the emitting thread when it is not the main one.
+
+    Owl configures no loguru sink of its own, so the default format is in force and
+    bound extras would never be rendered: the prefix is what survives that backend.
+    """
+    message = " ".join(map(str, args))
+    thread = _threadTag()
+    return f"[{thread}] {message}" if thread else message
 
 
 class Logger(object):
@@ -136,20 +185,25 @@ class Logger(object):
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = " ".join(map(str, args))
-        formatted_message = f"{timestamp} | {tag} | {location} | {message}"
+        thread = _threadTag()
+        if thread:
+            formatted_message = f"{timestamp} | {tag} | {location} | {thread} | {message}"
+        else:
+            formatted_message = f"{timestamp} | {tag} | {location} | {message}"
 
         if "file" not in kwargs:
             kwargs["file"] = self._logstreams[stream_index]
         out = kwargs["file"]
-        print(formatted_message, **kwargs)
-        out.flush()
+        with _printLock:
+            print(formatted_message, **kwargs)
+            out.flush()
 
     def print(self, *args, tag="INFO", **kwargs):
         """
         Unconditional printing regardless of verbosity.
         """
         if self._use_loguru:
-            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "INFO"), " ".join(map(str, args)))
+            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "INFO"), _threadMessage(args))
             return
         self._stream_print(*args, tag=tag, stream_index=0, **kwargs)
 
@@ -160,6 +214,6 @@ class Logger(object):
         if not self._verbose:
             return
         if self._use_loguru:
-            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "DEBUG"), " ".join(map(str, args)))
+            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "DEBUG"), _threadMessage(args))
             return
         self._stream_print(*args, tag=tag, stream_index=0, **kwargs)

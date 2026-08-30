@@ -29,6 +29,7 @@ from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.optimize import linprog
 
+from . import mylogging as log
 from . import progress
 from . import rates
 from . import utils as u
@@ -84,34 +85,39 @@ def _scenario_worker(args):
       tau_kn_or_year — ndarray (N_k, N_n) pre-generated rates (MC), or int year (historical)
       gamma_n       — unused placeholder for compatibility (None in current calls)
       options       — solver options dict
+      label         — name this scenario carries in the log (None to fall back
+                      to the worker thread's own name)
 
     Returns (basis, year1) where year1 is the _year1_snapshot dict, or
     (None, None) on solver failure.
     """
-    p, tau_kn_or_year, gamma_n, options = args
+    p, tau_kn_or_year, gamma_n, options, label = args
 
-    if isinstance(tau_kn_or_year, tuple):
-        year, reverse, roll = tau_kn_or_year
-        p.setRates("historical", year, reverse=reverse, roll=roll)
-    elif isinstance(tau_kn_or_year, int):
-        p.setRates("historical", tau_kn_or_year)
-    else:
-        Nn = p.N_n
-        tau_slice = tau_kn_or_year[:, :Nn]
-        if tau_slice.shape[1] != Nn:
-            raise RuntimeError(
-                f"Precomputed rate path is too short for scenario horizon: have {tau_slice.shape[1]}, need {Nn}."
-            )
-        p.tau_kn = tau_slice
-        p.gamma_n = rates.gen_gamma_n(p.tau_kn)
-        p._adjustedParameters = False
-        p.caseStatus = "modified"
+    # Workers are reused across scenarios, so the thread name alone would say which
+    # slot logged a line, not which scenario it was solving.
+    with log.threadLabel(label):
+        if isinstance(tau_kn_or_year, tuple):
+            year, reverse, roll = tau_kn_or_year
+            p.setRates("historical", year, reverse=reverse, roll=roll)
+        elif isinstance(tau_kn_or_year, int):
+            p.setRates("historical", tau_kn_or_year)
+        else:
+            Nn = p.N_n
+            tau_slice = tau_kn_or_year[:, :Nn]
+            if tau_slice.shape[1] != Nn:
+                raise RuntimeError(
+                    f"Precomputed rate path is too short for scenario horizon: have {tau_slice.shape[1]}, need {Nn}."
+                )
+            p.tau_kn = tau_slice
+            p.gamma_n = rates.gen_gamma_n(p.tau_kn)
+            p._adjustedParameters = False
+            p.caseStatus = "modified"
 
-    p.solve("maxSpending", options)
-    if p.caseStatus == "solved":
-        # partialBequest is only defined after a solve, and is discarded with p.
-        return p.basis, _year1_snapshot(p), float(getattr(p, "partialBequest", 0.0))
-    return None, None, None
+        p.solve("maxSpending", options)
+        if p.caseStatus == "solved":
+            # partialBequest is only defined after a solve, and is discarded with p.
+            return p.basis, _year1_snapshot(p), float(getattr(p, "partialBequest", 0.0))
+        return None, None, None
 
 
 ###############################################################################
@@ -430,73 +436,77 @@ def _regret_worker(args):
     import time as _time
 
     p, year, objective, options, grid, person, include_never_convert = args
-    p.setRates("historical", year)
-    _t0 = _time.time()
 
-    max_gap = -1.0
-    # Track SC-loop convergence: monotonic solves land in the interior of the
-    # bracket structure (trustworthy, idempotent); non-monotonic (oscillatory /
-    # max-iter) solves sit on a tax cliff where the fixed point is ambiguous and
-    # the result carries a genuine error bar. n_nonmonotonic counts such solves
-    # across the window; v_star_conv is the clairvoyant baseline's own verdict.
-    n_nonmonotonic = 0
+    # Workers are reused across windows, so the thread name alone would say which slot
+    # logged a line, not which window it was solving.
+    with log.threadLabel(year):
+        p.setRates("historical", year)
+        _t0 = _time.time()
 
-    def _note_conv():
-        nonlocal n_nonmonotonic
-        if getattr(p, "convergenceType", "undefined") != "monotonic":
-            n_nonmonotonic += 1
+        max_gap = -1.0
+        # Track SC-loop convergence: monotonic solves land in the interior of the
+        # bracket structure (trustworthy, idempotent); non-monotonic (oscillatory /
+        # max-iter) solves sit on a tax cliff where the fixed point is ambiguous and
+        # the result carries a genuine error bar. n_nonmonotonic counts such solves
+        # across the window; v_star_conv is the clairvoyant baseline's own verdict.
+        n_nonmonotonic = 0
 
-    p.solve(objective, options)
-    max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-    v_star_conv = getattr(p, "convergenceType", "undefined")
-    v_star_rel = getattr(p, "oscillationRel", 0.0)
-    _note_conv()
-    if p.caseStatus != "solved":
-        return year, None
-    v_star = _regret_objective_value(p, objective)
-    # Dollar amplitude of the clairvoyant optimum's SC-loop oscillation (0 if monotonic).
-    v_star_osc = abs(v_star) * v_star_rel
-    x_star = float(p.x_in[person, 0])
+        def _note_conv():
+            nonlocal n_nonmonotonic
+            if getattr(p, "convergenceType", "undefined") != "monotonic":
+                n_nonmonotonic += 1
 
-    # Pin the first-year conversion at each grid value. myRothX_in holds the dollar
-    # amount and rothXfixed_in says it binds (see _add_roth_conversion_constraints).
-    # A grid value of 0 needs no special case: it pins year 1 to no conversion.
-    opts_pin = dict(options)
-    v_at = []
-    v_at_osc = []
-    p.rothXfixed_in[person, 0] = True
-    for x in grid:
-        p.myRothX_in[person, 0] = float(x)
-        p.solve(objective, opts_pin)
+        p.solve(objective, options)
         max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+        v_star_conv = getattr(p, "convergenceType", "undefined")
+        v_star_rel = getattr(p, "oscillationRel", 0.0)
         _note_conv()
-        if p.caseStatus == "solved":
-            val = _regret_objective_value(p, objective)
-            v_at.append(val)
-            v_at_osc.append(abs(val) * getattr(p, "oscillationRel", 0.0))
-        else:
-            v_at.append(None)
-            v_at_osc.append(None)
-    p.myRothX_in[person, 0] = 0.0
-    p.rothXfixed_in[person, 0] = False
+        if p.caseStatus != "solved":
+            return year, None
+        v_star = _regret_objective_value(p, objective)
+        # Dollar amplitude of the clairvoyant optimum's SC-loop oscillation (0 if monotonic).
+        v_star_osc = abs(v_star) * v_star_rel
+        x_star = float(p.x_in[person, 0])
 
-    v_noconv = None
-    if include_never_convert:
-        opts_nc = dict(options)
-        opts_nc["noRothConversions"] = p.inames[person]
-        p.solve(objective, opts_nc)
-        max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-        _note_conv()
-        if p.caseStatus == "solved":
-            v_noconv = _regret_objective_value(p, objective)
+        # Pin the first-year conversion at each grid value. myRothX_in holds the dollar
+        # amount and rothXfixed_in says it binds (see _add_roth_conversion_constraints).
+        # A grid value of 0 needs no special case: it pins year 1 to no conversion.
+        opts_pin = dict(options)
+        v_at = []
+        v_at_osc = []
+        p.rothXfixed_in[person, 0] = True
+        for x in grid:
+            p.myRothX_in[person, 0] = float(x)
+            p.solve(objective, opts_pin)
+            max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+            _note_conv()
+            if p.caseStatus == "solved":
+                val = _regret_objective_value(p, objective)
+                v_at.append(val)
+                v_at_osc.append(abs(val) * getattr(p, "oscillationRel", 0.0))
+            else:
+                v_at.append(None)
+                v_at_osc.append(None)
+        p.myRothX_in[person, 0] = 0.0
+        p.rothXfixed_in[person, 0] = False
 
-    p.mylog.print(
-        f"window {year}: {_time.time() - _t0:.1f}s, {v_star_conv}, "
-        f"{n_nonmonotonic} non-monotonic solve(s), osc ${v_star_osc:,.0f}"
-    )
-    return year, {"v_star": v_star, "x_star": x_star, "v_at": v_at, "v_noconv": v_noconv,
-                  "max_gap": max_gap, "v_star_conv": v_star_conv, "n_nonmonotonic": n_nonmonotonic,
-                  "v_star_osc": v_star_osc, "v_at_osc": v_at_osc}
+        v_noconv = None
+        if include_never_convert:
+            opts_nc = dict(options)
+            opts_nc["noRothConversions"] = p.inames[person]
+            p.solve(objective, opts_nc)
+            max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+            _note_conv()
+            if p.caseStatus == "solved":
+                v_noconv = _regret_objective_value(p, objective)
+
+        p.mylog.print(
+            f"window {year}: {_time.time() - _t0:.1f}s, {v_star_conv}, "
+            f"{n_nonmonotonic} non-monotonic solve(s), osc ${v_star_osc:,.0f}"
+        )
+        return year, {"v_star": v_star, "x_star": x_star, "v_at": v_at, "v_noconv": v_noconv,
+                      "max_gap": max_gap, "v_star_conv": v_star_conv, "n_nonmonotonic": n_nonmonotonic,
+                      "v_star_osc": v_star_osc, "v_at_osc": v_at_osc}
 
 
 def run_conversion_regret_sweep(
@@ -571,7 +581,7 @@ def run_conversion_regret_sweep(
 
     results_map = {}
     completed = 0
-    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+    with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="regret") as executor:
         futures = {executor.submit(_regret_worker, args): args[1] for args in args_list}
         for fut in as_completed(futures):
             year = futures[fut]
@@ -1108,7 +1118,16 @@ def run_stochastic_spending(
                 n_short_horizon += 1
             else:
                 args_list.append(
-                    (i, (clone(plan, expectancy=drawn_list[i], verbose=False), (year, reverse, roll), None, options))
+                    (
+                        i,
+                        (
+                            clone(plan, expectancy=drawn_list[i], verbose=False),
+                            (year, reverse, roll),
+                            None,
+                            options,
+                            year,
+                        ),
+                    )
                 )
 
     elif scenario_method == "mc":
@@ -1165,7 +1184,9 @@ def run_stochastic_spending(
                 results_map[n] = (0.0, None, None)
                 n_short_horizon += 1
             else:
-                args_list.append((n, (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options)))
+                args_list.append(
+                    (n, (clone(plan, expectancy=drawn_list[n], verbose=False), tau_kn, None, options, f"#{n}"))
+                )
     else:
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
 
@@ -1182,7 +1203,7 @@ def run_stochastic_spending(
     progcall.start()
     completed = n_short_horizon  # pre-count already-resolved short-horizon scenarios
 
-    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+    with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scenario") as executor:
         futures = {executor.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
         for fut in as_completed(futures):
             orig_idx = futures[fut]

@@ -184,7 +184,7 @@ def test_scenario_worker_historical_applies_reverse_roll():
             self.caseStatus = "solved"
 
     p = _DummyPlan()
-    basis, year1, partial = stresstests._scenario_worker((p, (1975, True, 2), None, {}))
+    basis, year1, partial = stresstests._scenario_worker((p, (1975, True, 2), None, {}, 1975))
     assert basis == 123.0
     assert year1["g0"] == 100.0
     assert year1["top_bracket_pct"] is None  # no bracket filled in the dummy
