@@ -37,6 +37,7 @@ from owlplanner.utils import (
     drop_all_zero_numeric_columns,
     worksheet_age_on_dec_31_or_blank,
     parse_swap_roth_converters,
+    get_monetary_option,
 )
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import booleanTimeHorizonItems, conditionDebtsAndFixedAssetsDF
@@ -451,9 +452,12 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
         f"Rate method:                     {rate_method}\n" if (rate_method and rate_method != "historical") else ""
     )
 
+    bequest = float(result.get("bequest", 0.0))
+
     kz.storeCaseKey(
         "stochSummary",
         (
+            f"Savings bequest constraint:      ${bequest:,.0f}\n"
             f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
             f"Target success rate:             {target_sr_pct:.0f}%  (actual: {actual_sr_pct:.0f}%)\n"
             f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
@@ -593,6 +597,9 @@ def runStochasticSpending(plan):
         result["rate_method"] = (
             "historical" if scenario_method == "historical" else (kz.getCaseKey("varyingType") or "")
         )
+        # Every scenario maximized spending under this savings bequest floor: keep it with
+        # the data so the summary can report it when the target slider redraws from cache.
+        result["bequest"] = get_monetary_option(options, "bequest", 0)
         kz.storeCaseKey("stochScenarioData", result)
         _apply_stochastic_target(result, target_sr_pct, plan1._plotter, plan1)
     except Exception as e:

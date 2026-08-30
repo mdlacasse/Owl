@@ -1896,6 +1896,10 @@ Two variants are reported depending on the scenario method:
 
 A text summary above the charts reports the following metrics:
 
+- **Savings bequest constraint** — the bequest target from the **Goals** page, which every
+  scenario had to leave in the savings accounts while its spending was maximized. Every number
+  below it is the spending sustainable *while leaving that estate*, so raising or lowering the
+  target moves the whole summary.
 - **Committed spending** — the floor amount in today's dollars, at the chosen success rate.
 - **Target / actual success rate** — the fraction of scenarios where spending meets the commitment.
   The actual rate may be slightly above the target due to how the frontier is sampled.

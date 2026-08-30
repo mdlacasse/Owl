@@ -862,7 +862,7 @@ def run_historical_range(
     fig, description = plan._plotter.plot_histogram_results(
         objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x
     )
-    _prependObjectiveConstraint(description, plan, objective, options)
+    _prependObjectiveConstraint(description, objective, options)
     plan.mylog.print(description.getvalue())
 
     fig2 = None
@@ -877,21 +877,28 @@ def run_historical_range(
     return N, df
 
 
-def _prependObjectiveConstraint(description, plan, objective, options):
+# The statistics below the constraint line are printed as f"{lead:>12}: {field:>16} {value}",
+# which puts every dollar figure at this column. The constraint label is padded to match so
+# that all the amounts line up. Keep any new label shorter than this to avoid pushing its
+# own value out of the column.
+_SUMMARY_VALUE_COLUMN = 31
+
+
+def _prependObjectiveConstraint(description, objective, options):
     """
     Put the constraint accompanying the objective at the top of the summary.
 
-    Maximizing net spending holds the bequest fixed, and maximizing bequest holds
-    net spending fixed. The distribution of results across scenarios only reads
+    Maximizing net spending holds the savings bequest fixed, and maximizing bequest
+    holds net spending fixed. The distribution of results across scenarios only reads
     correctly next to the value that was held fixed while producing it.
     """
-    thisyear = int(plan.year_n[0])
     if objective == "maxSpending":
         value = u.get_monetary_option(options, "bequest", 0)
-        line = f"Bequest constraint ({thisyear} $): {u.d(value)}"
+        label = "Savings bequest constraint:"
     else:
         value = u.get_monetary_option(options, "netSpending", 0)
-        line = f"Net spending constraint ({thisyear} $): {u.d(value)}"
+        label = "Net spending constraint:"
+    line = f"{label:<{_SUMMARY_VALUE_COLUMN}}{u.d(value)}"
 
     body = description.getvalue()
     description.seek(0)
@@ -954,7 +961,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
     fig, description = plan._plotter.plot_histogram_results(
         objective, df, N, plan.year_n, plan.n_d, plan.N_i, plan.phi_j, log_x=log_x
     )
-    _prependObjectiveConstraint(description, plan, objective, myoptions)
+    _prependObjectiveConstraint(description, objective, myoptions)
     plan.mylog.print(description.getvalue())
 
     if figure:

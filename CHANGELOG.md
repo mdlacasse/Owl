@@ -93,14 +93,19 @@ which is what the check is for.
 
 A histogram of outcomes over historical scenarios or Monte Carlo trials only means
 something next to the quantity that was *not* free to move. Maximizing net spending holds
-the bequest at its target; maximizing bequest holds net spending at its target. Neither
-appeared anywhere in the results, so a range of spending figures could not be read without
-going back to the **Goals** page to recall which bequest produced it.
+the savings bequest at its target; maximizing bequest holds net spending at its target.
+Neither appeared anywhere in the results, so a range of spending figures could not be read
+without going back to the **Goals** page to recall which bequest produced it.
 
 The summary beside the histogram on the **Historical Range** and **Monte Carlo** pages now
-opens with that value — `Bequest constraint (2026 $): $500,000` when maximizing spending,
-`Net spending constraint (2026 $): $90,000` when maximizing bequest — in today's dollars,
-like the statistics below it.
+opens with that value — `Savings bequest constraint` when maximizing spending, `Net spending
+constraint` when maximizing bequest — in today's dollars, like the statistics below it, and
+padded to the same column so every amount lines up.
+
+The **Spending Optimization** page runs the same maximization over every scenario, so its
+summary now opens with the same `Savings bequest constraint` line. The committed spending it
+reports is the amount sustainable *while leaving that estate*, and the figure moves with the
+bequest target on the **Goals** page.
 
 #### Bugfix: the historical bar chart was always labelled "bequest"
 
