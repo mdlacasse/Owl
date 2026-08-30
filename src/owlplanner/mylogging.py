@@ -35,6 +35,19 @@ except ImportError:
     HAS_LOGURU = False
 
 
+# Tags name a severity, and the stream backend prints them verbatim. loguru has
+# levels of its own, so a tag only survives that backend if it is mapped onto one:
+# without this, a WARNING would arrive as DEBUG and be filtered out by any sink
+# asking for warnings only.
+_LOGURU_LEVELS = frozenset(["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"])
+
+
+def _loguruLevel(tag, default):
+    """Map a tag onto a loguru level name, falling back for one loguru does not know."""
+    level = str(tag).strip().upper()
+    return level if level in _LOGURU_LEVELS else default
+
+
 class Logger(object):
     def __init__(self, verbose=True, logstreams=None):
         self._verbose = verbose
@@ -136,7 +149,7 @@ class Logger(object):
         Unconditional printing regardless of verbosity.
         """
         if self._use_loguru:
-            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
+            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "INFO"), " ".join(map(str, args)))
             return
         self._stream_print(*args, tag=tag, stream_index=0, **kwargs)
 
@@ -147,6 +160,6 @@ class Logger(object):
         if not self._verbose:
             return
         if self._use_loguru:
-            loguru_logger.opt(depth=1).debug(" ".join(map(str, args)))
+            loguru_logger.opt(depth=1).log(_loguruLevel(tag, "DEBUG"), " ".join(map(str, args)))
             return
         self._stream_print(*args, tag=tag, stream_index=0, **kwargs)

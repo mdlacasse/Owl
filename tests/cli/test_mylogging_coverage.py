@@ -222,3 +222,35 @@ def test_vprint_loguru_backend():
         logger = log.Logger(verbose=True, logstreams="loguru")
         # Should not raise error
         logger.vprint("Debug message")
+
+
+def test_loguru_level_mapping():
+    """A tag names a severity, so it must map onto the matching loguru level."""
+    assert log._loguruLevel("WARNING", "INFO") == "WARNING"
+    assert log._loguruLevel("error", "INFO") == "ERROR"
+    assert log._loguruLevel(" Info ", "DEBUG") == "INFO"
+    # A tag loguru does not know falls back rather than raising.
+    assert log._loguruLevel("", "DEBUG") == "DEBUG"
+    assert log._loguruLevel("NOTICE", "INFO") == "INFO"
+
+
+@pytest.mark.skipif(not log.HAS_LOGURU, reason="loguru not installed")
+def test_loguru_backend_emits_tag_as_level():
+    """The loguru backend used to send everything at DEBUG, which dropped the tag
+    and hid warnings from any sink filtering above DEBUG."""
+    logger = log.Logger(verbose=True, logstreams="loguru")
+    records = []
+    sink_id = log.loguru_logger.add(lambda m: records.append(m.record), level="TRACE")
+    try:
+        logger.print("plain")
+        logger.print("careful", tag="WARNING")
+        logger.vprint("chatty")
+        logger.vprint("broken", tag="ERROR")
+    finally:
+        log.loguru_logger.remove(sink_id)
+
+    levels = [r["level"].name for r in records]
+    assert levels == ["INFO", "WARNING", "DEBUG", "ERROR"]
+    assert [r["message"] for r in records] == ["plain", "careful", "chatty", "broken"]
+    # depth=1 keeps the caller, not the Logger method, as the reported location.
+    assert all(r["function"] == "test_loguru_backend_emits_tag_as_level" for r in records)
