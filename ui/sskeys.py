@@ -224,6 +224,17 @@ def caseIsNotMCReady():
     )
 
 
+def caseIsNotRegretReady():
+    """
+    Check that a plan exists before running a conversion regret sweep.
+
+    Unlike caseIsNotStochReady() this does not require the Net spending objective: the
+    regret curve is defined for both goals and simply measures regret in the units of
+    whichever one the case is set to.
+    """
+    return caseIsNotRunReady()
+
+
 def caseIsNotStochReady():
     """
     Check that a plan exists and uses maxSpending before running stochastic spending optimization.

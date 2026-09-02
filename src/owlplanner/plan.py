@@ -51,7 +51,13 @@ from .config.plan_bridge import clone  # noqa: F401
 from .config.schema import REMOVED_OPTIONS
 from .plotting.factory import PlotFactory
 from .rate_models.constants import CONSTRAIN_MEAN_METHODS, HISTORICAL_RANGE_METHODS
-from .stresstests import run_historical_range, run_mc, run_spending_bequest_frontier, run_stochastic_spending
+from .stresstests import (
+    run_conversion_regret_sweep,
+    run_historical_range,
+    run_mc,
+    run_spending_bequest_frontier,
+    run_stochastic_spending,
+)
 from .varmap import VarMap
 
 
@@ -79,6 +85,10 @@ RETIRED_OPTIONS = {
     "amoSurplus": _AMO_RETIRED,
     "withSCLoop": _SCLOOP_RETIRED,
 }
+
+# Sentinel distinguishing "argument omitted" from an explicit None, which callers use to
+# mean "today". Needed wherever None is already a meaningful value rather than a placeholder.
+_UNCHANGED = object()
 
 # Default values
 BIGM_AMO = 5e7  # 100 times large withdrawals or conversions
@@ -153,25 +163,32 @@ def _failureMessage(infeasible, solverName, solverMsg):
     )
 
 
-def _checkConfiguration(func):
+def _checkConfiguration(func=None, *, requireRates=True):
     """
-    Decorator to check if problem was configured successfully and
-    prevent method from running if not.
+    Decorator refusing to start when the plan is not ready, so that a partially configured
+    plan fails at the entry point with an actionable message instead of somewhere deep in
+    matrix assembly - or, for the multi-scenario runners, inside a worker thread after the
+    pool has already been spawned.
+
+    Every check lives in Plan._preflight(); this only decides where they are enforced.
+
+    requireRates=False for the runners that select a rate method per scenario themselves
+    (run_historical_range and the sweeps call setRates() on each clone), where demanding one
+    up front would reject legitimate use. Their inner solve() still enforces it.
+
+    Usable bare (@_checkConfiguration) or with arguments
+    (@_checkConfiguration(requireRates=False)).
     """
 
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.xi_n is None:
-            msg = f"You must define a spending profile before calling {func.__name__}()."
-            self.mylog.print(msg)
-            raise RuntimeError(msg)
-        if self.alpha_ijkn is None:
-            msg = f"You must define an allocation profile before calling {func.__name__}()."
-            self.mylog.print(msg)
-            raise RuntimeError(msg)
-        return func(self, *args, **kwargs)
+    def decorate(f):
+        @wraps(f)
+        def wrapper(self, *args, **kwargs):
+            self._preflight(f.__name__, requireRates=requireRates)
+            return f(self, *args, **kwargs)
 
-    return wrapper
+        return wrapper
+
+    return decorate if func is None else decorate(func)
 
 
 def _timer(func):
@@ -186,6 +203,13 @@ def _timer(func):
         result = func(self, *args, **kwargs)
         pt = time.process_time() - pt0
         rt = time.time() - rt0
+        # Kept so callers can size a sweep from this case's own measured cost: per-solve
+        # time varies by more than an order of magnitude between cases, so a solve count
+        # alone says very little about how long a run will take. Only solve() records it -
+        # the multi-solve runners share this decorator and would otherwise overwrite the
+        # per-solve figure with their own total.
+        if func.__name__ == "solve":
+            self.lastSolveWallTime = rt
         self.mylog.vprint(
             f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.", tag="INFO"
         )
@@ -424,6 +448,9 @@ class Plan:
         self.hfpAbsentCols = {}
         self.zeroWagesAndContributions()
         self.caseStatus = "unsolved"
+        # Wall time of the most recent solve(), in seconds; None until one has run.
+        # Used to turn a solve count into an estimated duration for this specific case.
+        self.lastSolveWallTime = None
         # Why the last solve produced no plan, in words; empty when it succeeded.
         self.solverMessage = ""
         # Whether the solver certified that no solution exists, as opposed to failing.
@@ -510,6 +537,28 @@ class Plan:
         self.mylog.vprint(f"Setting 1st-year starting date to {self.startDate}.")
 
         return None
+
+    def _preflight(self, caller, *, requireRates=True):
+        """
+        Every "is this plan ready?" check, in one place.
+
+        Ordered cheapest-to-explain first, and each message names the setter that fixes it.
+        Balances are the check that was missing: without them yearFracLeft is never created,
+        and the plan died with a bare AttributeError inside _add_initial_balances rather
+        than saying what the user had forgotten.
+        """
+        if self.xi_n is None:
+            msg = f"You must define a spending profile before calling {caller}()."
+        elif self.alpha_ijkn is None:
+            msg = f"You must define an allocation profile before calling {caller}()."
+        elif self.beta_ij is None:
+            msg = f"You must set account balances before calling {caller}()."
+        elif requireRates and self.rateMethod is None:
+            msg = f"Rate method must be selected before calling {caller}()."
+        else:
+            return
+        self.mylog.print(msg)
+        raise RuntimeError(msg)
 
     def _checkValueType(self, value):
         """
@@ -1333,11 +1382,17 @@ class Plan:
 
         self.mylog.vprint("Regenerated stochastic rate series.")
 
-    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, hsa=None, startDate=None, units="k"):
+    def setAccountBalances(self, *, taxable, taxDeferred, taxFree, hsa=None, startDate=_UNCHANGED, units="k"):
         """
         Three lists (plus optional HSA) containing the balance of all assets in each category
         for each spouse.  For single individuals, these lists will contain only one entry.
         Units are in $k, unless specified otherwise: 'k', 'M', or '1'.
+
+        startDate is the date at which these balances are known; they are back projected to
+        January 1st from it, so the plan itself still starts at the beginning of the year.
+        Omit it to keep the date already on the plan - re-stating balances is not a statement
+        about when they were measured. Pass None or "today" to mean today explicitly, or a
+        date in any format _setStartingDate() accepts.
         """
         u.require_list(taxable, "taxable", self.N_i)
         u.require_list(taxDeferred, "taxDeferred", self.N_i)
@@ -1357,7 +1412,12 @@ class Plan:
             self.bet_ji[3][:] = [v * fac for v in hsa]
         self.beta_ij = self.bet_ji.transpose()
 
-        # If none was given, default is to begin plan on today's date.
+        # An omitted date keeps whatever the plan already had, so that re-stating balances
+        # (setHSA does exactly that, and so does any caller adjusting one account) cannot
+        # silently re-date them to today and shift every opening balance through
+        # yearFracLeft. On a plan that has no date yet, fall back to today as before.
+        if startDate is _UNCHANGED:
+            startDate = self.startDate
         self._setStartingDate(startDate)
 
         self.caseStatus = "modified"
@@ -3816,6 +3876,7 @@ class Plan:
             c.setElem(idx, c_arr[idx])
         self.c = c
 
+    @_checkConfiguration(requireRates=False)
     @_timer
     def runHistoricalRange(
         self,
@@ -3847,10 +3908,12 @@ class Plan:
             log_x=log_x,
         )
 
+    @_checkConfiguration(requireRates=False)
     @_timer
     def runMC(self, objective, options, N, verbose=False, figure=False, progcall=None, log_x=False):
         return run_mc(self, objective, options, N, verbose=verbose, figure=figure, progcall=progcall, log_x=log_x)
 
+    @_checkConfiguration(requireRates=False)
     @_timer
     def runStochasticSpending(
         self,
@@ -3882,6 +3945,51 @@ class Plan:
             seed=seed,
         )
 
+    @_checkConfiguration(requireRates=False)
+    @_timer
+    def runConversionRegret(
+        self,
+        objective,
+        options,
+        ystart,
+        yend,
+        *,
+        grid=None,
+        person=0,
+        include_never_convert=True,
+        progcall=None,
+        n_grid=19,
+        grid_pad=45_000.0,
+        n_scenarios=None,
+        seed=None,
+        milp_downgrade=False,
+        on_scenario=None,
+    ):
+        """
+        Measure the regret of committing to a fixed first-year Roth conversion.
+
+        See stresstests.run_conversion_regret_sweep for the full contract. Pass the
+        result to stresstests.summarize_conversion_regret to obtain a JSON-ready summary.
+        """
+        return run_conversion_regret_sweep(
+            self,
+            objective,
+            options,
+            grid,
+            ystart,
+            yend,
+            person=person,
+            include_never_convert=include_never_convert,
+            progcall=progcall,
+            n_grid=n_grid,
+            grid_pad=grid_pad,
+            n_scenarios=n_scenarios,
+            seed=seed,
+            milp_downgrade=milp_downgrade,
+            on_scenario=on_scenario,
+        )
+
+    @_checkConfiguration(requireRates=False)
     @_timer
     def runSpendingBequestFrontier(
         self,
@@ -3917,6 +4025,7 @@ class Plan:
             progcall=progcall,
         )
 
+    @_checkConfiguration(requireRates=False)
     @_timer
     def runSpendingFrontier(
         self,
@@ -4011,9 +4120,6 @@ class Plan:
 
         Refer to companion document for implementation details.
         """
-
-        if self.rateMethod is None:
-            raise RuntimeError("Rate method must be selected before solving.")
 
         # Assume unsuccessful until problem solved.
         self.caseStatus = "unsuccessful"

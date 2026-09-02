@@ -139,7 +139,11 @@ and can be used, along with the *Household Financial Profile* workbook, to repro
                     gcs = owb.getCaseString()
                     if gcs is not None:
                         kz.storeCaseKey("casetoml", gcs.getvalue())
-                    st.rerun()
+                    # No st.rerun() here: it aborts the run while the browser is still
+                    # fetching the file this button just registered, so Streamlit garbage
+                    # collects the media file mid-download and the endpoint 404s -- the
+                    # browser then saves that error page as "<media-id>.xlsx.txt". The state
+                    # set above is picked up by the next natural rerun.
                 hfp_fname = kz.getCaseKey("hfpFileName")
                 if hfp_fname and (hfp_fname.endswith(" *") or hfp_fname == "edited values"):
                     st.caption(

@@ -1697,7 +1697,21 @@ the **Create Case** or **Financial Profile** page.
 # --- Stress Tests tab ---
 with tab_sim:
     st.markdown("""
-There are four pages for stress-testing your plan under different market scenarios.
+There are five pages for stress-testing your plan under different market scenarios.
+
+##### How much computing a run costs
+Every page in this section works the same way: it solves your plan many times over, once per
+scenario. A caption under each **Run** button states how many optimizations the current settings
+imply and, once you have solved the case at least once, roughly how long that will take on your
+machine. The estimate uses your own case's measured solve time, because that varies by more than
+a factor of ten between cases — plans with little slack are the slow ones.
+
+On the public server at
+[owlplanner.streamlit.app](https://owlplanner.streamlit.app) that figure is also a limit. One
+visitor's run may ask for at most **500 optimizations**, or about two minutes, so that the shared
+machine stays responsive for everyone. Settings above the limit leave the **Run** button
+disabled and the caption says so. Nothing is capped when you self-host: install **Owl** on your
+own computer and every page runs without restriction.
 """)
 
     with st.expander(":orange[**Historical Range**]", expanded=True, type="compact"):
@@ -1717,10 +1731,9 @@ runs: one run per year in that range by default.
   runs (historical years $\\times 2N$, where $N$ is the number of years in the plan)
   and gives a broader view of outcomes. When off, only the default sequence
   (no reverse, no roll) is used—one run per year.
-  As the number of rate sequences can reach several thousands,
-  **it is recommended to run this option
-  only when self-hosting Owl** as it is likely to timeout on the
-  Community Cloud server due to the long computing time.
+  As the number of rate sequences reaches several thousands, this option is **beyond the public
+  server's limit** and needs a self-hosted install; the caption under the **Run** button reports
+  the exact count.
 - **Log scale (x-axis)** – When on, the result histogram uses log-spaced bins and a log-scale x-axis
   (log-normal style). Values below \\$1k are excluded from the histogram. Useful when the
   distribution is right-skewed.
@@ -1803,8 +1816,8 @@ Each Monte Carlo trial requires solving a full LP or MIP, which is more expensiv
 event-driven forward simulators. To improve throughput:
 - Turn Medicare off, or leave its brackets to the iteration rather than the MILP — solving them
   with MILP adds binary variables to every trial and can be several times slower.
-- Consider installing **Owl** locally — your own hardware may outperform the Community Cloud
-  server, which also has a CPU-time quota that may terminate long sessions.
+- Consider installing **Owl** locally — your own hardware may outperform the public server, and
+  self-hosting removes the 500-optimization limit that applies there.
 """)
 
     with st.expander(":orange[**Spending Optimization**]", expanded=expand_all, type="compact"):
@@ -2040,6 +2053,71 @@ A bequest level the plan cannot reach is marked *unreachable* and drawn as a dot
 so a curve that stops short is not mistaken for the trade-off simply ending.
 """)
 
+    with st.expander(":orange[**Conversion Regret**]", expanded=expand_all, type="compact"):
+        st.markdown("""
+A Roth conversion has to be decided now, without knowing what markets will do. This page asks
+what that commitment costs:
+
+> *If I convert this much this year and markets do not cooperate, how much worse off am I than
+> if I had known in advance?*
+
+##### How it works
+
+Each historical scenario is solved twice over. First with perfect foresight, which gives the
+conversion that scenario would have chosen and the outcome it would have reached. Then again
+with the first year's conversion held at each amount on a grid, leaving every later year free
+to adapt. The gap between the two is the **regret** of that commitment. The curve plots the
+average regret across scenarios against the amount committed.
+
+The grid is built from the scenarios themselves, running from zero past the largest conversion
+any scenario chose, so you do not have to guess a range.
+
+Regret is measured in whatever this case optimizes: **net spending** in dollars per year, or the
+**final bequest** in today's dollars. Switching the objective on the *Goals* page changes what
+the curve is about.
+
+##### Reading the graph
+
+- The **left axis** is regret in dollars. The **right axis** is the same figure as a share of
+  what converting is worth at all — so a point at 5% means that commitment gives up a twentieth
+  of the value of converting.
+- The **shaded green band** spans every commitment that stays within your chosen tolerance of
+  the best one. Its width is the practical answer: a wide band means the exact amount barely
+  matters, a narrow one means it does. The slider sets the tolerance.
+- The **orange diamond** at zero is skipping a conversion *this year only*, with later years
+  still free. It is usually far cheaper than never converting at all, which is the 100% mark on
+  the right axis. The distance between them is the value of the multi-year strategy.
+- A **red region** marks commitments so large that some scenarios have no feasible plan beyond
+  that point. Inside it the average covers only the scenarios that survived.
+- The **grey strip** along the bottom is the resolution of the run. Differences inside it are
+  not meaningful, and when the whole curve sits within it the page says so rather than naming a
+  best amount.
+- **Dashed lines** are the 10th and 90th percentiles across scenarios, and the whisker on the
+  best-commitment marker is the range within which that location is determined.
+
+##### Resolution and run time
+
+**Resolution** sets how thorough the sweep is, from *Quick look* to *Thorough*. The caption
+under the controls shows how many optimizations the choice implies, and — once the case has been
+solved at least once — roughly how long that will take on this machine.
+
+Coarser settings sweep fewer scenarios and fewer grid points. Fewer grid points cost very
+little; fewer scenarios cost more, and the widening whisker and dashed lines show it. When only
+some scenarios are swept they are drawn at random rather than at even spacing, and the seed under
+*Advanced options* makes that draw repeatable, and **Grid headroom** sets how far past the
+largest conversion any scenario chose the grid extends. If the summary reports that the curve is
+still falling at the grid edge, the best commitment shown is only a lower bound — raise the
+headroom and run again to bracket it.
+
+The solver tolerance is held tighter than **Owl** would otherwise use, because the differences
+this page measures near the best commitment are smaller than the slack a normal tolerance allows.
+A run that asked for something looser is tightened, and the summary reports the tolerance used.
+
+This is the heaviest analysis in **Owl**, so the public server will only run the smaller
+resolutions; *Thorough* needs a self-hosted install. The caption under the **Run** button tells
+you which side of the limit your settings fall on.
+""")
+
 # --- Tools tab ---
 with tab_tools:
     st.markdown("This section describes tools available to the user.")
@@ -2104,16 +2182,12 @@ This is done by clicking the '+" icon shown at the right end of the browser URL 
 showing *App available: Install Streamlit*.
 The app provides more screen space as it doesn't have a navigation bar.
 On a mobile device, saving the page to the home screen will achieve the same result.
-A similar timing problem can happen if your simulations
-(Monte Carlo) are extremely long.
-The Streamlit Community Cloud has a hard resource limit
-on CPU time that might stop your calculations before completion.
-I could successfully run 1,000 simulations using the Streamlit app while
-being hosted on the Streamlit Community Cloud.
-However, if you are contemplating running Monte Carlo simulations
-with thousands of *cases* routinely,
-you should definitely consider installing and running **Owl**
-locally on your computer, either natively or through a container.
+A similar timing problem used to happen with very long simulations. The Streamlit Community
+Cloud has a hard resource limit on CPU time that could stop a calculation before completion, so
+runs there are now capped at 500 optimizations and the **Run** button reports the count before
+you start. If you want to run Monte Carlo simulations with thousands of *cases* routinely,
+install and run **Owl** locally on your computer, either natively or through a container, where
+no limit applies.
 See instructions on the GitHub repository for how to proceed.
 
 If not using the Streamlit app, going full screen while in the Chrome browser

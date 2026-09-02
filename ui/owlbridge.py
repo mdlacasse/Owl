@@ -27,7 +27,9 @@ import pandas as pd
 from io import StringIO, BytesIO
 from functools import wraps
 from datetime import datetime, date
+import os
 import sys
+import warnings
 
 sys.path.insert(0, "./src")
 sys.path.insert(0, "../src")
@@ -42,6 +44,7 @@ from owlplanner.utils import (
 from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import booleanTimeHorizonItems, conditionDebtsAndFixedAssetsDF
 from owlplanner.mylogging import Logger
+from owlplanner.plotting.regret_common import _regret_units
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     HISTORICAL_RANGE_METHODS,
@@ -53,6 +56,7 @@ from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 
 import sskeys as kz
 import progress
+import referrer
 
 
 def getFixedRates(method):
@@ -255,6 +259,8 @@ def showCaseStatus():
 
 @_checkPlan
 def runHistorical(plan):
+    if _refuseOverBudget(histRangeCost):
+        return
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
@@ -297,6 +303,8 @@ def runHistorical(plan):
 
 @_checkPlan
 def runMC(plan):
+    if _refuseOverBudget(monteCarloCost):
+        return
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
@@ -549,6 +557,8 @@ def conditionSpiaDF(df, is_married):
 
 @_checkPlan
 def runStochasticSpending(plan):
+    if _refuseOverBudget(stochasticSpendingCost):
+        return
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
@@ -757,6 +767,8 @@ def _render_frontier(result, plotter):
 
 @_checkPlan
 def runSpendingBequestFrontier(plan):
+    if _refuseOverBudget(frontierCost):
+        return
     plan1 = owl.clone(plan)
     prepareRun(plan1)
 
@@ -1749,6 +1761,10 @@ def saveWorkbook(plan):
     except Exception as e:
         raise Exception(f"Unanticipated exception: {e}.") from e
 
+    # openpyxl leaves the stream at EOF; hand back a rewound buffer so any consumer can just
+    # read() it. Streamlit's download_button rewinds and uses getvalue() itself, so this is
+    # not load-bearing for the download path -- it only makes the contract obvious.
+    buffer.seek(0)
     return buffer
 
 
@@ -1763,6 +1779,10 @@ def saveContributions(plan):
     except Exception as e:
         raise Exception(f"Unanticipated exception: {e}.") from e
 
+    # openpyxl leaves the stream at EOF; hand back a rewound buffer so any consumer can just
+    # read() it. Streamlit's download_button rewinds and uses getvalue() itself, so this is
+    # not load-bearing for the download path -- it only makes the contract obvious.
+    buffer.seek(0)
     return buffer
 
 
@@ -2184,6 +2204,403 @@ def _get_case_logger():
         kz.storeCaseKey("_ui_logger", logger)
 
     return logger
+
+
+####################################################################################
+# Roth conversion regret curve.
+
+
+# Each preset trades scenarios and grid resolution against run time. Cutting the grid is
+# far cheaper than cutting the scenarios: halving the grid moves the valley by about $2k,
+# while halving the scenarios moves it by $10-35k, because adjacent historical windows
+# overlap and carry much less independent information than their count suggests.
+REGRET_PRESETS = {
+    "Quick look": {"n_scenarios": 18, "n_grid": 7, "milp_downgrade": True},
+    "Standard": {"n_scenarios": 36, "n_grid": 9, "milp_downgrade": True},
+    "Thorough": {"n_scenarios": None, "n_grid": 11, "milp_downgrade": False},
+}
+
+
+def regretPresetNames():
+    return list(REGRET_PRESETS)
+
+
+def regretScenarioCount(preset, ystart, yend):
+    """How many windows a preset will actually sweep over the requested range."""
+    total = max(int(yend) - int(ystart) + 1, 0)
+    wanted = REGRET_PRESETS.get(preset, REGRET_PRESETS["Standard"])["n_scenarios"]
+    return total if wanted is None else min(int(wanted), total)
+
+
+def estimateRegretSolves(preset, ystart, yend):
+    """
+    Number of full-horizon optimizations a run will take: one clairvoyant baseline, one
+    pinned solve per grid point, and one never-convert solve, for each scenario.
+    """
+    S = regretScenarioCount(preset, ystart, yend)
+    X = REGRET_PRESETS.get(preset, REGRET_PRESETS["Standard"])["n_grid"]
+    return S * (X + 2)
+
+
+def estimateRegretSeconds(preset, ystart, yend):
+    """Projected wall time for a regret sweep, or None if this case has never been solved."""
+    S = regretScenarioCount(preset, ystart, yend)
+    return estimateSeconds(estimateRegretSolves(preset, ystart, yend), S)
+
+
+####################################################################################
+# Shared compute budget.
+#
+# Every page that solves more than once costs the same thing - full-horizon
+# optimizations - so they are governed by one model rather than by per-page opinion.
+# Before this, the cheapest multi-solve page was blocked on the Community Cloud while a
+# page that can be asked for 20,000 solves was not.
+
+# What one visitor may ask of the shared Community Cloud instance in a single run.
+# Chosen to admit a full Historical Range (72), a 500-trial Monte Carlo, a small
+# spending/bequest frontier, and the cheapest regret preset - and to refuse the rest.
+CLOUD_SOLVE_BUDGET = 500
+CLOUD_SECONDS_BUDGET = 120
+
+
+def budgetIsUncapped():
+    """Self-hosted deployments are unlimited; OWL_UNCAPPED=1 lifts the cap for testing."""
+    return os.environ.get("OWL_UNCAPPED") == "1" or not referrer.onCommunityCloud()
+
+
+def estimateSeconds(nsolves, width):
+    """
+    Projected wall time, or None when this case has never been solved.
+
+    `width` is how many of those solves can proceed in parallel - the scenario count,
+    since every runner parallelizes across scenarios and walks anything else sequentially
+    inside each worker. Per-solve time is measured from this case rather than assumed:
+    it varies by more than an order of magnitude, and tight cases are the slow ones, so a
+    solve count alone says little about duration.
+    """
+    plan = kz.getCaseKey("plan")
+    t1 = getattr(plan, "lastSolveWallTime", None) if plan is not None else None
+    if not t1 or not nsolves:
+        return None if not t1 else 0.0
+    workers = max(min(os.cpu_count() or 1, max(int(width), 1)), 1)
+    return float(nsolves) * float(t1) / workers
+
+
+def regretCost():
+    """(solves, width, detail) for a conversion-regret sweep."""
+    preset = kz.getCaseKey("regret_preset") or "Standard"
+    ystart = kz.getCaseKey("regret_ystart") or FROM
+    yend = kz.getCaseKey("regret_yend") or histYendMax()
+    S = regretScenarioCount(preset, ystart, yend)
+    n = estimateRegretSolves(preset, ystart, yend)
+    return n, S, f"**{preset}**: {S} scenarios x {(n // S) if S else 0} solves"
+
+
+def histRangeCost():
+    """(solves, width, detail) for a Historical Range run."""
+    ystart = kz.getCaseKey("hyfrm") or FROM
+    yend = kz.getCaseKey("hyto") or histYendMax()
+    S = max(int(yend) - int(ystart) + 1, 0)
+    if kz.getCaseKey("augmented_sampling"):
+        plan = kz.getCaseKey("plan")
+        # Augmented sweeps every (reverse, roll) pair: 2 x N_n variants of each year.
+        variants = 2 * (plan.N_n if plan is not None else 30)
+        return S * variants, S, f"{S} years x {variants} variants"
+    return S, S, f"{S} years x 1 solve"
+
+
+def monteCarloCost():
+    """(solves, width, detail) for a Monte Carlo run: one solve per trial."""
+    n = int(kz.getCaseKey("MC_cases") or 0)
+    return n, n, f"{n:,} trials x 1 solve"
+
+
+def stochasticSpendingCost():
+    """(solves, width, detail) for Spending Optimization: one solve per scenario."""
+    if (kz.getCaseKey("stoch_scenario_method") or "historical") == "historical":
+        ystart = kz.getCaseKey("stoch_ystart") or FROM
+        yend = kz.getCaseKey("stoch_yend") or histYendMax()
+        S = max(int(yend) - int(ystart) + 1, 0)
+        return S, S, f"{S} historical windows"
+    n = int(kz.getCaseKey("stoch_N_mc") or 0)
+    return n, n, f"{n:,} scenarios"
+
+
+def frontierCost():
+    """
+    (solves, width, detail) for Spending vs Bequest.
+
+    Each bequest level re-solves the whole scenario set, so the cost is levels x scenarios.
+    Nothing capped the level count, which is how a run could reach 20,000 optimizations.
+    """
+    try:
+        levels = len(_parse_bequest_grid(kz.getCaseKey("frontier_bequest_grid"))) or 1
+    except ValueError:
+        levels = 1
+    method = kz.getCaseKey("frontier_scenario_method") or "deterministic"
+    if method == "deterministic":
+        return levels, 1, f"{levels} level(s) x 1 solve"
+    if method == "historical":
+        ystart = kz.getCaseKey("frontier_ystart") or FROM
+        yend = kz.getCaseKey("frontier_yend") or histYendMax()
+        S = max(int(yend) - int(ystart) + 1, 0)
+    else:
+        S = int(kz.getCaseKey("frontier_N_mc") or 0)
+    return levels * S, S, f"{levels} level(s) x {S:,} scenarios"
+
+
+def costOfRun(nsolves, width, detail=""):
+    """
+    Turn an estimated solve count into (allowed, caption) for display beside a Run button.
+
+    Enforced before the run starts, because there is no way to cancel one once it has: the
+    callback holds the session's script thread, so no second click can be delivered.
+    """
+    nsolves = int(nsolves)
+    secs = estimateSeconds(nsolves, width)
+    parts = [f"{detail} = **{nsolves:,} optimizations**" if detail else f"**{nsolves:,} optimizations**"]
+    if secs is None:
+        parts.append("Solve this case once for a time estimate.")
+    elif secs < 90:
+        parts.append(f"Roughly **{secs:.0f} s** at this case's measured solve time.")
+    else:
+        parts.append(f"Roughly **{secs / 60:.0f} min** at this case's measured solve time.")
+
+    if budgetIsUncapped():
+        return True, " ".join(parts)
+
+    over = nsolves > CLOUD_SOLVE_BUDGET or (secs is not None and secs > CLOUD_SECONDS_BUDGET)
+    if over:
+        parts.append(
+            f"That is beyond what the shared Community Cloud allows "
+            f"({CLOUD_SOLVE_BUDGET:,} optimizations or {CLOUD_SECONDS_BUDGET} s per run). "
+            "Reduce the settings, or self-host *Owl* to run it in full."
+        )
+    return (not over), " ".join(parts)
+
+
+def _regret_curves(result):
+    """Mean regret and the 10th-90th percentile envelope, from the cached scenario array."""
+    ok = ~np.isnan(result["v_star"])
+    if not ok.any():
+        return None, None, None
+    R = result["v_star"][ok, None] - result["v_at"][ok, :]
+    with warnings.catch_warnings():
+        # Grid columns past the over-conversion infeasibility onset are all-NaN by design.
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        mean = np.nanmean(R, axis=0)
+        lo, hi = np.nanpercentile(R, [10, 90], axis=0)
+    return mean, lo, hi
+
+
+def _regret_summary_text(summary, result, objective, elapsed=None):
+    """
+    The narrative block shown under the graph, including everything kept off it.
+
+    Lines are kept short enough to read without horizontal scrolling even when the case
+    carries seven-figure amounts, so values are stacked under their labels rather than
+    strung along one line.
+    """
+    money = (lambda v: f"${v:,.0f}/yr") if objective == "maxSpending" else (lambda v: f"${v:,.0f}")
+    lines = []
+    n = summary.get("n_scenarios", 0)
+    seed = f"  (seed {result['seed']})" if result.get("seed") is not None else ""
+    lines.append(f"Scenarios swept: {n}{seed}")
+    lines.append(f"Grid: {len(result['grid'])} commitments up to ${result['grid'][-1]:,.0f}")
+    xs = summary.get("x_star", {})
+    if xs:
+        lines.append("Scenario-optimal conversion:")
+        lines.append(f"  median ${xs.get('median', 0):,.0f}"
+                     f"   p10 ${xs.get('p10', 0):,.0f}"
+                     f"   p90 ${xs.get('p90', 0):,.0f}")
+        lines.append(f"Scenarios that convert at all: {100 * xs.get('share_converting', 0):.0f}%")
+    lines.append("")
+
+    if summary.get("valley_resolvable"):
+        v = summary.get("valley", {})
+        edge = summary.get("valley_at_grid_edge")
+        lines.append(f"Best commitment: {'at least ' if edge else ''}${v.get('x', 0):,.0f}")
+        if edge:
+            lines.append("  (still falling at the grid edge; raise")
+            lines.append("   Grid headroom to bracket the minimum)")
+        ci = summary.get("valley_ci")
+        if ci is not None:
+            lines.append(f"  80% interval: ${ci['p10']:,.0f} to ${ci['p90']:,.0f}")
+        band = summary.get("commit_band")
+        if band is not None:
+            lines.append(f"Commit band: ${band['x_lo']:,.0f} to ${band['x_hi']:,.0f}")
+            lines.append(f"  (within {100 * band['band_frac']:.0f}% of the best)")
+    else:
+        lines.append("No resolvable valley: the curve is flat")
+        lines.append("  within the resolution of this run.")
+    nc = summary.get("never_convert_regret")
+    if nc and nc.get("mean") is not None:
+        if nc["mean"] > 0:
+            lines.append(f"Never converting at all costs: {money(nc['mean'])}")
+            lines.append("  = the 100% mark on the right-hand axis")
+        else:
+            # Regret cannot really be negative; at or below zero it means conversions buy
+            # nothing measurable here, which is the answer rather than a figure to quote.
+            lines.append("Never converting costs nothing measurable:")
+            lines.append("  conversions do not pay off in this case.")
+    lines.append(f"Resolution floor: {money(summary.get('resolution_floor', 0))}")
+
+    # Kept out of the picture on purpose: the over/under ratio is not stable enough at
+    # these scenario counts to be read as a number, though its sign is.
+    asym = [a for a in summary.get("asymmetry", []) if a.get("delta") == 30_000]
+    if asym:
+        over, under = asym[0].get("mean_regret_over"), asym[0].get("mean_regret_under")
+        if over is not None and under is not None:
+            lines.append("")
+            lines.append("Missing the best by $30,000 costs:")
+            lines.append(f"  {money(over)} too high vs {money(under)} too low")
+            worse = "Over" if over > under else "Under"
+            lines.append(f"  -> {worse}-converting is the costlier error")
+            lines.append("  (the ratio of the two is not stable)")
+
+    lines.append("")
+    conv = summary.get("convergence") or {}
+    if conv.get("share_clean") is not None:
+        lines.append(f"Clean (monotonic) baselines: {100 * conv['share_clean']:.0f}%")
+    if summary.get("n_failed_baselines"):
+        lines.append(f"Baselines that failed to solve: {summary['n_failed_baselines']}")
+    if result.get("milp_downgraded"):
+        lines.append(f"Solved in loop mode: {', '.join(result['milp_downgraded'])}")
+    if result.get("solver_gap") is not None:
+        lines.append(f"Solver gap: {result['solver_gap']:.1e}")
+    if elapsed is not None:
+        lines.append(f"Wall time: {int(elapsed // 60)}m{elapsed % 60:.0f}s")
+    return "\n".join(lines)
+
+
+def _apply_regret_view(result, band_frac, plotter, plan, objective, elapsed=None):
+    """
+    Rebuild the figure and the summary from a cached sweep. No solves: everything here is
+    numpy over the (S, X) array the run already produced, so the band slider is instant.
+    """
+    summary = owl.summarize_conversion_regret(result, band_frac=band_frac)
+    mean, lo, hi = _regret_curves(result)
+    if mean is None:
+        kz.storeCaseKey("regretPlot", None)
+        kz.storeCaseKey("regretSummary", "Every scenario baseline failed to solve.")
+        return
+    fig = plotter.plot_conversion_regret(result["grid"], mean, lo, hi, summary, objective, plan.year_n)
+    kz.storeCaseKey("regretPlot", fig)
+    kz.storeCaseKey("regretSummaryDict", summary)
+    kz.storeCaseKey("regretSummary", _regret_summary_text(summary, result, objective, elapsed))
+
+
+def _refuseOverBudget(costfn):
+    """
+    Belt-and-braces budget check inside the run itself.
+
+    The Run button is already disabled when a run is over budget, but the guard must not
+    depend on widget state alone: a stale session, a programmatic call, or a rerun ordering
+    quirk could still reach the callback. There is no cancelling a run once started.
+    """
+    nsolves, width, _ = costfn()
+    allowed, _ = costOfRun(nsolves, width)
+    if not allowed:
+        st.error(
+            f"This run needs about {int(nsolves):,} optimizations, beyond what the shared "
+            f"Community Cloud allows ({CLOUD_SOLVE_BUDGET:,} per run). Reduce the settings, "
+            "or self-host Owl to run it in full.",
+            icon=":material/cloud_off:",
+        )
+    return not allowed
+
+
+@_checkPlan
+def runConversionRegret(plan):
+    if _refuseOverBudget(regretCost):
+        return
+
+    plan1 = owl.clone(plan)
+    prepareRun(plan1)
+    objective, options = kz.getSolveParameters()
+
+    preset = kz.getCaseKey("regret_preset") or "Standard"
+    params = REGRET_PRESETS.get(preset, REGRET_PRESETS["Standard"])
+    ystart = kz.getCaseKey("regret_ystart") or FROM
+    yend = kz.getCaseKey("regret_yend") or histYendMax()
+    band_frac = float(kz.getCaseKey("regret_band_pct") or 2) / 100.0
+    seed = int(kz.getCaseKey("regret_seed") or 1)
+    person = int(kz.getCaseKey("regret_person") or 0)
+    grid_pad = 1000.0 * float(kz.getCaseKey("regret_grid_pad") or 45)
+
+    try:
+        mybar = progress.Progress()
+        # Live preview. Streamlit delivers elements created inside an on_click callback,
+        # which is how the progress bar already works, so the curve can be drawn as
+        # scenarios land instead of only at the end. A small line_chart is used rather
+        # than the real figure: a plotly round-trip per update would ship the whole
+        # figure's JSON each time.
+        preview = st.empty()
+        state = {"drawn": 0}
+        # Same units as the finished figure: $k of bequest, or $/yr of net spending.
+        div, suffix, _ = _regret_units(objective)
+        unit = "$/yr" if suffix == "" else "$k"
+
+        def _preview(phase, done, total, partial):
+            if phase != "pinned" or partial is None or partial["mean"] is None:
+                return
+            step = max(total // 10, 1)
+            if partial["n_done"] - state["drawn"] < step and partial["n_done"] < total:
+                return
+            state["drawn"] = partial["n_done"]
+            df = pd.DataFrame(
+                {"regret": [v / div for v in partial["mean"]]},
+                index=[g / 1000.0 for g in partial["grid"]],
+            )
+            # The partial mean is unbiased only because completion order is roughly
+            # random, so it is always labelled with how much of the run it covers.
+            preview.line_chart(df, x_label=f"Committed conversion ($k) — preview, "
+                               f"{partial['n_done']} of {total} scenarios",
+                               y_label=f"Mean regret ({unit})")
+
+        t0 = datetime.now()
+        result = plan1.runConversionRegret(
+            objective,
+            options,
+            ystart,
+            yend,
+            person=person,
+            n_grid=params["n_grid"],
+            grid_pad=grid_pad,
+            n_scenarios=params["n_scenarios"],
+            seed=seed,
+            milp_downgrade=params["milp_downgrade"],
+            progcall=mybar,
+            on_scenario=_preview,
+        )
+        preview.empty()
+        elapsed = (datetime.now() - t0).total_seconds()
+        result["preset"] = preset
+        result["objective"] = objective
+        kz.storeCaseKey("regretScenarioData", result)
+        kz.storeCaseKey("regretObjective", objective)
+        _apply_regret_view(result, band_frac, plan1._plotter, plan1, objective, elapsed)
+    except Exception as e:
+        kz.storeCaseKey("regretPlot", None)
+        kz.storeCaseKey("regretSummary", None)
+        kz.storeCaseKey("regretSummaryDict", None)
+        kz.storeCaseKey("regretScenarioData", None)
+        st.error(f"Conversion regret sweep failed: {e}", icon=":material/error:")
+
+
+def updateRegretBand():
+    """Redraw from cache when the commit-band threshold moves. Costs no solves."""
+    result = kz.getCaseKey("regretScenarioData")
+    plan = kz.getCaseKey("plan")
+    if result is None or plan is None:
+        return
+    # on_change fires before the page's own storeCaseKey, so read the widget directly.
+    pct = kz.ss.get(kz.genCaseKey("regret_band_slider"))
+    if pct is None:
+        pct = kz.getCaseKey("regret_band_pct") or 2
+    kz.storeCaseKey("regret_band_pct", pct)
+    objective = kz.getCaseKey("regretObjective") or "maxBequest"
+    _apply_regret_view(result, float(pct) / 100.0, plan._plotter, plan, objective)
 
 
 def ui_log(message, level="info"):

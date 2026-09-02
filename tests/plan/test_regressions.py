@@ -642,3 +642,71 @@ def test_fire_roth_ladder():
 
     # No penalty after 59½.
     assert np.all(P_n[n595:] == 0)
+
+
+class _MidYearDate(date):
+    """date whose today() is mid-year, so a silent reset to 'today' becomes visible."""
+
+    @classmethod
+    def today(cls):
+        return date(2026, 8, 30)
+
+
+@pytest.fixture
+def midyear(monkeypatch):
+    """
+    Defeat the session-wide freeze_year fixture for one test.
+
+    freeze_year pins today to 2026-01-01, which is byte-identical to the start_date every
+    example case carries. A start date silently reset to "today" is therefore a no-op under
+    the normal fixture, which is exactly why this class of bug went unnoticed.
+    """
+    monkeypatch.setattr(owl.plan, "date", _MidYearDate)
+    return _MidYearDate.today()
+
+
+@pytest.mark.toml
+def test_restating_balances_keeps_the_balance_date(midyear):
+    """
+    startDate says when the balances were measured; they are back projected to Jan 1 from
+    it. Re-stating the same balances is not a claim about when they were measured, so an
+    omitted startDate must leave the plan's date alone rather than jump it to today.
+    """
+    p = owl.readConfig("examples/Case_dana.toml", verbose=False)
+    assert p.startDate == "2026-01-01" and p.yearFracLeft == 1.0
+
+    p.setAccountBalances(
+        taxable=list(p.bet_ji[0]), taxDeferred=list(p.bet_ji[1]),
+        taxFree=list(p.bet_ji[2]), units="1",
+    )
+    assert p.startDate == "2026-01-01"
+    assert p.yearFracLeft == 1.0
+
+
+@pytest.mark.toml
+def test_set_hsa_keeps_the_balance_date(midyear):
+    """setHSA re-states the other balances internally, and must not re-date them."""
+    p = owl.readConfig("examples/Case_dana.toml", verbose=False)
+    p.setHSA([10.0])
+    assert p.startDate == "2026-01-01"
+    assert p.yearFracLeft == 1.0
+
+
+@pytest.mark.toml
+def test_an_explicit_date_still_wins(midyear):
+    """Omitting the argument keeps the date; passing one must still set it."""
+    p = owl.readConfig("examples/Case_dana.toml", verbose=False)
+    p.setAccountBalances(
+        taxable=list(p.bet_ji[0]), taxDeferred=list(p.bet_ji[1]),
+        taxFree=list(p.bet_ji[2]), units="1", startDate="today",
+    )
+    assert p.startDate == midyear.strftime("%Y-%m-%d")
+    assert p.yearFracLeft < 0.4
+
+
+def test_a_virgin_plan_still_defaults_to_today(midyear):
+    """With no date on the plan yet there is nothing to keep, so today remains the default."""
+    p = createPlan(1, "virgin_date", 10, 70)
+    assert p.startDate is None
+    p.setAccountBalances(taxable=[0], taxDeferred=[3.0], taxFree=[0])
+    assert p.startDate == midyear.strftime("%Y-%m-%d")

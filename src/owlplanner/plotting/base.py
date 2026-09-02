@@ -170,6 +170,35 @@ class PlotBackend(ABC):
         pass
 
     @abstractmethod
+    def plot_conversion_regret(
+        self,
+        grid,
+        mean_regret,
+        lo_band,
+        hi_band,
+        summary,
+        objective,
+        year_n,
+    ):
+        """Cost of committing to a fixed first-year Roth conversion.
+
+        One panel carrying both halves of the conversion question: the shape of the curve
+        around its valley is the risk of committing to the wrong amount, and the
+        right-hand axis restates that regret as a share of what converting is worth at
+        all. Features the summary reports as unresolvable are not drawn.
+
+        Parameters
+        ----------
+        grid : sequence (X,) — committed first-year conversions, in dollars
+        mean_regret : ndarray (X,) — mean regret across scenarios, objective's units
+        lo_band, hi_band : ndarray (X,) or None — scenario dispersion envelope
+        summary : dict — output of stresstests.summarize_conversion_regret
+        objective : str — "maxSpending" or "maxBequest"; sets the units of the y axis
+        year_n : ndarray — plan calendar years (for axis label)
+        """
+        pass
+
+    @abstractmethod
     def plot_spending_bequest_frontier(
         self,
         bequest_dollars,

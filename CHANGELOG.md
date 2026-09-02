@@ -1,3 +1,198 @@
+### Version 2026.9.2
+
+#### New: Conversion Regret page
+
+The commitment-regret sweep added in 2026.8.5 now has a UI. A new **Conversion Regret** page under
+*Stress Tests* draws the whole analysis as one graph: mean regret against the amount committed to a
+first-year Roth conversion, with the left axis in dollars and the right axis restating the same
+figure as a share of what converting is worth at all. Read together they answer both halves of the
+question — how much a wrong commitment costs, and whether converting is worth doing. On the
+reference case a commitment near the best amount gives up 0.4% of the value of converting, skipping
+the year entirely gives up 5%, and never converting gives up all of it.
+
+Regret is measured in whatever the case optimizes, so the page follows the objective set on the
+*Goals* page: dollars per year of net spending, or today's dollars of final bequest.
+
+The page reports what the numbers will not support. A commit band shows every commitment within a
+chosen tolerance of the best one, which is far more stable than the single best amount; a minimum
+landing on the last grid point is reported as a lower bound, since the curve was still falling
+where the grid ran out. The over- versus under-conversion ratio stays out of the graph and is
+reported as two dollar figures instead, because at these scenario counts its sign is trustworthy
+and its magnitude is not.
+
+#### Changed: the regret curve is stricter about what it claims to resolve
+
+Regret is non-negative by construction — pinning the first year is a restriction of the
+unconstrained problem, so the pinned outcome cannot beat it. Negative values therefore measure
+the method's own error rather than anything about the plan. On a high-balance case optimizing
+net spending they reached −\$204/yr against a \$373,340/yr basis (5×10⁻⁴): deterministic,
+unchanged by tightening the solver gap a thousandfold, and present in scenarios whose tax loop
+converged monotonically. The cause is the self-consistent loop settling on a different fixed
+point for the constrained and unconstrained solves, so it has to be read off the data rather
+than inferred from the solver.
+
+The resolution floor now does that. It takes the worst negative cell as an empirical error
+measurement, scaled by the square root of the scenario count because that error averages down
+in the mean curve, and it also refuses to sit below any negative the mean itself shows. On the
+case above the floor rose from \$10/yr to \$34/yr.
+
+Separately, a wide curve is not the same as a located minimum. The valley test used to ask only
+whether the curve's overall range cleared the floor, which it does whenever one end rises
+steeply — even if the bottom is a plateau. It now also counts how many grid points sit within
+the floor of the lowest, and declines to name a best commitment when too many do. The case above
+had six of nine points indistinguishable and was reporting a valley to the dollar from a mean
+regret of −\$0.74; it now reports that the curve is flat within the run's resolution. The
+reference cases are unaffected: two of eleven points are flat and both still resolve.
+
+The percentage axis likewise now requires the value of converting to stand clear of the floor by
+a factor of three, rather than merely exceed it.
+
+
+#### Fixed: the HFP workbook download returned an error page
+
+Downloading the HFP workbook from *Reports* or *Financial Profile* produced a file named after a
+long string of digits, ending in `.xlsx.txt` and containing the words `File not found`. The other
+download buttons on the same page worked, which is what located the fault: the HFP button was the
+only one with a post-click handler, and that handler ended in `st.rerun()`.
+
+A download button registers its payload as a media file and hands the browser a URL for it.
+Calling `st.rerun()` from the click handler aborts the run while that request is still in flight;
+Streamlit then clears the session's file references and collects the orphaned media file, so the
+browser's request arrives after the file is gone. The 404 comes back as `text/plain`, which is why
+the browser saved an error page under the media identifier with `.txt` appended.
+
+It failed every time rather than intermittently because the handler also calls `markHFPAsSaved()`.
+When Owl adds a missing column on load it flags the workbook as edited, and that flag drives the
+"HFP values were edited" caption under the button; marking it saved removes the caption, changing
+the element tree so the media file is not re-registered identically on the run that follows.
+
+The rerun is simply gone. The state it was flushing is read further down the same run, so the
+caption still updates immediately, and the rest is picked up by the next natural rerun.
+
+
+#### New: a shared computing budget for every multi-solve page
+
+Every page under *Stress Tests* costs the same thing — full-horizon optimizations — but each one
+policed itself, or didn't. Monte Carlo accepted 10,000 trials with no warning, Spending vs Bequest
+re-solved the whole scenario set once per bequest level with nothing capping the level count (ten
+levels against two thousand scenarios is twenty thousand optimizations), augmented historical
+sampling carried a prose warning only, and the newest and *cheapest* page was blocked outright.
+The result was a policy that bore no relation to what a run actually costs.
+
+The pages now share one model. Each declares its true cost, `costOfRun()` renders it as a caption
+under the **Run** button — "36 scenarios x 11 solves = 397 optimizations", plus a duration once the
+case has been solved once — and returns whether it may proceed. The duration comes from that case's
+own measured solve time (`Plan.lastSolveWallTime`), because per-solve cost varies by more than a
+factor of ten between cases and the tight ones are the slow ones; a solve count alone says very
+little about how long a run will take.
+
+On the Streamlit Community Cloud a run may ask for at most 500 optimizations or about two minutes,
+whichever binds first, so a slow case is refused on time even when its count would fit.
+Self-hosted installations are unlimited, and `OWL_UNCAPPED=1` lifts the cap for testing. The limit
+is enforced twice: the button is disabled, and each runner re-checks before cloning the plan, since
+a run cannot be cancelled once its callback holds the session's script thread.
+
+The Conversion Regret page is no longer gated by name. It is governed by the same budget as
+everything else, which means its two smaller resolutions run on the public server and *Thorough*
+does not — a coherent outcome, given the page had been blocked at 163 optimizations while a
+20,000-optimization run went unremarked.
+
+
+#### Fixed: re-stating account balances no longer re-dates them to today
+
+`setAccountBalances` takes a `startDate` — the date at which the balances are known, from which
+they are back projected to January 1st so the plan still starts at the beginning of the year.
+That coupling is deliberate. What was not deliberate is that an **omitted** `startDate` meant
+"today" rather than "leave the date alone", so calling the setter a second time silently re-dated
+balances that had already been dated. The plan's first year was then truncated from twelve months
+to however much of the calendar year remained, and every opening balance was back projected
+through that shorter stub: on `Case_dana` run on August 30th, `yearFracLeft` fell from 1.00 to
+0.34 and the final bequest moved by 23%.
+
+The `None` default was inherited from a time when the date lived on `Plan.__init__`, where "run
+once, default to today" was safe; it was carried onto a repeatedly callable setter unchanged.
+Omitting the argument now keeps whatever date the plan already carries, falling back to today only
+on a plan that has none yet. Passing `None` or `"today"` explicitly still means today, and passing
+a date still sets it, so every existing caller that stated its intent behaves exactly as before.
+
+This also fixes `setHSA`, which re-states the other three balances internally and so moved the
+start date as a side effect of setting an HSA balance.
+
+The bug was invisible to the test suite because the session fixture freezes today to 2026-01-01,
+which is the `start_date` every example case declares — making the reset a no-op under test. The
+new regression tests override that freeze so a reset would actually be observable.
+
+The commitment-regret sweep added in 2026.8.5 now has a UI. A new **Conversion Regret** page
+under *Stress Tests* draws the whole analysis as one graph: mean regret against the amount
+committed to a first-year Roth conversion, with the left axis in dollars and the right axis
+restating the same figure as a share of what converting is worth at all. Reading them together
+answers both halves of the question at once — how much a wrong commitment costs, and whether
+converting is worth doing in the first place. On the reference case a commitment near the best
+amount gives up 0.4% of the value of converting, skipping the year entirely gives up 5%, and
+never converting gives up all of it.
+
+Regret is measured in whatever the case optimizes, so the page follows the objective set on the
+*Goals* page: dollars per year of net spending, or today's dollars of final bequest.
+
+The page reports what the numbers will not support. A minimum that lands on the last grid point
+is reported as a lower bound rather than an answer, since the curve was still falling where the
+grid ran out; **Grid headroom** widens it. A **commit band** shows every commitment
+within a chosen tolerance of the best one, which is far more stable than the single best amount;
+a resolution strip marks the height below which differences are noise, and when the curve is flat
+within it the page declines to name a best amount at all. The over- versus under-conversion ratio
+stays out of the graph and is reported as two dollar figures instead, because at these scenario
+counts its sign is trustworthy and its magnitude is not.
+
+**Resolution** offers three presets, from *Quick look* to *Thorough*. Whichever is chosen, the
+sweep holds the solver tolerance tighter than Owl's default: the regret near the best commitment
+is of order a thousandth of the objective, which is smaller than the MIP gap Owl otherwise adopts
+when a tax mode is optimized, and a run measured at that tolerance would be reporting solver slack
+rather than the decision under study. A caller asking for something looser is tightened and told;
+one already tighter, such as a run reproducing a published figure at 1e-8, is left alone.
+
+Because the sweep is hundreds to thousands of full optimizations, the page shows the exact solve
+count before it runs — and, once the case has been solved once, an estimate of the wall time from
+that case's own measured solve speed. It is **disabled on the Community Cloud**; the page still
+renders there so the capability is discoverable.
+
+#### Changed: a plan that is not ready to solve says what is missing
+
+The readiness checks are now collected in one place, `Plan._preflight()`, and applied through the
+existing `_checkConfiguration` decorator. Account balances are newly among them: without them
+`yearFracLeft` is never created and the plan died with a bare `AttributeError` deep in matrix
+assembly instead of naming what the user had forgotten. The rate-method check moves in from
+`solve()`, where it had been inlined while the others lived in the decorator.
+
+The decorator is now also applied to the six multi-scenario runners, which is where it earns the
+most: a misconfigured plan previously failed inside a worker thread after the pool had been
+spawned. Those runners select a rate method per scenario themselves, so they check the structural
+inputs only; their inner `solve()` still enforces the rest.
+
+#### Changed: the regret sweep sizes its own grid
+
+`run_conversion_regret_sweep` now runs in two phases. It solves every scenario's clairvoyant
+baseline first, then builds the commitment grid from the spread of the conversions those
+scenarios actually chose, and only then runs the pinned solves. Passing `grid=None` selects this;
+an explicit grid still behaves exactly as before. This removes the separate probe run the
+published sweeps needed to size a grid, at no extra cost in solves, and the scenario clones are
+reused across both phases so each scenario's rates are derived once.
+
+New keyword arguments: `n_scenarios` and `seed` sweep a random subset of the windows (always a
+random draw, never a stride, which would land on a correlated run of overlapping windows and bias
+the result); `n_grid` and `grid_pad` shape the automatic grid; `milp_downgrade` solves the tax
+brackets in loop mode throughout, which is sound here because regret is a difference of two optima
+taken under the same model; and `on_scenario` reports partial results for live display.
+
+`summarize_conversion_regret` gained a bootstrap over the scenario axis — no extra solves, since
+it resamples results already computed — giving confidence intervals on the mean curve and on the
+best-commitment location, plus the commit band, the resolution floor, and a flag for whether the
+value of converting is large enough to normalize against. That last one matters under the spending
+objective, where the never-convert cost can be near zero or negative and a percentage would be
+meaningless.
+
+`Plan` exposes the sweep as `runConversionRegret`, and every `Plan` now records
+`lastSolveWallTime` so a solve count can be turned into an estimated duration for that case.
+
 ### Version 2026.8.29
 
 #### Changed: Roth conversion overrides are now a checkbox, not a negative number

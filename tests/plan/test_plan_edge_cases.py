@@ -679,3 +679,47 @@ def test_netinv_in_sources_dict():
     assert "net inv" in p.sources_in
     # Values should match netinv_in
     np.testing.assert_array_equal(p.sources_in["net inv"], p.netinv_in)
+
+
+def test_check_configuration_missing_balances():
+    """
+    Without balances, yearFracLeft is never created and the plan used to die with a bare
+    AttributeError deep in _add_initial_balances. The guard must name what is missing.
+    """
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+
+    with pytest.raises(RuntimeError, match="You must set account balances"):
+        p.solve("maxSpending")
+
+
+def test_runners_refuse_a_plan_with_no_balances():
+    """
+    The multi-scenario runners are guarded too: otherwise the failure surfaces inside a
+    worker thread once the pool is already spawned.
+    """
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+
+    with pytest.raises(RuntimeError, match="You must set account balances"):
+        p.runHistoricalRange("maxSpending", {}, 1960, 1965)
+
+
+def test_runners_do_not_demand_rates_up_front():
+    """
+    run_historical_range picks a rate method per scenario, so requiring one before the call
+    would reject legitimate use. The guard must stop at the structural inputs.
+    """
+    p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
+    p.setSpendingProfile("flat")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
+    assert p.rateMethod is None
+
+    # Must get past the guard; whatever happens next is the runner's business, not ours.
+    try:
+        p.runHistoricalRange("maxSpending", {}, 1960, 1961)
+    except RuntimeError as e:
+        assert "Rate method" not in str(e), f"guard wrongly demanded rates: {e}"

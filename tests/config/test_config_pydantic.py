@@ -310,3 +310,24 @@ def test_edited_workbook_saves_a_reloadable_file_name(tmp_path):
 
     diconf, _, _ = load_toml(str(dest))
     assert diconf["household_financial_profile"]["HFP_file_name"] == "HFP_jack+jill.xlsx"
+
+
+def test_start_date_survives_a_roundtrip():
+    """
+    start_date is the date the account balances are known, from which they are back
+    projected to January 1st. It must survive load/save/load: losing it silently shortens
+    the plan's first year and haircuts every opening balance.
+    """
+    strio = StringIO(_TOML_WITH_USER_KEYS)
+    p1 = owl.readConfig(strio, verbose=False, loadHFP=False)
+    assert p1.startDate == "2026-01-01"
+    assert p1.yearFracLeft == 1.0
+
+    out = StringIO()
+    p1.saveConfig(out)
+    assert 'start_date = "2026-01-01"' in out.getvalue()
+
+    out.seek(0)
+    p2 = owl.readConfig(out, verbose=False, loadHFP=False)
+    assert p2.startDate == p1.startDate
+    assert p2.yearFracLeft == p1.yearFracLeft

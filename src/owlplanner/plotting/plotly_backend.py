@@ -30,6 +30,7 @@ import io
 from scipy import stats
 
 from .base import PlotBackend
+from .regret_common import prepare_regret_plot, regret_caption
 from .. import utils as u
 from ..rate_models.constants import (
     HISTORICAL_RANGE_METHODS,
@@ -957,6 +958,205 @@ class PlotlyBackend(PlotBackend):
             title=dict(text=f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", font_size=20),
             template=self.template,
             legend={**_LEGEND_BOTTOM, "font": {"size": 14}},
+        )
+        return fig
+
+    def plot_conversion_regret(
+        self,
+        grid,
+        mean_regret,
+        lo_band,
+        hi_band,
+        summary,
+        objective,
+        year_n,
+    ):
+        """Regret of committing to a first-year Roth conversion. See base.PlotBackend."""
+        prep = prepare_regret_plot(grid, mean_regret, lo_band, hi_band, summary, objective)
+        thisyear = int(year_n[0])
+        x, y = prep["x"], prep["y"]
+        fig = go.Figure()
+
+        # 1. Over-conversion infeasibility. Past this point the mean is taken over the
+        # surviving scenarios only, so leaving it unmarked would misstate the curve.
+        if prep["onset"] is not None:
+            fig.add_vrect(
+                x0=prep["onset"]["x"],
+                x1=float(x[-1]),
+                fillcolor="firebrick",
+                opacity=0.08,
+                line_width=0,
+                layer="below",
+            )
+            fig.add_vline(x=prep["onset"]["x"], line_dash="dot", line_color="firebrick", opacity=0.7)
+            fig.add_annotation(
+                x=prep["onset"]["x"],
+                y=1.0,
+                yref="paper",
+                text=f"{prep['onset']['n']} of {prep['n_scenarios']} scenarios<br>infeasible beyond here",
+                showarrow=False,
+                xanchor="right",
+                yanchor="top",
+                font=dict(size=10, color="firebrick"),
+            )
+
+        # 2. Resolution floor: anything inside this strip is indistinguishable from noise.
+        if prep["floor"] > 0:
+            fig.add_hrect(
+                y0=prep["ymin"],
+                y1=prep["ymin"] + prep["floor"],
+                fillcolor="gray",
+                opacity=0.13,
+                line_width=0,
+                layer="below",
+            )
+
+        # 3. Commit band: the primary readout, and the most stable statistic in the sweep.
+        if prep["band"] is not None:
+            fig.add_vrect(
+                x0=prep["band"]["lo"],
+                x1=prep["band"]["hi"],
+                fillcolor="seagreen",
+                opacity=0.12,
+                line_width=0,
+                layer="below",
+            )
+
+        # 4. Scenario dispersion.
+        if prep["lo"] is not None and prep["hi"] is not None:
+            for band, name in ((prep["lo"], "10th–90th pct"), (prep["hi"], None)):
+                fig.add_trace(
+                    go.Scatter(
+                        x=x.tolist(),
+                        y=np.maximum(band, prep["ymin"]).tolist(),
+                        mode="lines",
+                        line=dict(color="steelblue", width=1, dash="dash"),
+                        name=name or "",
+                        showlegend=name is not None,
+                        hoverinfo="skip",
+                    )
+                )
+
+        # 4b. Bootstrap interval on the mean. Narrow when enough scenarios were swept,
+        # visibly wide when they were not, which is what keeps a cheap preset honest.
+        if prep["mean_lo"] is not None and np.isfinite(prep["mean_lo"]).any():
+            fig.add_trace(
+                go.Scatter(x=x.tolist(), y=prep["mean_lo"].tolist(), mode="lines",
+                           line=dict(width=0), showlegend=False, hoverinfo="skip")
+            )
+            fig.add_trace(
+                go.Scatter(x=x.tolist(), y=prep["mean_hi"].tolist(), mode="lines",
+                           line=dict(width=0), fill="tonexty", fillcolor="rgba(70,130,180,0.22)",
+                           name="80% interval on the mean", hoverinfo="skip")
+            )
+
+        # 5. Mean curve: monotone interpolation, with markers on the points actually solved.
+        if prep["xd"] is not None:
+            fig.add_trace(
+                go.Scatter(
+                    x=prep["xd"].tolist(),
+                    y=prep["yd"].tolist(),
+                    mode="lines",
+                    line=dict(color="steelblue", width=2.5),
+                    name="mean regret",
+                    hoverinfo="skip",
+                )
+            )
+        fig.add_trace(
+            go.Scatter(
+                x=x.tolist(),
+                y=y.tolist(),
+                mode="markers" if prep["xd"] is not None else "lines+markers",
+                marker=dict(color="steelblue", size=6),
+                line=dict(color="steelblue", width=2.5),
+                name="solved points" if prep["xd"] is not None else "mean regret",
+                showlegend=prep["xd"] is None,
+                hovertemplate="commit $%{x:,.0f}k<br>regret $%{y:,.0f}" + prep["suffix"] + "<extra></extra>",
+            )
+        )
+
+        # 6. Valley, with the bootstrap interval on its location.
+        if prep["valley"] is not None:
+            v = prep["valley"]
+            err = None
+            if v["lo"] is not None and v["hi"] - v["lo"] > 0:
+                err = dict(type="data", symmetric=False, array=[v["hi"] - v["x"]], arrayminus=[v["x"] - v["lo"]])
+            fig.add_trace(
+                go.Scatter(
+                    x=[v["x"]],
+                    y=[v["y"]],
+                    mode="markers",
+                    marker=dict(color="firebrick", size=11, line=dict(color="white", width=1.5)),
+                    error_x=err,
+                    name=f"best commitment: ${v['x']:,.0f}k",
+                )
+            )
+
+        # 7. Year-one-only reference. The gap between this and 100% on the right-hand axis
+        # is the value of the multi-year conversion strategy.
+        if prep["skip_y1"] is not None:
+            label = f"skip year 1 only: {u.d(prep['skip_y1'] * prep['div'])}"
+            if prep["skip_y1_pct"] is not None:
+                label += f" ({prep['skip_y1_pct']:.0f}%)"
+            fig.add_trace(
+                go.Scatter(
+                    x=[float(x[0])],
+                    y=[prep["skip_y1"]],
+                    mode="markers",
+                    marker=dict(color="darkorange", size=10, symbol="diamond"),
+                    name=label,
+                )
+            )
+
+        fig.update_xaxes(
+            title_text=f"Committed first-year Roth conversion ({thisyear} $k)",
+            tickprefix="$",
+            ticksuffix="k",
+            title_font_size=14,
+            tickfont_size=11,
+        )
+        fig.update_yaxes(
+            title_text=f"{prep['ylabel']}",
+            tickprefix="$",
+            ticksuffix=prep["suffix"],
+            range=[prep["ymin"], prep["ymax"]],
+            title_font_size=14,
+            tickfont_size=11,
+        )
+
+        layout = dict(
+            title=dict(text=f"Cost of committing to a first-year Roth conversion ({thisyear}$)", font_size=20),
+            template=self.template,
+            legend={**_LEGEND_BOTTOM, "font": {"size": 13}},
+            margin=dict(t=110),
+        )
+        # The right-hand axis restates the same quantity as a share of what converting is
+        # worth at all, which is what makes one picture carry both the risk and the value.
+        # It is omitted when that denominator is too small or negative to divide by.
+        if prep["pct_ok"]:
+            layout["yaxis2"] = dict(
+                title=dict(text="Share of the value of converting", font_size=13),
+                overlaying="y",
+                side="right",
+                range=[prep["pct_min"], prep["pct_max"]],
+                ticksuffix="%",
+                showgrid=False,
+                tickfont_size=11,
+            )
+            fig.add_trace(
+                go.Scatter(x=[x[0]], y=[prep["pct_min"]], yaxis="y2", mode="markers",
+                           marker=dict(opacity=0), showlegend=False, hoverinfo="skip")
+            )
+        fig.update_layout(**layout)
+        fig.add_annotation(
+            x=0.0,
+            y=1.10,
+            xref="paper",
+            yref="paper",
+            text=regret_caption(prep, summary),
+            showarrow=False,
+            xanchor="left",
+            font=dict(size=12, color="gray"),
         )
         return fig
 

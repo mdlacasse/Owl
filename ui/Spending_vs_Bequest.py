@@ -95,12 +95,15 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             "on the curve. Group digits with underscores, never commas: a comma separates "
             "levels, so '1,000' reads as two of them, \\$1k and \\$0k.",
         )
+    _solves, _width, _detail = owb.frontierCost()
+    _allowed, _cost = owb.costOfRun(_solves, _width, detail=_detail)
     with col3:
         st.button(
             "Trace trade-off",
             on_click=owb.runSpendingBequestFrontier,
-            disabled=kz.caseIsNotRunReady(),
+            disabled=not _allowed or kz.caseIsNotRunReady(),
         )
+    st.caption(_cost)
 
     if scenario_method != "deterministic":
         st.markdown("####")

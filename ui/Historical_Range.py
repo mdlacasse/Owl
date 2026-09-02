@@ -69,14 +69,19 @@ the current *case* across historical scenarios over the selected year range.""")
             key=kz.genCaseKey("hyto"),
         )
 
+    _solves, _width, _detail = owb.histRangeCost()
+    _allowed, _cost = owb.costOfRun(_solves, _width, detail=_detail)
     with col4:
-        st.button("Run historical range", on_click=owb.runHistorical, disabled=kz.caseIsNotRunReady())
+        st.button("Run historical range", on_click=owb.runHistorical,
+                  disabled=not _allowed or kz.caseIsNotRunReady())
+    st.caption(_cost)
 
     st.markdown("####")
     with st.expander("*Advanced options*"):
         st.caption("""
-:warning: Augmented sampling requires a lot of computing time and is unlikely to complete on the Community Cloud.
-Consider self-hosting *Owl* for using this option.
+:warning: Augmented sampling runs every rate-sequence variant of every year, which is thousands of
+optimizations. It is beyond the public server's limit and needs a self-hosted *Owl*; the caption under
+the Run button reports the exact count.
 
 Changing any of these options only affects the next run.
 """)

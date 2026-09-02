@@ -110,12 +110,15 @@ Select a target success rate to find the committed spending that meets it.
                 args=["stoch_yend"],
                 key=kz.genCaseKey("stoch_yend"),
             )
+        _solves, _width, _detail = owb.stochasticSpendingCost()
+        _allowed, _cost = owb.costOfRun(_solves, _width, detail=_detail)
         with col4:
             st.button(
                 "Run optimization",
                 on_click=owb.runStochasticSpending,
-                disabled=kz.caseIsNotStochReady(),
+                disabled=not _allowed or kz.caseIsNotStochReady(),
             )
+        st.caption(_cost)
         st.markdown("####")
         with st.expander("*Advanced options*"):
             st.caption("Changing these options will only affect the next run.")
@@ -147,16 +150,19 @@ Select a target success rate to find the committed spending that meets it.
         col1, col2, col3, col4 = st.columns(4, gap="large", vertical_alignment="bottom")
         with col1:
             _help = (
-                "Use a reasonable number on the Community Server (e.g., 200). "
-                "Consider self-hosting for larger ensembles."
+                "The caption under the Run button reports what the current number costs, "
+                "and whether it fits the public server's limit."
             )
             kz.getIntNum("Number of MC scenarios", "stoch_N_mc", step=50, min_value=10, max_value=5000, help=_help)
+        _solves, _width, _detail = owb.stochasticSpendingCost()
+        _allowed, _cost = owb.costOfRun(_solves, _width, detail=_detail)
         with col4:
             st.button(
                 "Run optimization",
                 on_click=owb.runStochasticSpending,
-                disabled=kz.caseIsNotStochReady(),
+                disabled=not _allowed or kz.caseIsNotStochReady(),
             )
+        st.caption(_cost)
         st.markdown("####")
         with st.expander("*Advanced options*"):
             st.caption("Changing these options will only affect the next run.")

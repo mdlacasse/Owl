@@ -23,6 +23,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+import warnings
 import numpy as np
 import pandas as pd
 from itertools import product
@@ -418,68 +419,112 @@ def _regret_objective_value(p, objective):
     return float(plan_metrics(p)["final_bequest_savings_today"])
 
 
-def _regret_worker(args):
+# Ceiling on the MIP gap for any regret sweep. See the note in run_conversion_regret_sweep.
+REGRET_MAX_GAP = 1e-6
+
+_MILP_TAX_MODES = ("withMedicare", "withACA", "withSSTaxability", "withLTCG", "withNIIT")
+
+
+def _downgrade_milp_tax_modes(options):
     """
-    Solve one scenario's baseline, grid, and never-convert solves in a worker thread.
+    Flip MILP tax modes to their self-consistent loop equivalents.
 
-    args tuple: (clone, year, objective, options, grid, person, include_never_convert)
+    Regret is a difference of two optima computed under the same model, so a loop-mode
+    approximation shifts the clairvoyant optimum and the pinned outcome together and the
+    difference largely survives. The downgrade must therefore be applied to every solve of
+    a sweep or to none of them: a MIP baseline measured against loop-mode pins would put a
+    modeling difference into the regret itself.
 
-    Returns (year, payload) where payload is None if the unconstrained baseline
-    fails, else a dict with:
-      v_star   — unconstrained optimum (clairvoyant benchmark)
-      x_star   — the baseline's first-year Roth conversion for `person`, $
-      v_at     — list aligned with grid; None where the pinned solve is infeasible
-      v_noconv — optimum with conversions disallowed for `person` (or None)
-      max_gap  — largest achieved MIP gap across this scenario's solves (-1 if
-                 no MIP was involved); flags certificates degraded by maxTime
+    withSSAges is deliberately left alone: it selects a claiming age rather than
+    linearizing a tax schedule, and has no loop equivalent.
+
+    Returns (options, downgraded) where downgraded names the keys that were changed.
     """
-    import time as _time
+    opts = dict(options)
+    downgraded = []
+    for key in _MILP_TAX_MODES:
+        if str(opts.get(key, "")).lower() == "optimize":
+            opts[key] = "loop"
+            downgraded.append(key)
+    return opts, downgraded
 
-    p, year, objective, options, grid, person, include_never_convert = args
+
+def _regret_baseline_worker(args):
+    """
+    Phase A: solve one scenario's unconstrained (clairvoyant) baseline.
+
+    The plan clone is mutated in place - its rates are set here and left set - so that
+    _regret_pin_worker() can reuse it without re-deriving the scenario.
+
+    args tuple: (clone, year, objective, options, person)
+
+    Returns (year, payload) where payload is None if the baseline failed to solve, else a
+    dict with the clairvoyant optimum v_star, that scenario's own first-year conversion
+    x_star, and the convergence diagnostics of the solve.
+    """
+    p, year, objective, options, person = args
 
     # Workers are reused across windows, so the thread name alone would say which slot
     # logged a line, not which window it was solving.
     with log.threadLabel(year):
         p.setRates("historical", year)
-        _t0 = _time.time()
-
-        max_gap = -1.0
-        # Track SC-loop convergence: monotonic solves land in the interior of the
-        # bracket structure (trustworthy, idempotent); non-monotonic (oscillatory /
-        # max-iter) solves sit on a tax cliff where the fixed point is ambiguous and
-        # the result carries a genuine error bar. n_nonmonotonic counts such solves
-        # across the window; v_star_conv is the clairvoyant baseline's own verdict.
-        n_nonmonotonic = 0
-
-        def _note_conv():
-            nonlocal n_nonmonotonic
-            if getattr(p, "convergenceType", "undefined") != "monotonic":
-                n_nonmonotonic += 1
-
         p.solve(objective, options)
-        max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-        v_star_conv = getattr(p, "convergenceType", "undefined")
-        v_star_rel = getattr(p, "oscillationRel", 0.0)
-        _note_conv()
         if p.caseStatus != "solved":
             return year, None
         v_star = _regret_objective_value(p, objective)
-        # Dollar amplitude of the clairvoyant optimum's SC-loop oscillation (0 if monotonic).
-        v_star_osc = abs(v_star) * v_star_rel
-        x_star = float(p.x_in[person, 0])
+        conv = getattr(p, "convergenceType", "undefined")
+        return year, {
+            "v_star": v_star,
+            "x_star": float(p.x_in[person, 0]),
+            # Dollar amplitude of this optimum's SC-loop oscillation (0 if monotonic).
+            "v_star_osc": abs(v_star) * getattr(p, "oscillationRel", 0.0),
+            "v_star_conv": conv,
+            "max_gap": getattr(p, "solverGap", -1.0),
+            "n_nonmonotonic": int(conv != "monotonic"),
+        }
 
-        # Pin the first-year conversion at each grid value. myRothX_in holds the dollar
-        # amount and rothXfixed_in says it binds (see _add_roth_conversion_constraints).
-        # A grid value of 0 needs no special case: it pins year 1 to no conversion.
-        opts_pin = dict(options)
+
+def _regret_pin_worker(args):
+    """
+    Phase B: pin one scenario's first-year Roth conversion at each grid value, then
+    optionally solve it once more with conversions disallowed altogether.
+
+    Expects a clone whose rates were already set by _regret_baseline_worker(), so the
+    scenario is not re-derived.
+
+    args tuple: (clone, year, objective, options, grid, person, include_never_convert)
+
+    Returns (year, payload) with v_at (aligned with grid, None where the pinned solve is
+    infeasible), v_noconv, and this phase's convergence diagnostics.
+    """
+    import time as _time
+
+    p, year, objective, options, grid, person, include_never_convert = args
+
+    with log.threadLabel(year):
+        _t0 = _time.time()
+        # Track SC-loop convergence: monotonic solves land in the interior of the bracket
+        # structure (trustworthy, idempotent); non-monotonic solves sit on a tax cliff
+        # where the fixed point is ambiguous and the result carries a genuine error bar.
+        max_gap = -1.0
+        n_nonmonotonic = 0
+
+        def _note():
+            nonlocal n_nonmonotonic, max_gap
+            max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+            if getattr(p, "convergenceType", "undefined") != "monotonic":
+                n_nonmonotonic += 1
+
+        # myRothX_in holds the dollar amount and rothXfixed_in says it binds (see
+        # _add_roth_conversion_constraints). A grid value of 0 needs no special case: it
+        # pins year 1 to no conversion, leaving every later year free to re-optimize.
         v_at = []
         v_at_osc = []
         p.rothXfixed_in[person, 0] = True
         for x in grid:
             p.myRothX_in[person, 0] = float(x)
-            p.solve(objective, opts_pin)
-            max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-            _note_conv()
+            p.solve(objective, options)
+            _note()
             if p.caseStatus == "solved":
                 val = _regret_objective_value(p, objective)
                 v_at.append(val)
@@ -492,21 +537,66 @@ def _regret_worker(args):
 
         v_noconv = None
         if include_never_convert:
-            opts_nc = dict(options)
-            opts_nc["noRothConversions"] = p.inames[person]
-            p.solve(objective, opts_nc)
-            max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-            _note_conv()
+            # Pin this person's conversion to zero in every year, rather than passing
+            # options["noRothConversions"]. That option names a single individual, so on a
+            # case that already excludes the *other* spouse it would replace the existing
+            # exclusion instead of adding to it -- freeing that spouse and leaving the two
+            # solves un-nested, which shows up as a negative regret. Pinning keeps the
+            # never-convert solve a strict restriction of the baseline, so R >= 0 holds.
+            p.rothXfixed_in[person, :] = True
+            p.myRothX_in[person, :] = 0.0
+            p.solve(objective, options)
+            _note()
             if p.caseStatus == "solved":
                 v_noconv = _regret_objective_value(p, objective)
+            p.rothXfixed_in[person, :] = False
 
         p.mylog.print(
-            f"window {year}: {_time.time() - _t0:.1f}s, {v_star_conv}, "
-            f"{n_nonmonotonic} non-monotonic solve(s), osc ${v_star_osc:,.0f}"
+            f"window {year}: {_time.time() - _t0:.1f}s, {n_nonmonotonic} non-monotonic solve(s)"
         )
-        return year, {"v_star": v_star, "x_star": x_star, "v_at": v_at, "v_noconv": v_noconv,
-                      "max_gap": max_gap, "v_star_conv": v_star_conv, "n_nonmonotonic": n_nonmonotonic,
-                      "v_star_osc": v_star_osc, "v_at_osc": v_at_osc}
+        return year, {
+            "v_at": v_at,
+            "v_at_osc": v_at_osc,
+            "v_noconv": v_noconv,
+            "max_gap": max_gap,
+            "n_nonmonotonic": n_nonmonotonic,
+        }
+
+
+def _select_regret_years(years, n_scenarios, seed):
+    """
+    Choose which historical windows to sweep.
+
+    Subsampling is always a seeded random draw, never a stride. Adjacent windows overlap
+    heavily (lag-1 correlation of the regret curve is 0.8-0.92), so a stride lands on a
+    correlated subsequence and biases the valley - measured at -$16k on a four-fold
+    stride - whereas random draws of the same size are centred on the full-sample answer.
+    """
+    if n_scenarios is None or n_scenarios >= len(years):
+        return list(years), None
+    if n_scenarios < 2:
+        raise ValueError("n_scenarios must be at least 2.")
+    rng = np.random.default_rng(seed)
+    picked = rng.choice(np.asarray(years), size=n_scenarios, replace=False)
+    return sorted(int(y) for y in picked), seed
+
+
+def _build_regret_grid(x_star, n_grid, pad):
+    """
+    Size the commitment grid from the observed distribution of scenario-optimal
+    conversions, so no probe sweep is needed.
+
+    The grid runs from zero to the largest scenario-optimal conversion plus `pad`, in
+    n_grid equally spaced points. The padding keeps the over-conversion probes on-grid:
+    were a probe to fall past the right edge it would be dropped, which silently takes the
+    over- and under-conversion means over different scenario subsets.
+    """
+    finite = x_star[np.isfinite(x_star)]
+    top = (float(np.max(finite)) if finite.size else 0.0) + float(pad)
+    if top <= 0.0:
+        top = float(pad) if pad > 0 else 1.0
+    n_grid = max(int(n_grid), 2)
+    return [float(round(top * k / (n_grid - 1))) for k in range(n_grid)]
 
 
 def run_conversion_regret_sweep(
@@ -520,35 +610,61 @@ def run_conversion_regret_sweep(
     person=0,
     include_never_convert=True,
     progcall=None,
+    n_grid=19,
+    grid_pad=45_000.0,
+    n_scenarios=None,
+    seed=None,
+    milp_downgrade=False,
+    on_scenario=None,
 ):
     """
     Measure the regret of committing to a fixed first-year Roth conversion.
 
-    For each historical starting year in [ystart, yend], the plan is first solved
-    unconstrained (the clairvoyant benchmark v*_s and its first-year conversion
-    x*_s), then re-solved with the first-year conversion of individual `person`
-    pinned at each value of `grid` (dollars), leaving all later decisions free to
-    re-optimize within the scenario. The regret of committing to x in scenario s
-    is v*_s - v_s(x) >= 0. Optionally, a never-convert solve (conversions
-    disallowed for `person` in all years) measures the value of the entire
-    conversion strategy.
+    The sweep runs in two phases. Phase A solves each historical scenario unconstrained,
+    giving the clairvoyant benchmark v*_s and that scenario's own first-year conversion
+    x*_s. The commitment grid is then sized from the observed spread of x*_s, so no
+    separate probe run is needed. Phase B re-solves each scenario with the first-year
+    conversion of individual `person` pinned at each grid value, leaving all later
+    decisions free to re-optimize within the scenario; the regret of committing to x in
+    scenario s is v*_s - v_s(x) >= 0. Optionally a never-convert solve (conversions
+    disallowed for `person` in every year) measures the value of the whole conversion
+    strategy, which is a different and much larger quantity than pinning year one to zero.
 
-    Outcomes are in the objective's natural units, today's dollars: first-year
-    spending basis ($/yr) for maxSpending, after-tax final savings estate for
-    maxBequest (which requires options["netSpending"]). For a couple, only
-    `person`'s conversion is pinned; the spouse's remains free.
+    Outcomes are in the objective's natural units, today's dollars: first-year spending
+    basis ($/yr) for maxSpending, after-tax final savings estate for maxBequest (which
+    requires options["netSpending"]). For a couple, only `person`'s conversion is pinned;
+    the spouse's remains free.
+
+    Cost is n_scenarios x (len(grid) + 2) full-horizon optimizations.
+
+    Args:
+      grid: list of committed amounts in dollars, or None to size it automatically from
+        the phase-A x*_s distribution using n_grid points and grid_pad of headroom.
+      n_scenarios: sweep a seeded random subset of the windows in [ystart, yend] rather
+        than all of them. Halving the grid costs about $2k of valley location; halving the
+        scenarios costs $10-35k, so cut the grid first.
+      seed: seed for that draw; recorded in the result so a run is reproducible.
+      milp_downgrade: solve every scenario with the MILP tax modes flipped to loop mode
+        (see _downgrade_milp_tax_modes). Must never be combined with a looser `gap`: the
+        regret near the valley is of order 1e-3 of the objective, below a loose MIP gap.
+      on_scenario: optional callback(phase, completed, total, partial) invoked as
+        scenarios complete, where phase is "baseline" or "pinned" and partial carries the
+        mean regret curve over the scenarios finished so far. Intended for live preview.
 
     Returns a dict:
-      "grid"        — list of committed amounts ($)
-      "start_years" — ndarray (S,) of scenario starting years
-      "v_star"      — ndarray (S,) clairvoyant optima; NaN if baseline failed
-      "x_star"      — ndarray (S,) baseline first-year conversions ($)
-      "v_at"        — ndarray (S, X); NaN where pinned solve was infeasible
-      "v_noconv"    — ndarray (S,) or None
-      "max_gap"     — ndarray (S,) largest achieved MIP gap per scenario (-1 when
-                      no MIP was involved; values above the requested gap flag
-                      solves whose certificate was degraded by the time limit)
-      "person"      — the pinned individual's index
+      "grid"        - list of committed amounts ($)
+      "start_years" - ndarray (S,) of scenario starting years actually swept
+      "v_star"      - ndarray (S,) clairvoyant optima; NaN if the baseline failed
+      "x_star"      - ndarray (S,) baseline first-year conversions ($)
+      "v_at"        - ndarray (S, X); NaN where the pinned solve was infeasible
+      "v_noconv"    - ndarray (S,) or None
+      "max_gap"     - ndarray (S,) largest achieved MIP gap per scenario (-1 when no MIP
+                      was involved; values above the requested gap flag solves whose
+                      certificate was degraded by the time limit)
+      "person"      - the pinned individual's index
+      "seed", "n_scenarios_requested", "milp_downgraded", "solver_gap" - provenance of
+                      the run; solver_gap is the tolerance actually used, which is capped
+                      at REGRET_MAX_GAP whatever the caller asked for
 
     Summarize with summarize_conversion_regret().
     """
@@ -559,74 +675,164 @@ def run_conversion_regret_sweep(
         raise ValueError(f"Starting year is too large to support a lifespan of {plan.N_n} years.")
     if not (0 <= person < plan.N_i):
         raise ValueError(f"person={person} out of range for {plan.N_i} individual(s).")
-    grid = [float(x) for x in grid]
-    if not grid or any(x < 0 for x in grid):
-        raise ValueError("grid must be a non-empty list of non-negative dollar amounts.")
+    if grid is not None:
+        grid = [float(x) for x in grid]
+        if not grid or any(x < 0 for x in grid):
+            raise ValueError("grid must be a non-empty list of non-negative dollar amounts.")
+
+    years, used_seed = _select_regret_years(range(ystart, yend + 1), n_scenarios, seed)
+    total = len(years)
+
+    options, downgraded = _downgrade_milp_tax_modes(options) if milp_downgrade else (dict(options), [])
+    if downgraded:
+        plan.mylog.print(f"Regret sweep: {', '.join(downgraded)} solved in loop mode.", tag="INFO")
+
+    # Solver tolerance is never a cost lever here. Regret near the valley is of order 1e-3
+    # of the objective - smaller than the MIP gap Owl adopts by default when a tax mode is
+    # optimized (30x GAP, and 10x that again for a small conversion cap), and smaller still
+    # than a hand-loosened one. At those tolerances the second-order over- and
+    # under-conversion regrets are inflated several-fold by slack rather than by the
+    # decision under study, so the sweep tightens the gap instead of inheriting it. Inert
+    # on a pure LP, where the gap is meaningless.
+    prev_gap = u.get_numeric_option(options, "gap", None) if "gap" in options else None
+    if prev_gap is None or prev_gap > REGRET_MAX_GAP:
+        options["gap"] = REGRET_MAX_GAP
+        if prev_gap is not None:
+            plan.mylog.print(
+                f"Regret sweep: tightening solver gap from {prev_gap:.1e} to {REGRET_MAX_GAP:.1e}; "
+                "a looser tolerance would be larger than the regret being measured.",
+                tag="WARNING",
+            )
 
     plan.mylog.setVerbose(False)
     if progcall is None:
         progcall = progress.Progress(plan.mylog)
 
-    years = list(range(ystart, yend + 1))
-    total = len(years)
-    args_list = [
-        (clone(plan, verbose=False), year, objective, options, grid, person, include_never_convert)
-        for year in years
-    ]
-    n_workers = min(os.cpu_count() or 1, total)
-    plan.mylog.print(
-        f"Regret sweep: {total} scenarios x {len(grid)} grid points using {n_workers} parallel worker thread(s)."
-    )
+    # Progress spans both phases: S baselines followed by S pinned sweeps.
+    nsteps = 2 * total
+    completed = 0
     progcall.start()
 
-    results_map = {}
-    completed = 0
+    def _tick(phase, partial=None):
+        nonlocal completed
+        completed += 1
+        progcall.show(completed, nsteps)
+        if on_scenario is not None:
+            on_scenario(phase, completed if phase == "baseline" else completed - total, total, partial)
+
+    n_workers = min(os.cpu_count() or 1, total)
+
+    # --- Phase A: clairvoyant baselines -------------------------------------------------
+    # Clones are kept alive and reused by phase B, so each scenario's rates are derived once.
+    clones = {year: clone(plan, verbose=False) for year in years}
+    plan.mylog.print(f"Regret sweep phase 1/2: {total} baselines using {n_workers} worker thread(s).")
+
+    base_map = {}
     with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="regret") as executor:
-        futures = {executor.submit(_regret_worker, args): args[1] for args in args_list}
+        futures = {
+            executor.submit(_regret_baseline_worker, (clones[year], year, objective, options, person)): year
+            for year in years
+        }
         for fut in as_completed(futures):
             year = futures[fut]
             try:
-                results_map[year] = fut.result()[1]
+                base_map[year] = fut.result()[1]
             except Exception as exc:
                 plan.mylog.print(
                     f"scenario {year} raised {type(exc).__name__}: {exc}; treating as failed baseline.",
                     tag="WARNING",
                 )
-                results_map[year] = None
-            completed += 1
-            progcall.show(completed, total)
+                base_map[year] = None
+            _tick("baseline")
 
-    progcall.finish()
-    plan.mylog.resetVerbose()
-
-    S, X = total, len(grid)
+    S = total
     v_star = np.full(S, np.nan)
     x_star = np.full(S, np.nan)
-    v_at = np.full((S, X), np.nan)
-    v_noconv = np.full(S, np.nan) if include_never_convert else None
     max_gap = np.full(S, -1.0)
     n_nonmonotonic = np.zeros(S, dtype=int)
     v_star_conv = ["undefined"] * S
     v_star_osc = np.zeros(S)
-    v_at_osc = np.full((S, X), np.nan)
     for i, year in enumerate(years):
-        r = results_map.get(year)
+        r = base_map.get(year)
         if r is None:
             continue
-        max_gap[i] = r.get("max_gap", -1.0)
-        n_nonmonotonic[i] = r.get("n_nonmonotonic", 0)
-        v_star_conv[i] = r.get("v_star_conv", "undefined")
-        v_star_osc[i] = r.get("v_star_osc", 0.0)
         v_star[i] = r["v_star"]
         x_star[i] = r["x_star"]
-        for j, v in enumerate(r["v_at"]):
-            if v is not None:
-                v_at[i, j] = v
-        for j, o in enumerate(r.get("v_at_osc", [])):
-            if o is not None:
-                v_at_osc[i, j] = o
-        if include_never_convert and r["v_noconv"] is not None:
-            v_noconv[i] = r["v_noconv"]
+        v_star_osc[i] = r["v_star_osc"]
+        v_star_conv[i] = r["v_star_conv"]
+        max_gap[i] = r["max_gap"]
+        n_nonmonotonic[i] = r["n_nonmonotonic"]
+
+    if grid is None:
+        grid = _build_regret_grid(x_star, n_grid, grid_pad)
+        plan.mylog.print(f"Commitment grid: {len(grid)} points up to ${grid[-1]:,.0f}.")
+
+    X = len(grid)
+    v_at = np.full((S, X), np.nan)
+    v_at_osc = np.full((S, X), np.nan)
+    v_noconv = np.full(S, np.nan) if include_never_convert else None
+
+    # --- Phase B: pinned commitments ----------------------------------------------------
+    live = [year for year in years if base_map.get(year) is not None]
+    plan.mylog.print(
+        f"Regret sweep phase 2/2: {len(live)} scenarios x {X} grid points "
+        f"using {n_workers} worker thread(s)."
+    )
+    index_of = {year: i for i, year in enumerate(years)}
+    pin_map = {}
+    with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="regret") as executor:
+        futures = {
+            executor.submit(
+                _regret_pin_worker,
+                (clones[year], year, objective, options, grid, person, include_never_convert),
+            ): year
+            for year in live
+        }
+        for fut in as_completed(futures):
+            year = futures[fut]
+            try:
+                pin_map[year] = fut.result()[1]
+            except Exception as exc:
+                plan.mylog.print(
+                    f"scenario {year} raised {type(exc).__name__}: {exc}; dropping its pinned solves.",
+                    tag="WARNING",
+                )
+                pin_map[year] = None
+            r = pin_map.get(year)
+            if r is not None:
+                i = index_of[year]
+                for j, v in enumerate(r["v_at"]):
+                    if v is not None:
+                        v_at[i, j] = v
+                for j, o in enumerate(r["v_at_osc"]):
+                    if o is not None:
+                        v_at_osc[i, j] = o
+                if include_never_convert and r["v_noconv"] is not None:
+                    v_noconv[i] = r["v_noconv"]
+                max_gap[i] = max(max_gap[i], r["max_gap"])
+                n_nonmonotonic[i] += r["n_nonmonotonic"]
+            # The partial mean is unbiased only because completion order is roughly random;
+            # it is labelled "n of S" wherever it is drawn.
+            partial = None
+            if on_scenario is not None:
+                with warnings.catch_warnings():
+                    # Columns past the infeasibility onset are all-NaN by design.
+                    warnings.simplefilter("ignore", category=RuntimeWarning)
+                    R = v_star[:, None] - v_at
+                    done = ~np.isnan(R).all(axis=1)
+                    partial = {
+                        "grid": list(grid),
+                        "n_done": int(done.sum()),
+                        "mean": np.nanmean(R[done], axis=0).tolist() if done.any() else None,
+                    }
+            _tick("pinned", partial)
+
+    # Scenarios whose baseline failed never entered phase B; skip their progress ticks.
+    for _ in range(total - len(live)):
+        _tick("pinned")
+
+    progcall.finish()
+    plan.mylog.resetVerbose()
 
     n_failed = int(np.isnan(v_star).sum())
     if n_failed:
@@ -645,10 +851,21 @@ def run_conversion_regret_sweep(
         "v_star_osc": v_star_osc,
         "v_at_osc": v_at_osc,
         "person": person,
+        "seed": used_seed,
+        "n_scenarios_requested": n_scenarios,
+        "milp_downgraded": downgraded,
+        "solver_gap": options["gap"],
     }
 
 
-def summarize_conversion_regret(result, *, asymmetry_deltas=(15_000, 30_000, 45_000)):
+def summarize_conversion_regret(
+    result,
+    *,
+    asymmetry_deltas=(15_000, 30_000, 45_000),
+    bootstrap=400,
+    bootstrap_seed=12345,
+    band_frac=0.02,
+):
     """
     Summarize a run_conversion_regret_sweep() result into a JSON-ready dict.
 
@@ -773,7 +990,133 @@ def summarize_conversion_regret(result, *, asymmetry_deltas=(15_000, 30_000, 45_
     if result["v_noconv"] is not None:
         r_nc = v_star[ok] - result["v_noconv"][ok]
         out["never_convert_regret"] = _stats(r_nc)
+
+    # Bootstrap over the scenario axis. Costs no solves: it resamples the (S, X) regret
+    # array that has already been computed. Scenario sampling, not solver noise, is the
+    # dominant uncertainty here - halving the scenarios moves the valley by $10-35k while
+    # the tax-loop oscillation bar is worth tens of dollars - so this is what turns a
+    # cheap preset from an approximation into an honest one.
+    nc_mean = out.get("never_convert_regret", {}).get("mean")
+    out.update(_regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, bootstrap, bootstrap_seed, band_frac))
     return out
+
+
+def _regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, n_boot, seed, band_frac):
+    """
+    Resample the scenario axis of the regret array to put confidence intervals on the
+    mean curve and on the valley location, and derive the readouts that depend on them.
+
+    Returns a dict of keys to merge into the summary:
+      "valley_ci"        - 80% interval on the argmin location ($)
+      "mean_ci_by_grid"  - 80% interval on the mean regret at each grid point
+      "resolution_floor" - the height below which curve features are not distinguishable,
+                           taken as the larger of the bootstrap half-width at the valley
+                           and the worst SC-loop oscillation bar
+      "valley_resolvable"- False when the curve is flat within that floor, or when the
+                           valley location is no better determined than half the grid
+      "commit_band"      - the span of commitments costing no more than band_frac of the
+                           value of converting at all; the primary readout, and the most
+                           stable statistic in the sweep
+      "value_of_converting" / "pct_axis_ok" - the never-convert regret and whether it is
+                           large enough to normalize against (it can be ~0 or negative
+                           under maxSpending, where dividing by it is meaningless)
+    """
+    grid = np.asarray(grid, dtype=float)
+    n, X = R.shape
+    span = float(grid[-1] - grid[0]) if X > 1 else 0.0
+    outb = {}
+
+    boot_lo = boot_hi = None
+    valley_half = 0.0
+    if n >= 2 and n_boot and n_boot > 0:
+        rng = np.random.default_rng(seed)
+        idx = rng.integers(0, n, size=(int(n_boot), n))
+        with warnings.catch_warnings():
+            # All-NaN columns are expected past the over-conversion infeasibility onset.
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            curves = np.nanmean(R[idx], axis=1)
+            usable = ~np.isnan(curves).all(axis=1)
+            curves = curves[usable]
+            if curves.size:
+                boot_lo, boot_hi = np.nanpercentile(curves, [10, 90], axis=0)
+                vx = grid[np.nanargmin(np.where(np.isnan(curves), np.inf, curves), axis=1)]
+                v_lo, v_hi = (float(v) for v in np.percentile(vx, [10, 90]))
+                outb["valley_ci"] = {"p10": round(v_lo, 2), "p90": round(v_hi, 2),
+                                     "n_boot": int(curves.shape[0])}
+                valley_half = 0.5 * float(boot_hi[j_valley] - boot_lo[j_valley])
+
+    if boot_lo is not None:
+        outb["mean_ci_by_grid"] = [
+            {"x": float(grid[j]),
+             "p10": None if np.isnan(boot_lo[j]) else float(np.round(boot_lo[j], 2)),
+             "p90": None if np.isnan(boot_hi[j]) else float(np.round(boot_hi[j], 2))}
+            for j in range(X)
+        ]
+
+    osc_bars = [g.get("regret_osc_bar", 0.0) or 0.0 for g in by_grid]
+    floor = max(valley_half, max(osc_bars) if osc_bars else 0.0)
+
+    # Regret is non-negative by construction: pinning the first year is a restriction of the
+    # unconstrained problem, so v(x) <= v*. Any negative value is therefore a direct
+    # measurement of the method's own error - chiefly the self-consistent tax loop settling on
+    # a different fixed point for the constrained and unconstrained solves. It is deterministic
+    # and survives an arbitrarily tight solver gap, so it must be read off the data rather than
+    # inferred from the solver.
+    finite_R = R[np.isfinite(R)]
+    if finite_R.size:
+        worst_cell = float(min(finite_R.min(), 0.0))
+        # Cell-level error averages down across scenarios, so the mean curve carries
+        # |worst cell| / sqrt(n). A negative mean is noise at face value.
+        n_eff = max(int(np.isfinite(R).any(axis=1).sum()), 1)
+        floor = max(floor, abs(worst_cell) / np.sqrt(n_eff))
+    finite_means = means[np.isfinite(means)]
+    if finite_means.size:
+        floor = max(floor, abs(min(float(finite_means.min()), 0.0)))
+    outb["resolution_floor"] = float(np.round(floor, 2))
+
+    finite = means[np.isfinite(means)]
+    curve_range = float(finite.max() - finite.min()) if finite.size else 0.0
+    ci = outb.get("valley_ci")
+    well_located = ci is None or span <= 0 or (ci["p90"] - ci["p10"]) <= 0.5 * span
+
+    # A wide curve is not the same as a located minimum. What matters is whether the bottom is
+    # a point or a plateau: when many grid values sit within the floor of the lowest, naming one
+    # of them as "the" best commitment is false precision, however steeply the curve rises
+    # elsewhere.
+    n_flat = int(np.sum(finite <= finite.min() + floor)) if finite.size else 0
+    plateau_limit = max(2, len(grid) // 3)
+    outb["n_within_floor"] = n_flat
+    outb["valley_resolvable"] = bool(curve_range > floor and well_located and n_flat <= plateau_limit)
+
+    # A minimum sitting on the last grid point is not bracketed: the curve was still
+    # falling where the grid ran out, so the answer is "at least this much", not "this
+    # much". The left edge is different -- zero is a real boundary, since a conversion
+    # cannot be negative -- so only the right edge is flagged.
+    outb["valley_at_grid_edge"] = bool(j_valley == len(grid) - 1 and len(grid) > 1)
+
+    # The percentage axis is normalized by the value of converting at all. That is large
+    # and stable under maxBequest but can be ~0 or negative under maxSpending, where the
+    # normalization would be meaningless or sign-flipped.
+    outb["value_of_converting"] = None if nc_mean is None else float(nc_mean)
+    # Normalizing by the value of converting only means something when that value stands clear
+    # of the floor; at 2-3x it the percentages carry an error bar as large as the readings.
+    outb["pct_axis_ok"] = bool(nc_mean is not None and nc_mean > 0 and nc_mean > 3.0 * max(floor, 0.0))
+
+    if outb["pct_axis_ok"] and np.isfinite(means[j_valley]):
+        theta = float(band_frac) * float(nc_mean)
+        cutoff = means[j_valley] + theta
+        lo = hi = j_valley
+        while lo - 1 >= 0 and np.isfinite(means[lo - 1]) and means[lo - 1] <= cutoff:
+            lo -= 1
+        while hi + 1 < X and np.isfinite(means[hi + 1]) and means[hi + 1] <= cutoff:
+            hi += 1
+        outb["commit_band"] = {
+            "x_lo": float(grid[lo]),
+            "x_hi": float(grid[hi]),
+            "threshold": float(np.round(theta, 2)),
+            "band_frac": float(band_frac),
+        }
+    return outb
 
 
 def run_historical_range(

@@ -41,8 +41,12 @@ else:
         with col1:
             kz.initCaseKey("MC_cases", 100)
             kz.getIntNum("Number of trials", "MC_cases", step=10, max_value=10000)
+        _solves, _width, _detail = owb.monteCarloCost()
+        _allowed, _cost = owb.costOfRun(_solves, _width, detail=_detail)
         with col4:
-            st.button("Run simulation", on_click=owb.runMC, disabled=kz.caseIsNotMCReady())
+            st.button("Run simulation", on_click=owb.runMC,
+                      disabled=not _allowed or kz.caseIsNotMCReady())
+        st.caption(_cost)
 
         st.markdown("#####")
         with st.expander("*Advanced options*"):

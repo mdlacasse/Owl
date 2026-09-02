@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import io
 import os
+import textwrap
 
 os.environ["JUPYTER_PLATFORM_DIRS"] = "1"
 
@@ -32,6 +33,7 @@ import pandas as pd  # noqa: E402
 import seaborn as sbn  # noqa: E402
 
 from .base import PlotBackend  # noqa: E402
+from .regret_common import prepare_regret_plot, regret_caption  # noqa: E402
 from .. import utils as u  # noqa: E402
 from ..rate_models.constants import (  # noqa: E402
     HISTORICAL_RANGE_METHODS,
@@ -835,6 +837,107 @@ class MatplotlibBackend(PlotBackend):
 
         longevity_tag = " · longevity" if with_longevity else ""
         plt.suptitle(f"{frontier_type} spending efficient frontier ({thisyear}$){longevity_tag}", fontsize=14)
+        plt.tight_layout()
+        return fig
+
+    def plot_conversion_regret(
+        self,
+        grid,
+        mean_regret,
+        lo_band,
+        hi_band,
+        summary,
+        objective,
+        year_n,
+    ):
+        """Regret of committing to a first-year Roth conversion. See base.PlotBackend."""
+        prep = prepare_regret_plot(grid, mean_regret, lo_band, hi_band, summary, objective)
+        thisyear = int(year_n[0])
+        x, y = prep["x"], prep["y"]
+        fig, ax = plt.subplots(figsize=(9, 5))
+
+        # Over-conversion infeasibility: past the onset the mean is over survivors only.
+        if prep["onset"] is not None:
+            ax.axvspan(prep["onset"]["x"], float(x[-1]), color="firebrick", alpha=0.08, linewidth=0)
+            ax.axvline(prep["onset"]["x"], color="firebrick", linestyle=(0, (3, 2)), linewidth=1, alpha=0.8)
+            ax.text(
+                prep["onset"]["x"],
+                0.97,
+                f" {prep['onset']['n']} of {prep['n_scenarios']} scenarios\n infeasible beyond here",
+                transform=ax.get_xaxis_transform(),
+                fontsize=8,
+                color="firebrick",
+                va="top",
+                ha="left",
+            )
+
+        # Resolution floor: features inside this strip are not distinguishable.
+        if prep["floor"] > 0:
+            ax.axhspan(prep["ymin"], prep["ymin"] + prep["floor"], color="gray", alpha=0.13, linewidth=0)
+
+        # Commit band.
+        if prep["band"] is not None:
+            ax.axvspan(prep["band"]["lo"], prep["band"]["hi"], color="seagreen", alpha=0.12, linewidth=0)
+
+        if prep["lo"] is not None and prep["hi"] is not None:
+            ax.plot(x, np.maximum(prep["lo"], prep["ymin"]), color="steelblue", linewidth=1.1,
+                    linestyle=(0, (4, 2)), alpha=0.75, label="10th–90th pct")
+            ax.plot(x, np.maximum(prep["hi"], prep["ymin"]), color="steelblue", linewidth=1.1,
+                    linestyle=(0, (4, 2)), alpha=0.75)
+
+        # Bootstrap interval on the mean: narrow when enough scenarios were swept, wide
+        # when they were not, which is what keeps a cheap preset honest.
+        if prep["mean_lo"] is not None and np.isfinite(prep["mean_lo"]).any():
+            ax.fill_between(x, prep["mean_lo"], prep["mean_hi"], color="steelblue", alpha=0.22,
+                            linewidth=0, label="80% interval on the mean")
+
+        if prep["xd"] is not None:
+            ax.plot(prep["xd"], prep["yd"], color="steelblue", linewidth=2, solid_capstyle="round",
+                    label="mean regret")
+            ax.plot(x, y, "o", color="steelblue", markersize=4)
+        else:
+            ax.plot(x, y, "-o", color="steelblue", linewidth=2, markersize=4, label="mean regret")
+
+        if prep["valley"] is not None:
+            v = prep["valley"]
+            xerr = None
+            if v["lo"] is not None and v["hi"] - v["lo"] > 0:
+                xerr = [[v["x"] - v["lo"]], [v["hi"] - v["x"]]]
+            ax.errorbar([v["x"]], [v["y"]], xerr=xerr, fmt="o", color="firebrick", markersize=8,
+                        markeredgecolor="white", markeredgewidth=1.4, capsize=3, zorder=5)
+            ax.annotate(f"best commitment\n${v['x']:,.0f}k", xy=(v["x"], v["y"]), xytext=(7, 9),
+                        textcoords="offset points", fontsize=8.5, color="#52514e", va="bottom", ha="left")
+
+        if prep["skip_y1"] is not None:
+            label = f"skip year 1 only: {u.d(prep['skip_y1'] * prep['div'])}"
+            if prep["skip_y1_pct"] is not None:
+                label += f" ({prep['skip_y1_pct']:.0f}%)"
+            ax.plot([float(x[0])], [prep["skip_y1"]], "D", color="darkorange", markersize=7, label=label, zorder=5)
+
+        ax.set_xlabel(f"Committed first-year Roth conversion ({thisyear} $k)", fontsize=11)
+        ax.set_ylabel(prep["ylabel"], fontsize=11)
+        ax.set_ylim(prep["ymin"], prep["ymax"])
+        ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda v, _: f"${v:,.0f}k"))
+        ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda v, _: f"${v:,.0f}" + prep["suffix"]))
+        ax.tick_params(axis="both", labelsize=10)
+        ax.grid(axis="y", alpha=0.3)
+        ax.legend(fontsize=9, frameon=False)
+
+        # Right-hand axis: the same regret as a share of what converting is worth at all.
+        # Omitted when that denominator is too small or negative to divide by.
+        if prep["pct_ok"]:
+            ax2 = ax.twinx()
+            ax2.set_ylim(prep["pct_min"], prep["pct_max"])
+            ax2.set_ylabel("Share of the value of converting", fontsize=10)
+            ax2.yaxis.set_major_formatter(tk.FuncFormatter(lambda v, _: f"{v:.0f}%"))
+            ax2.tick_params(axis="y", labelsize=9)
+            ax2.grid(False)
+
+        # A pair of unescaped "$" turns everything between them into mathtext, and the
+        # caption quotes two dollar amounts.
+        caption = "\n".join(textwrap.wrap(regret_caption(prep, summary).replace("$", r"\$"), 96))
+        ax.set_title(caption, fontsize=8.5, color="#52514e", loc="left", pad=10)
+        plt.suptitle(f"Cost of committing to a first-year Roth conversion ({thisyear}$)", fontsize=14)
         plt.tight_layout()
         return fig
 

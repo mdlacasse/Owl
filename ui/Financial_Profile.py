@@ -485,7 +485,7 @@ the *Wages and Contributions* sheet for each individual, plus *Debts* and *Fixed
             gcs = owb.getCaseString()
             if gcs:
                 kz.storeCaseKey("casetoml", gcs.getvalue())
-            st.rerun()
+            # See Reports.py: an st.rerun() here would delete the media file mid-download.
 
     # Show progress bar at bottom (only when case is defined)
     cp.show_progress_bar()

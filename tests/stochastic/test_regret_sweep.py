@@ -22,6 +22,12 @@ import numpy as np
 import pytest
 
 from owlplanner import run_conversion_regret_sweep, summarize_conversion_regret
+from owlplanner.stresstests import (
+    REGRET_MAX_GAP,
+    _build_regret_grid,
+    _downgrade_milp_tax_modes,
+    _select_regret_years,
+)
 from owlplanner.config import readConfig
 
 DANA_TOML = "examples/Case_dana.toml"
@@ -140,3 +146,270 @@ def test_dana_1966_maxbequest_reference(dana):
     assert s["never_convert_regret"]["mean"] == pytest.approx(
         res["v_star"][0] - res["v_noconv"][0], abs=0.01
     )
+
+
+class TestGridAndScenarioSelection:
+    """The two-phase sweep sizes its own grid and picks its own windows."""
+
+    def test_grid_spans_the_widest_optimum_plus_padding(self):
+        x_star = np.array([10_000.0, 90_000.0, np.nan, 40_000.0])
+        grid = _build_regret_grid(x_star, n_grid=7, pad=45_000.0)
+        assert len(grid) == 7
+        assert grid[0] == 0.0
+        # The padding keeps the over-conversion probes on-grid; without it they would be
+        # dropped and the over/under means would be taken over different subsets.
+        assert grid[-1] == pytest.approx(135_000.0)
+        assert all(b > a for a, b in zip(grid, grid[1:]))
+
+    def test_grid_survives_a_case_that_never_converts(self):
+        """All-zero optima must still give a usable grid rather than a degenerate one."""
+        grid = _build_regret_grid(np.zeros(5), n_grid=5, pad=45_000.0)
+        assert grid[0] == 0.0 and grid[-1] == pytest.approx(45_000.0)
+
+    def test_subsampling_is_random_not_stride(self):
+        years = range(1928, 2000)
+        picked, seed = _select_regret_years(years, 24, 7)
+        assert len(picked) == 24 and len(set(picked)) == 24
+        assert picked == sorted(picked) and seed == 7
+        # A stride would leave a constant gap. Adjacent windows overlap heavily, so a
+        # stride lands on a correlated run and biases the valley (measured at -$16k).
+        gaps = {b - a for a, b in zip(picked, picked[1:])}
+        assert len(gaps) > 1
+
+    def test_subsampling_is_reproducible_from_the_seed(self):
+        a, _ = _select_regret_years(range(1928, 2000), 20, 42)
+        b, _ = _select_regret_years(range(1928, 2000), 20, 42)
+        c, _ = _select_regret_years(range(1928, 2000), 20, 43)
+        assert a == b and a != c
+
+    def test_asking_for_every_window_sweeps_them_all(self):
+        picked, seed = _select_regret_years(range(1990, 2000), None, 1)
+        assert picked == list(range(1990, 2000)) and seed is None
+        picked, _ = _select_regret_years(range(1990, 2000), 500, 1)
+        assert picked == list(range(1990, 2000))
+
+
+class TestNeverConvertIsNested:
+    """
+    Regret cannot be negative: the never-convert solve must be a strict restriction of the
+    clairvoyant baseline.
+
+    The trap is a case that already excludes the *other* spouse via
+    options["noRothConversions"], which names one individual. Overwriting that option with
+    the pinned person's name would free the excluded spouse, leaving the two solves
+    un-nested and producing a large negative "value of converting".
+    """
+
+    @pytest.mark.toml
+    def test_regret_stays_non_negative_when_the_case_excludes_the_spouse(self):
+        plan = readConfig("examples/Case_jack+jill.toml", verbose=False)
+        opts = dict(plan.solverOptions)
+        opts.update({"solver": "HiGHS", "noRothConversions": plan.inames[1]})
+        res = run_conversion_regret_sweep(plan, "maxSpending", opts, [0.0], 1970, 1972, person=0)
+        ok = ~np.isnan(res["v_star"])
+        assert ok.any()
+        # Tolerance is relative to the objective. Under maxSpending the outcome is the
+        # first-year basis, on which the self-consistent tax loop leaves noise of order
+        # 1e-4 to 1e-3; the defect this guards against was 60% of the objective, so a 1e-3
+        # bound separates the two by nearly three orders of magnitude.
+        floor = -1e-3 * np.abs(res["v_star"][ok])
+        never = res["v_star"][ok] - res["v_noconv"][ok]
+        assert np.all(never >= floor), f"never-convert regret went materially negative: {never}"
+        pinned = res["v_star"][ok, None] - res["v_at"][ok, :]
+        assert np.all(np.nan_to_num(pinned, nan=0.0) >= floor[:, None])
+
+    @pytest.mark.toml
+    def test_the_case_own_exclusion_is_not_discarded(self):
+        """The spouse the case excludes must stay excluded in every solve of the sweep."""
+        plan = readConfig("examples/Case_jack+jill.toml", verbose=False)
+        opts = dict(plan.solverOptions)
+        opts.update({"solver": "HiGHS", "noRothConversions": plan.inames[1]})
+        run_conversion_regret_sweep(plan, "maxSpending", opts, [0.0], 1970, 1970, person=0)
+        assert opts["noRothConversions"] == plan.inames[1]
+
+
+class TestGapGuard:
+    """Solver tolerance must never be looser than the regret being measured."""
+
+    def test_an_absent_gap_is_pinned_tight(self, dana):
+        """
+        Owl otherwise adopts a loose MIP gap (30x GAP, 10x more for a small cap) when a tax
+        mode is optimized, which would exceed the ~1e-3 relative regret near the valley.
+        """
+        opts = {"solver": "HiGHS", "netSpending": 58.0, "withMedicare": "optimize"}
+        run_conversion_regret_sweep(dana, "maxBequest", opts, [0.0], 1966, 1966, milp_downgrade=True)
+        assert "gap" not in opts, "must not mutate the caller's options"
+
+    def _sweep_with_gap(self, dana, gap):
+        opts = dict(dana.solverOptions)
+        opts.update({"solver": "HiGHS"})
+        opts.pop("bequest", None)
+        opts["netSpending"] = 58.0
+        if gap is not None:
+            opts["gap"] = gap
+        return run_conversion_regret_sweep(dana, "maxBequest", opts, [0.0], 1966, 1966)["solver_gap"]
+
+    def test_a_loose_gap_is_tightened(self, dana):
+        assert self._sweep_with_gap(dana, 1e-2) == REGRET_MAX_GAP
+
+    def test_a_gap_already_tight_is_left_alone(self, dana):
+        """Reproducing a published run at 1e-8 must not be quietly coarsened to the cap."""
+        assert self._sweep_with_gap(dana, 1e-9) == 1e-9
+
+    def test_no_gap_at_all_is_pinned_to_the_cap(self, dana):
+        assert self._sweep_with_gap(dana, None) == REGRET_MAX_GAP
+
+
+class TestMilpDowngrade:
+    def test_only_optimize_modes_are_flipped(self):
+        opts = {"withMedicare": "optimize", "withACA": "loop", "withNIIT": "optimize", "gap": 1e-6}
+        out, changed = _downgrade_milp_tax_modes(opts)
+        assert changed == ["withMedicare", "withNIIT"]
+        assert out["withMedicare"] == "loop" and out["withNIIT"] == "loop"
+        assert out["withACA"] == "loop" and out["gap"] == 1e-6
+        assert opts["withMedicare"] == "optimize", "must not mutate the caller's options"
+
+    def test_ss_ages_are_left_alone(self):
+        """withSSAges picks a claiming age; it has no loop equivalent to fall back on."""
+        out, changed = _downgrade_milp_tax_modes({"withSSAges": "optimize"})
+        assert changed == [] and out["withSSAges"] == "optimize"
+
+
+class TestSummaryRobustnessLayer:
+    """The readouts that decide what the plot is allowed to claim."""
+
+    @staticmethod
+    def _valley_result(depth=20_000.0, n=24):
+        """A clean V-shaped curve: every scenario prefers the middle of the grid."""
+        grid = [0.0, 25_000.0, 50_000.0, 75_000.0, 100_000.0]
+        v_star = np.full(n, 500_000.0)
+        shape = np.array([depth, depth / 4, 0.0, depth / 4, depth])
+        v_at = v_star[:, None] - shape[None, :]
+        return {"grid": grid, "start_years": np.arange(1950, 1950 + n),
+                "v_star": v_star, "x_star": np.full(n, 50_000.0), "v_at": v_at,
+                "v_noconv": v_star - 200_000.0, "person": 0}
+
+    def test_a_clear_valley_is_reported_with_an_interval(self):
+        s = summarize_conversion_regret(self._valley_result())
+        assert s["valley"]["x"] == 50_000.0
+        assert s["valley_resolvable"] is True
+        assert s["valley_ci"]["p10"] <= 50_000.0 <= s["valley_ci"]["p90"]
+        assert len(s["mean_ci_by_grid"]) == 5
+
+    def test_a_flat_curve_refuses_to_name_a_valley(self):
+        """Below the resolution floor there is nothing to report, and saying so is the answer."""
+        s = summarize_conversion_regret(self._valley_result(depth=0.0))
+        assert s["valley_resolvable"] is False
+
+    def test_commit_band_widens_with_the_tolerance(self):
+        r = self._valley_result()
+        narrow = summarize_conversion_regret(r, band_frac=0.001)["commit_band"]
+        wide = summarize_conversion_regret(r, band_frac=0.05)["commit_band"]
+        assert narrow["x_lo"] >= wide["x_lo"] and narrow["x_hi"] <= wide["x_hi"]
+        assert wide["x_lo"] <= 50_000.0 <= wide["x_hi"]
+
+    def test_bootstrap_is_deterministic(self):
+        r = self._valley_result()
+        assert (summarize_conversion_regret(r)["valley_ci"]
+                == summarize_conversion_regret(r)["valley_ci"])
+
+    def test_a_minimum_on_the_last_grid_point_is_flagged_as_unbracketed(self):
+        """
+        A valley at the right edge means the curve was still falling when the grid ran
+        out, so the answer is a lower bound, not a located optimum.
+        """
+        r = self._valley_result()
+        # Monotonically decreasing across the whole grid: the minimum is the last point.
+        r["v_at"] = r["v_star"][:, None] - np.array([40_000.0, 30_000.0, 20_000.0, 10_000.0, 0.0])[None, :]
+        s = summarize_conversion_regret(r)
+        assert s["valley"]["x"] == 100_000.0
+        assert s["valley_at_grid_edge"] is True
+
+    def test_an_interior_minimum_is_not_flagged(self):
+        s = summarize_conversion_regret(self._valley_result())
+        assert s["valley_at_grid_edge"] is False
+
+    def test_a_minimum_at_zero_is_not_flagged(self):
+        """Zero is a real boundary -- a conversion cannot be negative -- not a grid artifact."""
+        r = self._valley_result()
+        r["v_at"] = r["v_star"][:, None] - np.array([0.0, 10_000.0, 20_000.0, 30_000.0, 40_000.0])[None, :]
+        s = summarize_conversion_regret(r)
+        assert s["valley"]["x"] == 0.0
+        assert s["valley_at_grid_edge"] is False
+
+    def test_negative_regret_raises_the_resolution_floor(self):
+        """
+        Regret cannot be negative: pinning is a restriction. A negative value is therefore a
+        direct measurement of the method's own error, and the floor must reflect it. It is
+        deterministic and survives an arbitrarily tight solver gap, so it cannot be inferred
+        from the solver.
+        """
+        clean = summarize_conversion_regret(self._valley_result())
+        r = self._valley_result()
+        r["v_at"][0, 2] = r["v_star"][0] + 6_000.0        # one scenario reads -6,000
+        dirty = summarize_conversion_regret(r)
+        assert dirty["resolution_floor"] > clean["resolution_floor"]
+        # Cell error averages down across scenarios: |worst| / sqrt(n), not |worst|.
+        assert dirty["resolution_floor"] == pytest.approx(6_000.0 / np.sqrt(24), rel=0.15)
+
+    def test_a_flat_bottom_is_not_a_located_valley(self):
+        """
+        A curve can rise steeply at one end while its bottom is a plateau. Naming one grid
+        point as the best commitment is then false precision, however wide the curve's range.
+        """
+        grid = [0.0, 25_000.0, 50_000.0, 75_000.0, 100_000.0]
+        n = 24
+        v_star = np.full(n, 500_000.0)
+        # Steep on the left, indistinguishable across the whole right-hand half.
+        shape = np.array([40_000.0, 12_000.0, 5.0, 0.0, 3.0])
+        r = {"grid": grid, "start_years": np.arange(1950, 1950 + n), "v_star": v_star,
+             "x_star": np.full(n, 60_000.0), "v_at": v_star[:, None] - shape[None, :],
+             "v_noconv": v_star - 200_000.0, "person": 0}
+        # Give it a floor big enough to swallow the plateau but not the curve's range.
+        r["v_at"][0, 3] = v_star[0] + 3_000.0
+        s = summarize_conversion_regret(r)
+        assert s["n_within_floor"] >= 3
+        assert s["valley_resolvable"] is False, "a plateau must not be reported as a valley"
+
+    def test_a_clear_valley_survives_the_plateau_test(self):
+        s = summarize_conversion_regret(self._valley_result())
+        assert s["valley_resolvable"] is True
+        assert s["n_within_floor"] <= 2
+
+    def test_percentage_axis_is_refused_when_converting_is_worthless(self):
+        """
+        Never-convert regret is large under maxBequest but can be ~0 or negative under
+        maxSpending, where normalizing by it would be meaningless or sign-flipped.
+        """
+        r = self._valley_result()
+        r["v_noconv"] = r["v_star"] + 5.0  # converting is worth nothing at all here
+        s = summarize_conversion_regret(r)
+        assert s["pct_axis_ok"] is False
+        assert "commit_band" not in s
+        assert s["value_of_converting"] is not None
+
+
+@pytest.mark.toml
+def test_auto_grid_end_to_end(dana):
+    """
+    Passing grid=None must size the grid from the scenarios themselves, which is what
+    removes the separate probe sweep the published runs needed.
+    """
+    opts = dict(dana.solverOptions)
+    opts["solver"] = "HiGHS"
+    opts.pop("bequest", None)
+    opts["netSpending"] = 58.0
+    res = run_conversion_regret_sweep(dana, "maxBequest", opts, None, 1966, 1967, n_grid=5, grid_pad=45_000.0)
+
+    assert len(res["grid"]) == 5
+    assert res["grid"][0] == 0.0
+    assert res["grid"][-1] == pytest.approx(float(np.nanmax(res["x_star"])) + 45_000.0, abs=1.0)
+    assert res["v_at"].shape == (2, 5)
+    assert res["milp_downgraded"] == []
+
+    s = summarize_conversion_regret(res)
+    # Regret is non-negative by construction; only solver noise can push it below zero,
+    # and never by more than the resolution floor.
+    for g in s["regret_by_grid"]:
+        if g["mean"] is not None:
+            assert g["mean"] >= -s["resolution_floor"] - 1.0
