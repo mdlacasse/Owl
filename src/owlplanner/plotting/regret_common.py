@@ -125,6 +125,10 @@ def prepare_regret_plot(grid, mean_regret, lo_band, hi_band, summary, objective)
 def regret_caption(prep, summary):
     """One-sentence reading of the graph, or the honest refusal when it has none."""
     n = prep["n_scenarios"]
+    if summary.get("conversions_blocked"):
+        return ("No commitment above zero is feasible in this case - conversions are either "
+                "disallowed or unaffordable in essentially every scenario - so there is nothing "
+                "to weigh.")
     if not prep["resolvable"]:
         return (f"Across {n} scenarios the curve is flat within the resolution of this run: "
                 "no committed amount is measurably better than another.")

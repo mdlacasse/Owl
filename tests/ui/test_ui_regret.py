@@ -175,6 +175,39 @@ class TestSummaryText:
         assert "ratio of the two is not stable" in txt
         assert "withMedicare" in txt and "seed 3" in txt
 
+    def test_a_flat_curve_does_not_also_name_a_direction_of_error(self):
+        """
+        Reporting "no commitment is measurably best" and then "missing the best by $30,000
+        costs X" contradicts itself, and the direction would be read off noise-level numbers.
+        """
+        summary = {
+            "n_scenarios": 36,
+            "valley_resolvable": False,
+            "valley": {"x": 199_174.0, "mean_regret": -0.74},
+            "resolution_floor": 34.0,
+            "x_star": {"median": 77_322.0, "p10": 0.0, "p90": 177_902.0, "share_converting": 0.86},
+            "asymmetry": [{"delta": 30_000, "mean_regret_over": -6.0, "mean_regret_under": 39.0}],
+            "never_convert_regret": {"mean": 414.0},
+        }
+        txt = owb._regret_summary_text(summary, self._result(), "maxSpending")
+        assert "not resolvable here" in txt
+        assert "costlier error" not in txt
+        assert "$-6" not in txt, "regret is non-negative; a negative must never be printed"
+
+    def test_an_asymmetry_inside_the_floor_is_reported_as_such(self):
+        summary = {
+            "n_scenarios": 36,
+            "valley_resolvable": True,
+            "valley": {"x": 50_000.0, "mean_regret": 10.0},
+            "resolution_floor": 500.0,
+            "x_star": {"median": 50_000.0, "p10": 0.0, "p90": 90_000.0, "share_converting": 0.9},
+            "asymmetry": [{"delta": 30_000, "mean_regret_over": 120.0, "mean_regret_under": 90.0}],
+            "never_convert_regret": {"mean": 50_000.0},
+        }
+        txt = owb._regret_summary_text(summary, self._result(), "maxBequest")
+        assert "less" in txt and "resolve" in txt
+        assert "costlier error" not in txt
+
     def test_says_so_plainly_when_the_curve_is_flat(self):
         summary = {
             "n_scenarios": 18,

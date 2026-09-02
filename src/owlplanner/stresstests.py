@@ -991,6 +991,21 @@ def summarize_conversion_regret(
         r_nc = v_star[ok] - result["v_noconv"][ok]
         out["never_convert_regret"] = _stats(r_nc)
 
+    # A case can forbid conversions outright - maxRothConversion of zero, no tax-deferred
+    # balance to convert, or the individual excluded - in which case every commitment above
+    # zero is infeasible in every scenario and the curve has nothing to say. That is a
+    # different statement from "the curve is flat", and worth making plainly rather than
+    # drawing an axis that is almost entirely a red infeasible region.
+    # "Feasible in one scenario out of eighteen" is not a curve either, so the test is
+    # whether enough scenarios survive to average, not whether every single one fails.
+    above_zero = [g for g, x in zip(by_grid, grid) if x > 0]
+    quorum = max(2, int(0.1 * n_scenarios))
+    out["conversions_blocked"] = bool(
+        above_zero
+        and n_scenarios > 0
+        and all(n_scenarios - (g.get("n_infeasible") or 0) < quorum for g in above_zero)
+    )
+
     # Bootstrap over the scenario axis. Costs no solves: it resamples the (S, X) regret
     # array that has already been computed. Scenario sampling, not solver noise, is the
     # dominant uncertainty here - halving the scenarios moves the valley by $10-35k while

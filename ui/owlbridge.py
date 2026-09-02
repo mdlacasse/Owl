@@ -2416,6 +2416,14 @@ def _regret_summary_text(summary, result, objective, elapsed=None):
         lines.append(f"Scenarios that convert at all: {100 * xs.get('share_converting', 0):.0f}%")
     lines.append("")
 
+    if summary.get("conversions_blocked"):
+        lines.append("No commitment above zero is feasible here:")
+        lines.append("  conversions are disallowed or unaffordable")
+        lines.append("  in essentially every scenario.")
+        lines.append("")
+        lines.append(f"Solver gap: {result.get('solver_gap', 0):.1e}")
+        return "\n".join(lines)
+
     if summary.get("valley_resolvable"):
         v = summary.get("valley", {})
         edge = summary.get("valley_at_grid_edge")
@@ -2450,13 +2458,24 @@ def _regret_summary_text(summary, result, objective, elapsed=None):
     asym = [a for a in summary.get("asymmetry", []) if a.get("delta") == 30_000]
     if asym:
         over, under = asym[0].get("mean_regret_over"), asym[0].get("mean_regret_under")
+        floor = float(summary.get("resolution_floor", 0.0) or 0.0)
         if over is not None and under is not None:
             lines.append("")
-            lines.append("Missing the best by $30,000 costs:")
-            lines.append(f"  {money(over)} too high vs {money(under)} too low")
-            worse = "Over" if over > under else "Under"
-            lines.append(f"  -> {worse}-converting is the costlier error")
-            lines.append("  (the ratio of the two is not stable)")
+            if not summary.get("valley_resolvable"):
+                # There is no located best commitment to miss by $30,000, so quoting the cost
+                # of missing it - and naming a direction from two noise-level numbers - would
+                # contradict the line above.
+                lines.append("Direction of error: not resolvable here,")
+                lines.append("  since no commitment is measurably best.")
+            elif max(abs(over), abs(under)) <= floor:
+                lines.append("Missing the best by $30,000 costs less")
+                lines.append("  than this run can resolve, either way.")
+            else:
+                lines.append("Missing the best by $30,000 costs:")
+                lines.append(f"  {money(max(over, 0.0))} too high vs {money(max(under, 0.0))} too low")
+                worse = "Over" if over > under else "Under"
+                lines.append(f"  -> {worse}-converting is the costlier error")
+                lines.append("  (the ratio of the two is not stable)")
 
     lines.append("")
     conv = summary.get("convergence") or {}

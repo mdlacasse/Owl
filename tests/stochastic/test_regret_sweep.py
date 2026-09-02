@@ -313,6 +313,27 @@ class TestSummaryRobustnessLayer:
         assert (summarize_conversion_regret(r)["valley_ci"]
                 == summarize_conversion_regret(r)["valley_ci"])
 
+    def test_a_case_that_cannot_convert_is_reported_as_such(self):
+        """
+        maxRothConversion of zero, or no tax-deferred balance, makes every commitment above
+        zero infeasible. That is a different statement from "the curve is flat", and must not
+        be dressed up as one.
+        """
+        r = self._valley_result()
+        r["v_at"][:, 1:] = np.nan          # nothing above the first grid point solves
+        s = summarize_conversion_regret(r)
+        assert s["conversions_blocked"] is True
+
+    def test_one_surviving_scenario_is_not_a_curve(self):
+        """A mean over a single feasible scenario is worse than none: still 'blocked'."""
+        r = self._valley_result()
+        r["v_at"][1:, 1:] = np.nan         # exactly one scenario survives above zero
+        s = summarize_conversion_regret(r)
+        assert s["conversions_blocked"] is True
+
+    def test_a_normal_case_is_not_flagged_as_blocked(self):
+        assert summarize_conversion_regret(self._valley_result())["conversions_blocked"] is False
+
     def test_a_minimum_on_the_last_grid_point_is_flagged_as_unbracketed(self):
         """
         A valley at the right edge means the curve was still falling when the grid ran
