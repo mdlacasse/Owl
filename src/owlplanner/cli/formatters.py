@@ -173,7 +173,7 @@ def plan_to_dict(plan) -> dict:
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,
-        "spending_year1_nominal": _round(spending[0]),
+        "spending_year1_today_dollars": _round(spending[0]),
         "total_bequest_nominal": summary["final_bequest_nominal"],
         "total_bequest_today_dollars": summary["final_bequest_today_dollars"],
         "summary": summary,

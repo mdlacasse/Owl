@@ -23,9 +23,10 @@ import numpy as np
 def _regret_units(objective):
     """Return (divisor, suffix, axis label fragment) for the objective's natural units."""
     if objective == "maxSpending":
-        # First-year spending basis: hundreds or thousands of dollars per year, so plain
-        # dollars read better than $k.
-        return 1.0, "", "in net spending ($/yr)"
+        # The first year's spending, matching the spending pages and the netSpending goal
+        # (see _regret_objective_value). Hundreds or thousands of dollars per year, so
+        # plain dollars read better than $k.
+        return 1.0, "", "in first-year net spending ($/yr)"
     return 1000.0, "k", "in final after-tax bequest ($k)"
 
 

@@ -227,7 +227,7 @@ def test_agent_turn_scripted_llm_real_tools():
     assert text == "Solved your plan."
     result = json.loads(messages[2]["content"][0]["content"])
     assert result["status"] == "solved"
-    assert result["spending_year1_nominal"] > 0
+    assert result["spending_year1_today_dollars"] > 0
     assert "assumed_defaults" in result
 
 
@@ -292,7 +292,7 @@ def test_get_current_case_results_solved(monkeypatch):
     data = json.loads(atools.get_current_case_results())
     assert data["case_name"] == "pat"
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
     assert len(data["by_year"]) == plan.N_n
 
 

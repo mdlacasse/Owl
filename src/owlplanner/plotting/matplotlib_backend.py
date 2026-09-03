@@ -812,7 +812,7 @@ class MatplotlibBackend(PlotBackend):
             label=f"{target_success_rate_pct:.0f}% success: {u.d(g_opt)}",
         )
         ax.set_xlabel("Shortfall probability (%)", fontsize=11)
-        ax.set_ylabel(f"Committed spending ({thisyear} $k)", fontsize=11)
+        ax.set_ylabel(f"Committed spending, year 1 ({thisyear} $k)", fontsize=11)
         ax.set_title("Success rate curve", fontsize=12)
         ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"{x:.0f}%"))
         ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
@@ -828,7 +828,7 @@ class MatplotlibBackend(PlotBackend):
         ax.axvline(sf_at_target, color="firebrick", linestyle="--", linewidth=1, alpha=0.7)
         ax.scatter([sf_at_target], [g_opt / 1000], color="firebrick", zorder=5, s=60)
         ax.set_xlabel(f"Expected shortfall ({thisyear} $k)", fontsize=11)
-        ax.set_ylabel(f"Committed spending ({thisyear} $k)", fontsize=11)
+        ax.set_ylabel(f"Committed spending, year 1 ({thisyear} $k)", fontsize=11)
         ax.set_title("Efficient frontier", fontsize=12)
         ax.xaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
         ax.yaxis.set_major_formatter(tk.FuncFormatter(lambda x, _: f"${x:.0f}k"))
@@ -1009,7 +1009,7 @@ class MatplotlibBackend(PlotBackend):
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
-        label = "Spending"
+        label = "Year-1 spending"
         longevity_tag = " · longevity" if with_longevity else ""
         is_historical = start_years is not None
 

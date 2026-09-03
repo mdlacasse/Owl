@@ -1339,6 +1339,20 @@ Choose which quantity to maximize. Two objectives are available:
 
 All objective and constraint values are in today's dollars (thousands).
 
+##### Spending basis vs. first-year spending
+With a *smile* profile these are two different numbers, and it is worth knowing which one you
+are looking at.
+- The **spending basis** is the profile-neutral level the optimizer maximizes. The profile
+  multiplies it year by year, and averages to the basis over the plan.
+- **First-year spending** is what you actually spend in the first year: the basis times the
+  profile's value in that year.
+
+**Desired annual net spending** on this page is the *first-year* amount, and so are the figures
+on the **Spending vs Bequest** and **Spending Optimization** pages. The **Case Results** summary
+reports both, as *Net yearly spending basis* and *Net spending for year …*, and the **Regret
+Curve** is measured in basis dollars. On a *flat* profile the two coincide, and the distinction
+disappears.
+
 ##### Safety Net
 You can enforce a **minimum taxable balance** (today's \\$k) for each spouse from year 2 through
 life expectancy. The amount is inflation-adjusted over the plan. The first year is excluded so the
@@ -1721,8 +1735,11 @@ Users can run multiple simulations,
 each starting at a different year within a range of historical years.
 Each simulation applies one historical *scenario*: the year-by-year rate sequence that
 actually occurred starting from a selected year in the past, then offset by one year, and so on.
-The **Starting year** and **Ending year** on the page set the year range and thus the number of
-runs: one run per year in that range by default.
+The **Starting year** and **Ending year** on the page are both *starting* years: they set the
+first and last year a run may begin in, and thus the number of runs - one per year in between by
+default. The ending year is not the last year of data used, since a run beginning in it still
+replays your plan's full length; it is capped at the latest start for which a complete lifetime
+of data exists.
 
 *Advanced options* add the following:
 
@@ -1844,12 +1861,20 @@ $$
 where $\\sigma_s$ is the shortfall in scenario $s$ and $\\lambda$ controls risk aversion.
 The LP is swept over a range of $\\lambda$ values to trace the **efficient frontier**.
 
+The page reports the commitment as **first-year spending**, so it can be compared directly with
+the spending goal on the **Goals** page. The underlying spending basis is stated beside it
+whenever the profile makes the two differ (see *Spending basis vs. first-year spending* under
+**Goals**). Because the program above simply rescales with its inputs, the choice of unit moves
+no success rate, no RES and no $\\rho^*$ — only the dollar figures.
+
 ##### Controls
 
 - **Scenario method** — *Historical range*: uses historical rate sequences over the
   selected year range (one run per year). *Monte Carlo*: uses the active stochastic rate
   method; requires a stochastic method to be set on the **Rates** page.
-- **Starting year** / **Ending year** — the historical window, shown in *Historical range* mode.
+- **Starting year** / **Ending year** — the first and last year a scenario may *begin* in, shown
+  in *Historical range* mode. Both are starting years: the later one is not the end of the data,
+  because a scenario starting there still runs your plan's full length.
 - **Number of MC scenarios** — how many scenarios to draw in *Monte Carlo* mode
   (default 200, between 10 and 5000). More scenarios give a smoother frontier and a longer run.
 - **Stochastic lifespan** — available with Monte Carlo scenarios. When enabled, each
@@ -1913,7 +1938,9 @@ A text summary above the charts reports the following metrics:
   scenario had to leave in the savings accounts while its spending was maximized. Every number
   below it is the spending sustainable *while leaving that estate*, so raising or lowering the
   target moves the whole summary.
-- **Committed spending** — the floor amount in today's dollars, at the chosen success rate.
+- **Committed spending, year 1** — the floor amount in today's dollars, at the chosen success
+  rate, stated as the first year's spending. With a non-flat profile the spending basis behind
+  it is shown on the following line.
 - **Target / actual success rate** — the fraction of scenarios where spending meets the commitment.
   The actual rate may be slightly above the target due to how the frontier is sampled.
 - **Median scenario spending** — the median outcome across all scenarios. This is typically
@@ -2008,7 +2035,8 @@ single fixed operating point.
   the outcome depends heavily on the order in which returns happen. This costs one solve per
   level per scenario, so keep the list of levels short.
 
-*Historical range* exposes **Starting year** and **Ending year** for the historical window;
+*Historical range* exposes **Starting year** and **Ending year** — the first and last year a
+scenario may *begin* in, not a span of data;
 *Monte Carlo* exposes **Scenarios per level** (default 100, between 10 and 2000). The run is
 launched with the **Trace trade-off** button.
 
@@ -2016,6 +2044,12 @@ launched with the **Trace trade-off** button.
 
 - **Savings** is what the accounts leave after the heirs' tax, net of any remaining debt. This
   is the level being swept, and it is what the plot's horizontal axis shows.
+- **Net spending** is the **first year's** amount, the same quantity as *Desired annual net
+  spending* on the **Goals** page. That makes the curve directly comparable with a case solved
+  for a bequest: a case that leaves \\$8.4M when you ask to spend \\$200k a year is the same
+  point as the \\$200k crossing on this curve. With a non-flat profile, a **Spending basis**
+  column reports the profile-neutral level behind it (see *Spending basis vs. first-year
+  spending* under **Goals**); on a flat profile the two coincide and the column is omitted.
 - **Partial bequest** appears for a couple whose `Beneficiary fractions` are below 1 and whose
   life expectancies differ. At the **first** death the complementary fraction of the decedent's
   accounts passes to non-spouse heirs instead of to the survivor, net of the heirs' tax on the
@@ -2038,7 +2072,8 @@ launched with the **Trace trade-off** button.
 - **\\$/yr per \\$k** appears on a single rate scenario: the annual spending given up for each
   further \\$1,000 of estate, measured over that segment of the curve. It is reported per
   \\$1,000 rather than per dollar because the per-dollar figure runs to four decimal places.
-  It is measured against the **swept** figure, the savings floor, since that is what you control.
+  It is measured against the **swept** figure, the savings floor, since that is what you control,
+  and it is expressed in the same first-year dollars as the Net spending column.
   Where a partial bequest is in play the total reaching heirs rises faster than the floor, so each
   \\$1,000 of floor buys them rather more than \\$1,000.
 - **short** counts the scenarios that could not reach that bequest level at all. Each is
@@ -2072,9 +2107,12 @@ average regret across scenarios against the amount committed.
 The grid is built from the scenarios themselves, running from zero past the largest conversion
 any scenario chose, so you do not have to guess a range.
 
-Regret is measured in whatever this case optimizes: **net spending** in dollars per year, or the
-**final bequest** in today's dollars. Switching the objective on the *Goals* page changes what
-the curve is about.
+Regret is measured in whatever this case optimizes: **first-year net spending** in dollars per
+year, or the **final bequest** in today's dollars. Switching the objective on the *Goals* page
+changes what the curve is about. Spending is in the same first-year dollars as the two frontier
+pages and the spending goal on **Goals**. Since regret is a *difference* between two optimized
+plans under one profile, the choice of unit rescales the whole curve and leaves every ratio —
+the commit band, the share of the never-convert value, whether the curve is flat — unchanged.
 
 ##### Reading the graph
 

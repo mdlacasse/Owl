@@ -4608,9 +4608,38 @@ class Plan:
             self.solverGap = solgap
 
             if not solverSuccess or objfn is None:
-                self.caseStatus = "infeasible" if self._infeasible else "solver error"
-                self.solverMessage = _failureMessage(self._infeasible, solverName, solverMsg)
-                self.mylog.print(self.solverMessage, tag="WARNING" if self._infeasible else "ERROR")
+                # A parameter update can hand the solver a problem it cannot take - most often
+                # a MAGI that crossed an IRMAA threshold, so the premiums jump and a spending
+                # floor no longer fits. The earlier iterates are still valid plans, so falling
+                # back to the best of them beats discarding the run: the alternative reports a
+                # feasible case as infeasible, which is what a converging sequence
+                # (|df| shrinking to a few hundred dollars) followed by one bad step used to do.
+                # Mirrors the cycle and stagnation exits, which accept an earlier iterate the
+                # same way.
+                best_idx = self._pick_best_valid_index(trace["scaledObjectives"], includeMedicare)
+                if best_idx is None:
+                    # Nothing ever solved, so the case really is infeasible.
+                    self.caseStatus = "infeasible" if self._infeasible else "solver error"
+                    self.solverMessage = _failureMessage(self._infeasible, solverName, solverMsg)
+                    self.mylog.print(self.solverMessage, tag="WARNING" if self._infeasible else "ERROR")
+                    break
+                self.mylog.print(
+                    f"Iteration {it} could not be solved ({'infeasible' if self._infeasible else 'solver error'}); "
+                    f"accepting the best of the {len(trace['solutions'])} iterate(s) before it.",
+                    tag="WARNING",
+                )
+                xx = trace["solutions"][best_idx]
+                objfn = trace["objectives"][best_idx]
+                M_n_lp = trace["M_n_lp"][best_idx]
+                ACA_n_lp = trace["ACA_n_lp"][best_idx]
+                J_n_lp = trace["J_n_lp"][best_idx]
+                Psi_n_lp = trace["Psi_n_lp"][best_idx]
+                self.solverGap = trace["gaps"][best_idx]
+                matricesMatchSolution = False
+                self.convergenceType = "unsolvable iterate"
+                solverSuccess = True
+                solverMsg = ""
+                self._infeasible = False
                 break
 
             self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)

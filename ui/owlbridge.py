@@ -29,6 +29,7 @@ from functools import wraps
 from datetime import datetime, date
 import os
 import sys
+import textwrap
 import warnings
 
 sys.path.insert(0, "./src")
@@ -328,9 +329,26 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
     """Recompute g_opt and regenerate plots from cached scenario data and a new target rate."""
     import numpy as np
 
-    g_opt, lam = owl.g_for_success_rate(target_sr_pct, result["lambdas"], result["frontier_g"], result["frontier_prob"])
+    # The scenarios are solved for a spending basis, but the page commits to a dollar figure
+    # the user will actually spend, so everything below -- frontier, floor, CVaR, summary --
+    # is driven by the first-year arrays. They are the same curve in another unit: the LP is
+    # positively homogeneous, so the success rates and RES are untouched by the choice.
+    # .get() with a fallback keeps a result cached before these keys existed renderable.
+    frontier_g = result.get("frontier_g_year1")
+    if frontier_g is None:
+        frontier_g = result["frontier_g"]
+        frontier_prob = result["frontier_prob"]
+        frontier_shortfall = result["frontier_shortfall"]
+        bases = np.asarray(result["bases"], float)
+    else:
+        frontier_prob = result["frontier_prob_year1"]
+        frontier_shortfall = result["frontier_shortfall_year1"]
+        bases = np.asarray(result["bases_year1"], float)
+    xi_0 = float(result.get("xi_0", 1.0) or 1.0)
+
+    g_opt, lam = owl.g_for_success_rate(target_sr_pct, result["lambdas"], frontier_g, frontier_prob)
     lam_idx = int(np.argmin(np.abs(result["lambdas"] - lam)))
-    actual_sr_pct = 100.0 * (1.0 - float(result["frontier_prob"][lam_idx]))
+    actual_sr_pct = 100.0 * (1.0 - float(frontier_prob[lam_idx]))
 
     kz.storeCaseKey(
         "stochResult",
@@ -343,9 +361,9 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
     )
     with_longevity = result.get("with_longevity", False)
     fig_frontier = plotter.plot_stochastic_frontier(
-        result["frontier_prob"],
-        result["frontier_g"],
-        result["frontier_shortfall"],
+        frontier_prob,
+        frontier_g,
+        frontier_shortfall,
         target_sr_pct,
         g_opt,
         result["year_n"],
@@ -353,7 +371,7 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
         with_longevity=with_longevity,
     )
     fig_outcomes = plotter.plot_stochastic_outcomes(
-        result["start_years"], result["bases"], g_opt, target_sr_pct, result["year_n"], with_longevity=with_longevity
+        result["start_years"], bases, g_opt, target_sr_pct, result["year_n"], with_longevity=with_longevity
     )
     kz.storeCaseKey("stochFrontierPlot", fig_frontier)
     kz.storeCaseKey("stochOutcomePlot", fig_outcomes)
@@ -375,9 +393,7 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
         kz.storeCaseKey("stochLifespanPlot", None)
 
     # RES computation — floor-capped CVaR (math lives in owlplanner.stresstests)
-    frontier_g = result["frontier_g"]
-    frontier_prob = result["frontier_prob"]
-    bases_arr = result["bases"]
+    bases_arr = bases
     is_historical = result.get("start_years") is not None
     default_method = "hsf" if is_historical else "ssf"
     floor_method = kz.getCaseKey("stoch_res_floor_method") or default_method
@@ -422,7 +438,6 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
         kz.storeCaseKey("stochCVaRPlot", None)
         kz.storeCaseKey("stochRESPlot", None)
 
-    bases = result["bases"]
     is_historical = result["start_years"] is not None
     median_spending = float(np.median(bases))
     exp_shortfall = float(np.mean(np.maximum(0.0, g_opt - bases)))
@@ -462,11 +477,25 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
 
     bequest = float(result.get("bequest", 0.0))
 
+    # The committed figure is the first year's spending. The basis behind it is what the
+    # optimizer maximizes and what the efficient-frontier literature quotes, so it is stated
+    # too whenever the profile makes them differ. Read off the basis frontier rather than
+    # divided out of g_opt: under longevity sampling xi_n[0] varies scenario by scenario, so
+    # the two curves are not related by a single factor there.
+    if abs(xi_0 - 1.0) > 0.005:
+        g_basis, _ = owl.g_for_success_rate(
+            target_sr_pct, result["lambdas"], result["frontier_g"], result["frontier_prob"]
+        )
+        basis_line = f"  (spending basis:               ${g_basis:,.0f}/yr, x{xi_0:.2f} for year 1)\n"
+    else:
+        basis_line = ""
+
     kz.storeCaseKey(
         "stochSummary",
         (
             f"Savings bequest constraint:      ${bequest:,.0f}\n"
-            f"Committed spending (today's $):  ${g_opt:,.0f}/yr\n"
+            f"Committed spending, year 1:      ${g_opt:,.0f}/yr\n"
+            f"{basis_line}"
             f"Target success rate:             {target_sr_pct:.0f}%  (actual: {actual_sr_pct:.0f}%)\n"
             f"Median scenario spending:        ${median_spending:,.0f}/yr\n"
             f"{tail_label}  ${tail_spending:,.0f}/yr  ({tail_shortfall_pct:.1%} shortfall)\n"
@@ -477,6 +506,24 @@ def _apply_stochastic_target(result, target_sr_pct, plotter, plan=None):
             f"{scenarios_line}"
         ).rstrip(),
     )
+
+
+# Shared tooltips for the historical-window year inputs. The labels read like a date range,
+# but both values are *starting* years: each scenario replays the plan's whole horizon from
+# the year it begins in, so the pair sets which starts are tried, not a span of history. The
+# same two labels on the Rates page really do bound a data range, and are left alone.
+HELP_HIST_YSTART = (
+    "First historical year a scenario starts in. Each scenario replays your whole plan "
+    "using the returns that followed its starting year, so this is where the earliest "
+    "scenario begins - not the start of a span."
+)
+HELP_HIST_YEND = (
+    "Last historical year a scenario starts in - not the last year of data used. The "
+    "scenario beginning here still runs your plan's full length, so it draws on returns "
+    "well beyond this year. It is capped at the latest start for which a complete "
+    "lifetime of data exists. Together with the starting year it sets how many scenarios "
+    "are run, one per year in between."
+)
 
 
 def histYendMax():
@@ -643,11 +690,17 @@ def _render_frontier(result, plotter):
     import numpy as np
 
     deterministic = result["scenario_method"] == "deterministic"
+    # The solver optimizes a spending basis, but the case's own spending goal is the first
+    # year's amount, so that is what gets plotted: a curve read against a maxBequest run has
+    # to be in the same unit. The sweep never draws lifespans, so one factor is exact here.
+    # Defaulted for a result cached before this column existed.
+    xi_0 = float(result.get("xi_0", 1.0) or 1.0)
+    show_basis = abs(xi_0 - 1.0) > 0.005
     if deterministic:
-        spending = result["base_basis"]
+        spending = np.asarray(result["base_basis"], float) * xi_0
         labels = ["Net spending"]
     else:
-        spending = result["g_at_success"]
+        spending = np.asarray(result["g_at_success"], float) * xi_0
         labels = [f"{r:g}% success" for r in result["success_rates"]]
 
     # The exchange rate is a single number read off one curve, so it is reported for
@@ -686,8 +739,15 @@ def _render_frontier(result, plotter):
             head += f"{'Fixed assets':>16}"
         head += f"{'Total estate':>16}"
     if deterministic:
-        head += f"{'Net spending':>16}{'$/yr per $k':>14}"
+        head += f"{'Net spending':>16}"
+        # The basis is what the solver maximizes and what the literature quotes; it earns a
+        # column only when the profile actually separates the two.
+        if show_basis:
+            head += f"{'Spending basis':>16}"
+        head += f"{'$/yr per $k':>14}"
     else:
+        # Doubling every success-rate column would double the table's width, so the
+        # stochastic modes carry the conversion in the note below instead.
         head += "".join(f"{lab:>16}" for lab in labels) + f"{'short':>8}"
     lines.append(head)
     for k, row in enumerate(summary["frontier"]):
@@ -703,16 +763,18 @@ def _render_frontier(result, plotter):
             lines.append(line + f"{'unreachable':>16}")
             continue
         if deterministic:
-            line += f"{row['spending_today_dollars']:>16,.0f}"
+            line += f"{row['spending_year1_today_dollars']:>16,.0f}"
+            if show_basis:
+                line += f"{row['spending_today_dollars']:>16,.0f}"
             # One exchange entry per segment, so index k - 1 is the segment ending here;
             # it carries None when either endpoint was unreachable.
-            rate = summary["exchange_rate"][k - 1]["spending_per_dollar_of_bequest"] if k else None
+            rate = summary["exchange_rate"][k - 1]["spending_year1_per_dollar_of_bequest"] if k else None
             # Reported per $k of bequest: per dollar it reads as -0.0745, which nobody
             # can act on without shifting the decimal point four places.
             line += f"{1000 * rate:>14.1f}" if rate is not None else f"{'':>14}"
         else:
             for r in summary["success_rates"]:
-                v = row.get(f"spending_at_{r:g}pct")
+                v = row.get(f"spending_year1_at_{r:g}pct")
                 line += f"{v:>16,.0f}" if v is not None else f"{'n/a':>16}"
             # Scenarios that could not reach this floor at all. They are counted as a
             # full shortfall, so a rising count is what pulls the high-confidence
@@ -721,10 +783,23 @@ def _render_frontier(result, plotter):
         lines.append(line)
 
     lines.append("")
+    # Prose is gathered rather than appended, so it can be folded to the table's width
+    # below: st.code() does not wrap, and a long line makes the reader scroll sideways
+    # to read a sentence about a table they can already see.
+    notes = []
+    if show_basis:
+        # Without this the curve looks like it contradicts a maxBequest run of the same
+        # case, which states its spending goal as the first year's amount.
+        what = "Net spending is" if deterministic else "The spending columns are"
+        notes.append(
+            f"{what} the first year's amount, the same quantity as the case's spending goal. "
+            f"This spending profile puts it at {xi_0:.2f} times the spending basis, "
+            "the profile-neutral level the optimizer maximizes; on a flat profile the two are equal."
+        )
     if show_partial:
         year = summary.get("partial_bequest_year")
         when = f"in {year}" if year else "at the first death"
-        lines.append(
+        notes.append(
             f"Partial bequest is what passes to non-spouse heirs {when}, when the first spouse "
             "dies; the savings column is what is left at the end of the plan."
         )
@@ -732,7 +807,7 @@ def _render_frontier(result, plotter):
             lo = np.asarray(result.get("partial_bequest_lo", []), float)
             hi = np.asarray(result.get("partial_bequest_hi", []), float)
             if lo.size and np.isfinite(lo).any() and np.nanmax(hi - lo) > 1.0:
-                lines.append(
+                notes.append(
                     "  Median across scenarios; it ranges "
                     f"${np.nanmin(lo):,.0f} to ${np.nanmax(hi):,.0f} over the levels traced."
                 )
@@ -745,23 +820,34 @@ def _render_frontier(result, plotter):
             # Assets quoted at a future reference year must be deflated back to today,
             # so their today's-dollar value moves with the drawn inflation path.
             note += " Valued on one rate path; see the documentation."
-        lines.append(note)
+        notes.append(note)
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
     n_failed = summary["n_levels_failed"]
     if lo is None:
-        lines.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
+        notes.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
     elif hi is None and not n_failed:
-        lines.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
+        notes.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
     elif hi is None:
         # Nothing failed above the best success, but something below it did, so the
         # levels are not simply reachable up to a ceiling.
-        lines.append(
+        notes.append(
             f"The most {what} can leave is above ${lo:,.0f}, though {n_failed} lower level(s) did not solve."
         )
     else:
-        lines.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+        notes.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+    # Fold each note to the table's width, keeping any leading indent on every continuation
+    # line so an indented sub-note stays visually attached to its parent. The floor is a
+    # reading width, not a guess: the header runs from 62 columns (savings and spending
+    # alone) to 104 (three success rates plus the estate columns), and folding prose to the
+    # narrow end leaves it in a cramped ribbon down the left of a much wider block. Going
+    # past the header costs nothing either way, since the code block spans the container
+    # whatever the table does.
+    wrap_at = max(len(head), 88)
+    for note in notes:
+        indent = " " * (len(note) - len(note.lstrip(" ")))
+        lines.extend(textwrap.wrap(note.strip(), width=wrap_at, initial_indent=indent, subsequent_indent=indent))
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 

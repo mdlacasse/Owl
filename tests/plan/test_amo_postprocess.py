@@ -298,22 +298,38 @@ class TestMatchesRecordedOptimum:
 
     @pytest.mark.toml
     def test_no_case_got_slower(self):
-        """The point of the change: every recorded case solves at least as fast."""
+        """
+        The point of the change: every recorded case solves at least as fast.
+
+        Measured in CPU time, not wall clock. The suite runs under `pytest -n auto`, and
+        MOSEK takes several threads per solve, so the workers oversubscribe the machine
+        and wall time stretches without anything having regressed. On an idle machine
+        Case_jack+jill -- the one recorded case that still carries binaries, 186 of them
+        from withMedicare='optimize' -- measured 4.81 s wall against the old 5 s ceiling,
+        a 4% margin, which is why this failed intermittently under load.
+
+        CPU time has both the headroom and the stability: the same sweep measured 1.49 s
+        worst case under MOSEK and 0.88 s under HiGHS, and it does not move when other
+        processes compete for cores. The ceiling below is more than three times the worst
+        recorded case and still catches the regression this guards against by three orders
+        of magnitude -- Case_cameron took 577 s with the exclusion binaries.
+        """
         import time
 
         solver = _active_solver()
         reference = _load_reference()["cases"]
-        slowest = 0.0
+        slowest, worst_case = 0.0, None
         for case, per_solver in reference.items():
             if solver not in per_solver:
                 continue
             p = owl.readConfig(os.path.join("examples", case))
             p.solverOptions["solver"] = solver
-            start = time.time()
+            start = time.process_time()
             p.resolve()
-            slowest = max(slowest, time.time() - start)
-        # Every recorded MIP solve was under 10 s; without binaries none should come close.
-        assert slowest < 5.0, f"slowest case took {slowest:.1f}s"
+            elapsed = time.process_time() - start
+            if elapsed > slowest:
+                slowest, worst_case = elapsed, case
+        assert slowest < 5.0, f"{worst_case} took {slowest:.1f}s of CPU ({solver})"
 
 
 class TestOverlapsResolved:

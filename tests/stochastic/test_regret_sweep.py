@@ -24,6 +24,7 @@ import pytest
 from owlplanner import run_conversion_regret_sweep, summarize_conversion_regret
 from owlplanner.stresstests import (
     REGRET_MAX_GAP,
+    _regret_objective_value,
     _build_regret_grid,
     _downgrade_milp_tax_modes,
     _select_regret_years,
@@ -146,6 +147,34 @@ def test_dana_1966_maxbequest_reference(dana):
     assert s["never_convert_regret"]["mean"] == pytest.approx(
         res["v_star"][0] - res["v_noconv"][0], abs=0.01
     )
+
+
+class TestOutcomeUnits:
+    """
+    maxSpending regret is quoted in the first year's net spending, not the profile-neutral
+    basis the optimizer maximizes. The two coincide on a flat profile and differ by the
+    profile factor otherwise, and the first year's amount is what netSpending pins.
+    """
+
+    @pytest.mark.toml
+    def test_flat_profile_makes_basis_and_year_one_identical(self):
+        p = readConfig("examples/Case_dana.toml", verbose=False)
+        assert p.spendingProfile == "flat"
+        p.setRates("historical", 1966)
+        p.solve("maxSpending", options={"solver": "HiGHS"})
+        assert _regret_objective_value(p, "maxSpending") == pytest.approx(p.basis)
+
+    @pytest.mark.toml
+    def test_a_smile_profile_reports_year_one_not_the_basis(self):
+        p = readConfig("examples/Case_jack+jill.toml", verbose=False)
+        assert p.spendingProfile == "smile"
+        p.setRates("historical", 1966)
+        p.solve("maxSpending", options={"solver": "HiGHS"})
+        xi0 = float(p.xi_n[0])
+        assert xi0 > 1.05, "expected a profile factor worth distinguishing"
+        got = _regret_objective_value(p, "maxSpending")
+        assert got == pytest.approx(p.basis * xi0)
+        assert got != pytest.approx(p.basis), "reporting the basis would understate spending"
 
 
 class TestGridAndScenarioSelection:

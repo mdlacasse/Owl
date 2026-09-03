@@ -1,5 +1,11 @@
 ### Version 2026.9.2
 
+#### Changed: Consistent use of first-year spending vs spending basis
+
+In graphs and in the UI, the use of first-year spending is made consistent. While it
+only differs when a *smile* profile is chosen, reporting both and distinguishing
+between them avoids unnecessary confusion.
+
 #### New: Conversion Regret page
 
 A new page under *Stress Tests* prices the cost of committing to a first-year Roth conversion

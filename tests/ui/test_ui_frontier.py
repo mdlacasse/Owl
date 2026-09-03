@@ -59,6 +59,17 @@ class TestParseBequestGrid:
             owb._parse_bequest_grid("0, abc, 500")
 
 
+def _prose(text):
+    """
+    Collapse the summary to one line for prose assertions.
+
+    The notes under the table are wrapped to its width so the page never scrolls
+    sideways, which means a sentence can break anywhere. Layout is asserted on the raw
+    text (see the column-alignment tests); wording is asserted on this.
+    """
+    return " ".join(text.split())
+
+
 def _fake_result(scenario_method="deterministic"):
     """A minimal frontier result, shaped like run_spending_bequest_frontier's."""
     stochastic = scenario_method != "deterministic"
@@ -124,7 +135,7 @@ class TestRenderFrontier:
         text = stored["frontierSummary"]
         assert "Net spending" in text
         assert "100,000" in text and "88,000" in text
-        assert "the most this plan can leave" in text
+        assert "the most this plan can leave" in _prose(text)
 
     def test_stochastic_table_has_one_column_per_success_rate(self, monkeypatch):
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
@@ -207,7 +218,7 @@ class TestRenderFrontier:
         assert "100,000" in text and "88,000" in text, "the solved levels must still print"
         # A failure below the best success is not "every level is reachable".
         assert "Every level traced is reachable" not in text
-        assert "1 lower level(s) did not solve" in text
+        assert "1 lower level(s) did not solve" in _prose(text)
 
     def test_unreachable_marker_sits_under_spending(self, monkeypatch):
         """
@@ -233,3 +244,93 @@ class TestRenderFrontier:
         ), "the marker must be right-aligned in the Net spending column"
         # The estate columns are still filled on that row.
         assert "1,067,389" in bad and "3,067,389" in bad
+
+
+class TestSpendingColumns:
+    """
+    The table reports the first year's spending, and says so when a profile makes that
+    differ from the basis.
+
+    A curve labelled with basis dollars is what made this page look like it contradicted
+    a maxBequest run of the same case: the goal there is the first year's amount, so the
+    two were being read off different scales.
+    """
+
+    @staticmethod
+    def _capture(monkeypatch):
+        stored = {}
+        monkeypatch.setattr(owb.kz, "storeCaseKey", lambda k, v: stored.__setitem__(k, v))
+        return stored
+
+    @staticmethod
+    def _render(monkeypatch, result):
+        from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
+
+        stored = TestSpendingColumns._capture(monkeypatch)
+        owb._render_frontier(result, MatplotlibBackend())
+        return stored
+
+    def test_a_smile_profile_shows_both_columns(self, monkeypatch):
+        result = _fake_result("deterministic")
+        result["xi_0"] = 1.0907
+        stored = self._render(monkeypatch, result)
+
+        header, *rows = stored["frontierSummary"].splitlines()
+        assert "Net spending" in header and "Spending basis" in header
+        # Year 1 leads, the basis follows: 100,000 of basis is 109,070 in the first year.
+        assert "109,070" in rows[0] and "100,000" in rows[0]
+        assert header.index("Net spending") < header.index("Spending basis")
+        assert "1.09 times the spending basis" in _prose(stored["frontierSummary"])
+
+    def test_a_flat_profile_shows_only_one(self, monkeypatch):
+        """Nothing to disambiguate when the two coincide, so the column is not spent."""
+        result = _fake_result("deterministic")
+        result["xi_0"] = 1.0
+        stored = self._render(monkeypatch, result)
+
+        text = stored["frontierSummary"]
+        assert "Net spending" in text
+        assert "Spending basis" not in text
+        assert "100,000" in text and "88,000" in text
+
+    def test_the_stochastic_table_converts_without_widening(self, monkeypatch):
+        """
+        One column per success rate either way: doubling them would not fit, so the
+        conversion is carried by the note instead.
+        """
+        result = _fake_result("historical")
+        result["xi_0"] = 1.0907
+        stored = self._render(monkeypatch, result)
+
+        header, *rows = stored["frontierSummary"].splitlines()
+        assert header.count("% success") == 3
+        assert "Spending basis" not in header
+        # 105,000 of basis at the 50% rate is 114,524 in the first year.
+        assert "114,524" in rows[0]
+        assert "1.09 times the spending basis" in _prose(stored["frontierSummary"])
+
+    def test_the_exchange_rate_is_in_the_same_dollars_as_the_column(self, monkeypatch):
+        """
+        A $/yr figure quoted against a year-1 column has to be a year-1 difference, or the
+        reader cannot check the arithmetic against two neighbouring rows.
+        """
+        result = _fake_result("deterministic")
+        result["xi_0"] = 1.0907
+        stored = self._render(monkeypatch, result)
+
+        rows = stored["frontierSummary"].splitlines()[1:4]
+        spend = [float(r.split()[1].replace(",", "")) for r in rows]
+        rate = float(rows[1].split()[-1])
+        # Column falls by (109,070 - 102,516) over $1M of estate, reported per $1,000.
+        # Printed to one decimal, so the check is only good to half of that.
+        assert rate == pytest.approx((spend[1] - spend[0]) / 1_000_000.0 * 1000.0, abs=0.05)
+
+    def test_a_result_without_xi_0_still_renders(self, monkeypatch):
+        """A run cached before the column existed must not break the page."""
+        result = _fake_result("deterministic")
+        result.pop("xi_0", None)
+        stored = self._render(monkeypatch, result)
+
+        text = stored["frontierSummary"]
+        assert "Spending basis" not in text
+        assert "100,000" in text

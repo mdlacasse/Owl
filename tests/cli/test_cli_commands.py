@@ -416,7 +416,7 @@ def test_mcp_run_case_solves():
     result = _run_async(run_case(BILL_TOML, overrides=MCP_FAST_OVERRIDES))
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
 
 
 @pytest.mark.toml

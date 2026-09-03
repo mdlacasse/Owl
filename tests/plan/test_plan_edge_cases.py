@@ -723,3 +723,51 @@ def test_runners_do_not_demand_rates_up_front():
         p.runHistoricalRange("maxSpending", {}, 1960, 1961)
     except RuntimeError as e:
         assert "Rate method" not in str(e), f"guard wrongly demanded rates: {e}"
+
+
+def test_one_unsolvable_iterate_does_not_discard_the_run(monkeypatch):
+    """
+    A self-consistent iteration can hand the solver a problem it cannot take - typically a
+    MAGI that crossed an IRMAA threshold, so premiums jump and a spending floor no longer
+    fits. The earlier iterates are still valid plans, so the loop must fall back to the best
+    of them rather than reporting a feasible case as infeasible.
+    """
+    p = owl.readConfig("examples/Case_dana.toml", verbose=False)
+    p.setRates("historical", 1966)
+
+    real_solver = plan.Plan._milpSolve
+    calls = {"n": 0}
+
+    def flaky(self, objective, options):
+        calls["n"] += 1
+        if calls["n"] == 3:            # fail only after two iterates have succeeded
+            self._infeasible = True
+            return None, None, False, "forced failure", -1.0
+        return real_solver(self, objective, options)
+
+    monkeypatch.setattr(plan.Plan, "_milpSolve", flaky)
+
+    opts = dict(p.solverOptions)
+    opts["solver"] = "HiGHS"
+    p.solve("maxSpending", options=opts)
+
+    assert calls["n"] >= 3, "the forced failure never fired"
+    assert p.caseStatus == "solved", "one bad iterate discarded an otherwise good run"
+    assert p.convergenceType == "unsolvable iterate"
+    assert p.basis > 0
+
+
+def test_a_case_that_never_solves_is_still_infeasible(monkeypatch):
+    """The fallback must not paper over a case that genuinely has no solution."""
+    p = owl.readConfig("examples/Case_dana.toml", verbose=False)
+    p.setRates("historical", 1966)
+
+    def always_fail(self, objective, options):
+        self._infeasible = True
+        return None, None, False, "forced failure", -1.0
+
+    monkeypatch.setattr(plan.Plan, "_milpSolve", always_fail)
+    opts = dict(p.solverOptions)
+    opts["solver"] = "HiGHS"
+    p.solve("maxSpending", options=opts)
+    assert p.caseStatus == "infeasible"

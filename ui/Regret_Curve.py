@@ -46,7 +46,8 @@ else:
     kz.initCaseKey("regretObjective", None)
 
     objective = kz.getCaseKey("objective") or "Net spending"
-    outcome = "net spending" if objective == "Net spending" else "final bequest"
+    # The first year's amount, the same unit as the Goals page and the spending pages.
+    outcome = "first-year net spending" if objective == "Net spending" else "final bequest"
 
     st.markdown(f"""
 How much does it cost to commit to a first-year Roth conversion *now*, before knowing what
@@ -83,6 +84,7 @@ all.
     with col2:
         st.number_input(
             "Starting year",
+            help=owb.HELP_HIST_YSTART,
             min_value=owb.FROM,
             max_value=yend_max,
             value=kz.getCaseKey("regret_ystart"),
@@ -93,6 +95,7 @@ all.
     with col3:
         st.number_input(
             "Ending year",
+            help=owb.HELP_HIST_YEND,
             min_value=kz.getCaseKey("regret_ystart"),
             max_value=yend_max,
             value=min(kz.getCaseKey("regret_yend"), yend_max),

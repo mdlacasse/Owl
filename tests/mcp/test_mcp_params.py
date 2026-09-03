@@ -1038,7 +1038,7 @@ def test_run_from_params_single_solves():
     )
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
     # state and rate_method were given explicitly; the rest of the material
     # defaults (cost basis, allocation, profile, ...) travel in the ledger.
     flagged = {e["parameter"] for e in data["assumed_defaults"]}
@@ -1065,7 +1065,7 @@ def test_run_from_params_couple_solves():
     )
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
 
 
 @pytest.mark.toml
@@ -1440,7 +1440,7 @@ def test_run_from_params_optimize_ss_ages_single_name():
     )
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
 
 
 @pytest.mark.toml
@@ -1463,7 +1463,7 @@ def test_run_from_params_optimize_ss_ages_all():
     )
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
 
 
 @pytest.mark.toml
@@ -1825,7 +1825,7 @@ def test_run_from_params_with_survivor_claim_age():
     )
     data = json.loads(result)
     assert data["status"] == "solved"
-    assert data["spending_year1_nominal"] > 0
+    assert data["spending_year1_today_dollars"] > 0
 
 
 def _save_survivor_case(td, **kwargs):

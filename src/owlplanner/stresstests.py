@@ -130,14 +130,22 @@ def _stochastic_lp(bases, lam):
     """
     Solve the stochastic spending LP for a given risk-aversion parameter lambda.
 
-    Finds the common first-year spending commitment g* that maximizes:
+    Finds the common spending commitment g* that maximizes:
         g - (lambda/S) * sum(sigma_s)
     subject to sigma_s >= g - basis_s, sigma_s >= 0, 0 <= g <= max(bases).
+
+    The commitment carries whatever units ``bases`` carries: spending basis when fed
+    per-scenario ``plan.basis``, first-year dollars when fed per-scenario ``g_n[0]``.
+    The two differ by the profile factor xi_n[0], which is 1 only on a flat profile.
+
+    The program is positively homogeneous: scaling every basis by c > 0 scales the
+    feasible set, so g* and the shortfalls scale by c and the probabilities do not
+    move. That is what lets the same frontier be reported in either unit.
 
     Parameters
     ----------
     bases : array-like
-        Optimal spending basis (today's dollars) for each scenario.
+        Per-scenario optimal spending (today's dollars), in either unit.
     lam : float
         Risk-aversion parameter. lambda=0 -> risk-neutral (max spending).
         lambda->inf -> maximin (worst-case optimal).
@@ -183,7 +191,8 @@ def _compute_efficient_frontier(bases, n_points=60):
     Parameters
     ----------
     bases : array-like
-        Optimal spending basis per scenario (today's dollars).
+        Per-scenario optimal spending (today's dollars). Either unit: spending basis,
+        or first-year dollars. The returned curve comes back in the unit given.
     n_points : int
         Number of lambda values to evaluate.
 
@@ -408,12 +417,19 @@ def summarize_year1(year1_list, inames):
 def _regret_objective_value(p, objective):
     """Scenario outcome in the objective's natural units (today's $).
 
-    maxSpending: the first-year spending basis ($/yr). maxBequest: the after-tax
-    value of the final savings estate (excludes fixed assets such as a home,
-    which are invariant to the decisions under study).
+    maxSpending: the first year's net spending, basis x xi_n[0]. The optimizer maximizes
+    the profile-neutral basis, but the first year's amount is what a household actually
+    spends and what the maxBequest objective's netSpending option pins, so quoting it keeps
+    the two objectives in the same vocabulary. The two coincide on a flat profile and differ
+    by about 9% on a smile. Since regret is a difference of two outcomes under one profile,
+    the factor rescales the whole curve and leaves every ratio - the commit band, the share
+    of the never-convert value, whether the curve is flat - unchanged.
+
+    maxBequest: the after-tax value of the final savings estate (excludes fixed assets such
+    as a home, which are invariant to the decisions under study).
     """
     if objective == "maxSpending":
-        return float(p.basis)
+        return float(p.basis) * float(p.xi_n[0])
     from .export import plan_metrics  # local import; export pulls heavy deps
 
     return float(plan_metrics(p)["final_bequest_savings_today"])
@@ -630,8 +646,8 @@ def run_conversion_regret_sweep(
     disallowed for `person` in every year) measures the value of the whole conversion
     strategy, which is a different and much larger quantity than pinning year one to zero.
 
-    Outcomes are in the objective's natural units, today's dollars: first-year spending
-    basis ($/yr) for maxSpending, after-tax final savings estate for maxBequest (which
+    Outcomes are in the objective's natural units, today's dollars: the first year's net
+    spending ($/yr) for maxSpending, after-tax final savings estate for maxBequest (which
     requires options["netSpending"]). For a couple, only `person`'s conversion is pinned;
     the spouse's remains free.
 
@@ -1388,11 +1404,23 @@ def run_stochastic_spending(
     -------
     dict with keys:
         "bases"              : ndarray (S,) — per-scenario optimal spending basis
+        "bases_year1"        : ndarray (S,) — the same optimum expressed as the first year's
+                               net spending, which is what the maxBequest objective's
+                               netSpending option pins. Read from each scenario's own g_n[0],
+                               so it stays exact under longevity sampling, where the drawn
+                               horizon gives every scenario its own profile. Equals
+                               bases * xi_0 on a fixed horizon, and equals bases outright on
+                               a flat profile
         "start_years"        : ndarray (S,) or None — historical start years (None for MC)
         "lambdas"            : ndarray
-        "frontier_g"         : ndarray
+        "frontier_g"         : ndarray — committed spending, in basis dollars
         "frontier_prob"      : ndarray
-        "frontier_shortfall" : ndarray
+        "frontier_shortfall" : ndarray — in basis dollars
+        "frontier_g_year1"        : ndarray — the same frontier in first-year dollars
+        "frontier_prob_year1"     : ndarray
+        "frontier_shortfall_year1": ndarray
+        "xi_0"               : float — the parent plan's profile factor xi_n[0], the ratio
+                               between first-year spending and the basis
         "year_n"             : ndarray — plan calendar years
         "n_d"                : int — death year index (for unit labeling)
         "drawn_lifespans"    : ndarray (S, N_i) or None — drawn ages at death per scenario
@@ -1426,6 +1454,7 @@ def run_stochastic_spending(
         progcall = progress.Progress(plan.mylog)
 
     bases_list = []
+    bases_year1_list = []
     year1_list = []
     partials_list = []
     start_years_list = []
@@ -1589,6 +1618,12 @@ def run_stochastic_spending(
             n_infeasible += 1
             basis = 0.0
         bases_list.append(basis)
+        # The same optimum in first-year dollars. Taken from the scenario's own g_n[0]
+        # rather than scaled by the parent's xi_n[0]: under longevity sampling each
+        # scenario is cloned with a drawn horizon, so it has a profile of its own.
+        # A scenario that did not solve contributes 0.0 here for the same reason it
+        # contributes a basis of 0.0 — the whole commitment is a shortfall.
+        bases_year1_list.append(0.0 if year1 is None else float(year1["g0"]))
         year1_list.append(year1)
         # NaN rather than 0 for a scenario that did not solve: zero is a real value
         # here (a spouse who is sole beneficiary), so the two must stay distinguishable.
@@ -1615,18 +1650,29 @@ def run_stochastic_spending(
         raise RuntimeError("Fewer than 2 scenarios solved successfully; cannot compute frontier.")
 
     bases = np.array(bases_list)
+    bases_year1 = np.array(bases_year1_list)
     start_years = np.array(start_years_list) if start_years_list else None
     drawn_lifespans = np.array(drawn_lifespans_list) if with_longevity else None
 
     lambdas, frontier_g, frontier_prob, frontier_shortfall = _compute_efficient_frontier(bases)
+    # The same sweep in first-year dollars. Solved again rather than rescaled: the LP is
+    # positively homogeneous, so on a fixed horizon this reproduces frontier_g * xi_0
+    # exactly, while under longevity sampling -- where xi_n[0] varies scenario by scenario --
+    # no single factor is right. Sixty small LPs against minutes of scenario solves.
+    _, frontier_g_y1, frontier_prob_y1, frontier_shortfall_y1 = _compute_efficient_frontier(bases_year1)
 
     return {
         "bases": bases,
+        "bases_year1": bases_year1,
         "start_years": start_years,
         "lambdas": lambdas,
         "frontier_g": frontier_g,
         "frontier_prob": frontier_prob,
         "frontier_shortfall": frontier_shortfall,
+        "frontier_g_year1": frontier_g_y1,
+        "frontier_prob_year1": frontier_prob_y1,
+        "frontier_shortfall_year1": frontier_shortfall_y1,
+        "xi_0": float(plan.xi_n[0]),
         "year_n": plan.year_n,
         "n_d": plan.n_d,
         "drawn_lifespans": drawn_lifespans,
@@ -1766,10 +1812,12 @@ def run_spending_bequest_frontier(
     dict with keys:
         "bequest_grid"         : ndarray (K,) — floors as given, in ``units``
         "bequest_dollars"      : ndarray (K,) — the same floors in dollars
-        "base_basis"           : ndarray (K,) — spending on the plan's own rates. Deterministic
-                                 mode only; NaN throughout the stochastic modes, where the
-                                 answer is the ensemble and a single-scenario basis would
-                                 describe none of it
+        "base_basis"           : ndarray (K,) — spending on the plan's own rates, as a basis.
+                                 Deterministic mode only; NaN throughout the stochastic modes,
+                                 where the answer is the ensemble and a single-scenario basis
+                                 would describe none of it. Multiply by ``xi_0`` for the first
+                                 year's spending, which is the figure the maxBequest objective's
+                                 netSpending option pins
         "bases"                : ndarray (K, S) — per-scenario spending; 0.0 marks an
                                  infeasible scenario, matching run_stochastic_spending
         "g_at_success"         : ndarray (K, R) — spending at each success rate
@@ -1797,6 +1845,9 @@ def run_spending_bequest_frontier(
         "max_gap"              : ndarray (K,) — largest achieved MIP gap; -1 when pure LP
         "xi_sum"               : float — sum of the spending profile, converting a basis
                                  difference into the lifetime units of the shadow price
+        "xi_0"                 : float — the profile factor xi_n[0]. Every spending figure
+                                 above is a basis; times this it becomes the first year's
+                                 spending. 1.0 on a flat profile, where the two coincide
         "success_rates", "scenario_method", "n_scenarios", "start_years", "year_n", "n_d"
 
     Summarize with summarize_spending_bequest_frontier().
@@ -1967,6 +2018,7 @@ def run_spending_bequest_frontier(
         "partial_bequest_hi": partial_hi,
         "max_gap": max_gap,
         "xi_sum": float(np.sum(plan.xi_n)),
+        "xi_0": float(plan.xi_n[0]),
         "success_rates": tuple(rates_pct),
         "scenario_method": scenario_method,
         "n_scenarios": n_scenarios,
@@ -1982,6 +2034,12 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
 
     Reports the curve itself and the measured exchange rate between bequest and
     spending at the requested confidence, segment by segment.
+
+    Spending appears in both units at every point: ``spending_*`` is the basis the
+    solver optimizes, ``spending_year1_*`` the first year's amount, which is the
+    quantity the maxBequest objective's netSpending option pins and therefore the
+    one to compare a maxBequest run against. They differ by ``xi_0`` = xi_n[0], and
+    coincide on a flat profile.
 
     Deliberately absent are a "free bequest" and a "knee". Both read as properties
     of the plan but are set by the grid: the free bequest, being the largest floor
@@ -2006,6 +2064,9 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
     failed = np.asarray(result["level_failed"], bool)
     shadow = np.asarray(result["bequest_shadow_price"], float)
     xi_sum = float(result["xi_sum"])
+    # Defaulted rather than required: a result cached by an older session has no xi_0, and
+    # 1.0 makes the year-1 columns coincide with the basis, which is the flat-profile truth.
+    xi_0 = float(result.get("xi_0", 1.0) or 1.0)
     rates_pct = list(result["success_rates"])
     deterministic = result["scenario_method"] == "deterministic"
     fixed_assets = float(result.get("fixed_assets_today_dollars", 0.0) or 0.0)
@@ -2038,12 +2099,16 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
         if not np.isnan(partial[k]) and (partial_hi[k] - partial_lo[k]) > 1.0:
             row["partial_bequest_low"] = round(float(partial_lo[k]), 2)
             row["partial_bequest_high"] = round(float(partial_hi[k]), 2)
+        # Every spending figure is reported twice: as the basis the solver optimizes, and
+        # as the first year's amount, which is what the case's own spending goal names.
         if deterministic:
             row["spending_today_dollars"] = None if np.isnan(g_col[k]) else round(float(g_col[k]), 2)
+            row["spending_year1_today_dollars"] = None if np.isnan(g_col[k]) else round(float(g_col[k]) * xi_0, 2)
         else:
             for j, rate in enumerate(rates_pct):
                 v = float(result["g_at_success"][k, j])
                 row[f"spending_at_{rate:g}pct"] = None if np.isnan(v) else round(v, 2)
+                row[f"spending_year1_at_{rate:g}pct"] = None if np.isnan(v) else round(v * xi_0, 2)
         rows.append(row)
 
     # Exchange rate: how much spending each extra dollar of estate costs, measured.
@@ -2057,11 +2122,13 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
             "from_bequest": round(float(grid[k - 1]), 2),
             "to_bequest": round(float(grid[k]), 2),
             "spending_per_dollar_of_bequest": None,
+            "spending_year1_per_dollar_of_bequest": None,
         }
         dB = grid[k] - grid[k - 1]
         if dB > 0 and not np.isnan(g_col[k]) and not np.isnan(g_col[k - 1]):
             secant = (g_col[k] - g_col[k - 1]) / dB
             entry["spending_per_dollar_of_bequest"] = round(float(secant), 6)
+            entry["spending_year1_per_dollar_of_bequest"] = round(float(secant) * xi_0, 6)
             # The dual is a lifetime figure; a basis secant scales by the profile sum.
             d = shadow[k]
             if not np.isnan(d) and abs(secant) > 1e-12:
@@ -2099,6 +2166,8 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
         "target_success_rate_pct": None if deterministic else target_success_rate_pct,
         "frontier": rows,
         "exchange_rate": exchange,
+        # The ratio between the two spending columns: first-year = basis * xi_0.
+        "xi_0": round(xi_0, 6),
         "max_feasible_bequest_today_dollars": None if lo is None else round(lo, 2),
         "first_unreachable_bequest_today_dollars": None if hi is None else round(hi, 2),
         "fixed_assets_today_dollars": round(fixed_assets, 2),

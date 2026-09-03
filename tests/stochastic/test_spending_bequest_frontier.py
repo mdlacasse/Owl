@@ -441,3 +441,84 @@ def test_summarize_is_pure():
     assert s["exchange_rate"][0]["spending_per_dollar_of_bequest"] == pytest.approx(-0.006)
     # The dual is a lifetime figure; dividing by the profile sum puts it in basis units.
     assert s["exchange_rate"][0]["shadow_price_implied"] == pytest.approx(-0.18 / 30.0)
+
+
+@pytest.mark.toml
+class TestSpendingUnits:
+    """
+    The curve is reported in two units, and confusing them makes the page look wrong.
+
+    The solver maximizes a spending basis, but a case solved for a bequest states its
+    goal as the first year's spending. On a smile profile those differ by xi_n[0] -- on
+    Case_jack+jill by about 9% -- so a basis quoted against a netSpending goal reads as
+    a plan that spends less and leaves less than it really does.
+    """
+
+    @staticmethod
+    @pytest.fixture(scope="class")
+    def result(case, opts):
+        return run_spending_bequest_frontier(case, opts, [0, 500, 1000], scenario_method="deterministic")
+
+    def test_xi_0_is_the_plans_profile_factor(self, case, result):
+        assert result["xi_0"] == pytest.approx(float(case.xi_n[0]))
+        assert result["xi_0"] > 1.0, "this case must use a non-flat profile, or the test proves nothing"
+
+    def test_year1_is_the_basis_times_the_profile(self, result):
+        s = summarize_spending_bequest_frontier(result)
+        xi_0 = s["xi_0"]
+        for row in s["frontier"]:
+            assert row["spending_year1_today_dollars"] == pytest.approx(
+                row["spending_today_dollars"] * xi_0, abs=0.02
+            )
+
+    def test_year1_matches_what_maxBequest_would_be_asked_for(self, case, opts, result):
+        """
+        The point of the whole exercise: take a level's first-year figure to the other
+        objective as its netSpending goal, and the two describe the same plan. Handing it
+        the basis instead lands on a different plan altogether, one that spends xi_0 less.
+
+        The bequest is only checked to within the solve's own error bar. maxBequest on this
+        case leaves the self-consistent loop on max iterations, and the accepted objective
+        then sits somewhere inside the oscillation band rather than at a fixed point -- a
+        property of the case, not of the units, which is why the spending identities below
+        are exact while the estate is not.
+        """
+        s = summarize_spending_bequest_frontier(result)
+        row = s["frontier"][-1]
+        p = owl.clone(case, verbose=False)
+        o = {k: v for k, v in opts.items() if k != "bequest"}
+        o["netSpending"] = row["spending_year1_today_dollars"] / 1000.0  # options are in $k
+        p.solve("maxBequest", o)
+        assert p.caseStatus == "solved"
+        # Exact: the goal is the first year's spending, and the basis is what the frontier
+        # tabulates beside it.
+        assert p.g_n[0] == pytest.approx(row["spending_year1_today_dollars"], abs=0.02)
+        assert p.basis == pytest.approx(row["spending_today_dollars"], abs=0.02)
+        # Both solves carry a band of their own, so the inversion is only good to their sum.
+        tol = max(1e-3, 2.0 * float(p.oscillationRel))
+        assert p.bequest == pytest.approx(row["bequest_today_dollars"], rel=tol)
+
+    def test_a_flat_profile_collapses_the_two(self, case, opts):
+        """No profile, no distinction: xi_0 is 1 and the columns coincide."""
+        p = owl.clone(case, verbose=False)
+        p.setSpendingProfile("flat", percent=60)
+        res = run_spending_bequest_frontier(p, opts, [0, 1000], scenario_method="deterministic")
+        assert res["xi_0"] == pytest.approx(1.0)
+        s = summarize_spending_bequest_frontier(res)
+        for row in s["frontier"]:
+            assert row["spending_year1_today_dollars"] == pytest.approx(row["spending_today_dollars"], abs=0.02)
+
+    def test_the_exchange_rate_carries_both_units(self, result):
+        s = summarize_spending_bequest_frontier(result)
+        for e in s["exchange_rate"]:
+            assert e["spending_year1_per_dollar_of_bequest"] == pytest.approx(
+                e["spending_per_dollar_of_bequest"] * s["xi_0"], rel=1e-4
+            )
+
+    def test_an_older_cached_result_still_summarizes(self, result):
+        """xi_0 is defaulted, not required: a result pickled before it existed must not crash."""
+        stale = {k: v for k, v in result.items() if k != "xi_0"}
+        s = summarize_spending_bequest_frontier(stale)
+        assert s["xi_0"] == pytest.approx(1.0)
+        for row in s["frontier"]:
+            assert row["spending_year1_today_dollars"] == pytest.approx(row["spending_today_dollars"], abs=0.02)

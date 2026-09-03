@@ -50,6 +50,7 @@ the current *case* across historical scenarios over the selected year range.""")
     with col1:
         st.number_input(
             "Starting year",
+            help=owb.HELP_HIST_YSTART,
             min_value=owb.FROM,
             max_value=kz.getCaseKey("hyto"),
             value=kz.getCaseKey("hyfrm"),
@@ -61,6 +62,7 @@ the current *case* across historical scenarios over the selected year range.""")
     with col2:
         st.number_input(
             "Ending year",
+            help=owb.HELP_HIST_YEND,
             max_value=yto_max,
             min_value=kz.getCaseKey("hyfrm"),
             value=kz.getCaseKey("hyto"),

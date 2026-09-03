@@ -929,7 +929,7 @@ class PlotlyBackend(PlotBackend):
             title_text="Shortfall probability (%)", ticksuffix="%", title_font_size=14, tickfont_size=11, row=1, col=1
         )
         fig.update_yaxes(
-            title_text=f"Committed spending ({thisyear} $k)",
+            title_text=f"Committed spending, year 1 ({thisyear} $k)",
             tickprefix="$",
             title_font_size=14,
             tickfont_size=11,
@@ -945,7 +945,7 @@ class PlotlyBackend(PlotBackend):
             col=2,
         )
         fig.update_yaxes(
-            title_text=f"Committed spending ({thisyear} $k)",
+            title_text=f"Committed spending, year 1 ({thisyear} $k)",
             tickprefix="$",
             title_font_size=14,
             tickfont_size=11,
@@ -1320,7 +1320,7 @@ class PlotlyBackend(PlotBackend):
         thisyear = int(year_n[0])
         achieved = np.minimum(g_opt, bases)
         success = achieved >= g_opt - 1.0
-        label = "Spending"
+        label = "Year-1 spending"
         longevity_tag = " · longevity" if with_longevity else ""
         is_historical = start_years is not None
 

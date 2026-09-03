@@ -59,6 +59,10 @@ else:
 Optimize committed first-year spending across a set of historical or Monte Carlo scenarios.
 The **efficient frontier** shows the trade-off between spending level and shortfall risk.
 Select a target success rate to find the committed spending that meets it.
+
+Amounts are the **first year's** spending, the same quantity as the spending goal on the
+Goals page. With a non-flat spending profile that sits above the spending basis the
+optimizer maximizes; the summary states both.
 """)
 
     objective = kz.getCaseKey("objective") or "Net spending"
@@ -93,6 +97,7 @@ Select a target success rate to find the committed spending that meets it.
         with col1:
             st.number_input(
                 "Starting year",
+                help=owb.HELP_HIST_YSTART,
                 min_value=owb.FROM,
                 max_value=kz.getCaseKey("stoch_yend"),
                 value=kz.getCaseKey("stoch_ystart"),
@@ -103,6 +108,7 @@ Select a target success rate to find the committed spending that meets it.
         with col2:
             st.number_input(
                 "Ending year",
+                help=owb.HELP_HIST_YEND,
                 min_value=kz.getCaseKey("stoch_ystart"),
                 max_value=yend_max,
                 value=kz.getCaseKey("stoch_yend"),

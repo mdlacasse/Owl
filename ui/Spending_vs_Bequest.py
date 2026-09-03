@@ -50,6 +50,11 @@ plots the net spending each one permits.
 
 Read it to answer *what does leaving this inheritance cost me?*, or the reverse —
 *if I spend this much, what is left behind?*
+
+Spending is reported as the **first year's** amount, the same quantity as the spending
+goal on the Goals page, so a point on this curve can be compared directly with a case
+solved for a bequest. A non-flat spending profile raises it above the spending basis the
+optimizer maximizes; where they differ, both are shown.
 """)
 
     st.markdown("#### :orange[Scenario method]")
@@ -115,6 +120,7 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             with col1:
                 st.number_input(
                     "Starting year",
+                    help=owb.HELP_HIST_YSTART,
                     min_value=owb.FROM,
                     max_value=kz.getCaseKey("frontier_yend"),
                     value=kz.getCaseKey("frontier_ystart"),
@@ -125,6 +131,7 @@ Read it to answer *what does leaving this inheritance cost me?*, or the reverse 
             with col2:
                 st.number_input(
                     "Ending year",
+                    help=owb.HELP_HIST_YEND,
                     min_value=kz.getCaseKey("frontier_ystart"),
                     max_value=yend_max,
                     value=kz.getCaseKey("frontier_yend"),

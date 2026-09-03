@@ -212,7 +212,7 @@ def test_build_json_spending_at_target_keys(_hist_result):
     plan, result = _hist_result
     out = _build_stochastic_json(plan, result, 90.0, "historical")
     assert "today_dollars" in out["spending_at_target"]
-    assert "year1_nominal" in out["spending_at_target"]
+    assert "year1_today_dollars" in out["spending_at_target"]
 
 
 @pytest.mark.toml
@@ -247,7 +247,7 @@ def test_build_json_frontier_structure(_hist_result):
     for pt in out["frontier"]:
         assert "success_rate_pct" in pt
         assert "spending_today_dollars" in pt
-        assert "spending_year1_nominal" in pt
+        assert "spending_year1_today_dollars" in pt
 
 
 @pytest.mark.toml

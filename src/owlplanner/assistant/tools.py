@@ -2715,6 +2715,18 @@ def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts,
     return plan, result
 
 
+# One wording for every tool that reports spending, so the two units are named the same way
+# wherever they appear. The key suffix carries the meaning: _today_dollars is the basis,
+# _year1_today_dollars the first year's amount (also today's dollars, gamma_n[0] being 1).
+SPENDING_UNITS_NOTE = (
+    "Fields ending in _today_dollars are the profile-neutral spending basis the optimizer "
+    "maximizes; fields ending in _year1_today_dollars are the first year's net spending, "
+    "which is what the maxBequest objective's netSpending option pins. "
+    "year1 = basis * xi_0, and the two are equal on a flat profile. "
+    "Quote the year1 figure when the user asks what they can spend."
+)
+
+
 def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_method):
     """Distil run_stochastic_spending result into a compact JSON-ready dict."""
     from owlplanner.stresstests import g_for_success_rate
@@ -2727,8 +2739,21 @@ def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_metho
 
     xi0 = float(plan.xi_n[0])
 
-    # Spending commitment at the requested success rate (frontier_g units = today's $)
+    # The same frontier in first-year dollars. Solved from each scenario's own g_n[0]
+    # rather than scaled by xi0, which matters for run_longevity_stochastic: there every
+    # scenario is cloned with a drawn horizon and so carries a profile of its own, and no
+    # single factor converts the ensemble. On a fixed horizon the LP is positively
+    # homogeneous, so this reproduces frontier_g * xi0 and the probabilities do not move.
+    frontier_g_y1 = result.get("frontier_g_year1")
+    if frontier_g_y1 is None:
+        frontier_g_y1 = np.asarray(frontier_g, float) * xi0
+        frontier_prob_y1 = frontier_prob
+    else:
+        frontier_prob_y1 = result["frontier_prob_year1"]
+
+    # Spending commitment at the requested success rate, in both units.
     g_target, _ = g_for_success_rate(target_success_rate_pct, lambdas, frontier_g, frontier_prob)
+    g_target_y1, _ = g_for_success_rate(target_success_rate_pct, lambdas, frontier_g_y1, frontier_prob_y1)
 
     # Achieved success rate at that frontier point
     target_shortfall = 1.0 - target_success_rate_pct / 100.0
@@ -2741,7 +2766,7 @@ def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_metho
         {
             "success_rate_pct": round(100.0 * (1.0 - float(frontier_prob[i])), 2),
             "spending_today_dollars": int(round(float(frontier_g[i]))),
-            "spending_year1_nominal": int(round(float(frontier_g[i]) * xi0)),
+            "spending_year1_today_dollars": int(round(float(frontier_g_y1[i]))),
         }
         for i in range(0, len(frontier_g), step)
     ]
@@ -2752,15 +2777,20 @@ def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_metho
         "scenario_method": scenario_method,
         "n_scenarios_run": int(len(bases)),
         "n_scenarios_infeasible": int(n_infeasible),
+        # Same vocabulary as run_spending_bequest_frontier: today_dollars is the basis the
+        # optimizer maximizes, year1 is what the household actually spends in year one and
+        # what the maxBequest objective's netSpending option pins.
+        "xi_0": round(xi0, 6),
+        "spending_units": SPENDING_UNITS_NOTE,
         "target_success_rate_pct": target_success_rate_pct,
         "achieved_success_rate_pct": achieved_success_pct,
         "spending_at_target": {
             "today_dollars": int(round(g_target)),
-            "year1_nominal": int(round(g_target * xi0)),
+            "year1_today_dollars": int(round(g_target_y1)),
         },
         "max_spending": {
             "today_dollars": int(round(float(frontier_g[0]))),
-            "year1_nominal": int(round(float(frontier_g[0]) * xi0)),
+            "year1_today_dollars": int(round(float(frontier_g_y1[0]))),
             "success_rate_pct": round(100.0 * (1.0 - float(frontier_prob[0])), 2),
         },
         "frontier": frontier_pts,
@@ -2772,14 +2802,17 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
     xi0 = float(plan.xi_n[0])
     n_solved = len(results)
 
+    # The second label is not the same kind of figure in both branches: spending is
+    # restated in the first year's dollars (still today's, since gamma_n[0] is 1), while
+    # a bequest is inflated out to the final year, which really is nominal.
     if objective == "maxSpending":
         values = np.array([r["value"] for r in results])
         label_today = "spending_today_dollars"
-        label_nominal = "spending_year1_nominal"
+        label_alt = "spending_year1_today_dollars"
     else:
         values = np.array([r["value"] for r in results])
         label_today = "bequest_today_dollars"
-        label_nominal = "bequest_final_nominal"
+        label_alt = "bequest_final_nominal"
 
     def _pct(arr, q):
         return int(round(float(np.percentile(arr, q))))
@@ -2815,10 +2848,10 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
                 label_today: int(round(float(v))),
             }
             if objective == "maxSpending":
-                entry[label_nominal] = int(round(float(v) * xi0))
+                entry[label_alt] = int(round(float(v) * xi0))
             else:
                 gamma_end = r.get("gamma_n_end", float(plan.gamma_n[-1]))
-                entry[label_nominal] = int(round(float(v) * gamma_end))
+                entry[label_alt] = int(round(float(v) * gamma_end))
             by_year.append(entry)
         out["by_start_year"] = by_year
 
@@ -3320,6 +3353,12 @@ def _build_frontier_json(plan, result, summary):
         # in which case the maximum lies above the top of the grid.
         "max_feasible_bequest_today_dollars": summary["max_feasible_bequest_today_dollars"],
         "first_unreachable_bequest_today_dollars": summary["first_unreachable_bequest_today_dollars"],
+        # Every spending figure comes in both units, because the two objectives name
+        # different ones: maxBequest's netSpending pins the first year's amount, while
+        # maxSpending optimizes the basis. Quoting a basis against a netSpending goal
+        # understates the spending by the profile factor.
+        "xi_0": summary["xi_0"],
+        "spending_units": SPENDING_UNITS_NOTE,
         "frontier": summary["frontier"],
         "exchange_rate": summary["exchange_rate"],
     }
@@ -3418,6 +3457,12 @@ async def run_spending_bequest_frontier(
 
     The plan may come from a case file (filename) or from flat parameters, exactly
     as in run_from_params. All monetary values are today's dollars.
+
+    Each point reports spending twice. spending_year1_* is the first year's net
+    spending, the same quantity the maxBequest objective's netSpending option pins,
+    and the figure to quote when a user asks what they can spend or wants this curve
+    compared with a maxBequest run. spending_* is the profile-neutral spending basis
+    the optimizer maximizes. The two differ by xi_0 and coincide on a flat profile.
 
     Args:
         bequest_grid: Bequest floors to trace, in today's dollars, e.g.

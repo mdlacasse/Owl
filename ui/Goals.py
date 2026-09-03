@@ -79,7 +79,10 @@ else:
             kz.initCaseKey("netSpending", 0)
             helpmsg_spending = (
                 f"Desired annual net spending in today's \\$k, i.e. constant {owb.baseYear()} "
-                "dollars (the constraint when maximizing bequest)."
+                "dollars (the constraint when maximizing bequest). This is the amount spent in "
+                "the **first year**. A non-flat spending profile shapes the years around it, so "
+                "it sits above the spending basis reported in the results summary, and it is the "
+                "figure to compare with the Spending vs Bequest and Spending Optimization pages."
             )
             ret = kz.getNum("Desired annual net spending (\\$k)", "netSpending", help=helpmsg_spending)
 
