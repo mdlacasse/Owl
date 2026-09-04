@@ -30,6 +30,7 @@ from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.optimize import linprog
 
+from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
 from . import rates
@@ -1842,6 +1843,11 @@ def run_spending_bequest_frontier(
                                  of the plan, in today's dollars. Set by the asset table
                                  rather than by the floor, so it is the same at every
                                  level, and it is on top of every bequest figure here
+        "fixed_assets_path_dependent" : bool — whether that today's-dollar figure moves
+                                 with the inflation path, which is a property of the asset
+                                 table alone. False when every asset held to the end grows
+                                 at a real rate and is quoted at the plan's start year, so
+                                 the deflator cancels exactly
         "max_gap"              : ndarray (K,) — largest achieved MIP gap; -1 when pure LP
         "xi_sum"               : float — sum of the spending profile, converting a basis
                                  difference into the lifetime units of the shadow price
@@ -2013,6 +2019,9 @@ def run_spending_bequest_frontier(
         "level_failed": level_failed,
         "bequest_shadow_price": shadow,
         "fixed_assets_today_dollars": 0.0 if not np.isfinite(fixed_assets) else fixed_assets,
+        "fixed_assets_path_dependent": fxasst.bequest_value_is_inflation_path_dependent(
+            plan.houseLists.get("Fixed Assets"), plan.N_n
+        ),
         "partial_bequest": partial_bequest,
         "partial_bequest_lo": partial_lo,
         "partial_bequest_hi": partial_hi,

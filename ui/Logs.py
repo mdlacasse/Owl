@@ -98,7 +98,7 @@ if logmsg:
     else:
         filtered_logs = logmsg
 
-    st.code(filtered_logs, language=None)
+    st.code(filtered_logs, language=None, wrap_lines=True)
 else:
     st.info(f"No logs available for case '{selected_case}'. Logs will appear here as you use the application.")
 

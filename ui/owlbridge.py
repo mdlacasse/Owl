@@ -816,10 +816,17 @@ def _render_frontier(result, plotter):
             f"Fixed assets add ${fixed:,.0f} to every level: the house and other assets still held "
             "at the end of the plan, which pass outside the savings accounts."
         )
-        if not deterministic:
-            # Assets quoted at a future reference year must be deflated back to today,
-            # so their today's-dollar value moves with the drawn inflation path.
-            note += " Valued on one rate path; see the documentation."
+        # The column is the one figure in the table not drawn from the ensemble: it comes from a
+        # single probe solve on the case's own rates, since deflating to today's dollars needs one
+        # inflation path. Whether that choice can move the number is a property of the asset table,
+        # so the sweep reports it: a real-rate asset quoted at the plan's start year cancels the
+        # deflator exactly, while a nominal one (stocks, an annuity) carries the full horizon.
+        # Defaulted on for a result cached before the flag existed, the caveat being the safe side.
+        if not deterministic and result.get("fixed_assets_path_dependent", True):
+            note += (
+                " Deflated to today's dollars on this case's own rates, not on the sampled"
+                " scenarios; see the documentation."
+            )
         notes.append(note)
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]

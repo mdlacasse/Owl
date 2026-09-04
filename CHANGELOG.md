@@ -1,5 +1,14 @@
 ### Version 2026.9.2
 
+#### Changed: the fixed-asset bequest note says when the figure is path-dependent
+
+Whether an asset's today's-dollar bequest value moves with the drawn inflation path is a
+property of the asset table, not of the rates: a real-rate asset quoted at the plan's start
+cancels the deflator exactly, while a nominal one never does.
+`fixedassets.bequest_value_is_inflation_path_dependent()` reports it, and the stochastic
+results carry it as `fixed_assets_path_dependent`, so the caveat appears only where it applies.
+
+
 #### Changed: Consistent use of first-year spending vs spending basis
 
 In graphs and in the UI, the use of first-year spending is made consistent. While it

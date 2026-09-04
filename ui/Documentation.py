@@ -2063,12 +2063,22 @@ launched with the **Trace trade-off** button.
   value is set by the assets table rather than by the plan, which is why it is identical on
   every row; it adds straight on top to give the **total estate**.
 
-  On a single rate scenario this figure is exact. Across scenarios it is taken from one rate
-  path, because an asset quoted at a **future** reference year has to be deflated back to
-  today's dollars, and that depends on inflation between now and that year. An asset whose
-  growth is real (a residence, real estate) and which is quoted at the plan's **start** year
-  carries no such dependence at all — the inflation cancels — so entering values in today's
-  dollars removes the effect entirely.
+  On a single rate scenario this figure is exact. Across scenarios it is taken from the case's
+  own rates rather than from the sampled ones, because turning a nominal amount into today's
+  dollars takes one inflation path. Whether that choice can move the number depends on the
+  asset:
+
+  - An asset whose growth is **real** (*residence*, *real estate*, *collectibles*, *precious
+    metals*) grows with inflation and is then deflated by it, so the two cancel. Quoted at the
+    plan's **start** year it carries no dependence at all; quoted at a **future** reference year
+    it carries only the inflation between now and that year.
+  - An asset whose growth is **nominal** (*stocks*, *fixed annuity*) never picks up inflation on
+    the way out, so nothing cancels and the whole horizon is in play — at **every** reference
+    year, the plan's start year included.
+
+  The caveat is therefore shown only when the table actually contains such an asset. Entering a
+  real-growth asset in today's dollars removes the effect entirely; for a *stocks* or *fixed
+  annuity* entry it does not.
 - **\\$/yr per \\$k** appears on a single rate scenario: the annual spending given up for each
   further \\$1,000 of estate, measured over that segment of the curve. It is reported per
   \\$1,000 rather than per dollar because the per-dollar figure runs to four decimal places.

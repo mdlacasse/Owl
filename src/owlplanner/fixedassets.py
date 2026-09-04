@@ -294,6 +294,69 @@ def get_fixed_assets_bequest_value(fixed_assets_df, N_n, gamma_n, thisyear=None)
     return total_bequest_value
 
 
+def bequest_value_is_inflation_path_dependent(fixed_assets_df, N_n, thisyear=None):
+    """
+    Report whether the bequest value in *today's* dollars depends on the inflation path.
+
+    get_fixed_assets_bequest_value() returns nominal end-of-plan proceeds, which a caller
+    deflates by gamma_n[-1]. Whether that round trip leaves a dependence on the drawn
+    inflation path is a property of the asset table, not of the rates:
+
+    - A real-rate type grows by gamma_n[N_n] / gamma_n[ref_n]. Since gamma_n has length
+      N_n + 1, gamma_n[N_n] is gamma_n[-1] and cancels against the deflator exactly, so
+      only 1 / gamma_n[ref_n] survives. Quoted at (or before) the plan's start year that
+      is gamma_n[0] = 1, and the value is path-independent; quoted at a later reference
+      year it carries inflation from today to that year.
+    - A nominal type (stocks, fixed annuity) never picks up gamma_n on the way out, so
+      nothing cancels and the full horizon deflator remains, at every reference year.
+
+    Only assets held past the end of the plan are considered, matching the filters in
+    get_fixed_assets_bequest_value(). Returns False when no such asset exists.
+
+    Parameters:
+    -----------
+    fixed_assets_df : pd.DataFrame
+        Same table passed to get_fixed_assets_bequest_value().
+    N_n : int
+        Number of years in the plan.
+    thisyear : int, optional
+        Starting year of the plan (defaults to date.today().year).
+
+    Returns:
+    --------
+    bool
+        True when the today's-dollar bequest value moves with the inflation path.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+
+    if u.is_dataframe_empty(fixed_assets_df):
+        return False
+
+    end_year = thisyear + N_n - 1
+
+    for _, asset in fixed_assets_df.iterrows():
+        if not u.is_row_active(asset):
+            continue
+
+        reference_year = _get_reference_year(asset, thisyear)
+        if reference_year > end_year:
+            continue
+
+        yod = int(asset["yod"])
+        if yod <= 0:
+            yod = end_year + yod + 1
+        if yod < reference_year or yod <= end_year:
+            continue
+
+        if str(asset["type"]).lower() not in REAL_RATE_TYPES:
+            return True
+        if reference_year > thisyear:
+            return True
+
+    return False
+
+
 def get_fixed_assets_disposition_costs_array(
     fixed_assets_df, N_n, gamma_n, capgains_rate, thisyear=None, filing_status="single"
 ):
