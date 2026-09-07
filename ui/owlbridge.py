@@ -793,8 +793,7 @@ def _render_frontier(result, plotter):
         what = "Net spending is" if deterministic else "The spending columns are"
         notes.append(
             f"{what} the first year's amount, the same quantity as the case's spending goal. "
-            f"This spending profile puts it at {xi_0:.2f} times the spending basis, "
-            "the profile-neutral level the optimizer maximizes; on a flat profile the two are equal."
+            f"This spending profile puts it at {xi_0:.2f} times the spending basis."
         )
     if show_partial:
         year = summary.get("partial_bequest_year")
