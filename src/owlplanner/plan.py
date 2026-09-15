@@ -538,25 +538,47 @@ class Plan:
 
         return None
 
-    def _preflight(self, caller, *, requireRates=True):
+    def _readiness(self, *, requireRates=True):
         """
-        Every "is this plan ready?" check, in one place.
+        Every "is this plan ready?" check, in one place. Returns the first unmet
+        requirement as a message, or None when the plan is fully configured.
 
         Ordered cheapest-to-explain first, and each message names the setter that fixes it.
         Balances are the check that was missing: without them yearFracLeft is never created,
         and the plan died with a bare AttributeError inside _add_initial_balances rather
         than saying what the user had forgotten.
+
+        The message carries a {caller} placeholder that _preflight() fills in; nothing here
+        logs or raises, so isConfigured() can ask the same question without side effects.
         """
         if self.xi_n is None:
-            msg = f"You must define a spending profile before calling {caller}()."
-        elif self.alpha_ijkn is None:
-            msg = f"You must define an allocation profile before calling {caller}()."
-        elif self.beta_ij is None:
-            msg = f"You must set account balances before calling {caller}()."
-        elif requireRates and self.rateMethod is None:
-            msg = f"Rate method must be selected before calling {caller}()."
-        else:
+            return "You must define a spending profile before calling {caller}()."
+        if self.alpha_ijkn is None:
+            return "You must define an allocation profile before calling {caller}()."
+        if self.beta_ij is None:
+            return "You must set account balances before calling {caller}()."
+        if requireRates and self.rateMethod is None:
+            return "Rate method must be selected before calling {caller}()."
+        return None
+
+    def isConfigured(self, *, requireRates=True):
+        """
+        Non-raising twin of _preflight(): True when every setter the plan needs has run.
+
+        Lets a caller skip an operation on a half-built plan instead of catching its
+        failure - the UI builds a Plan long before it pushes any values onto it, and asking
+        deliberately must not write noise into the case log.
+        """
+        return self._readiness(requireRates=requireRates) is None
+
+    def _preflight(self, caller, *, requireRates=True):
+        """
+        Refuse to start when the plan is not ready, naming the setter that fixes it.
+        """
+        template = self._readiness(requireRates=requireRates)
+        if template is None:
             return
+        msg = template.format(caller=caller)
         self.mylog.print(msg)
         raise RuntimeError(msg)
 
@@ -6676,6 +6698,7 @@ class Plan:
         """
         return export.plan_to_csv(self, basename, self.mylog)
 
+    @_checkConfiguration
     def saveConfig(self, basename=None):
         """
         Save parameters in a configuration file.
