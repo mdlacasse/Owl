@@ -1639,9 +1639,7 @@ class PlotlyBackend(PlotBackend):
     def plot_allocations(self, year_n, inames, alpha_ijkn, ARCoord, title):
         """Plot allocations over time."""
         # Determine account types based on coordination
-        if ARCoord == "spouses":
-            acList = [ARCoord]
-        elif ARCoord == "individual":
+        if ARCoord == "individual":
             acList = [ARCoord]
         elif ARCoord == "account":
             acList = ["taxable", "tax-deferred", "tax-free", "hsa"]

@@ -214,8 +214,9 @@ class AssetAllocation(BaseModel):
     interpolation_width: Optional[float] = Field(
         default=None, description="Interpolation width (years); required for s-curve"
     )
-    type: str = Field(default="individual", description="account, individual, or spouses")
-    # Conditional: generic for individual/spouses, taxable/tax-deferred/tax-free for account
+    type: str = Field(default="individual", description="account or individual")
+    # Conditional: generic for individual, taxable/tax-deferred/tax-free for account.
+    # A 'spouses' shorthand in a case file is expanded to 'individual' when the file is loaded.
     generic: Optional[List[List[List[int]]]] = None
     taxable: Optional[List[List[List[int]]]] = None
     tax_deferred: Optional[List[List[List[int]]]] = Field(default=None, alias="tax-deferred")
