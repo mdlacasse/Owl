@@ -1,0 +1,309 @@
+{
+ "Case_alex+jamie": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 4,
+  "bequest": 0.0,
+  "basis": 228535.6,
+  "x0": [
+   217376.27,
+   0.0
+  ],
+  "totalTaxes": 781473.3659
+ },
+ "Case_bill": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 3,
+  "bequest": 0.0,
+  "basis": 34231.13,
+  "x0": [
+   0.0
+  ],
+  "totalTaxes": 0.0
+ },
+ "Case_cameron": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 9,
+  "bequest": 20000.00221743548,
+  "basis": 18996.31,
+  "x0": [
+   0.0
+  ],
+  "totalTaxes": 0.0
+ },
+ "Case_chris+pat": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 17,
+  "bequest": 400000.0001850245,
+  "basis": 117050.45,
+  "x0": [
+   0.0,
+   0.0
+  ],
+  "totalTaxes": 663499.3513
+ },
+ "Case_dana": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 3,
+  "bequest": 399999.9997498491,
+  "basis": 81752.67,
+  "x0": [
+   77473.33
+  ],
+  "totalTaxes": 464012.6057000001
+ },
+ "Case_devon": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 3,
+  "bequest": 1599999.9998913736,
+  "basis": 249024.88,
+  "x0": [
+   267532.84
+  ],
+  "totalTaxes": 2458491.6861
+ },
+ "Case_helen+ruth": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 8,
+  "bequest": 200000.00131168685,
+  "basis": 195794.9,
+  "x0": [
+   75000.0,
+   75000.0
+  ],
+  "totalTaxes": 680651.4773
+ },
+ "Case_jack+jill": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 19,
+  "bequest": 399999.99925298017,
+  "basis": 112202.82,
+  "x0": [
+   0.0,
+   0.0
+  ],
+  "totalTaxes": 370117.7405000001
+ },
+ "Case_joe": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 5,
+  "bequest": 299999.99993599305,
+  "basis": 100485.09,
+  "x0": [
+   10998.41
+  ],
+  "totalTaxes": 529077.5696999999
+ },
+ "Case_john+sally": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 4,
+  "bequest": 82934.0456397234,
+  "basis": 145000.0,
+  "x0": [
+   133209.02,
+   5491.08
+  ],
+  "totalTaxes": 712323.1374
+ },
+ "Case_jon+jane": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 6,
+  "bequest": 29999.999030892508,
+  "basis": 161301.34,
+  "x0": [
+   0.0,
+   0.0
+  ],
+  "totalTaxes": 1894666.0989
+ },
+ "Case_jordan+taylor-qcd": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 7,
+  "bequest": 1199820.1803634486,
+  "basis": 240000.0,
+  "x0": [
+   208618.6,
+   0.0
+  ],
+  "totalTaxes": 1565768.8556
+ },
+ "Case_jordan+taylor": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 4,
+  "bequest": 1554925.8673177515,
+  "basis": 240000.0,
+  "x0": [
+   250069.66,
+   0.0
+  ],
+  "totalTaxes": 1930939.9505
+ },
+ "Case_kim+sam-bequest": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 12,
+  "bequest": 1964397.8707506503,
+  "basis": 145000.0,
+  "x0": [
+   100000.0,
+   27755.56
+  ],
+  "totalTaxes": 802209.2432
+ },
+ "Case_kim+sam-spending": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 12,
+  "bequest": 0.0,
+  "basis": 186390.46,
+  "x0": [
+   100000.0,
+   21851.91
+  ],
+  "totalTaxes": 807561.2055999999
+ },
+ "Case_morgan": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 14,
+  "bequest": 75000.00020809476,
+  "basis": 46067.7,
+  "x0": [
+   50000.0
+  ],
+  "totalTaxes": 259669.58319999994
+ },
+ "Case_robin": {
+  "status": "solved",
+  "conv": "oscillatory (cycle length 2)",
+  "builds": 22,
+  "bequest": 49999.99940101742,
+  "basis": 44365.12,
+  "x0": [
+   36373.56
+  ],
+  "totalTaxes": 28630.4188
+ },
+ "dana_1928_maxBequest": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 7,
+  "bequest": 1938963.8967773304,
+  "basis": 58000.0,
+  "x0": [
+   9788.33
+  ],
+  "totalTaxes": 260966.7774
+ },
+ "dana_1928_maxSpending": {
+  "status": "solved",
+  "conv": "max iteration",
+  "builds": 30,
+  "bequest": 399999.9997402175,
+  "basis": 79555.15,
+  "x0": [
+   0.0
+  ],
+  "totalTaxes": 259899.2659
+ },
+ "dana_1965_maxBequest": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 14,
+  "bequest": 521816.4255469496,
+  "basis": 58000.0,
+  "x0": [
+   15119.02
+  ],
+  "totalTaxes": 405526.42049999995
+ },
+ "dana_1965_maxSpending": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 4,
+  "bequest": 399999.99894342985,
+  "basis": 59648.77,
+  "x0": [
+   10632.17
+  ],
+  "totalTaxes": 409623.4833
+ },
+ "dana_1966_maxBequest": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 14,
+  "bequest": 432517.68312049605,
+  "basis": 58000.0,
+  "x0": [
+   65496.69
+  ],
+  "totalTaxes": 406677.14190000005
+ },
+ "dana_1966_maxSpending": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 16,
+  "bequest": 400000.00014993775,
+  "basis": 58451.6,
+  "x0": [
+   65485.64
+  ],
+  "totalTaxes": 406812.8991
+ },
+ "dana_1969_maxBequest": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 14,
+  "bequest": 713152.696100179,
+  "basis": 58000.0,
+  "x0": [
+   815.36
+  ],
+  "totalTaxes": 444714.91779999994
+ },
+ "dana_1969_maxSpending": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 10,
+  "bequest": 400000.0006449353,
+  "basis": 61453.05,
+  "x0": [
+   0.0
+  ],
+  "totalTaxes": 444194.73069999996
+ },
+ "dana_1999_maxBequest": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "builds": 4,
+  "bequest": 1344678.4738009428,
+  "basis": 58000.0,
+  "x0": [
+   75451.98
+  ],
+  "totalTaxes": 303755.5684
+ },
+ "dana_1999_maxSpending": {
+  "status": "solved",
+  "conv": "monotonic",
+  "builds": 3,
+  "bequest": 400000.0010022232,
+  "basis": 71390.58,
+  "x0": [
+   61367.12
+  ],
+  "totalTaxes": 303662.8461
+ }
+}

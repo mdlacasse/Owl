@@ -1,0 +1,41 @@
+{
+ "year": 1932,
+ "neighborhood": "irmaa:30000",
+ "loop_bequest": 4166120.2581740185,
+ "loop_conv": "oscillatory",
+ "relaxation_seconds": 0.02515888214111328,
+ "n_ss_years": 23,
+ "n_fractional": 23,
+ "pinned_years": [
+  2035,
+  2039,
+  2040,
+  2041,
+  2043,
+  2044,
+  2045,
+  2051,
+  2052
+ ],
+ "free_years": [
+  2030,
+  2031,
+  2032,
+  2033,
+  2034,
+  2036,
+  2037,
+  2038,
+  2042,
+  2046,
+  2047,
+  2048,
+  2049,
+  2050
+ ],
+ "hybrid_status": "solved",
+ "hybrid_conv": "monotonic",
+ "hybrid_bequest": 4190654.040704061,
+ "hybrid_gap": 0.0,
+ "hybrid_seconds": 136.19934391975403
+}

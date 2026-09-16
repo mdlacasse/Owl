@@ -1,0 +1,132 @@
+{
+ "year": 1973,
+ "loop_bequest": 1367304.325810239,
+ "milp_bequest": 1394540.3458957565,
+ "milp_seconds": 27457.123784780502,
+ "families": {
+  "SS": [
+   {
+    "year": 2032,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 3704,
+    "income_change": -22605
+   },
+   {
+    "year": 2033,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 5818,
+    "income_change": -23576
+   },
+   {
+    "year": 2034,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 7588,
+    "income_change": -24389
+   }
+  ],
+  "IRMAA": [],
+  "LTCG": [
+   {
+    "year": 2027,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 5584,
+    "income_change": 6534
+   },
+   {
+    "year": 2028,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 4951,
+    "income_change": 5901
+   },
+   {
+    "year": 2029,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 4951,
+    "income_change": 5901
+   },
+   {
+    "year": 2032,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 1820,
+    "income_change": -38670
+   },
+   {
+    "year": 2033,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 1820,
+    "income_change": -38670
+   },
+   {
+    "year": 2034,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 1820,
+    "income_change": -38670
+   },
+   {
+    "year": 2045,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2046,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 7157,
+    "income_change": 8977
+   },
+   {
+    "year": 2047,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2048,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2049,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2050,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2051,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   },
+   {
+    "year": 2052,
+    "loop_regime": 0,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 8202,
+    "income_change": 10022
+   }
+  ]
+ }
+}

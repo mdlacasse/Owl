@@ -1,0 +1,78 @@
+{
+ "year": 1932,
+ "neighborhood": "irmaa:13000",
+ "loop_bequest": 4166120.2581740185,
+ "loop_conv": "oscillatory",
+ "relaxation_seconds": 0.025716066360473633,
+ "n_ss_years": 23,
+ "n_fractional": 23,
+ "pinned_years": [
+  2033,
+  2034,
+  2035,
+  2036,
+  2037,
+  2038,
+  2039,
+  2040,
+  2041,
+  2042,
+  2043,
+  2044,
+  2045,
+  2046,
+  2047,
+  2048,
+  2049,
+  2050,
+  2051,
+  2052
+ ],
+ "free_years": [
+  2030,
+  2031,
+  2032
+ ],
+ "hybrid_status": "solved",
+ "hybrid_conv": "monotonic",
+ "hybrid_bequest": 4191503.922438395,
+ "hybrid_gap": 0.0,
+ "hybrid_seconds": 1.5578770637512207,
+ "hybrid_audit": {
+  "ss_taxable_income": {
+   "sum": -0.014258250870302174,
+   "abs_sum": 0.018632792431348685,
+   "max_abs": 0.0037025950670338545
+  },
+  "fed_ordinary": {
+   "sum": -0.00971045634257049,
+   "abs_sum": 0.013603187163617409,
+   "max_abs": 0.0017458816811032726
+  },
+  "std_deduction_used_minus_true": {
+   "sum": 0.0,
+   "abs_sum": 0.0,
+   "max_abs": 0.0
+  },
+  "ltcg": {
+   "sum": -0.0014075965740064217,
+   "abs_sum": 0.004633952657901439,
+   "max_abs": 0.0007930458041846065
+  },
+  "niit": {
+   "sum": 0.0,
+   "abs_sum": 0.0,
+   "max_abs": 0.0
+  },
+  "medicare": {
+   "sum": -3445.193415355408,
+   "abs_sum": 3445.2395077224487,
+   "max_abs": 1148.4006880930638
+  },
+  "state": {
+   "sum": -0.0004186815088779055,
+   "abs_sum": 0.008237236967895512,
+   "max_abs": 0.0012680173854994212
+  }
+ }
+}

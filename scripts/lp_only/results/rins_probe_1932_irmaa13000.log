@@ -1,0 +1,7 @@
+1932 stage 1 loop: solved oscillatory bequest 4,166,120.26 (0.1s); SS years 23: capped 23, 50%-tier saturated 23
+  stage 2a relaxation (0.0s, 297 binaries): SS years fractional 23, z0 agrees 0, z1 agrees 0, pinned 20, free 3
+  free SS years: [2030, 2031, 2032]
+      2030: loop z0=1 z1=1  relaxed z0=1.000 z1=1.000
+      2031: loop z0=1 z1=1  relaxed z0=1.000 z1=0.999
+      2032: loop z0=1 z1=1  relaxed z0=1.000 z1=0.999
+  stage 2b hybrid MILP: solved monotonic bequest 4,191,503.92 gap 0.0e+00 (1.5s)  gain over loop +25,383.66

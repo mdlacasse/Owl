@@ -1,0 +1,24 @@
+1973: loop solved monotonic bequest 1,367,304.33 (0.1s) | ALL4 solved max iteration bequest 1,394,540.35 gap 8.8e-02 (27457.1s)
+  SS   : 3 flipped of 23 active years; loop distance to boundary in flipped years (today's $): [3704, 5818, 7588]
+      2032: regime 3 -> 2, loop 3,704 from boundary, income change -22,605
+      2033: regime 3 -> 2, loop 5,818 from boundary, income change -23,576
+      2034: regime 3 -> 2, loop 7,588 from boundary, income change -24,389
+      unflipped years: distance to boundary median 8,985, min 2,856
+  IRMAA: 0 flipped of 27 active years; loop distance to boundary in flipped years (today's $): []
+      unflipped years: distance to boundary median 52,396, min 9,000
+  LTCG : 14 flipped of 27 active years; loop distance to boundary in flipped years (today's $): [1820, 1820, 1820, 4951, 4951, 5584, 7157, 8202, 8202, 8202, 8202, 8202, 8202, 8202]
+      2027: regime 0 -> 1, loop 5,584 from boundary, income change +6,534
+      2028: regime 0 -> 1, loop 4,951 from boundary, income change +5,901
+      2029: regime 0 -> 1, loop 4,951 from boundary, income change +5,901
+      2032: regime 1 -> 0, loop 1,820 from boundary, income change -38,670
+      2033: regime 1 -> 0, loop 1,820 from boundary, income change -38,670
+      2034: regime 1 -> 0, loop 1,820 from boundary, income change -38,670
+      2045: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2046: regime 0 -> 1, loop 7,157 from boundary, income change +8,977
+      2047: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2048: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2049: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2050: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2051: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      2052: regime 0 -> 1, loop 8,202 from boundary, income change +10,022
+      unflipped years: distance to boundary median 1,820, min 950

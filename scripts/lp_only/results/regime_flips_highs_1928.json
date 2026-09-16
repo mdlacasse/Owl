@@ -1,0 +1,196 @@
+{
+ "year": 1928,
+ "loop_bequest": 1941722.5168842613,
+ "milp_bequest": 1977853.6664752623,
+ "milp_seconds": 9875.712365150452,
+ "families": {
+  "SS": [
+   {
+    "year": 2031,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 24977,
+    "income_change": -30134
+   },
+   {
+    "year": 2032,
+    "loop_regime": 3,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 2621,
+    "income_change": -25441
+   },
+   {
+    "year": 2033,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 3184,
+    "income_change": -14099
+   },
+   {
+    "year": 2034,
+    "loop_regime": 3,
+    "milp_regime": 1,
+    "loop_dist_to_boundary": 4260,
+    "income_change": -27383
+   },
+   {
+    "year": 2035,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 4775,
+    "income_change": -18667
+   },
+   {
+    "year": 2036,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 5761,
+    "income_change": -17229
+   },
+   {
+    "year": 2037,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 4775,
+    "income_change": -22301
+   },
+   {
+    "year": 2039,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 5025,
+    "income_change": -21544
+   },
+   {
+    "year": 2040,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 8207,
+    "income_change": -14768
+   },
+   {
+    "year": 2041,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 9646,
+    "income_change": -25628
+   },
+   {
+    "year": 2046,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 4750,
+    "income_change": -12060
+   },
+   {
+    "year": 2047,
+    "loop_regime": 3,
+    "milp_regime": 2,
+    "loop_dist_to_boundary": 5366,
+    "income_change": -10180
+   }
+  ],
+  "IRMAA": [
+   {
+    "year": 2032,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 2666,
+    "income_change": -2666
+   }
+  ],
+  "LTCG": [
+   {
+    "year": 2032,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -44839
+   },
+   {
+    "year": 2033,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -23377
+   },
+   {
+    "year": 2034,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -47037
+   },
+   {
+    "year": 2035,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -30475
+   },
+   {
+    "year": 2036,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -26977
+   },
+   {
+    "year": 2037,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -37199
+   },
+   {
+    "year": 2038,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 1820,
+    "income_change": -1820
+   },
+   {
+    "year": 2039,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -35586
+   },
+   {
+    "year": 2040,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 20345,
+    "income_change": -20345
+   },
+   {
+    "year": 2041,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 19062,
+    "income_change": -39143
+   },
+   {
+    "year": 2043,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 4464,
+    "income_change": -4464
+   },
+   {
+    "year": 2046,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 6070,
+    "income_change": -18273
+   },
+   {
+    "year": 2047,
+    "loop_regime": 1,
+    "milp_regime": 0,
+    "loop_dist_to_boundary": 6070,
+    "income_change": -14272
+   }
+  ]
+ }
+}
