@@ -814,3 +814,88 @@ def test_plan_rejects_bad_survivor_claim_age():
     for bad in ("someday", 55, 72):
         with pytest.raises(ValueError):
             p.setSocialSecurity([2000, 1500], [67, 67], survivor_claim_age=bad)
+
+
+def _save_couple_case(tmp_path):
+    import json
+
+    from owlplanner.assistant import tools
+
+    res = tools.save_case(
+        names=["Alice", "Bob"],
+        birth_dates=["1963-03-15", "1961-11-02"],
+        life_expectancy=[90, 87],
+        taxable=[100_000, 100_000],
+        tax_deferred=[500_000, 400_000],
+        roth=[50_000, 0],
+        initial_allocation=[60, 40, 0, 0],
+        final_allocation=[50, 30, 20, 0],
+        output_dir=str(tmp_path),
+        case_name="couple_alloc",
+    )
+    with open(json.loads(res)["toml_file"]) as f:
+        return f.read()
+
+
+def test_save_case_couple_writes_individual_allocation(tmp_path):
+    """save_case writes a couple's shared allocation as 'individual', which the UI loads (issue #144)."""
+    pair = [[60, 40, 0, 0], [50, 30, 20, 0]]
+    diconf, _, _ = load_toml(StringIO(_save_couple_case(tmp_path)))
+    assert diconf["asset_allocation"]["type"] == "individual"
+    assert diconf["asset_allocation"]["generic"] == [pair, pair]
+
+    uidic = config_to_ui(diconf)
+    assert uidic["allocType"] == "individual"
+    for i in range(2):
+        assert [uidic[f"j3_init%{k}_{i}"] for k in range(4)] == pair[0]
+        assert [uidic[f"j3_fin%{k}_{i}"] for k in range(4)] == pair[1]
+
+
+def test_spouses_allocation_shorthand_loads_as_individual(tmp_path):
+    """A case file using the 'spouses' shorthand loads as the equivalent 'individual' allocation."""
+    import re
+
+    import numpy as np
+
+    from owlplanner.config.schema import config_dict_to_model
+
+    pair = [[60, 40, 0, 0], [50, 30, 20, 0]]
+    text = _save_couple_case(tmp_path)
+    ref, _, _ = load_toml(StringIO(text))
+    legacy = re.sub(
+        r"\[asset_allocation\].*?(?=\n\[|\Z)",
+        '[asset_allocation]\ninterpolation_method = "linear"\ntype = "spouses"\n'
+        "generic = [[60, 40, 0, 0], [50, 30, 20, 0]]\n",
+        text,
+        flags=re.S,
+    )
+    assert 'type = "spouses"' in legacy
+
+    diconf, _, _ = load_toml(StringIO(legacy))
+    assert diconf["asset_allocation"]["type"] == "individual"
+    assert diconf["asset_allocation"]["generic"] == [pair, pair]
+    config_dict_to_model(diconf)
+
+    uidic = config_to_ui(diconf)
+    assert uidic["allocType"] == "individual"
+    assert [uidic[f"j3_fin%{k}_1"] for k in range(4)] == pair[1]
+
+    plan = config_to_plan(diconf, verbose=False, loadHFP=False)
+    plan_ref = config_to_plan(ref, verbose=False, loadHFP=False)
+    np.testing.assert_allclose(plan.alpha_ijkn, plan_ref.alpha_ijkn)
+
+
+def test_set_allocation_ratios_spouses_is_recorded_as_individual():
+    """setAllocationRatios('spouses') expands the pair and records the plan as 'individual'."""
+    import numpy as np
+
+    pair = [[60, 40, 0, 0], [50, 30, 20, 0]]
+    kwargs = dict(verbose=False)
+    p1 = owl.Plan(["Alice", "Bob"], ["1963-03-15", "1961-11-02"], [90, 87], "p1", **kwargs)
+    p2 = owl.Plan(["Alice", "Bob"], ["1963-03-15", "1961-11-02"], [90, 87], "p2", **kwargs)
+    p1.setAllocationRatios("spouses", generic=np.array(pair, dtype=np.float64))
+    p2.setAllocationRatios("individual", generic=[pair, pair])
+
+    assert p1.ARCoord == "individual"
+    assert p1.boundsAR["generic"] == [pair, pair]
+    np.testing.assert_allclose(p1.alpha_ijkn, p2.alpha_ijkn)

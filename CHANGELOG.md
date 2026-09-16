@@ -1,3 +1,11 @@
+### Version 2026.9.16
+
+#### Fixed: case files from `save_case` load in the web UI ([#144](https://github.com/mdlacasse/Owl/issues/144))
+
+A couple's case saved by `save_case` failed to load on the *Create Case* page. The `spouses`
+allocation type is now an input shorthand only: its single pair is expanded to the equivalent
+`individual` allocation, so existing case files still load and results are unchanged.
+
 ### Version 2026.9.2
 
 #### Changed: the fixed-asset bequest note says when the figure is path-dependent

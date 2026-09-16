@@ -4,6 +4,7 @@ TOML load/save with unknown key preservation.
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+import copy
 import os
 from datetime import date
 from io import BytesIO, StringIO
@@ -48,6 +49,15 @@ def sanitize_config(diconf: dict, *, mylog=None) -> None:
                     tag="WARNING",
                 )
             rs["method"] = new_name
+
+    # 'spouses' is an input shorthand: one [initial, final] pair applied to every individual.
+    aa = diconf.get("asset_allocation")
+    if isinstance(aa, dict) and aa.get("type") == "spouses":
+        ni = len(diconf.get("basic_info", {}).get("names", []))
+        pair = aa.get("generic")
+        if pair is not None:
+            aa["generic"] = [copy.deepcopy(pair) for _ in range(ni)]
+        aa["type"] = "individual"
 
     so = diconf.get("solver_options")
     if so is None:

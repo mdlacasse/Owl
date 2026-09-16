@@ -538,25 +538,47 @@ class Plan:
 
         return None
 
-    def _preflight(self, caller, *, requireRates=True):
+    def _readiness(self, *, requireRates=True):
         """
-        Every "is this plan ready?" check, in one place.
+        Every "is this plan ready?" check, in one place. Returns the first unmet
+        requirement as a message, or None when the plan is fully configured.
 
         Ordered cheapest-to-explain first, and each message names the setter that fixes it.
         Balances are the check that was missing: without them yearFracLeft is never created,
         and the plan died with a bare AttributeError inside _add_initial_balances rather
         than saying what the user had forgotten.
+
+        The message carries a {caller} placeholder that _preflight() fills in; nothing here
+        logs or raises, so isConfigured() can ask the same question without side effects.
         """
         if self.xi_n is None:
-            msg = f"You must define a spending profile before calling {caller}()."
-        elif self.alpha_ijkn is None:
-            msg = f"You must define an allocation profile before calling {caller}()."
-        elif self.beta_ij is None:
-            msg = f"You must set account balances before calling {caller}()."
-        elif requireRates and self.rateMethod is None:
-            msg = f"Rate method must be selected before calling {caller}()."
-        else:
+            return "You must define a spending profile before calling {caller}()."
+        if self.alpha_ijkn is None:
+            return "You must define an allocation profile before calling {caller}()."
+        if self.beta_ij is None:
+            return "You must set account balances before calling {caller}()."
+        if requireRates and self.rateMethod is None:
+            return "Rate method must be selected before calling {caller}()."
+        return None
+
+    def isConfigured(self, *, requireRates=True):
+        """
+        Non-raising twin of _preflight(): True when every setter the plan needs has run.
+
+        Lets a caller skip an operation on a half-built plan instead of catching its
+        failure - the UI builds a Plan long before it pushes any values onto it, and asking
+        deliberately must not write noise into the case log.
+        """
+        return self._readiness(requireRates=requireRates) is None
+
+    def _preflight(self, caller, *, requireRates=True):
+        """
+        Refuse to start when the plan is not ready, naming the setter that fixes it.
+        """
+        template = self._readiness(requireRates=requireRates)
+        if template is None:
             return
+        msg = template.format(caller=caller)
         self.mylog.print(msg)
         raise RuntimeError(msg)
 
@@ -1592,27 +1614,38 @@ class Plan:
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
 
-        For 'account' the three different account types taxable, taxDeferred,
-        qand taxFree need to be set to a list. For spouses,
-        taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]]
-        where ko is the initial allocation while kf is the final.
-        The order of [initial, final] pairs is the same as for the birth
-        years and longevity provided. Single only provide one pair for each
-        type of savings account.
+        Each allocation is an [initial, final] pair of percentages over the N_k
+        asset classes, e.g., [[ko0, ko1, ko2, ko3], [kf0, kf1, kf2, kf3]], where
+        ko is the initial allocation and kf the final one. Each individual glides
+        from initial to final over their own horizon, so individuals with different
+        life expectancies follow different glide paths even when given the same pair.
+        Per-individual lists follow the order of the names provided.
 
-        For the 'individual' allocation type, only one generic list needs
-        to be provided:
-        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]].
-        while for 'spouses' only one pair needs to be given as follows:
-        generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
-        as assets are coordinated between accounts and spouses.
+        For 'account', each savings account type gets one pair per individual:
+        taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf03]],
+                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf13]]]
+        and likewise for taxDeferred and taxFree. hsa is optional and defaults to taxFree.
+
+        For 'individual', one pair per individual is applied to all of that
+        individual's accounts:
+        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf03]],
+                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf13]]]
+
+        'spouses' is an input shorthand for 'individual' where the same pair applies
+        to every individual, so only that one pair is given:
+        generic = [[ko0, ko1, ko2, ko3], [kf0, kf1, kf2, kf3]]
+        It is expanded on input and the plan records the allocation as 'individual'.
         """
         # Validate allocType parameter
         validTypes = ["account", "individual", "spouses"]
         if allocType not in validTypes:
             raise ValueError(f"allocType must be one of {validTypes}, got '{allocType}'.")
+
+        if allocType == "spouses":
+            if generic is None or len(generic) != 2:
+                raise ValueError("generic must have 2 entries (initial and final).")
+            generic = [[np.asarray(generic[0]).tolist(), np.asarray(generic[1]).tolist()] for _ in range(self.N_i)]
+            allocType = "individual"
 
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
@@ -1679,25 +1712,6 @@ class Plan:
                 for k in range(self.N_k):
                     start = generic[i][0][k] / 100
                     end = generic[i][1][k] / 100
-                    dat = self._interpolator(start, end, Nin)
-                    self.alpha_ijkn[i, :, k, :Nin] = dat[:]
-
-            self.boundsAR["generic"] = generic
-
-        elif allocType == "spouses":
-            if len(generic) != 2:
-                raise ValueError("generic must have 2 entries (initial and final).")
-            for z in range(2):
-                if len(generic[z]) != self.N_k:
-                    raise ValueError(f"generic[{z}] must have {self.N_k} entries.")
-                if abs(sum(generic[z]) - 100) > 0.01:
-                    raise ValueError("Sum of percentages must add to 100.")
-
-            for i in range(self.N_i):
-                Nin = self.horizons[i] + 1
-                for k in range(self.N_k):
-                    start = generic[0][k] / 100
-                    end = generic[1][k] / 100
                     dat = self._interpolator(start, end, Nin)
                     self.alpha_ijkn[i, :, k, :Nin] = dat[:]
 
@@ -6676,6 +6690,7 @@ class Plan:
         """
         return export.plan_to_csv(self, basename, self.mylog)
 
+    @_checkConfiguration
     def saveConfig(self, basename=None):
         """
         Save parameters in a configuration file.

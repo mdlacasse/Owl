@@ -518,10 +518,7 @@ class MatplotlibBackend(PlotBackend):
     def plot_allocations(self, year_n, inames, alpha_ijkn, ARCoord, title):
         """Plot allocations over time."""
         count = len(inames)
-        if ARCoord == "spouses":
-            acList = [ARCoord]
-            count = 1
-        elif ARCoord == "individual":
+        if ARCoord == "individual":
             acList = [ARCoord]
         elif ARCoord == "account":
             acList = ["taxable", "tax-deferred", "tax-free", "hsa"]
