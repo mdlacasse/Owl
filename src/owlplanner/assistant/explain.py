@@ -39,7 +39,7 @@ _BIND_TOL = 1.0  # $ slack below which a constraint counts as binding
 #   policy:     user goals and legal rules; binding rows are reported to the user.
 #   structural: accounting identities and definitions; always (or trivially) binding,
 #               their duals are valuation data used case-by-case in shadow-price handlers.
-#   artifact:   big-M links, AMO/SOS1 selectors, convexification and Benders machinery;
+#   artifact:   big-M links, AMO/SOS1 selectors, convexification;
 #               never shown to the user.
 # Policy families without a dedicated handler declare "indices" (names for tag[1:])
 # and a "note"; the generic explainer reports their binding rows and relaxation values.
@@ -144,7 +144,6 @@ CONSTRAINT_FAMILIES = {
     "aca_amo": {"class": "artifact", "label": "ACA bracket exactly-one selector"},
     "aca_bracket_lb": {"class": "artifact", "label": "ACA bracket bound big-M"},
     "aca_bracket_ub": {"class": "artifact", "label": "ACA bracket bound big-M"},
-    "benders_cut": {"class": "artifact", "label": "Benders optimality cut"},
 }
 
 

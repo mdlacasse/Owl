@@ -335,7 +335,6 @@ class SolverOptions(BaseModel):
 
     # Iteration limits
     maxIter: Optional[int] = None
-    bendersMaxIter: Optional[int] = None
 
     # Roth conversion options
     maxRothConversion: Optional[float] = None

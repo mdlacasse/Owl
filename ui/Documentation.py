@@ -1508,7 +1508,7 @@ against future IRMAA simultaneously.
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
+- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal.
 - *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
@@ -1526,7 +1526,7 @@ This option is mostly for developer use and verification purposes.
 Both solvers (HiGHS and MOSEK) provide very similar results.
 In most cases, `MOSEK` will provide the best performance.
 Selecting `HiGHS` will provide comparable results in a little more time.
-Both solvers support all decomposition modes (sequential and Benders).
+Both solvers support the sequential decomposition mode.
 """)
 
 # --- Results tab ---

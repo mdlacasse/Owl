@@ -345,7 +345,7 @@ class TestLTCGScLoopConsistency:
     def _make_large_taxable_couple(self, name="LTCGConsistency"):
         """
         Couple with a large taxable account and high wages — conditions that
-        drive significant G_n oscillation in the SC loop when Benders is active.
+        drive significant G_n oscillation in the SC loop.
         Short horizon (74/74) and high gap to keep runtime reasonable.
         """
         thisyear = date.today().year
@@ -378,27 +378,6 @@ class TestLTCGScLoopConsistency:
             f"U_n exceeds 20%% of Q_n in years {p.year_n[violations].tolist()}: "
             f"U_n={p.U_n[violations].tolist()}, Q_n={p.Q_n[violations].tolist()}"
         )
-
-    def test_u_n_bounded_by_q_n_benders(self):
-        """
-        U_n ≤ 20% × Q_n for every year when using Benders + Medicare optimize.
-
-        This catches the q-variable inflation bug: oscillatory SC-loop convergence
-        with Benders could select a solution whose LTCG room constraints were built
-        under a stale G_n, allowing q[1]/q[2] >> Q_n.
-        """
-        p = self._make_large_taxable_couple("ltcg_consistency_benders")
-        p.solve(
-            "maxBequest",
-            {
-                "withMedicare": "optimize",
-                "withDecomposition": "benders",
-                "netSpending": 80,
-                "gap": 0.05,
-            },
-        )
-        assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
-        self._check_u_n_bounded(p)
 
     def test_u_n_bounded_by_q_n_sequential(self):
         """Same guard for sequential (relax-and-fix) decomposition."""

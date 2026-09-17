@@ -251,13 +251,11 @@ else:
                 or kz.getCaseKey("optimizeLTCG")
                 or kz.getCaseKey("optimizeNIIT")
             )
-            decomp_choices = ["none", "sequential", "benders"]
+            decomp_choices = ["none", "sequential"]
             helpmsg_decomp = (
                 "'none': monolithic MIP (default). "
                 "'sequential': relax-and-fix heuristic — fixes Medicare/ACA/SS bracket binaries "
                 "sequentially; fast but not guaranteed globally optimal. "
-                "'benders': classical Benders decomposition — certified globally optimal within "
-                "the MIP gap; slower per iteration but provably correct. "
                 "Only applies when the Medicare or ACA brackets are solved with MILP."
             )
             ret = kz.getRadio(
