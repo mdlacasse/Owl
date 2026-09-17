@@ -1,0 +1,23 @@
+{
+ "year": 1983,
+ "ref_lp_star": 4338025.874568543,
+ "ref_milp_star": 4368666.227971528,
+ "benders": {
+  "status": "solved",
+  "conv": "monotonic",
+  "bequest": 4368666.227971528,
+  "gap": 0.0,
+  "seconds": 96.4,
+  "vs_ref": 0.0,
+  "fell_back": true,
+  "x0": 100684.58,
+  "log_tail": [
+   "2026-09-16 12:32:50 | DEBUG | plan:_benders_solve:5566 | Benders: LP relaxation obj = 4758394.",
+   "2026-09-16 12:32:50 | DEBUG | plan:_benders_solve:5627 | Benders iter 1: SP LP infeasible; terminating.",
+   "2026-09-16 12:32:50 | DEBUG | plan:_benders_solve:5688 | Benders: no feasible solution found; falling back to monolithic.",
+   "2026-09-16 12:33:22 | DEBUG | plan:_benders_solve:5566 | Benders: LP relaxation obj = 4758394.",
+   "2026-09-16 12:33:22 | DEBUG | plan:_benders_solve:5627 | Benders iter 1: SP LP infeasible; terminating.",
+   "2026-09-16 12:33:22 | DEBUG | plan:_benders_solve:5688 | Benders: no feasible solution found; falling back to monolithic."
+  ]
+ }
+}

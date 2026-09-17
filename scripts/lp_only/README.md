@@ -142,3 +142,18 @@ Same setup (gap 1e-4, maxTime 1800 per SC iteration); free-memory watchdog never
   min 1,314); 1999 12/23 (11 within 9,100, one at 10,636; unflipped median 7,667, min 5,127). LTCG 12-14
   flips per window; IRMAA 1 (1928) or 0. An SS own-distance radius of ~10k would free most SS years in
   these windows: it contains the flips but barely shrinks the SS binary set.
+
+### Benders decomposition (`benders_probe.py`, `benders_*.json`)
+`withDecomposition="benders"` never reaches its cut loop on the current engine:
+- All-four MILP, Case_dana: "Benders iter 1: SP LP infeasible; terminating" then "falling back to
+  monolithic". 1983 -> 4,368,666.23 in 96.4 s (monolithic: same value, 87 s); 1932 -> 4,190,654.04 in
+  1,075.8 s (monolithic: same value, 1,013 s). Peak RSS 301 MB / 1,785 MB.
+- Case_jack+jill (withMedicare="optimize" only): the LP relaxation is integral, so LB=UB and it
+  "converges after 1 iterations" without using a cut.
+Cause: the first master candidate is rounded from a big-M LP relaxation (0.999/0.001 values), which
+makes the subproblem infeasible; `_benders_solve` builds only optimality cuts and treats an infeasible
+subproblem as terminal. The old `benders-integer-recourse-defect` diagnosis is obsolete: `zx` was
+removed on 2026-08-11 (e6f9b45), so the subproblem is a pure LP unless withSSAges="optimize" or
+withdrawalOrder="taxable_first"; the `zx` lines in `_benders_solve` are stale comments. To make it
+run: seed the master with the SC loop's regimes (the two-stage hybrid computes them) and add
+feasibility/no-good cuts.
