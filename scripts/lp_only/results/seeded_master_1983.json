@@ -1,0 +1,11 @@
+{
+ "year": 1983,
+ "loop": 4338025.874568543,
+ "milp_star": 4368666.227971528,
+ "n_pins": 277,
+ "feasible": true,
+ "seeded_value": 4362710.333991647,
+ "cut_violations": 0,
+ "cut_tested": 8,
+ "flips_infeasible": 3
+}
