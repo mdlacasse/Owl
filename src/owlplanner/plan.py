@@ -46,6 +46,7 @@ from . import socialsecurity as socsec
 from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
+from . import lbbd as lbbd_solver
 from . import mylogging as log
 from .config.plan_bridge import clone  # noqa: F401
 from .config.schema import REMOVED_OPTIONS
@@ -457,6 +458,9 @@ class Plan:
         self._infeasible = False
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
+        # Per-family distance between the model solved and the model this plan's own income
+        # implies, today's dollars; set by _computeFixedPointResidual after a successful solve.
+        self.fixedPointResidual = {}
         # Achieved MIP gap of the accepted solution (0 when solved to optimality,
         # larger when a time limit truncated the search; -1 before any solve)
         self.solverGap = -1.0
@@ -4165,7 +4169,9 @@ class Plan:
             "bigMltcg",  # Big-M for LTCG bracket constraints (default: T20_n per year)
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
             "bigMniit",  # Big-M for NIIT threshold constraints (default: 3*T20_n per year)
-            "withDecomposition",  # MIP decomposition: "none" (default) or "sequential"
+            "withDecomposition",  # MIP decomposition: "none" (default), "sequential" or "lbbd"
+            "decompBudget",  # seconds the lbbd decomposition may spend chasing a certificate
+            "decompMaxIter",  # maximum lbbd rounds
             "withMedicare",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
@@ -4254,6 +4260,8 @@ class Plan:
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
+        self._lbbd_prev_x = None  # previous SC iterate, the lbbd decomposition's seed
+        self._lbbd_deadline = None  # wall-clock deadline for the whole lbbd solve
         self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
         # Compute state tax parameters when a state is configured.
@@ -4574,10 +4582,12 @@ class Plan:
         has_master_binaries = any(name in self.vm for name in _DECOMP_FAMILIES)
         if decomp_mode == "sequential" and is_decomposable and has_master_binaries:
             actualSolverMethod = self._relax_and_fix_solve
+        elif decomp_mode == "lbbd" and is_decomposable and has_master_binaries:
+            actualSolverMethod = self._lbbd_solve
         else:
-            if decomp_mode == "sequential" and not has_master_binaries:
+            if decomp_mode in ("sequential", "lbbd") and not has_master_binaries:
                 self.mylog.print(f"withDecomposition='{decomp_mode}' ignored: no bracket-selector binaries active.")
-            elif decomp_mode not in ("none", "sequential"):
+            elif decomp_mode not in ("none", "sequential", "lbbd"):
                 self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
             actualSolverMethod = solverMethod
 
@@ -4785,6 +4795,7 @@ class Plan:
             if self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
             self._check_cashflow_balance()
+            self._computeFixedPointResidual(includeMedicare)
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -4795,6 +4806,57 @@ class Plan:
             self.mylog.print(f"Optimization failed: case is {self.caseStatus}.", tag="WARNING")
 
         return None
+
+    def _computeFixedPointResidual(self, includeMedicare):
+        """Measure how far the solved plan sits from the model its own income implies.
+
+        Every quantity the self-consistent loop carries enters the LP as a constant taken from the
+        previous iterate. The loop stops on the objective, not on those constants, so a plan can be
+        reported while its own income would still move them -- and an "optimal" answer is only
+        optimal for the model that was built. This recomputes each of them from the returned plan
+        and records the difference, in today's dollars, as self.fixedPointResidual:
+        {family: {"sum", "abs_sum", "max_abs"}}. Purely diagnostic: nothing here changes a solution.
+        """
+        Nn = self.N_n
+        g = self.gamma_n[:Nn]
+        ss = np.sum(self.zetaBar_in, axis=0)
+        res = {}
+
+        psi_true = tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss, n_d=self.n_d)
+        res["SS"] = (self.Psi_n - psi_true) * ss / g
+
+        if includeMedicare or np.any(self.medicare_n > 0):
+            # A dollar of slack at the thresholds: the optimizer parks income exactly there, and
+            # cent-level rounding would otherwise flip a bracket and show a phantom residual.
+            M_true = tx.mediCosts(
+                self.yobs, self.horizons, self.MAGI_n - 1.0, self.prevMAGI, g, Nn,
+                include_part_d=getattr(self, "_include_medicare_part_d", True),
+                part_d_base_annual_per_person=getattr(self, "_medicare_part_d_base_annual_per_person", 0.0),
+            )
+            res["IRMAA"] = (self.medicare_n - M_true) / g
+
+        if self.slcsp_annual > 0:
+            n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
+            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n, g, self.slcsp_annual, Nn,
+                                   n_aca_start=n_aca_start)
+            res["ACA"] = (self.aca_costs_n - ACA_true) / g
+
+        res["NIIT"] = (self.J_n - tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, Nn)) / g
+
+        sigma_true = tx.taxParams(self.yobs, self.i_d, self.n_d, Nn, self.gamma_n, self.MAGI_n, self.yOBBBA)[0]
+        res["deduction"] = (self.sigmaBar_n - sigma_true) / g
+
+        self.fixedPointResidual = {
+            k: {"sum": float(np.sum(v)), "abs_sum": float(np.sum(np.abs(v))), "max_abs": float(np.max(np.abs(v)))}
+            for k, v in res.items()
+        }
+        worst = max(self.fixedPointResidual.items(), key=lambda kv: kv[1]["abs_sum"])
+        if worst[1]["abs_sum"] > 1.0:
+            self.mylog.vprint(
+                f"Fixed-point residual: {worst[0]} off by {u.d(worst[1]['abs_sum'])} over the horizon "
+                f"({u.d(worst[1]['max_abs'])} in one year); the plan's own income implies a slightly "
+                "different model than the one solved."
+            )
 
     def _amoContext(self, options):
         """Bundle what amorepair needs from this plan."""
@@ -5211,6 +5273,12 @@ class Plan:
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
         self._apply_mosek_threads(task, options)
 
+        # Warm start: an incumbent lets branch-and-bound prune every node that cannot beat it.
+        warm = getattr(self, "_mip_warm_start", None)
+        if int_vars and warm is not None and len(warm) == nvars:
+            task.putxxslice(mosek.soltype.itg, 0, nvars, np.asarray(warm, dtype=float))
+            task.putintparam(mosek.iparam.mio_construct_sol, mosek.onoffkey.on)
+
         try:
             task.optimize()
         except mosek.Error as e:
@@ -5314,7 +5382,9 @@ class Plan:
         ubvec = np.array(A.ub)
         integrality = np.zeros(A.nvars, dtype=np.int32) if lp_relax else B.integralityArray()
         c = c_obj.arrays()
-        warm = self._highs_warm_start if update_warm else None
+        warm = getattr(self, "_mip_warm_start", None)
+        if warm is None or len(warm) != A.nvars:
+            warm = self._highs_warm_start if update_warm else None
         result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=warm)
         if result[2] and update_warm:
             self._highs_warm_start = result[1].copy()
@@ -5340,6 +5410,16 @@ class Plan:
         )
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
+        return result
+
+    def _lbbd_solve(self, objective, options):
+        """Logic-based Benders over the regime binaries (withDecomposition='lbbd').
+
+        Seeded with the previous SC iteration's plan, whose binaries are a consistent assignment.
+        """
+        result = lbbd_solver.solve(self, objective, options, seed_x=getattr(self, "_lbbd_prev_x", None))
+        if result[2] and result[1] is not None:
+            self._lbbd_prev_x = np.array(result[1])
         return result
 
     def _relax_and_fix_solve(self, objective, options):
