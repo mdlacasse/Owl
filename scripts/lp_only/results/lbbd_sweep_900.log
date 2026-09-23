@@ -1,0 +1,3 @@
+39 windows to run, 3 workers x 3 threads
+1999: loop    1,344,678 (   0.1s) | lbbd    1,349,890 gap  2.1e-01    --     ( 2180.8s) | milp_all72    1,349,659 diff       +230 | worst residual: loop         0 lbbd         0
+done

@@ -172,3 +172,12 @@ withDecomposition="lbbd", decompBudget 600 (deadline for the whole solve), 3 wor
   loop median 3.52, p90 367.26, max 25,923.88 (15 windows > 100, 3 > 1,000);
   lbbd median 1.04, p90 17.21, max 44.09 (none > 100).
   This is the evidence for an exit test on parameter movement: it would bite in ~1 window in 5.
+
+### 10 vs 15 minute budget (`lbbd_sweep_900.json`)
+The 39 windows uncertified at decompBudget 600, re-run at 900 (same setup, 3 workers x 3 threads):
+- certified 0 -> 5 (1952, 1954, 1991, 1994, 1996; 674-873 s), i.e. 33/72 -> 38/72 overall;
+- median gap 0.185 -> 0.172, median time 777 s -> 902 s, total 12.8 h -> 14.2 h;
+- value unchanged against the known optimum (median +0.00; worst shortfall -1,395.56 -> -963.48);
+- only 3 windows sit within 2% of a certificate (1932 0.010, 1995 0.008, 1991 certified).
+The remainder are stuck near the big-M LP relaxation gap, so budget is the wrong lever: the bound
+itself has to improve. That points at the big-M constants in the SS, LTCG and NIIT rows.
