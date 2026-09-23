@@ -157,3 +157,18 @@ removed on 2026-08-11 (e6f9b45), so the subproblem is a pure LP unless withSSAge
 withdrawalOrder="taxable_first"; the `zx` lines in `_benders_solve` are stale comments. To make it
 run: seed the master with the SC loop's regimes (the two-stage hybrid computes them) and add
 feasibility/no-good cuts.
+
+### lbbd over the 72-window record (`lbbd_sweep.py`, `lbbd_sweep.json`)
+Case_dana, maxBequest, netSpending 58k, MOSEK gap 1e-4, all four tax modes optimized,
+withDecomposition="lbbd", decompBudget 600 (deadline for the whole solve), 3 workers x 3 threads,
+14.9 h total. Loop arm for the baseline and its residual.
+- Certified 33 of 72, every one of them within the budget: time median 154 s, p90 479 s, gap 0,
+  value median +0.00 against milp_all72's optimum (worst -320.76).
+- Not certified 39: time median 777 s, p90 2,188 s, median gap 1.8e-1, but the value is still right
+  (median +0.00; range -1,395.56 .. +1,485.44). 1997 (+1,485) and 1998 (+1,362) land ABOVE the
+  monolithic optimum -- a different outer fixed point, the same effect as the 1932 hybrid.
+- Gain over the loop: median +3,192 (certified) and +6,603 (uncertified) today's dollars.
+- Fixed-point residual (plan.fixedPointResidual, worst family per window, today's $):
+  loop median 3.52, p90 367.26, max 25,923.88 (15 windows > 100, 3 > 1,000);
+  lbbd median 1.04, p90 17.21, max 44.09 (none > 100).
+  This is the evidence for an exit test on parameter movement: it would bite in ~1 window in 5.

@@ -1,0 +1,2954 @@
+{
+ "1930": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.4,
+   "gap": 0.0,
+   "bequest": 1568779.92604756,
+   "residual": {
+    "SS": 263.38,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 77.84,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2229.9,
+   "gap": 0.1498393892578203,
+   "bequest": 1576453.9019174897,
+   "residual": {
+    "SS": 0.05,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 5.82
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.01,
+    "NIIT": 0.0,
+    "deduction": 5.82
+   },
+   "certified": false
+  }
+ },
+ "1928": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.3,
+   "gap": 0.0,
+   "bequest": 1938963.8967773304,
+   "residual": {
+    "SS": 1553.87,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 396.44,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2326.4,
+   "gap": 0.1540221433694662,
+   "bequest": 1978991.639953963,
+   "residual": {
+    "SS": 0.08,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 1.45
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.01,
+    "NIIT": 0.0,
+    "deduction": 1.15
+   },
+   "certified": false
+  }
+ },
+ "1929": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.6,
+   "gap": 0.0,
+   "bequest": 1328840.946728186,
+   "residual": {
+    "SS": 418.68,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 94.71,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2362.4,
+   "gap": 0.1605395438797586,
+   "bequest": 1333569.5670533532,
+   "residual": {
+    "SS": 0.08,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.01,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1933": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3696864.7205769843,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 7.62
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.56
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 176.3,
+   "gap": 0.0,
+   "bequest": 3714573.4584604003,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.02
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.02
+   },
+   "certified": true
+  }
+ },
+ "1934": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2406170.226733873,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.61
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.54
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 222.9,
+   "gap": 0.0,
+   "bequest": 2408469.6229178733,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 16.11
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 8.37
+   },
+   "certified": true
+  }
+ },
+ "1932": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4166120.2581740185,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.78
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.57
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.0,
+   "gap": 0.07097695006684937,
+   "bequest": 4190654.0356529052,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.01,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1935": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2676472.0056837755,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.43
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.21
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 328.0,
+   "gap": 0.0,
+   "bequest": 2679663.6418679063,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 22.23
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 22.22
+   },
+   "certified": true
+  }
+ },
+ "1931": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.5,
+   "gap": 0.0,
+   "bequest": 1856442.5727282737,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.26
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.89
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 951.8,
+   "gap": 0.14956338321384838,
+   "bequest": 1876340.5076602797,
+   "residual": {
+    "SS": 0.06,
+    "IRMAA": 0.07,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.01,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1938": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2689424.59782496,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.26
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.32
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 128.2,
+   "gap": 0.0,
+   "bequest": 2687709.8747642757,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 10.99
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.98
+   },
+   "certified": true
+  }
+ },
+ "1939": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1864338.1802163492,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.35
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.12
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 161.7,
+   "gap": 0.0,
+   "bequest": 1866469.3705757277,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "certified": true
+  }
+ },
+ "1940": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1656252.8809854712,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.43
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.2
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 69.9,
+   "gap": 0.0,
+   "bequest": 1656674.6500721797,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 7.23
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.34
+   },
+   "certified": true
+  }
+ },
+ "1941": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2106196.2147055697,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.51
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.26
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 63.6,
+   "gap": 0.0,
+   "bequest": 2108403.2599907713,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.46
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.26
+   },
+   "certified": true
+  }
+ },
+ "1942": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3109346.45716795,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.07
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.4
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 88.3,
+   "gap": 0.0,
+   "bequest": 3109346.4541114373,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 1.07
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.4
+   },
+   "certified": true
+  }
+ },
+ "1943": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2723446.550535681,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.62
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.95
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 170.6,
+   "gap": 0.0,
+   "bequest": 2729364.2146620764,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.67
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.34
+   },
+   "certified": true
+  }
+ },
+ "1944": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2225538.985310788,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.43
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.2
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 128.2,
+   "gap": 0.0,
+   "bequest": 2225537.832858243,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.59
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.3
+   },
+   "certified": true
+  }
+ },
+ "1945": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2090278.7157630874,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.88
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.45
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 111.7,
+   "gap": 0.0,
+   "bequest": 2090278.7148969052,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.88
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.45
+   },
+   "certified": true
+  }
+ },
+ "1946": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1625438.1475343946,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.68
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.31
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 476.4,
+   "gap": 0.0,
+   "bequest": 1625438.1475343946,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.68
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.31
+   },
+   "certified": true
+  }
+ },
+ "1936": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1587615.4738709629,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 9.26
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.64
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1840.7,
+   "gap": 0.19759170871049975,
+   "bequest": 1590541.3914000709,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.03
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "certified": false
+  }
+ },
+ "1937": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1105325.2810983788,
+   "residual": {
+    "SS": 154.74,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "residual_max_year": {
+    "SS": 68.57,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1823.3,
+   "gap": 0.23595100233246394,
+   "bequest": 1113915.8641421963,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.66
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.57
+   },
+   "certified": false
+  }
+ },
+ "1947": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.2,
+   "gap": 0.0,
+   "bequest": 2215963.1442564107,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.06
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.4
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 542.6,
+   "gap": 0.0,
+   "bequest": 2215642.382917595,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 1.06
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.4
+   },
+   "certified": true
+  }
+ },
+ "1948": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1859594.4083751114,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.63
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 813.7,
+   "gap": 0.10542294873542557,
+   "bequest": 1867047.0650116957,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 20.6
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 20.3
+   },
+   "certified": false
+  }
+ },
+ "1950": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2150242.904575534,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.52
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.78
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 480.0,
+   "gap": 0.0,
+   "bequest": 2157485.567192328,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 22.86
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 22.46
+   },
+   "certified": true
+  }
+ },
+ "1949": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2213438.237458979,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.56
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.7
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 774.9,
+   "gap": 0.10557667599256751,
+   "bequest": 2222939.2508172537,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1951": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1714806.3585223209,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.95
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.24
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 250.0,
+   "gap": 0.0,
+   "bequest": 1722397.349837143,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 11.74
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.92
+   },
+   "certified": true
+  }
+ },
+ "1952": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1533349.965832823,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.51
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.89
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.0,
+   "gap": 0.00918011185590221,
+   "bequest": 1537337.7045751307,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1953": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1294467.0182655796,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.9
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.31
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.1,
+   "gap": 0.14040920871332463,
+   "bequest": 1297350.7122747705,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.6
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.3
+   },
+   "certified": false
+  }
+ },
+ "1954": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1427046.699435692,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.89
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.3
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.1,
+   "gap": 0.012700939510233607,
+   "bequest": 1429845.729724099,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1955": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 797795.7676365348,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.01,
+    "deduction": 6.22
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.01,
+    "deduction": 2.38
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 733.4,
+   "gap": 0.17779349066804384,
+   "bequest": 798060.0102518265,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 2.68
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.08
+   },
+   "certified": false
+  }
+ },
+ "1958": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1068702.9974810185,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 6.45
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 2.4
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.4,
+   "gap": 0.18499469960269233,
+   "bequest": 1069205.5549899389,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 44.09
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 43.96
+   },
+   "certified": false
+  }
+ },
+ "1959": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.3,
+   "gap": 0.0,
+   "bequest": 801308.6458717255,
+   "residual": {
+    "SS": 214.63,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.52
+   },
+   "residual_max_year": {
+    "SS": 180.34,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.25
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.6,
+   "gap": 0.2224588299106518,
+   "bequest": 805054.7475253664,
+   "residual": {
+    "SS": 0.05,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 6.39
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.34
+   },
+   "certified": false
+  }
+ },
+ "1956": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 651899.7814844263,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.96
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.74
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1948.0,
+   "gap": 0.2011739777682187,
+   "bequest": 654156.0988226435,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 2.47
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.21
+   },
+   "certified": false
+  }
+ },
+ "1957": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 774789.5749613165,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 6.77
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 2.57
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1990.2,
+   "gap": 0.20131198355179583,
+   "bequest": 777813.1921805687,
+   "residual": {
+    "SS": 0.05,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 7.96
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.4
+   },
+   "certified": false
+  }
+ },
+ "1961": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.2,
+   "gap": 0.0,
+   "bequest": 874600.5354565111,
+   "residual": {
+    "SS": 25.69,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 8.43
+   },
+   "residual_max_year": {
+    "SS": 25.69,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.35
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.4,
+   "gap": 0.22883697211070383,
+   "bequest": 877171.7407227773,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 9.16
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.98
+   },
+   "certified": false
+  }
+ },
+ "1963": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 937309.8624646493,
+   "residual": {
+    "SS": 257.37,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.23
+   },
+   "residual_max_year": {
+    "SS": 250.12,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.15
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.5,
+   "gap": 0.2589836652872383,
+   "bequest": 942620.8915499501,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.01
+   },
+   "certified": false
+  }
+ },
+ "1960": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.5,
+   "gap": 0.0,
+   "bequest": 855874.005504505,
+   "residual": {
+    "SS": 236.98,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.23
+   },
+   "residual_max_year": {
+    "SS": 236.98,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.52
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1812.3,
+   "gap": 0.2307166910287235,
+   "bequest": 860338.5027829828,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.26
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.13
+   },
+   "certified": false
+  }
+ },
+ "1962": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.3,
+   "gap": 0.0,
+   "bequest": 636888.9029148476,
+   "residual": {
+    "SS": 244.65,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 122.73,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2107.6,
+   "gap": 0.28148294645895283,
+   "bequest": 643492.3845802777,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 1.98
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.96
+   },
+   "certified": false
+  }
+ },
+ "1966": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 1.3,
+   "gap": 0.0,
+   "bequest": 432517.68312049605,
+   "residual": {
+    "SS": 398.02,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 86.53,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 635.4,
+   "gap": 0.4420740488492894,
+   "bequest": 451202.43820131966,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 1.26
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.84
+   },
+   "certified": false
+  }
+ },
+ "1964": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.2,
+   "gap": 0.0,
+   "bequest": 619528.5567115017,
+   "residual": {
+    "SS": 177.28,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 135.13,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1947.0,
+   "gap": 0.3026901110004606,
+   "bequest": 628178.7681633392,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.57
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.49
+   },
+   "certified": false
+  }
+ },
+ "1965": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.4,
+   "gap": 0.0,
+   "bequest": 521816.4255469496,
+   "residual": {
+    "SS": 437.18,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 110.24,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 1721.5,
+   "gap": 0.38022168320177246,
+   "bequest": 532592.7209356392,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.71
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.71
+   },
+   "certified": false
+  }
+ },
+ "1968": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.5,
+   "gap": 0.0,
+   "bequest": 600728.8448415844,
+   "residual": {
+    "SS": 25923.88,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 7844.67,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 721.1,
+   "gap": 0.3503596814735316,
+   "bequest": 612027.2476799284,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 1.86
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.41
+   },
+   "certified": false
+  }
+ },
+ "1970": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1410899.5281060145,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.28
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.2
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 377.0,
+   "gap": 0.0,
+   "bequest": 1414034.2489549979,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 6.25
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.51
+   },
+   "certified": true
+  }
+ },
+ "1967": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.4,
+   "gap": 0.0,
+   "bequest": 883256.3627453387,
+   "residual": {
+    "SS": 83.4,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.24
+   },
+   "residual_max_year": {
+    "SS": 83.4,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.21
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 1387.0,
+   "gap": 0.288467114505471,
+   "bequest": 888812.881515904,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 1.34
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.79
+   },
+   "certified": false
+  }
+ },
+ "1969": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.7,
+   "gap": 0.0,
+   "bequest": 713152.696100179,
+   "residual": {
+    "SS": 378.8,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 97.57,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 1165.0,
+   "gap": 0.35716083791122083,
+   "bequest": 727675.661103304,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.16
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.1
+   },
+   "certified": false
+  }
+ },
+ "1971": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1906157.0828726045,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.89
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.78
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 507.3,
+   "gap": 0.0,
+   "bequest": 1910900.3304470337,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 3.01
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.84
+   },
+   "certified": true
+  }
+ },
+ "1974": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2383755.3498102105,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 7.69
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.02,
+    "deduction": 3.4
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 71.7,
+   "gap": 0.0,
+   "bequest": 2383755.267492855,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 7.72
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.42
+   },
+   "certified": true
+  }
+ },
+ "1972": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1766640.6159314911,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.43
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.27
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 600.4,
+   "gap": 0.24872086822028633,
+   "bequest": 1768449.634540093,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.02,
+    "NIIT": 0.0,
+    "deduction": 0.11
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.1
+   },
+   "certified": false
+  }
+ },
+ "1975": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4495846.338214019,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.48
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.73
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 127.7,
+   "gap": 0.0,
+   "bequest": 4503704.440711877,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.03,
+    "NIIT": 0.02,
+    "deduction": 0.75
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.01,
+    "deduction": 0.4
+   },
+   "certified": true
+  }
+ },
+ "1976": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3143450.350782055,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.61
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.42
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 59.1,
+   "gap": 0.0,
+   "bequest": 3143450.4305599574,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 17.33
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 8.18
+   },
+   "certified": true
+  }
+ },
+ "1977": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.3,
+   "gap": 0.0,
+   "bequest": 2923052.9117948865,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.02
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.61
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 87.3,
+   "gap": 0.0,
+   "bequest": 2923053.8497598832,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.52
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.24
+   },
+   "certified": true
+  }
+ },
+ "1978": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3753400.7192903347,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.69
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.11
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 152.1,
+   "gap": 0.0,
+   "bequest": 3753426.034659512,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.91
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.33
+   },
+   "certified": true
+  }
+ },
+ "1979": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4235208.079602874,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.79
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.9
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 88.8,
+   "gap": 0.0,
+   "bequest": 4235208.0864829635,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 29.85
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 14.94
+   },
+   "certified": true
+  }
+ },
+ "1981": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4969184.931960413,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 35.92
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 16.95
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 121.4,
+   "gap": 0.0,
+   "bequest": 4988314.0956137,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": true
+  }
+ },
+ "1980": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 5022976.286150818,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 11.99
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.88
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 154.0,
+   "gap": 0.0,
+   "bequest": 5035541.435126244,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 13.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.64
+   },
+   "certified": true
+  }
+ },
+ "1982": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4444024.525983456,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.89
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.11
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 241.1,
+   "gap": 0.0,
+   "bequest": 4473465.42131158,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.01,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": true
+  }
+ },
+ "1973": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.2,
+   "gap": 0.0,
+   "bequest": 1376556.170113916,
+   "residual": {
+    "SS": 5125.04,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 4748.79,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 894.7,
+   "gap": 0.280250194015802,
+   "bequest": 1394532.8705640358,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 0.23
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.16
+   },
+   "certified": false
+  }
+ },
+ "1985": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4080264.4354068493,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.84
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.46
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 140.2,
+   "gap": 0.0,
+   "bequest": 4102355.2241842556,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": true
+  }
+ },
+ "1984": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4117262.374756803,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.5
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.97
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 153.9,
+   "gap": 0.0,
+   "bequest": 4141218.7130356305,
+   "residual": {
+    "SS": 0.01,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": true
+  }
+ },
+ "1987": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3248398.560043933,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 17.25
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.21
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 112.3,
+   "gap": 0.0,
+   "bequest": 3261815.1748722172,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.37
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.37
+   },
+   "certified": true
+  }
+ },
+ "1983": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 4338025.874568543,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.35
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.17
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.5,
+   "gap": 0.08923192926581135,
+   "bequest": 4368620.472787895,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1989": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3385679.7460539285,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.45
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.73
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 287.7,
+   "gap": 0.0,
+   "bequest": 3399749.3710692525,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.03,
+    "NIIT": 0.0,
+    "deduction": 1.54
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.2
+   },
+   "certified": true
+  }
+ },
+ "1988": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3825181.872459847,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.8
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.67
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.7,
+   "gap": 0.03106010909178024,
+   "bequest": 3835135.5075918236,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 11.45
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 6.24
+   },
+   "certified": false
+  }
+ },
+ "1990": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.2,
+   "gap": 0.0,
+   "bequest": 2895336.9655018672,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 1.02
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.38
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 400.0,
+   "gap": 0.0,
+   "bequest": 2899072.0320113446,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 1.02
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.38
+   },
+   "certified": true
+  }
+ },
+ "1992": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2751948.765043887,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.44
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.76
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 385.3,
+   "gap": 0.0,
+   "bequest": 2757440.5001926455,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 11.18
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.78
+   },
+   "certified": true
+  }
+ },
+ "1991": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3769115.1067082095,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.4
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.23
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 601.7,
+   "gap": 0.11052639178977004,
+   "bequest": 3779684.515160939,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 5.42
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.42
+   },
+   "certified": false
+  }
+ },
+ "1986": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3476463.9790313975,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 999.93
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 501.22
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 1810.4,
+   "gap": 0.10460085980038937,
+   "bequest": 3485283.3076765006,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.0
+   },
+   "certified": false
+  }
+ },
+ "1993": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3142823.5426827287,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.97
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.34
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 562.7,
+   "gap": 0.0,
+   "bequest": 3147412.909022518,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.06,
+    "NIIT": 0.0,
+    "deduction": 20.71
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 20.09
+   },
+   "certified": true
+  }
+ },
+ "1994": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3234498.73353278,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.32
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.28
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.1,
+   "gap": 0.13092660617915777,
+   "bequest": 3240885.4152371963,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 40.13
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 29.43
+   },
+   "certified": false
+  }
+ },
+ "1995": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 3846714.440348472,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.6
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.54
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.1,
+   "gap": 0.12341211318044766,
+   "bequest": 3864084.7180814645,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 5.35
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.35
+   },
+   "certified": false
+  }
+ },
+ "1996": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2152529.343983776,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.45
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.39
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 600.1,
+   "gap": 0.00683595384737615,
+   "bequest": 2156792.8470675256,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 11.15
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 5.7
+   },
+   "certified": false
+  }
+ },
+ "1997": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 2122721.163139403,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.09
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 3.06
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 777.1,
+   "gap": 0.17210382504985275,
+   "bequest": 2132630.047906651,
+   "residual": {
+    "SS": 0.02,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 0.02
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.02
+   },
+   "certified": false
+  }
+ },
+ "1998": {
+  "loop": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1704350.1917382793,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 4.83
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.51
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2177.3,
+   "gap": 0.19226604091994268,
+   "bequest": 1708362.9565842615,
+   "residual": {
+    "SS": 0.03,
+    "IRMAA": 0.04,
+    "NIIT": 0.0,
+    "deduction": 4.64
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 2.51
+   },
+   "certified": false
+  }
+ },
+ "1999": {
+  "loop": {
+   "status": "solved",
+   "conv": "oscillatory",
+   "seconds": 0.1,
+   "gap": 0.0,
+   "bequest": 1344678.4738009428,
+   "residual": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.42
+   },
+   "residual_max_year": {
+    "SS": 0.0,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.17
+   }
+  },
+  "lbbd": {
+   "status": "solved",
+   "conv": "monotonic",
+   "seconds": 2230.2,
+   "gap": 0.20665176749690775,
+   "bequest": 1349889.7380399348,
+   "residual": {
+    "SS": 0.04,
+    "IRMAA": 0.05,
+    "NIIT": 0.0,
+    "deduction": 0.3
+   },
+   "residual_max_year": {
+    "SS": 0.01,
+    "IRMAA": 0.0,
+    "NIIT": 0.0,
+    "deduction": 0.17
+   },
+   "certified": false
+  }
+ }
+}
