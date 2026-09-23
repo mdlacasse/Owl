@@ -83,9 +83,12 @@ def test_seeded_case_series_matches_reference():
 # recorded 2026-08-12, win32 measured 2026-08-28. linux/HiGHS is confirmed by CI;
 # linux/MOSEK is untested (CI installs MOSEK without a license) and inherits the darwin
 # value until someone runs it on a licensed Linux machine.
+# The MOSEK values were re-measured after the residual exit test, which makes this case iterate
+# to the limit instead of stopping early (117_050.45 before). HiGHS moved by 23, inside tolerance,
+# so its values stand; win32 is carried over unverified, as before.
 CHRIS_PAT_BASIS = {
-    "darwin": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
-    "linux": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
+    "darwin": {"HiGHS": 117_194.50, "MOSEK": 117_133.47},
+    "linux": {"HiGHS": 117_194.50, "MOSEK": 117_133.47},
     "win32": {"HiGHS": 117_069.00, "MOSEK": 116_967.00},
 }
 

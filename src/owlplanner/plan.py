@@ -101,6 +101,9 @@ STAGNATION_WINDOW = 8  # SC iterations without improvement before early-exit che
 STAGNATION_TIMEOUTS = 3  # min gap=inf MILP timeouts in window to trigger stagnation exit
 ABS_TOL = 100
 REL_TOL = 5e-5
+# Largest disagreement, in today's dollars over the horizon, between a quantity the LP was built
+# with and the value the resulting plan implies, before the loop may call itself converged.
+RESIDUAL_TOL = 100.0
 TIME_LIMIT = 900
 EPSILON = 1e-8
 # Tie-break for degenerate directions inside a MIP. EPSILON is sized for the simplex, which
@@ -458,6 +461,7 @@ class Plan:
         self._infeasible = False
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
+        self._residual_tol = RESIDUAL_TOL
         # Per-family distance between the model solved and the model this plan's own income
         # implies, today's dollars; set by _computeFixedPointResidual after a successful solve.
         self.fixedPointResidual = {}
@@ -4152,6 +4156,7 @@ class Plan:
             "oppCostX",
             "previousMAGIs",
             "relTol",
+            "residualTol",  # dollars of parameter movement still allowed at convergence
             "solver",
             "spendingSlack",
             "timePreference",  # Subjective time discount rate (%/year) to front-load spending
@@ -4322,11 +4327,17 @@ class Plan:
         rel_default = max(REL_TOL, gap / 300)
         rel_tol = u.get_numeric_option(options, "relTol", rel_default, min_value=0)
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
-        self.mylog.print(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
+        residual_tol = u.get_numeric_option(options, "residualTol", RESIDUAL_TOL, min_value=0)
+        self._residual_tol = residual_tol
+        self.mylog.print(
+            f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
+            f"and residualTol={u.d(residual_tol)}."
+        )
 
         return {
             "includeMedicare": include_medicare,
             "fixedPsi": fixed_psi,
+            "residualTol": residual_tol,
             "gap": gap,
             "absTol": abs_tol,
             "relTol": rel_tol,
@@ -4355,8 +4366,17 @@ class Plan:
             return None
         return start + int(np.argmax(valid))
 
-    def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history):
+    def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history, residual=0.0):
+        """Converged when the objective has settled AND the quantities the loop feeds back have too.
+
+        The objective alone is not enough: the LP is built from the previous iterate's Medicare
+        premiums, SS taxable fraction, NIIT and ACA costs, so an iterate whose own income implies
+        different values is not a fixed point, however still the objective looks. `residual` is the
+        largest of those disagreements in today's dollars; residualTol is the bar it must clear.
+        """
         if abs_obj_diff > tol or (includeMedicare and it < 1):
+            return None
+        if residual > self._residual_tol:
             return None
 
         is_monotonic = all(
@@ -4664,19 +4684,40 @@ class Plan:
             trace["J_n_lp"].append(J_n_lp)
             trace["Psi_n_lp"].append(Psi_n_lp)
 
+            # How far this iterate's own income moves the quantities its LP was built with. The
+            # parameters were snapshotted before the solve; _computeNLstuff has just recomputed them.
+            g_today = self.gamma_n[: self.N_n]
+            ss_n = np.sum(self.zetaBar_in, axis=0)
+            # Psi_n carries a damping blend, so it understates the disagreement; the IRS formula on
+            # this iterate's own provisional income is what the next LP would have to charge.
+            psi_implied = (
+                self.Psi_n
+                if fixed_psi is not None or "tss" in self.vm
+                else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
+            )
+            moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today),
+                     np.sum(np.abs(self.J_n - J_n_lp) / g_today)]
+            if includeMedicare:
+                moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
+            if self.slcsp_annual > 0:
+                moves.append(np.sum(np.abs(self.ACA_n - ACA_n_lp) / g_today))
+            scResidual = float(max(moves))
+
             has_prev_obj = len(trace["scaledObjectives"]) > 1
             prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
             absObjDiff = abs(scaled_obj - prev_scaled_obj) if has_prev_obj else np.inf
             self.mylog.vprint(
                 f"Iter: {it:02}; f: {u.d(scaled_obj, f=0)}; gap: {solgap:.1e};"
-                f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}"
+                f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}; residual: {u.d(scResidual, f=0)}"
             )
 
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
             scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
             tol = max(abs_tol, rel_tol * scale)
-            decision = self._check_obj_convergence(it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"])
+            decision = self._check_obj_convergence(
+                it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"], scResidual
+            )
             if decision is None:
                 decision = self._check_cycle(it, trace["scaledObjectives"], tol)
             if decision is None:

@@ -113,7 +113,8 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 84_252,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 102_515,
+        # 102_515 before the residual exit test; unsettled cases now iterate longer (+62).
+        "net_spending_basis": 102_577,
         "bequest": 400_000,
     },
     "Case_joe": {
@@ -158,8 +159,10 @@ def test_reproducibility():
         # win32 2026-08-28, where it lands ~1_014 below darwin/linux. Two Windows runs gave
         # 1_964_306 and 1_964_386, so this value carries ~4e-5 of run-to-run wobble under
         # MOSEK -- well inside rel_tol, but it is why the pin is not exact.
+        # darwin/linux measured after the residual exit test (was 1_965_320); the win32 value is
+        # carried over unverified, as before, and the case remains the one that wobbles by ~4e-5.
         EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = (
-            1_964_306 if platform == "win32" else 1_965_320
+            1_964_306 if platform == "win32" else 1_966_376
         )
 
     exdir = "./examples/"
