@@ -75,6 +75,11 @@ def _mosek_available():
 _AMO_RETIRED = (
     "the exclusions it selected are restored after the solve now, so nothing needs constraining"
 )
+_BIGM_RETIRED = (
+    "each big-M is now derived per year from what its own row gates -- the portfolio ceiling plus "
+    "that year's fixed income, or the benefit share the row switches on -- so there is nothing left "
+    "to tune. The flat constants these keys set were hundreds to thousands of times too large"
+)
 _SCLOOP_RETIRED = (
     "no mode can solve without the self-consistent loop -- the standard exemption's OBBBA "
     "phaseout and the cost-basis gain fractions are nonlinear in the solution -- and turning "
@@ -84,6 +89,11 @@ RETIRED_OPTIONS = {
     "amoConstraints": _AMO_RETIRED,
     "amoRoth": _AMO_RETIRED,
     "amoSurplus": _AMO_RETIRED,
+    "bigMamo": _BIGM_RETIRED,
+    "bigMaca": _BIGM_RETIRED,
+    "bigMss": _BIGM_RETIRED,
+    "bigMltcg": _BIGM_RETIRED,
+    "bigMniit": _BIGM_RETIRED,
     "withSCLoop": _SCLOOP_RETIRED,
 }
 
@@ -92,7 +102,6 @@ RETIRED_OPTIONS = {
 _UNCHANGED = object()
 
 # Default values
-BIGM_AMO = 5e7  # 100 times large withdrawals or conversions
 GAP = 1e-4
 _PSI_DAMP = 0.3  # SC-loop damping weight for new Psi_n estimate (blend 30% new / 70% old)
 MILP_GAP = 30 * GAP
@@ -2309,8 +2318,6 @@ class Plan:
         self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.n_aca > 0
         self._ltcg_lp = ltcg_lp
         self._niit_lp = niit_lp
-        self._bigMltcg = options.get("bigMltcg", None)  # None → use T20_n per year
-        self._bigMniit = options.get("bigMniit", None)  # None → use 3*T20_n per year
         Nmed = self.N_n - self.nm
 
         # SS claiming-age optimization: precompute benefit table and initialize SC offset.
@@ -2442,6 +2449,7 @@ class Plan:
 
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
+        self._ceiling_n = self._incomeCeiling()
 
         self._add_rmd_inequalities()
         self._add_tax_bracket_bounds()
@@ -2811,13 +2819,11 @@ class Plan:
         """
         if "zo" not in self.vm:
             return
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
         # Every quantity these gates switch off is a balance or a withdrawal, so the
-        # portfolio ceiling bounds them all. Using it rather than the generic big-M keeps
-        # the gates honest: a solver's integer tolerance buys slack in proportion to M, and
-        # at the generic 5e7 that is hundreds of dollars of balance slipping past a closed
-        # gate. Capped by the generic value so this can only ever tighten the formulation.
-        ceiling_n = np.minimum(self._portfolioCeiling(), bigM * self.gamma_n[: self.N_n + 1])
+        # portfolio ceiling bounds them all. Sizing M to what the row actually gates keeps
+        # the gates honest: a solver's integer tolerance buys slack in proportion to M, so
+        # an oversized constant is hundreds of dollars of balance slipping past a closed gate.
+        ceiling_n = self._portfolioCeiling()
         for n in range(self.N_n):
             Mn = ceiling_n[n]
             z1 = self.vm["zo"].idx(0, n)
@@ -2855,6 +2861,30 @@ class Plan:
             self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_txdef_exhausted", n))
             # Full ordering: the Roth gate implies the tax-deferred gate.
             self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0, tag=("wdorder_gate_monotone", n))
+
+    def _incomeCeiling(self):
+        """Per-year upper bound on income, for the bracket-selector constraints.
+
+        Every big-M in the model gates one of: provisional income, AGI-basis MAGI, ordinary taxable
+        income, or a share of one of them. All are bounded by what the household could possibly
+        receive in a year -- its whole portfolio, plus that year's fixed income -- so the bound is
+        the portfolio ceiling plus the known flows. _portfolioCeiling already carries a factor of
+        two, so this stays a bound and never a constraint.
+
+        A single flat constant cannot do this job: it is thousands of times too large where it gates
+        the taxable Social Security tiers (at most 0.85 of the benefit) and can be too small where it
+        gates MAGI in a late, inflated year. Too large slows branch-and-bound to a crawl; too small
+        removes feasible plans silently.
+        """
+        Nn = self.N_n
+        fixed = (
+            np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
+            + np.sum(self.piBar_in + self.spiaBar_in + self.zetaBar_in + self.Lambda_in, axis=0)
+            + self.fixed_assets_ordinary_income_n
+            + np.maximum(self.fixed_assets_capital_gains_n, 0.0)
+            + self.fixed_assets_tax_free_n
+        )
+        return self._portfolioCeiling()[:Nn] + fixed
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
@@ -3094,8 +3124,6 @@ class Plan:
         if options.get("withSSTaxability", "loop") != "optimize":
             return
 
-        bigM = u.get_numeric_option(options, "bigMss", BIGM_AMO, min_value=0)
-
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
@@ -3164,8 +3192,6 @@ class Plan:
             tss_idx = self.vm["tss"].idx(n)
             z0_idx = self.vm["zs"].idx(n, 0)
             z1_idx = self.vm["zs"].idx(n, 1)
-            bigMBar = bigM * self.gamma_n[n]
-
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
             # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo_n
@@ -3183,11 +3209,24 @@ class Plan:
             # When ζ̄_n < Δ𝒫_n, the effective upper bound on pmin is ζ̄_n; using Δ𝒫_n in the big-M
             # lower bound of constraint (3b) would force pmin ≥ Δ𝒫_n > ζ̄_n, causing infeasibility.
             p_ub = min(delta_p_n, zetaBar_n)
+            # Each row is relaxed by exactly what it gates: the 50% tier's cap, the excess of
+            # provisional income over a threshold, or 0.85 of the benefit. A flat constant here was
+            # thousands of times larger than any of them.
+            ceiling_n = self._ceiling_n[n]
+            m_pmin_cap = p_ub
+            m_pmin_plo = max(0.0, ceiling_n - ss_lo_n)
+            m_tss_cap = 0.85 * zetaBar_n
+            m_tss_formula = 0.5 * p_ub + 0.85 * max(0.0, ceiling_n - ss_hi_n)
+
             self.A.addNewRow({pmin_idx: 1, plo_idx: -1}, -np.inf, 0, tag=("ss_tax_pmin_ub", n))  # pmin ≤ p^lo
             # p^{σ,min}_n ≥ min(Δ𝒫_n, ζ̄_n) − M·(1 − z0)  →  pmin − M·z0 ≥ p_ub − M
-            self.A.addNewRow({pmin_idx: 1, z0_idx: -bigMBar}, p_ub - bigMBar, np.inf, tag=("ss_tax_pmin_lb_cap", n))
+            self.A.addNewRow(
+                {pmin_idx: 1, z0_idx: -m_pmin_cap}, p_ub - m_pmin_cap, np.inf, tag=("ss_tax_pmin_lb_cap", n)
+            )
             # p^{σ,min}_n ≥ p^lo_n − M·z0  →  pmin − p^lo + M·z0 ≥ 0
-            self.A.addNewRow({pmin_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf, tag=("ss_tax_pmin_lb_plo", n))
+            self.A.addNewRow(
+                {pmin_idx: 1, plo_idx: -1, z0_idx: m_pmin_plo}, 0, np.inf, tag=("ss_tax_pmin_lb_plo", n)
+            )
             self.B.setRange(pmin_idx, 0, p_ub)  # pmin ≤ min(Δ𝒫_n, ζ̄_n)
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·p^{σ,min}_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
@@ -3195,11 +3234,11 @@ class Plan:
             self.A.addNewRow({tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85}, -np.inf, 0, tag=("ss_tax_tss_ub", n))
             # t^σ_n ≥ 0.85·ζ̄_n − M·(1 − z1)  →  t^σ_n − M·z1 ≥ 0.85·ζ̄_n − M
             self.A.addNewRow(
-                {tss_idx: 1, z1_idx: -bigMBar}, 0.85 * zetaBar_n - bigMBar, np.inf, tag=("ss_tax_tss_lb_cap", n)
+                {tss_idx: 1, z1_idx: -m_tss_cap}, 0.85 * zetaBar_n - m_tss_cap, np.inf, tag=("ss_tax_tss_lb_cap", n)
             )
             # t^σ_n ≥ 0.5·p^{σ,min}_n + 0.85·p^hi_n − M·z1  →  tss − 0.5·pmin − 0.85·phi + M·z1 ≥ 0
             self.A.addNewRow(
-                {tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar},
+                {tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: m_tss_formula},
                 0,
                 np.inf,
                 tag=("ss_tax_tss_lb_formula", n),
@@ -3328,15 +3367,10 @@ class Plan:
                 zl15_idx = self.vm["zl"].idx(0, n)  # regime binary: G_n < T15
                 zl20_idx = self.vm["zl"].idx(1, n)  # regime binary: G_n < T20
 
-                # Big-M: scale with gamma_n[n] (nominal dollars grow with inflation), following
-                # the pattern used elsewhere (e.g., bigMBar = bigM * gamma_n[n] in SS taxability).
-                # Default: 3*T20_n (already gamma-scaled, safe upper bound on G_n).
-                # Using T20_n alone is too tight — G_n can exceed T15+T20 in Roth conversion years.
-                base_Mltcg = getattr(self, "_bigMltcg", None)
-                if base_Mltcg is None or base_Mltcg <= 0:
-                    M_ltcg = 3.0 * T20_n  # gamma_n[n] already embedded in T20_n
-                else:
-                    M_ltcg = base_Mltcg * self.gamma_n[n]
+                # The link rows must reach from a threshold to whatever ordinary income can be,
+                # in either direction; the shutoff rows only have to cover the gains themselves.
+                ceiling_n = self._ceiling_n[n]
+                M_ltcg = max(T20_n, ceiling_n - T15_n)
 
                 # G_n equality: gn = sum_t f_tn  (ordinary taxable income)
                 row_gn = {gn_idx: 1}
@@ -3522,14 +3556,9 @@ class Plan:
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
             T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
 
-            # Big-M: scale with gamma_n[n] following the convention used elsewhere in the code.
-            # Default: 3*T20_n (already gamma-scaled via T20_n = gamma_n[n]*capGainRates).
-            T20_n = self.gamma_n[n] * tx.capGainRates[status_n][1]
-            base_Mniit = getattr(self, "_bigMniit", None)
-            if base_Mniit is None or base_Mniit <= 0:
-                M_niit = 3.0 * T20_n  # gamma_n[n] already embedded in T20_n
-            else:
-                M_niit = base_Mniit * self.gamma_n[n]
+            # MAGI and the NII surplus are bounded by the year's income; the tax itself by 3.8%
+            # of it. One constant covers all three rows, sized by the largest of them.
+            M_niit = max(self._ceiling_n[n], T_niit)
 
             Jn_idx = self.vm["Jn"].idx(n)
             magi_idx = self.vm["magi"].idx(n)
@@ -3538,7 +3567,7 @@ class Plan:
             e_idx = self.vm["e"].idx(n)
 
             # Bounds
-            self.B.setRange(Jn_idx, 0, M_niit)
+            self.B.setRange(Jn_idx, 0, 0.038 * self._ceiling_n[n])
             self.B.setRange(magi_idx, 0, M_niit)
             self.B.setRange(niis_idx, 0, M_niit)
 
@@ -3576,7 +3605,6 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
         Nmed = self.N_n - self.nm
         # Select exactly one IRMAA bracket per year (SOS1 behavior).
         for nn in range(Nmed):
@@ -3668,7 +3696,7 @@ class Plan:
                     upper = self.Lbar_nq[nn, q]
                 else:
                     # Upper bound for last bracket so h_qn = 0 when z_q = 0.
-                    upper = bigM * self.gamma_n[self.nm + nn]
+                    upper = self._ceiling_n[self.nm + nn]  # the year's MAGI ceiling
                 self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0, tag=("irmaa_bracket_ub", nn, q))
 
     def _add_Medicare_costs(self, options):
@@ -3706,8 +3734,6 @@ class Plan:
         """
         if not self._aca_lp:
             return
-
-        bigM = u.get_numeric_option(options, "bigMaca", BIGM_AMO, min_value=0)
 
         # a) SOS1: exactly one bracket selected per year.
         for nn in range(self.n_aca):
@@ -3773,7 +3799,7 @@ class Plan:
                     upper = self.Lbar_aca_nr[nn, r]
                 else:
                     # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
-                    upper = bigM * self.gamma_n[nn]
+                    upper = self._ceiling_n[nn]  # the year's MAGI ceiling
                 self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0, tag=("aca_bracket_ub", nn, r))
 
     def _add_ACA_costs(self, options):
@@ -4144,7 +4170,6 @@ class Plan:
         knownOptions = [
             "absTol",
             "bequest",
-            "bigMamo",  # Big-M value for the remaining big-M constraint families (default: 5e7)
             "epsilon",
             "gap",
             "maxIter",
@@ -4168,12 +4193,8 @@ class Plan:
             "units",
             "verbose",
             "withACA",  # ACA handling: "loop" (default) or "optimize"
-            "bigMaca",  # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
-            "bigMss",  # Big-M for SS taxability MIP (when withSSTaxability="optimize")
             "withLTCG",  # LTCG handling: "loop" (default) or "optimize"
-            "bigMltcg",  # Big-M for LTCG bracket constraints (default: T20_n per year)
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
-            "bigMniit",  # Big-M for NIIT threshold constraints (default: 3*T20_n per year)
             "withDecomposition",  # MIP decomposition: "none" (default), "sequential" or "lbbd"
             "decompBudget",  # seconds the lbbd decomposition may spend chasing a certificate
             "decompMaxIter",  # maximum lbbd rounds

@@ -357,13 +357,6 @@ class SolverOptions(BaseModel):
     spendingSlack: Optional[int] = None
     noLateSurplus: Optional[bool] = None
 
-    # AMO / Big-M
-    bigMamo: Optional[float] = None
-    bigMaca: Optional[float] = None
-    bigMss: Optional[float] = None
-    bigMltcg: Optional[float] = None
-    bigMniit: Optional[float] = None
-
     # Medicare, ACA, LTCG, NIIT, SS taxability
     withMedicare: Optional[Union[str, bool]] = None
     includeMedicarePartD: Optional[bool] = None

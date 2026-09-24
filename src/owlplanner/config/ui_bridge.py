@@ -66,11 +66,6 @@ ACC_CONF = ACCOUNT_TYPES
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "bequest",
-    "bigMaca",
-    "bigMamo",
-    "bigMltcg",
-    "bigMniit",
-    "bigMss",
     "epsilon",
     "gap",
     "maxIter",

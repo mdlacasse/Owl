@@ -366,10 +366,6 @@ def test_solver_options_passthrough_roundtrip():
         "epsilon": 0.01,
         "swapRothConverters": 1,
         "units": "k",
-        "bigMaca": 1e8,
-        "bigMss": 9e7,
-        "bigMltcg": 5e6,
-        "bigMniit": 4e6,
         "withLTCG": "optimize",
         "withNIIT": "loop",
     }
@@ -560,11 +556,6 @@ def test_solver_ui_passthrough_keys_match_plan_known_options():
     plan_known = {
         "absTol",
         "bequest",
-        "bigMaca",
-        "bigMamo",
-        "bigMltcg",
-        "bigMniit",
-        "bigMss",
         "epsilon",
         "gap",
         "maxIter",
