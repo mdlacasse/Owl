@@ -1,0 +1,196 @@
+{
+ "1929": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 2532.2,
+  "gap": 0.0,
+  "lbbd_lines": [],
+  "bequest": 1334171.799137413,
+  "certified": true,
+  "residual": {
+   "SS": 0.05,
+   "IRMAA": 0.06,
+   "NIIT": 0.0,
+   "deduction": 0.02
+  }
+ },
+ "1930": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 3687.8,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "2026-09-24 09:23:58 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP",
+   "2026-09-24 09:43:13 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP"
+  ],
+  "bequest": 1576435.6621788917,
+  "certified": true,
+  "residual": {
+   "SS": 0.07,
+   "IRMAA": 0.05,
+   "NIIT": 0.0,
+   "deduction": 2.67
+  }
+ },
+ "1936": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 1424.2,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| 2026-09-24 09:23:58 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP",
+   "| 2026-09-24 09:43:13 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP",
+   "2026-09-24 10:06:58 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP"
+  ],
+  "bequest": 1590505.3930415325,
+  "certified": true,
+  "residual": {
+   "SS": 0.03,
+   "IRMAA": 0.04,
+   "NIIT": 0.0,
+   "deduction": 0.0
+  }
+ },
+ "1928": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 5202.0,
+  "gap": 0.0,
+  "lbbd_lines": [],
+  "bequest": 1979949.6286281708,
+  "certified": true,
+  "residual": {
+   "SS": 0.08,
+   "IRMAA": 0.06,
+   "NIIT": 0.0,
+   "deduction": 0.05
+  }
+ },
+ "1957": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 370.9,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "2026-09-24 10:14:38 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP"
+  ],
+  "bequest": 777695.682067467,
+  "certified": true,
+  "residual": {
+   "SS": 0.05,
+   "IRMAA": 0.05,
+   "NIIT": 0.0,
+   "deduction": 0.03
+  }
+ },
+ "1931": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 3397.8,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "2026-09-24 10:20:35 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP"
+  ],
+  "bequest": 1876308.463365973,
+  "certified": true,
+  "residual": {
+   "SS": 0.06,
+   "IRMAA": 0.07,
+   "NIIT": 0.0,
+   "deduction": 0.0
+  }
+ },
+ "1959": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 598.4,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| 2026-09-24 10:14:38 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP",
+   "2026-09-24 10:24:37 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP"
+  ],
+  "bequest": 804949.3697015815,
+  "certified": true,
+  "residual": {
+   "SS": 0.03,
+   "IRMAA": 0.05,
+   "NIIT": 0.0,
+   "deduction": 0.02
+  }
+ },
+ "1966": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "seconds": 1196.5,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| 2026-09-24 10:20:35 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP",
+   "2026-09-24 10:40:32 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP"
+  ],
+  "bequest": 452598.0001568148,
+  "certified": true,
+  "residual": {
+   "SS": 0.68,
+   "IRMAA": 0.04,
+   "NIIT": 0.0,
+   "deduction": 0.08
+  }
+ },
+ "1956": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 2149.3,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| | 2026-09-24 09:43:13 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP",
+   "| 2026-09-24 10:06:58 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP",
+   "2026-09-24 10:42:47 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_2 | LBBD + warm-started MIP"
+  ],
+  "bequest": 654130.1600062352,
+  "certified": true,
+  "residual": {
+   "SS": 0.06,
+   "IRMAA": 0.05,
+   "NIIT": 0.0,
+   "deduction": 0.15
+  }
+ },
+ "1998": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 3216.6,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| | 2026-09-24 10:14:38 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP",
+   "| 2026-09-24 10:24:37 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP",
+   "2026-09-24 11:18:13 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP"
+  ],
+  "bequest": 1706946.0751667141,
+  "certified": true,
+  "residual": {
+   "SS": 0.04,
+   "IRMAA": 0.04,
+   "NIIT": 0.0,
+   "deduction": 5.24
+  }
+ },
+ "1999": {
+  "status": "solved",
+  "conv": "monotonic",
+  "seconds": 3237.1,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "| | 2026-09-24 10:20:35 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP",
+   "| 2026-09-24 10:40:32 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP",
+   "2026-09-24 11:34:29 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_1 | LBBD + warm-started MIP"
+  ],
+  "bequest": 1349890.192937781,
+  "certified": true,
+  "residual": {
+   "SS": 0.04,
+   "IRMAA": 0.05,
+   "NIIT": 0.0,
+   "deduction": 0.0
+  }
+ }
+}

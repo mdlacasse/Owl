@@ -1,0 +1,4 @@
+11 windows, 3x3, budget 5400s
+1998: lbbd 1,706,946.08 gap  0.0e+00 CERT  3216.6s | mono 1,706,946.08 gap  0.0e+00  3359.2s |  1.04x  diff      +0.00
+      | | 2026-09-24 10:24:37 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP
+      | 2026-09-24 11:18:13 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP

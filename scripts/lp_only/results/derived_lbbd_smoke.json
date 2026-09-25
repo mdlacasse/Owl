@@ -1,0 +1,19 @@
+{
+ "1965": {
+  "status": "solved",
+  "conv": "oscillatory",
+  "seconds": 112.8,
+  "gap": 0.0,
+  "lbbd_lines": [
+   "2026-09-24 08:41:33 | INFO | plan:_scSolve:4831 | ThreadPoolExecutor-0_0 | LBBD + warm-started MIP"
+  ],
+  "bequest": 532594.3270990314,
+  "certified": true,
+  "residual": {
+   "SS": 2.46,
+   "IRMAA": 0.03,
+   "NIIT": 0.0,
+   "deduction": 0.04
+  }
+ }
+}
