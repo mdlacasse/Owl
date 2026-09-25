@@ -46,7 +46,6 @@ from . import socialsecurity as socsec
 from . import spending
 from . import debts as debts
 from . import fixedassets as fxasst
-from . import lbbd as lbbd_solver
 from . import mylogging as log
 from .config.plan_bridge import clone  # noqa: F401
 from .config.schema import REMOVED_OPTIONS
@@ -4195,9 +4194,7 @@ class Plan:
             "withACA",  # ACA handling: "loop" (default) or "optimize"
             "withLTCG",  # LTCG handling: "loop" (default) or "optimize"
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
-            "withDecomposition",  # MIP decomposition: "none" (default), "sequential" or "lbbd"
-            "decompBudget",  # seconds the lbbd decomposition may spend chasing a certificate
-            "decompMaxIter",  # maximum lbbd rounds
+            "withDecomposition",  # MIP decomposition: "none" (default) or "sequential"
             "withMedicare",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
@@ -4286,8 +4283,6 @@ class Plan:
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
-        self._lbbd_prev_x = None  # previous SC iterate, the lbbd decomposition's seed
-        self._lbbd_deadline = None  # wall-clock deadline for the whole lbbd solve
         self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
         # Compute state tax parameters when a state is configured.
@@ -4623,12 +4618,10 @@ class Plan:
         has_master_binaries = any(name in self.vm for name in _DECOMP_FAMILIES)
         if decomp_mode == "sequential" and is_decomposable and has_master_binaries:
             actualSolverMethod = self._relax_and_fix_solve
-        elif decomp_mode == "lbbd" and is_decomposable and has_master_binaries:
-            actualSolverMethod = self._lbbd_solve
         else:
-            if decomp_mode in ("sequential", "lbbd") and not has_master_binaries:
+            if decomp_mode == "sequential" and not has_master_binaries:
                 self.mylog.print(f"withDecomposition='{decomp_mode}' ignored: no bracket-selector binaries active.")
-            elif decomp_mode not in ("none", "sequential", "lbbd"):
+            elif decomp_mode not in ("none", "sequential"):
                 self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
             actualSolverMethod = solverMethod
 
@@ -5472,16 +5465,6 @@ class Plan:
         )
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
-        return result
-
-    def _lbbd_solve(self, objective, options):
-        """Logic-based Benders over the regime binaries (withDecomposition='lbbd').
-
-        Seeded with the previous SC iteration's plan, whose binaries are a consistent assignment.
-        """
-        result = lbbd_solver.solve(self, objective, options, seed_x=getattr(self, "_lbbd_prev_x", None))
-        if result[2] and result[1] is not None:
-            self._lbbd_prev_x = np.array(result[1])
         return result
 
     def _relax_and_fix_solve(self, objective, options):
