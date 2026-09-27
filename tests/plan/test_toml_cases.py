@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import pytest
-from sys import platform
 
 import owlplanner as owl
 
@@ -107,6 +106,10 @@ def getHFP(exdir, case, check_exists=True):
 # deltas were wrong and win32 never diverged at all. With that corrected, all three
 # platforms agree to the cent under HiGHS and the per-platform tables collapse into one.
 # Platform still matters under MOSEK -- see the override block in test_reproducibility.
+# Updated after the 2026-09 state bracket audit (CA brackets moved from 2023 to 2025 values):
+# only the two CA cases moved (darwin, verified under both solvers). kim+sam-spending
+# 186_498 -> 186_583 (HiGHS), 186_403 -> 186_456 (MOSEK); kim+sam-bequest 1_972_270 ->
+# 1_976_280 under HiGHS, and MOSEK now lands on the same value.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
@@ -121,12 +124,12 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_498,
+        "net_spending_basis": 186_583,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145_000,
-        "bequest": 1_972_270,
+        "bequest": 1_976_280,
     },
     "Case_robin": {
         "net_spending_basis": 44_365,
@@ -153,14 +156,10 @@ def test_reproducibility():
         # MOSEK keeps the pre-removal fixed point on this oscillatory case.
         EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
         # Both kim+sam cases settle a little lower under MOSEK.
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_403
-        # kim+sam-bequest is the one case where MOSEK also differs by platform: measured on
-        # win32 2026-08-28, where it lands ~1_014 below darwin/linux. Two Windows runs gave
-        # 1_964_306 and 1_964_386, so this value carries ~4e-5 of run-to-run wobble under
-        # MOSEK -- well inside rel_tol, but it is why the pin is not exact.
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = (
-            1_964_306 if platform == "win32" else 1_965_320
-        )
+        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_456
+        # kim+sam-bequest used to differ by platform under MOSEK (win32 ~1_014 below darwin,
+        # measured 2026-08-28). After the 2026-09 CA bracket update MOSEK matches HiGHS on
+        # darwin (1_976_280); win32 has not been re-measured, so no override is kept for now.
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version

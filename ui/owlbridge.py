@@ -1894,9 +1894,14 @@ def markHFPAsSaved(plan):
 
 @_checkPlan
 def getCaseString(plan):
-    stringBuffer = StringIO()
-    if kz.getSolveParameters() is None:
+    # The session's Plan is only populated by prepareRun(), so before the first run it
+    # has no balances and no rate method and there is nothing for saveConfig() to write.
+    # Pages that offer a download on an unrun case (Financial_Profile) rely on the empty
+    # string here rather than on being gated behind a solve.
+    if kz.getSolveParameters() is None or not plan.isConfigured():
         return ""
+
+    stringBuffer = StringIO()
     plan.saveConfig(stringBuffer)
 
     return stringBuffer

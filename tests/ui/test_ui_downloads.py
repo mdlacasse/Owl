@@ -21,6 +21,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from io import StringIO
+
 import pytest
 
 import owlplanner as owl
@@ -56,3 +58,30 @@ def test_download_buffer_is_readable_from_the_start(monkeypatch, solved_plan, fn
     assert len(payload) > 0
     assert payload[:2] == b"PK", "not a zip/xlsx payload"
     assert len(payload) == len(buffer.getvalue())
+
+
+def test_getCaseString_is_empty_for_a_plan_that_has_never_run(monkeypatch):
+    """
+    Financial_Profile offers the HFP download on a case that cannot run, and refreshes the
+    stored case file right after it. The session Plan is only populated by prepareRun(),
+    so that path handed saveConfig() a Plan with beta_ij still None and the page died on a
+    TypeError. getCaseString() must decline instead, and the "" it returns is what the
+    call sites already test for.
+    """
+    log = StringIO()
+    bare = owl.Plan(["Joe"], ["1960-01-01"], [90], "unrun", verbose=False, logstreams=[log, log])
+    _as_current_case(monkeypatch, bare)
+    # Visiting the Goals page is enough to set the objective, so the pre-existing
+    # getSolveParameters() guard does not fire: exercise the readiness guard itself.
+    monkeypatch.setattr(owb.kz, "getSolveParameters", lambda: ("maxSpending", {}))
+
+    assert owb.getCaseString() == ""
+
+
+@pytest.mark.toml
+def test_getCaseString_still_returns_a_case_file_for_a_solved_plan(monkeypatch, solved_plan):
+    _as_current_case(monkeypatch, solved_plan)
+    monkeypatch.setattr(owb.kz, "getSolveParameters", lambda: ("maxSpending", {}))
+
+    buffer = owb.getCaseString()
+    assert "[basic_info]" in buffer.getvalue()

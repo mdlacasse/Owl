@@ -1,3 +1,36 @@
+### Version 2026.9.21
+
+#### Fixed: state retirement-income exemptions ([#145](https://github.com/mdlacasse/Owl/issues/145), [#146](https://github.com/mdlacasse/Owl/issues/146))
+
+The state retirement-income exemption is now applied per person. Each spouse is limited by
+their own age and by their own eligible income, and an unused portion cannot be claimed by
+the other spouse. Couples in states such as NY and CO were previously limited to a single
+exemption. Roth conversion income now counts toward the exemption, as do pensions, so
+conversions are no longer taxed by states that exempt them (e.g. IL, PA, NY). A new
+`roth_conversion_eligible` field in the state tax data marks where conversion income
+qualifies; it is `false` for MD, whose pension exclusion does not cover IRAs.
+The NY exclusion now starts at age 59½, and KY's $31,110 exclusion now covers IRA
+distributions and conversions, not only pensions.
+
+#### Fixed: state income tax brackets and deductions updated to 2026
+
+The state tax table was audited against the Tax Foundation's 2026 compilation and the laws
+enacted in the 2026 sessions. Brackets or deductions were corrected in 24 states: AL, CA, GA,
+HI, ID, IL, KS, KY, LA, MA, ME, MI, MO, MS, MT, NE, NM, OK, RI, UT, VA, VT, WI, and WV. Notable
+changes include GA's 4.99% rate, UT's 4.45% rate, KS's two-rate structure, ME's new 2% surtax
+above $1M, and CA's 1% surtax, which now starts at $1M for couples as well. The standard
+deduction field now also includes each state's personal exemptions. Most corrections lower
+state tax by $50 to $1,300 a year at typical retiree incomes; results for cases in these
+states will change.
+
+### Version 2026.9.16
+
+#### Fixed: case files from `save_case` load in the web UI ([#144](https://github.com/mdlacasse/Owl/issues/144))
+
+A couple's case saved by `save_case` failed to load on the *Create Case* page. The `spouses`
+allocation type is now an input shorthand only: its single pair is expanded to the equivalent
+`individual` allocation, so existing case files still load and results are unchanged.
+
 ### Version 2026.9.2
 
 #### Changed: the fixed-asset bequest note says when the figure is path-dependent

@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from datetime import date
+
 import numpy as np
 import pytest
 
@@ -69,14 +71,14 @@ def test_toml_all_states_load(state):
 def test_st_taxparams_shape():
     """st_taxParams returns arrays with correct shapes."""
     gamma = np.ones(31)  # N_n=30 years + 1
-    N_st, theta, delta, sigma, re_cap, pe_cap, tax_ss, ss_thresh = tax_state.st_taxParams(
-        "MN", 1, 30, 30, gamma, [1960]
+    N_st, theta, delta, sigma, re_cap, pe_cap, conv_ok, tax_ss, ss_thresh = tax_state.st_taxParams(
+        "MN", 1, 30, 30, gamma, [1960], mobs=[1]
     )
     assert theta.shape == (N_st, 30)
     assert delta.shape == (N_st, 30)
     assert sigma.shape == (30,)
-    assert re_cap.shape == (30,)
-    assert pe_cap.shape == (30,)
+    assert re_cap.shape == (1, 30)
+    assert pe_cap.shape == (1, 30)
     assert ss_thresh.shape == (30,)
     assert N_st >= 4  # MN has 4 brackets for single
 
@@ -86,8 +88,12 @@ def test_st_taxparams_inflation_scaling():
     gamma_flat = np.ones(31)
     gamma_inflated = np.array([1.02**n for n in range(31)])
     for state in ("MN", "CA"):
-        _, _, delta_flat, sigma_flat, _, _, _, _ = tax_state.st_taxParams(state, 1, 30, 30, gamma_flat, [1960])
-        _, _, delta_inf, sigma_inf, _, _, _, _ = tax_state.st_taxParams(state, 1, 30, 30, gamma_inflated, [1960])
+        _, _, delta_flat, sigma_flat, _, _, _, _, _ = tax_state.st_taxParams(
+            state, 1, 30, 30, gamma_flat, [1960], mobs=[1]
+        )
+        _, _, delta_inf, sigma_inf, _, _, _, _, _ = tax_state.st_taxParams(
+            state, 1, 30, 30, gamma_inflated, [1960], mobs=[1]
+        )
         # Year 10 should be inflated relative to year 0
         assert delta_inf[0, 10] > delta_flat[0, 10]
         assert sigma_inf[10] > sigma_flat[10]
@@ -97,10 +103,12 @@ def test_st_taxparams_filing_status_transition():
     """Bracket widths switch from MFJ to Single at n_d."""
     gamma = np.ones(31)
     n_d = 10
-    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _ = tax_state.st_taxParams("MN", 2, n_d, 30, gamma, [1955, 1958])
+    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _, _ = tax_state.st_taxParams(
+        "MN", 2, n_d, 30, gamma, [1955, 1958], mobs=[1, 1]
+    )
     # Before n_d: MFJ brackets
     # After n_d: Single brackets
-    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958])
+    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958], mobs=[1])
     # Deduction after death should match single
     assert pytest.approx(sigma_mfj[n_d], rel=1e-6) == sigma_s[0]
 
@@ -110,7 +118,7 @@ def test_st_taxparams_exemption_age_gating():
     # CO has exemption_age=65 for re
     gamma = np.ones(31)
     # born 1995 → turns 65 in 2060 → past 30-year plan end (2026+29=2055)
-    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995])
+    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995], mobs=[1])
     # All zeros since never reaches 65 during the plan
     assert np.all(re_cap == 0), "CO re_cap should be 0 when never 65+ during plan"
 
@@ -118,13 +126,14 @@ def test_st_taxparams_exemption_age_gating():
 def test_st_taxparams_exemption_age_active():
     """Retirement income exemption applies once age requirement is met."""
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
+    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
         "CO",
         1,
         30,
         30,
         gamma,
         [1955],  # born 1955 → already 65+ at plan start
+        mobs=[1],
     )
     assert np.any(re_cap > 0), "CO re_cap should be nonzero for someone already 65+"
 
@@ -241,7 +250,7 @@ def test_cashflow_charts_include_state_taxes():
 
 def test_retirement_income_exemption():
     """With NY (re=$20k), st_T_n < no-exemption equivalent."""
-    # NY has $20k retirement income exemption (no age requirement)
+    # NY has $20k retirement income exemption (age 59.5+)
     # A plan with large IRA withdrawals should benefit from this exemption.
     p_ny = Plan(["Jack"], ["1960-01-01"], [90], "TestNY")
     p_ny.setStateTax("NY")
@@ -257,3 +266,122 @@ def test_retirement_income_exemption():
     assert "st_re" in p_ny.vm, "NY plan should have st_re LP variable"
     assert p_ny.caseStatus == "solved"
     assert np.sum(p_ny.st_T_n) > 0
+
+
+# ---------------------------------------------------------------------------
+# Issues #145 and #146: per-person exemption; Roth conversions count toward it
+# ---------------------------------------------------------------------------
+
+
+def test_st_taxparams_exemption_is_per_person():
+    """Each spouse qualifies on their own age (CO: 65+)."""
+    thisyear = date.today().year
+    gamma = np.ones(31)
+    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+        "CO", 2, 30, 30, gamma, [thisyear - 70, thisyear - 50], mobs=[1, 1]
+    )
+    assert re_cap[0, 0] == pytest.approx(24000)
+    assert re_cap[1, 0] == 0
+    assert re_cap[1, 14] == 0 and re_cap[1, 15] == pytest.approx(24000)
+
+
+def test_st_taxparams_ny_age_59_and_a_half():
+    """NY exclusion starts in the year the individual reaches 59.5."""
+    thisyear = date.today().year
+    gamma = np.ones(31)
+    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+        "NY", 2, 30, 30, gamma, [thisyear - 59, thisyear - 59], mobs=[6, 7]
+    )
+    assert re_cap[0, 0] == pytest.approx(20000)  # June birthday: 59.5 by December 31
+    assert re_cap[1, 0] == 0 and re_cap[1, 1] == pytest.approx(20000)  # July birthday: next year
+
+
+@pytest.mark.parametrize("state,expected", [("NY", True), ("IL", True), ("KY", True), ("MD", False)])
+def test_st_taxparams_roth_conversion_eligibility(state, expected):
+    """Roth conversion income counts toward the exemption except in MD."""
+    _, _, _, _, _, _, conv_ok, _, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
+    assert conv_ok is expected
+
+
+def _exempt_plan(state, names, dobs, deferred, taxable=0):
+    p = Plan(names, dobs, [90] * len(names), "Test" + state)
+    p.setStateTax(state)
+    p.setAccountBalances(taxable=[taxable] * len(names), taxDeferred=deferred, taxFree=[0] * len(names))
+    p.setSocialSecurity([2500] * len(names), [70] * len(names))
+    p.setRates("conservative")
+    alloc = [[60, 40, 0, 0], [60, 40, 0, 0]]
+    p.setAllocationRatios("individual", generic=np.array([alloc] * len(names)))
+    p.setSpendingProfile("flat")
+    p.solve("maxSpending", options={"verbose": False})
+    assert p.caseStatus == "solved"
+    return p
+
+
+def _eligible_in(p, with_conversions):
+    eligible = p.w_ijn[:, 1, :] + p.piBar_in
+    if with_conversions:
+        eligible = eligible + p.x_in
+    return eligible
+
+
+def test_illinois_conversions_not_taxed():
+    """IL exempts all retirement income, including Roth conversions (#146)."""
+    thisyear = date.today().year
+    p = _exempt_plan("IL", ["Jack"], [f"{thisyear - 64}-01-01"], [1000])
+    assert np.sum(p.x_in) > 0, "case should convert"
+    assert np.sum(p.st_T_n) == pytest.approx(0, abs=1)
+
+
+def test_ny_exemption_covers_conversions():
+    """NY caps each person's exclusion by their own withdrawals + conversions + pension."""
+    thisyear = date.today().year
+    p = _exempt_plan("NY", ["Jack", "Jill"], [f"{thisyear - 66}-01-01", f"{thisyear - 64}-01-01"], [600, 600])
+    tol = 1e-3 * np.max(p.st_re_cap_in[np.isfinite(p.st_re_cap_in)])
+    assert np.all(p.st_re_in <= _eligible_in(p, True) + tol)
+    assert np.all(p.st_re_in <= p.st_re_cap_in + tol)
+    # MFJ gets up to two caps (#145): in some year the household exempts more than one cap.
+    total = np.sum(p.st_re_in, axis=0)
+    assert np.any(total > 1.01 * p.st_re_cap_in[0])
+
+
+def test_maryland_exemption_excludes_conversions():
+    """MD's pension exclusion is capped without Roth conversion income."""
+    thisyear = date.today().year
+    p = _exempt_plan("MD", ["Jack"], [f"{thisyear - 66}-01-01"], [1000])
+    tol = 1e-3 * np.max(p.st_re_cap_in)
+    assert np.all(p.st_re_in <= _eligible_in(p, False) + tol)
+
+
+# ---------------------------------------------------------------------------
+# 2026 bracket audit: pin corrections that were structural, not just indexing
+# ---------------------------------------------------------------------------
+
+
+def _brackets(key):
+    return [tuple(b) for b in tax_state.load_state_data()[key]["brackets"]]
+
+
+def test_ca_mental_health_surtax_starts_at_1m_for_all_filers():
+    """CA's 1% surtax applies above $1M of taxable income regardless of filing status."""
+    assert (1000000.0, 13.3) in _brackets("CA_Single")
+    assert (1000000.0, 12.3) in _brackets("CA_MFJ")  # 11.3% bracket + 1% surtax
+    assert _brackets("CA_MFJ")[-1] == (1485906.0, 13.3)
+
+
+def test_me_millionaire_surtax():
+    """ME's 2% surtax starts at $1M (single) and $1.5M (MFJ) from 2026."""
+    assert _brackets("ME_Single")[-1] == (1000000.0, 9.15)
+    assert _brackets("ME_MFJ")[-1] == (1500000.0, 9.15)
+
+
+@pytest.mark.parametrize("state,rate", [("GA", 4.99), ("UT", 4.45)])
+def test_2026_flat_rates(state, rate):
+    """Flat rates enacted in the 2026 sessions (GA HB 463, UT SB 60)."""
+    for fs in ("Single", "MFJ"):
+        assert _brackets(f"{state}_{fs}") == [(0.0, rate)]
+
+
+def test_ks_two_rate_structure():
+    """KS has had two rates (5.2%, 5.58%) since 2024."""
+    assert _brackets("KS_Single") == [(0.0, 5.2), (23000.0, 5.58)]
+    assert _brackets("KS_MFJ") == [(0.0, 5.2), (46000.0, 5.58)]

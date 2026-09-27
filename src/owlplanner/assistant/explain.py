@@ -84,10 +84,11 @@ CONSTRAINT_FAMILIES = {
     },
     "state_ret_exempt_cap": {
         "class": "policy",
-        "label": "state retirement-income exemption capped by IRA withdrawals",
-        "indices": ("year",),
-        "note": "Years where the state retirement-income exemption is limited by actual IRA "
-        "withdrawals; the value is the gain per today's-$ of additional exemptible income.",
+        "label": "state retirement-income exemption capped by eligible income",
+        "indices": ("person", "year"),
+        "note": "Years where a person's state retirement-income exemption is limited by their own "
+        "tax-deferred withdrawals, Roth conversions, and pension; the value is the gain per "
+        "today's-$ of additional exemptible income.",
     },
     "ltcg_room20": {
         "class": "policy",

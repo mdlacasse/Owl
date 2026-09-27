@@ -293,7 +293,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
             dic[ACC_UI[j] + str(i)] = vals[i] if i < len(vals) else 0.0  # config $k = UI $k
 
         alloc_type = aa.get("type", "individual")
-        if alloc_type == "individual" or alloc_type == "spouses":
+        if alloc_type == "individual":
             generic = aa.get("generic", DEFAULT_GENERIC_ALLOCATION)
             g = generic[i] if i < len(generic) else DEFAULT_GENERIC_ALLOCATION[0]
             for k in range(4):

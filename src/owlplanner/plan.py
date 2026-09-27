@@ -349,7 +349,9 @@ class Plan:
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
-        self.st_re_cap_n = np.zeros(self.N_n)  # State retirement income exemption caps
+        self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
+        self.st_conv_ok = True  # Whether Roth conversions count toward the state exemption
+        self.st_re_in = np.zeros((self.N_i, self.N_n))  # State retirement exemption claimed per person
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
         self.other_medical_n = np.zeros(self.N_n)  # Inflation-adjusted per-year version (nominal $)
@@ -538,25 +540,47 @@ class Plan:
 
         return None
 
-    def _preflight(self, caller, *, requireRates=True):
+    def _readiness(self, *, requireRates=True):
         """
-        Every "is this plan ready?" check, in one place.
+        Every "is this plan ready?" check, in one place. Returns the first unmet
+        requirement as a message, or None when the plan is fully configured.
 
         Ordered cheapest-to-explain first, and each message names the setter that fixes it.
         Balances are the check that was missing: without them yearFracLeft is never created,
         and the plan died with a bare AttributeError inside _add_initial_balances rather
         than saying what the user had forgotten.
+
+        The message carries a {caller} placeholder that _preflight() fills in; nothing here
+        logs or raises, so isConfigured() can ask the same question without side effects.
         """
         if self.xi_n is None:
-            msg = f"You must define a spending profile before calling {caller}()."
-        elif self.alpha_ijkn is None:
-            msg = f"You must define an allocation profile before calling {caller}()."
-        elif self.beta_ij is None:
-            msg = f"You must set account balances before calling {caller}()."
-        elif requireRates and self.rateMethod is None:
-            msg = f"Rate method must be selected before calling {caller}()."
-        else:
+            return "You must define a spending profile before calling {caller}()."
+        if self.alpha_ijkn is None:
+            return "You must define an allocation profile before calling {caller}()."
+        if self.beta_ij is None:
+            return "You must set account balances before calling {caller}()."
+        if requireRates and self.rateMethod is None:
+            return "Rate method must be selected before calling {caller}()."
+        return None
+
+    def isConfigured(self, *, requireRates=True):
+        """
+        Non-raising twin of _preflight(): True when every setter the plan needs has run.
+
+        Lets a caller skip an operation on a half-built plan instead of catching its
+        failure - the UI builds a Plan long before it pushes any values onto it, and asking
+        deliberately must not write noise into the case log.
+        """
+        return self._readiness(requireRates=requireRates) is None
+
+    def _preflight(self, caller, *, requireRates=True):
+        """
+        Refuse to start when the plan is not ready, naming the setter that fixes it.
+        """
+        template = self._readiness(requireRates=requireRates)
+        if template is None:
             return
+        msg = template.format(caller=caller)
         self.mylog.print(msg)
         raise RuntimeError(msg)
 
@@ -1592,27 +1616,38 @@ class Plan:
         Single function for setting all types of asset allocations.
         Allocation types are 'account', 'individual', and 'spouses'.
 
-        For 'account' the three different account types taxable, taxDeferred,
-        qand taxFree need to be set to a list. For spouses,
-        taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]]
-        where ko is the initial allocation while kf is the final.
-        The order of [initial, final] pairs is the same as for the birth
-        years and longevity provided. Single only provide one pair for each
-        type of savings account.
+        Each allocation is an [initial, final] pair of percentages over the N_k
+        asset classes, e.g., [[ko0, ko1, ko2, ko3], [kf0, kf1, kf2, kf3]], where
+        ko is the initial allocation and kf the final one. Each individual glides
+        from initial to final over their own horizon, so individuals with different
+        life expectancies follow different glide paths even when given the same pair.
+        Per-individual lists follow the order of the names provided.
 
-        For the 'individual' allocation type, only one generic list needs
-        to be provided:
-        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]],
-        [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf12]]].
-        while for 'spouses' only one pair needs to be given as follows:
-        generic = [[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf02]]
-        as assets are coordinated between accounts and spouses.
+        For 'account', each savings account type gets one pair per individual:
+        taxable = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf03]],
+                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf13]]]
+        and likewise for taxDeferred and taxFree. hsa is optional and defaults to taxFree.
+
+        For 'individual', one pair per individual is applied to all of that
+        individual's accounts:
+        generic = [[[ko00, ko01, ko02, ko03], [kf00, kf01, kf02, kf03]],
+                   [[ko10, ko11, ko12, ko13], [kf10, kf11, kf12, kf13]]]
+
+        'spouses' is an input shorthand for 'individual' where the same pair applies
+        to every individual, so only that one pair is given:
+        generic = [[ko0, ko1, ko2, ko3], [kf0, kf1, kf2, kf3]]
+        It is expanded on input and the plan records the allocation as 'individual'.
         """
         # Validate allocType parameter
         validTypes = ["account", "individual", "spouses"]
         if allocType not in validTypes:
             raise ValueError(f"allocType must be one of {validTypes}, got '{allocType}'.")
+
+        if allocType == "spouses":
+            if generic is None or len(generic) != 2:
+                raise ValueError("generic must have 2 entries (initial and final).")
+            generic = [[np.asarray(generic[0]).tolist(), np.asarray(generic[1]).tolist()] for _ in range(self.N_i)]
+            allocType = "individual"
 
         self.boundsAR = {}
         self.alpha_ijkn = np.zeros((self.N_i, self.N_j, self.N_k, self.N_n + 1))
@@ -1679,25 +1714,6 @@ class Plan:
                 for k in range(self.N_k):
                     start = generic[i][0][k] / 100
                     end = generic[i][1][k] / 100
-                    dat = self._interpolator(start, end, Nin)
-                    self.alpha_ijkn[i, :, k, :Nin] = dat[:]
-
-            self.boundsAR["generic"] = generic
-
-        elif allocType == "spouses":
-            if len(generic) != 2:
-                raise ValueError("generic must have 2 entries (initial and final).")
-            for z in range(2):
-                if len(generic[z]) != self.N_k:
-                    raise ValueError(f"generic[{z}] must have {self.N_k} entries.")
-                if abs(sum(generic[z]) - 100) > 0.01:
-                    raise ValueError("Sum of percentages must add to 100.")
-
-            for i in range(self.N_i):
-                Nin = self.horizons[i] + 1
-                for k in range(self.N_k):
-                    start = generic[0][k] / 100
-                    end = generic[1][k] / 100
                     dat = self._interpolator(start, end, Nin)
                     self.alpha_ijkn[i, :, k, :Nin] = dat[:]
 
@@ -2398,10 +2414,10 @@ class Plan:
         # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
         st_lp = bool(self.state) and bool(np.any(self.st_theta_tn > 0))
         self._st_lp = st_lp
-        st_re_lp = st_lp and np.any(self.st_re_cap_n > 0)
+        st_re_lp = st_lp and np.any(self.st_re_cap_in > 0)
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
-        vm.add_if(st_re_lp, "st_re", self.N_n)  # retirement income exemption
+        vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2510,9 +2526,10 @@ class Plan:
         for n in range(self.N_n):
             self.B.setRange(vm["st_e"].idx(n), 0, self.st_sigmaBar_n[n])
         if "st_re" in vm:
-            for n in range(self.N_n):
-                cap = self.st_re_cap_n[n]
-                self.B.setRange(vm["st_re"].idx(n), 0, cap if np.isfinite(cap) else 1e9)
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    cap = self.st_re_cap_in[i, n]
+                    self.B.setRange(vm["st_re"].idx(i, n), 0, cap if np.isfinite(cap) else 1e9)
 
     def _add_state_taxable_income(self):
         """Equality constraint: state bracket allocations = state AGI - deductions.
@@ -2524,15 +2541,17 @@ class Plan:
 
         The LP then subtracts the state standard deduction (st_e) and retirement income
         exemption (st_re), with st_e and st_re bounded to prevent negative state tax.
+        The exemption is per person: each individual's st_re is capped by the state amount
+        and by that individual's own eligible income (tax-deferred withdrawals, Roth
+        conversions when the state allows it, and pensions when the state has no separate
+        pension exemption). Unused amounts do not transfer between spouses.
         """
         vm = self.vm
         for n in range(self.N_n):
             # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
             ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
-            # Pension exemption (parameter): cap = per-person; N_i persons.
-            pe_total = float(np.sum(self.piBar_in[:, n]))
-            pe_cap = float(self.st_pe_cap_n[n]) if np.isfinite(self.st_pe_cap_n[n]) else pe_total
-            pe_adj = min(pe_total, pe_cap * self.N_i)
+            # Pension exemption (parameter): each person's pension up to their own cap.
+            pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
             rhs = -ss_excl - pe_adj
 
             row = self.A.newRow()
@@ -2540,20 +2559,26 @@ class Plan:
                 row.addElem(vm["st_f"].idx(t, n), 1)  # state brackets (sum = state taxable income)
             row.addElem(vm["st_e"].idx(n), 1)  # state standard deduction
             if "st_re" in vm:
-                row.addElem(vm["st_re"].idx(n), 1)  # retirement income exemption
+                for i in range(self.N_i):
+                    row.addElem(vm["st_re"].idx(i, n), 1)  # retirement income exemption
             for t in range(self.N_t):
                 row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal ordinary income)
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
-        # IRA withdrawal cap: can't exempt more IRA income than actually withdrawn.
+        # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
-            for n in range(self.N_n):
-                row = self.A.newRow({vm["st_re"].idx(n): 1})
-                for i in range(self.N_i):
+            # Pensions share the retirement exemption unless the state has a separate pension one.
+            pension_eligible = tax_state.get_state_entry(self.state, 0).get("pension_exemption", 0) == 0
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    row = self.A.newRow({vm["st_re"].idx(i, n): 1})
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                self.A.addRow(row, -np.inf, 0, tag=("state_ret_exempt_cap", n))
+                    if self.st_conv_ok:
+                        row.addElem(vm["x"].idx(i, n), -1)
+                    rhs = self.piBar_in[i, n] if pension_eligible else 0
+                    self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
 
     def _add_defunct_constraints(self):
         if self.N_i == 2:
@@ -4268,11 +4293,14 @@ class Plan:
                 self.st_theta_tn,
                 self.st_DeltaBar_tn,
                 self.st_sigmaBar_n,
-                self.st_re_cap_n,
-                self.st_pe_cap_n,
+                self.st_re_cap_in,
+                self.st_pe_cap_in,
+                self.st_conv_ok,
                 self.st_tax_ss,
                 _st_ss_thresh_n,
-            ) = tax_state.st_taxParams(self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs)
+            ) = tax_state.st_taxParams(
+                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
+            )
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
@@ -5975,6 +6003,8 @@ class Plan:
             self.st_T_n = np.sum(self.st_T_tn, axis=0)
         else:
             self.st_T_n = np.zeros(Nn)
+        # State retirement income exemption claimed by each individual.
+        self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
 
         self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)
@@ -6676,6 +6706,7 @@ class Plan:
         """
         return export.plan_to_csv(self, basename, self.mylog)
 
+    @_checkConfiguration
     def saveConfig(self, basename=None):
         """
         Save parameters in a configuration file.
