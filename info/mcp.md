@@ -172,6 +172,19 @@ capital-gains tax) of fixed assets. `explain_case` reports the same opening
 balance-sheet view from the unsolved inputs, plus the `fixed_assets` and `debts`
 lists read from the HFP workbook.
 
+**Did the solve actually settle?** `run_case` and `run_from_params` report `convergence`
+(how the self-consistent loop ended: `monotonic`, `oscillatory`, a detected cycle, or
+exhausted iterations) and `fixed_point_residual_today_dollars` beside `status`. The
+residual gives, per tax family (`SS`, `IRMAA`, `NIIT`, `ACA`, `deduction`), how far the
+returned plan sits from the model its own income implies, summed over the horizon in
+today's dollars. `status: "solved"` means the loop stopped, not that the answer is
+self-consistent: the LP is built from the previous iterate's Medicare premiums, Social
+Security taxable fraction, NIIT and ACA costs, so a plan whose own income would change
+those has not reached a fixed point. Values of a few dollars are ordinary rounding; values
+in the hundreds or more mean the plan is still moving and its tax figures should not be
+quoted precisely. The `residualTol` solver option (default `100`) is the bar the loop must
+clear before it declares convergence.
+
 **Two strategy-analysis tools:**
 
 `compare_to_baseline` answers *"what is the optimization actually worth in dollars?"*

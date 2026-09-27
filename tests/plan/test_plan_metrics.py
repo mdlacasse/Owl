@@ -184,6 +184,8 @@ def test_plan_to_dict_top_level_keys(solved_single):
         "start_year",
         "end_year",
         "time_horizon_years",
+        "convergence",
+        "fixed_point_residual_today_dollars",
     ):
         assert key in d, f"Missing top-level key: {key}"
 
@@ -191,6 +193,20 @@ def test_plan_to_dict_top_level_keys(solved_single):
 def test_plan_to_dict_status_solved(solved_single):
     d = plan_to_dict(solved_single)
     assert d["status"] == "solved"
+
+
+def test_plan_to_dict_reports_a_small_residual_on_a_converged_plan(solved_single):
+    """"solved" says the loop stopped; the residual says whether the answer is self-consistent.
+
+    A caller reading these results cannot re-derive the tax quantities, so the distance from the
+    plan's own implied model has to travel with the plan.
+    """
+    d = plan_to_dict(solved_single)
+    residual = d["fixed_point_residual_today_dollars"]
+    assert residual, "no residual reported"
+    assert set(residual) <= {"SS", "IRMAA", "NIIT", "ACA", "deduction"}
+    for family, value in residual.items():
+        assert value < 1_000.0, f"{family} residual {value:,.2f} on a converged plan"
 
 
 def test_plan_to_dict_by_year_length(solved_single):
