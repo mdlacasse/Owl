@@ -310,9 +310,22 @@ class TestMatchesRecordedOptimum:
 
         CPU time has both the headroom and the stability: the same sweep measured 1.49 s
         worst case under MOSEK and 0.88 s under HiGHS, and it does not move when other
-        processes compete for cores. The ceiling below is more than three times the worst
-        recorded case and still catches the regression this guards against by three orders
-        of magnitude -- Case_cameron took 577 s with the exclusion binaries.
+        processes compete for cores.
+
+        Re-measured when the residual exit test landed: Case_jack+jill is still the worst
+        case, and the exit test is what raised it. That case never reaches residualTol --
+        its worst family sits near $5,000 -- so instead of stopping on the objective at 19
+        iterations it now runs to 25 and exits on cycle detection, which is the loop
+        correctly refusing to call a 2-cycle converged. The extra iterations are real work
+        on the one recorded case carrying binaries, not a solver regression.
+
+        The ceiling is set from what CI measures, not from a developer machine: the two
+        differ by more than a factor of two, and the old 5 s ceiling was tight enough that
+        the difference decided the outcome -- CI measured 5.6 s and failed a run that passed
+        locally at 2.30 s. GitHub's runners are the slowest hardware this suite meets, so
+        they set the bar. At 20 s the guard still catches the regression it exists for by a
+        factor of 29: Case_cameron took 577 s with the exclusion binaries, and nothing this
+        test has ever measured comes within an order of magnitude of the ceiling.
         """
         import time
 
@@ -329,7 +342,7 @@ class TestMatchesRecordedOptimum:
             elapsed = time.process_time() - start
             if elapsed > slowest:
                 slowest, worst_case = elapsed, case
-        assert slowest < 5.0, f"{worst_case} took {slowest:.1f}s of CPU ({solver})"
+        assert slowest < 20.0, f"{worst_case} took {slowest:.1f}s of CPU ({solver})"
 
 
 class TestOverlapsResolved:
