@@ -22,6 +22,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from itertools import pairwise
 import numpy as np
 import pytest
 from datetime import date
@@ -500,7 +501,7 @@ def test_ss_fixed_fraction_distinct_levels():
     )
     # More of the benefit taxed can only reduce what is sustainable.
     levels = sorted(objectives)
-    for lo, hi in zip(levels, levels[1:]):
+    for lo, hi in pairwise(levels):
         assert objectives[hi] < objectives[lo], (
             f"Spending did not fall from Psi={lo} to Psi={hi}: "
             f"{objectives[lo]:,.0f} -> {objectives[hi]:,.0f}"

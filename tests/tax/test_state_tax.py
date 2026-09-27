@@ -192,7 +192,11 @@ def test_cashflow_balance_with_state_tax(capsys):
     p = _make_plan("MN")
     p.solve("maxSpending", options={"verbose": True})
     captured = capsys.readouterr()
-    assert "WARNING" not in captured.out, "Cash flow balance check should not warn with state tax enabled"
+    # Only the balance check itself: the loop may also warn that it stopped on the iteration limit,
+    # which says nothing about the cash-flow identity.
+    assert "Cash flow balance" not in captured.out, (
+        "Cash flow balance check should not warn with state tax enabled"
+    )
 
 
 # ---------------------------------------------------------------------------

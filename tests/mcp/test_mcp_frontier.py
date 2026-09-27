@@ -12,6 +12,7 @@ since the transport has no other way to report one.
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+from itertools import pairwise
 import asyncio
 import json
 
@@ -61,7 +62,7 @@ class TestFromCaseFile:
 
         spend = [r["spending_today_dollars"] for r in out["frontier"]]
         assert all(v is not None for v in spend)
-        for lo, hi in zip(spend, spend[1:]):
+        for lo, hi in pairwise(spend):
             assert hi <= lo + 1.0, "reserving more for the estate cannot buy more spending"
 
     def test_monetary_keys_are_labelled_today_dollars(self):

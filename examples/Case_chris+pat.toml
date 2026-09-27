@@ -63,7 +63,6 @@ withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"
 withNIIT = "loop"
-withDecomposition = "none"
 withSSTaxability = "loop"
 withSSAges = "fixed"
 

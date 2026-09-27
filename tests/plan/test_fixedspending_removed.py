@@ -31,6 +31,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from itertools import pairwise
 import numpy as np
 import pytest
 
@@ -99,5 +100,5 @@ class TestReplacementTaxesCorrectly:
             assert p.caseStatus == "solved"
             bases.append(p.basis)
 
-        for lo, hi in zip(bases, bases[1:]):
+        for lo, hi in pairwise(bases):
             assert hi <= lo + 1e-6, f"spending rose from {lo:.2f} to {hi:.2f} as the bequest floor increased"

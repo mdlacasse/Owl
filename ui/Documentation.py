@@ -597,9 +597,11 @@ where:
 - *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
   The asset type determines the tax treatment upon disposition (see *Tax Treatment at Disposition* below).
 - *year* is the **reference year** (this year or after). If the year is in the past, it will be
-  automatically reset to the current year when reading from the HFP file. Assets acquired in
-  the future have a future reference year. The asset is considered assessed (current) or acquired (future)
-  at the beginning of the year.
+  automatically reset to the current year when reading from the HFP file. The rule is simply that
+  **an asset appears in the first year it is present in January**: one you already own carries the
+  current year, and one you buy during 2026 is entered as 2027, because it was not there in
+  January 2026. *value* is stated in reference-year dollars, so for a future purchase it is the
+  price you expect to pay, carried to that January.
 - *basis* is the **cost basis** of the asset — the actual purchase price or adjusted tax basis in nominal dollars
   (what you paid, not inflation-adjusted to the reference year). For future acquisitions, enter the expected
   purchase price in the nominal dollars of the acquisition year. The basis is used to calculate capital gains
@@ -633,8 +635,10 @@ where:
   is applied to the future value of the asset at disposition to calculate the net proceeds after commission.
 
 **Asset Lifecycle:**
-- Assets are **acquired at the beginning** of the year specified in the *year* column.
-- Assets are **disposed at the beginning** of the year specified in *yod* (if within the plan duration).
+- An asset is listed from the first year it is **present in January** — the *year* column.
+- An asset is **sold during** the year in *yod* (if within the plan duration). It was present that
+  January, so it is still listed in that year, and the proceeds reach the savings accounts the
+  following January.
 - The asset value grows from the acquisition year to the disposition year using the specified growth rate.
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
@@ -1452,8 +1456,10 @@ This provides good accuracy with reasonable computation time.
 For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
-It can be significantly slower (sometimes many minutes) due to additional binary variables.
-Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
+It is significantly slower than the loop — seconds to many minutes, depending on the case — because
+of the additional binary variables, and it wants MOSEK.
+Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios, where a
+solve that takes minutes instead of a fraction of a second is multiplied by every draw.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
 While the *Medicare and IRMAA calculations* toggle is on and anyone in the case is age 64 or older,
@@ -1476,6 +1482,20 @@ up to 50% between those thresholds and \\$34k (single) / \\$44k (MFJ), and up to
 above the upper threshold — Medicare/IRMAA when Medicare is enabled, and ACA marketplace
 premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
 re-solves, and repeats until convergence.
+
+Convergence means two things, not one. The objective has to stop moving, and so do the quantities
+the loop feeds back: a plan whose own income implies different Medicare premiums or a different
+taxable fraction of Social Security has not reached a fixed point, however steady the objective
+looks. Every solved plan reports the distance still remaining, per tax family and in today's
+dollars, and the `residualTol` option (default \\$100) sets how much is tolerated. A few dollars
+is ordinary rounding; hundreds means the plan is still moving and its tax figures should not be
+read too precisely.
+
+One caveat worth knowing. Within each pass the fed-back values are constants, so the optimizer
+cannot weigh income against them — it cannot see that a little less income would drop an IRMAA
+bracket. The loop can therefore settle on an answer that is entirely self-consistent and still not
+the best one. The *MILP (expert)* options below remove that limitation for the families they
+cover, at a cost in time.
 The loop always runs. It cannot be switched off, because two of the quantities it settles
 have no place inside the optimization at all: the phase-out of the senior deduction, which
 depends on the MAGI the solution produces, and the cost basis of the taxable account, which
@@ -1508,25 +1528,29 @@ against future IRMAA simultaneously.
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
 - *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables; this can be slower and require additional configuration
-like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).
+exactly within the LP using binary variables. This is slower than the loop but no longer needs the
+`gap` to be loosened by hand: on the shipped *jack+jill* case it takes about 20 seconds with MOSEK
+at default settings, against about 1 second for the loop, and finds a spending basis 1.4% higher.
+Prefer MOSEK for it — the same case took over two minutes with HiGHS and returned a worse answer.
 
 Different mixed-integer linear programming solvers can be selected.
 Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-Both solvers (HiGHS and MOSEK) provide very similar results.
-In most cases, `MOSEK` will provide the best performance.
-Selecting `HiGHS` will provide comparable results in a little more time.
-Both solvers support all decomposition modes (sequential and Benders).
+Both solvers (HiGHS and MOSEK) provide very similar results with every tax mode in *loop* mode,
+which is the default and a pure linear program; `MOSEK` is somewhat faster.
+The two are **not** comparable once any bracket option is set to *optimize*, which turns the
+problem into a mixed-integer program. Measured over historical windows of a shipped case, `HiGHS`
+took 49 to 238 times longer than `MOSEK` and did not close the gap in any of them, returning
+answers up to \\$7,505 below the proven optimum after hours of work.
+Use `MOSEK` for the *optimize* modes.
 """)
 
 # --- Results tab ---

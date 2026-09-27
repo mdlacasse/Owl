@@ -162,10 +162,20 @@ def plan_to_dict(plan) -> dict:
                 }
             roth_schedule.append(entry)
 
+    # ---- how far the plan is from the model its own income implies ------
+    # "solved" says the loop stopped, not that the answer is self-consistent. Reporting the
+    # residual lets a caller tell a converged plan from one that merely ran out of patience,
+    # without re-deriving the tax quantities itself.
+    residual = {
+        family: _round(v["abs_sum"]) for family, v in getattr(plan, "fixedPointResidual", {}).items()
+    }
+
     # ---- top-level document ---------------------------------------------
     state = plan.state if plan.state else "none"
     return {
         "status": plan.caseStatus,
+        "convergence": plan.convergenceType,
+        "fixed_point_residual_today_dollars": residual,
         "case_name": plan._name,
         "objective": plan.objective,
         "individuals": list(plan.inames),

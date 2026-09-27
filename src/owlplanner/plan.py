@@ -74,6 +74,18 @@ def _mosek_available():
 _AMO_RETIRED = (
     "the exclusions it selected are restored after the solve now, so nothing needs constraining"
 )
+_BIGM_RETIRED = (
+    "each big-M is now derived per year from what its own row gates -- the portfolio ceiling plus "
+    "that year's fixed income, or the benefit share the row switches on -- so there is nothing left "
+    "to tune. The flat constants these keys set were hundreds to thousands of times too large"
+)
+_DECOMP_RETIRED = (
+    "the only mode it offered, 'sequential', never once worked: it rounded all five bracket "
+    "families at once from a single LP relaxation, which is jointly infeasible even when each "
+    "family is feasible alone, so every solve fell back to the monolithic MIP it was meant to "
+    "avoid. Measured over 8 windows it cost a discarded LP per iteration and returned the "
+    "monolithic answer every time"
+)
 _SCLOOP_RETIRED = (
     "no mode can solve without the self-consistent loop -- the standard exemption's OBBBA "
     "phaseout and the cost-basis gain fractions are nonlinear in the solution -- and turning "
@@ -83,6 +95,12 @@ RETIRED_OPTIONS = {
     "amoConstraints": _AMO_RETIRED,
     "amoRoth": _AMO_RETIRED,
     "amoSurplus": _AMO_RETIRED,
+    "bigMamo": _BIGM_RETIRED,
+    "bigMaca": _BIGM_RETIRED,
+    "bigMss": _BIGM_RETIRED,
+    "bigMltcg": _BIGM_RETIRED,
+    "bigMniit": _BIGM_RETIRED,
+    "withDecomposition": _DECOMP_RETIRED,
     "withSCLoop": _SCLOOP_RETIRED,
 }
 
@@ -91,7 +109,6 @@ RETIRED_OPTIONS = {
 _UNCHANGED = object()
 
 # Default values
-BIGM_AMO = 5e7  # 100 times large withdrawals or conversions
 GAP = 1e-4
 _PSI_DAMP = 0.3  # SC-loop damping weight for new Psi_n estimate (blend 30% new / 70% old)
 MILP_GAP = 30 * GAP
@@ -100,6 +117,9 @@ STAGNATION_WINDOW = 8  # SC iterations without improvement before early-exit che
 STAGNATION_TIMEOUTS = 3  # min gap=inf MILP timeouts in window to trigger stagnation exit
 ABS_TOL = 100
 REL_TOL = 5e-5
+# Largest disagreement, in today's dollars over the horizon, between a quantity the LP was built
+# with and the value the resulting plan implies, before the loop may call itself converged.
+RESIDUAL_TOL = 100.0
 TIME_LIMIT = 900
 EPSILON = 1e-8
 # Tie-break for degenerate directions inside a MIP. EPSILON is sized for the simplex, which
@@ -459,6 +479,10 @@ class Plan:
         self._infeasible = False
         # "monotonic", "oscillatory", "max iteration", or "undefined" - how solution was obtained
         self.convergenceType = "undefined"
+        self._residual_tol = RESIDUAL_TOL
+        # Per-family distance between the model solved and the model this plan's own income
+        # implies, today's dollars; set by _computeFixedPointResidual after a successful solve.
+        self.fixedPointResidual = {}
         # Achieved MIP gap of the accepted solution (0 when solved to optimality,
         # larger when a time limit truncated the search; -1 before any solve)
         self.solverGap = -1.0
@@ -2317,8 +2341,6 @@ class Plan:
         self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.n_aca > 0
         self._ltcg_lp = ltcg_lp
         self._niit_lp = niit_lp
-        self._bigMltcg = options.get("bigMltcg", None)  # None → use T20_n per year
-        self._bigMniit = options.get("bigMniit", None)  # None → use 3*T20_n per year
         Nmed = self.N_n - self.nm
 
         # SS claiming-age optimization: precompute benefit table and initialize SC offset.
@@ -2450,6 +2472,7 @@ class Plan:
 
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
+        self._ceiling_n = self._incomeCeiling()
 
         self._add_rmd_inequalities()
         self._add_tax_bracket_bounds()
@@ -2778,7 +2801,7 @@ class Plan:
         # m_n is the Medicare LP variable; fixed to loop-computed value in SC-loop mode.
         # Pre-Medicare years: M_n = m_n = 0, so cap = other_medical_n[n] only.
         # Guard: skip entirely when no HSA exists — redundant constraints change LP duals
-        # even when trivially satisfied, interfering with Benders cuts and LTCG SC-loop.
+        # even when trivially satisfied, interfering with the LTCG SC-loop.
         has_hsa = np.any(self.beta_ij[:, 3] > 0) or np.any(self.kappa_ijn[:, 3, :] > 0)
         if has_hsa:
             for n in range(self.N_n):
@@ -2828,13 +2851,11 @@ class Plan:
         """
         if "zo" not in self.vm:
             return
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
         # Every quantity these gates switch off is a balance or a withdrawal, so the
-        # portfolio ceiling bounds them all. Using it rather than the generic big-M keeps
-        # the gates honest: a solver's integer tolerance buys slack in proportion to M, and
-        # at the generic 5e7 that is hundreds of dollars of balance slipping past a closed
-        # gate. Capped by the generic value so this can only ever tighten the formulation.
-        ceiling_n = np.minimum(self._portfolioCeiling(), bigM * self.gamma_n[: self.N_n + 1])
+        # portfolio ceiling bounds them all. Sizing M to what the row actually gates keeps
+        # the gates honest: a solver's integer tolerance buys slack in proportion to M, so
+        # an oversized constant is hundreds of dollars of balance slipping past a closed gate.
+        ceiling_n = self._portfolioCeiling()
         for n in range(self.N_n):
             Mn = ceiling_n[n]
             z1 = self.vm["zo"].idx(0, n)
@@ -2872,6 +2893,30 @@ class Plan:
             self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_txdef_exhausted", n))
             # Full ordering: the Roth gate implies the tax-deferred gate.
             self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0, tag=("wdorder_gate_monotone", n))
+
+    def _incomeCeiling(self):
+        """Per-year upper bound on income, for the bracket-selector constraints.
+
+        Every big-M in the model gates one of: provisional income, AGI-basis MAGI, ordinary taxable
+        income, or a share of one of them. All are bounded by what the household could possibly
+        receive in a year -- its whole portfolio, plus that year's fixed income -- so the bound is
+        the portfolio ceiling plus the known flows. _portfolioCeiling already carries a factor of
+        two, so this stays a bound and never a constraint.
+
+        A single flat constant cannot do this job: it is thousands of times too large where it gates
+        the taxable Social Security tiers (at most 0.85 of the benefit) and can be too small where it
+        gates MAGI in a late, inflated year. Too large slows branch-and-bound to a crawl; too small
+        removes feasible plans silently.
+        """
+        Nn = self.N_n
+        fixed = (
+            np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
+            + np.sum(self.piBar_in + self.spiaBar_in + self.zetaBar_in + self.Lambda_in, axis=0)
+            + self.fixed_assets_ordinary_income_n
+            + np.maximum(self.fixed_assets_capital_gains_n, 0.0)
+            + self.fixed_assets_tax_free_n
+        )
+        return self._portfolioCeiling()[:Nn] + fixed
 
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
@@ -3111,8 +3156,6 @@ class Plan:
         if options.get("withSSTaxability", "loop") != "optimize":
             return
 
-        bigM = u.get_numeric_option(options, "bigMss", BIGM_AMO, min_value=0)
-
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
@@ -3181,8 +3224,6 @@ class Plan:
             tss_idx = self.vm["tss"].idx(n)
             z0_idx = self.vm["zs"].idx(n, 0)
             z1_idx = self.vm["zs"].idx(n, 1)
-            bigMBar = bigM * self.gamma_n[n]
-
             # === p^lo_n = max(0, Π_n − 𝒫^lo) ===
             # Lower bound ≥ 0 from default variable bounds; explicit inequality enforces the max.
             # Row: p^lo_n + pi_row_coeffs ≥ rhs_pi − ss_lo_n
@@ -3200,11 +3241,24 @@ class Plan:
             # When ζ̄_n < Δ𝒫_n, the effective upper bound on pmin is ζ̄_n; using Δ𝒫_n in the big-M
             # lower bound of constraint (3b) would force pmin ≥ Δ𝒫_n > ζ̄_n, causing infeasibility.
             p_ub = min(delta_p_n, zetaBar_n)
+            # Each row is relaxed by exactly what it gates: the 50% tier's cap, the excess of
+            # provisional income over a threshold, or 0.85 of the benefit. A flat constant here was
+            # thousands of times larger than any of them.
+            ceiling_n = self._ceiling_n[n]
+            m_pmin_cap = p_ub
+            m_pmin_plo = max(0.0, ceiling_n - ss_lo_n)
+            m_tss_cap = 0.85 * zetaBar_n
+            m_tss_formula = 0.5 * p_ub + 0.85 * max(0.0, ceiling_n - ss_hi_n)
+
             self.A.addNewRow({pmin_idx: 1, plo_idx: -1}, -np.inf, 0, tag=("ss_tax_pmin_ub", n))  # pmin ≤ p^lo
             # p^{σ,min}_n ≥ min(Δ𝒫_n, ζ̄_n) − M·(1 − z0)  →  pmin − M·z0 ≥ p_ub − M
-            self.A.addNewRow({pmin_idx: 1, z0_idx: -bigMBar}, p_ub - bigMBar, np.inf, tag=("ss_tax_pmin_lb_cap", n))
+            self.A.addNewRow(
+                {pmin_idx: 1, z0_idx: -m_pmin_cap}, p_ub - m_pmin_cap, np.inf, tag=("ss_tax_pmin_lb_cap", n)
+            )
             # p^{σ,min}_n ≥ p^lo_n − M·z0  →  pmin − p^lo + M·z0 ≥ 0
-            self.A.addNewRow({pmin_idx: 1, plo_idx: -1, z0_idx: bigMBar}, 0, np.inf, tag=("ss_tax_pmin_lb_plo", n))
+            self.A.addNewRow(
+                {pmin_idx: 1, plo_idx: -1, z0_idx: m_pmin_plo}, 0, np.inf, tag=("ss_tax_pmin_lb_plo", n)
+            )
             self.B.setRange(pmin_idx, 0, p_ub)  # pmin ≤ min(Δ𝒫_n, ζ̄_n)
 
             # === t^σ_n = min(0.85·ζ̄_n, 0.5·p^{σ,min}_n + 0.85·p^hi_n) via binary z^σ_{1n} ===
@@ -3212,11 +3266,11 @@ class Plan:
             self.A.addNewRow({tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85}, -np.inf, 0, tag=("ss_tax_tss_ub", n))
             # t^σ_n ≥ 0.85·ζ̄_n − M·(1 − z1)  →  t^σ_n − M·z1 ≥ 0.85·ζ̄_n − M
             self.A.addNewRow(
-                {tss_idx: 1, z1_idx: -bigMBar}, 0.85 * zetaBar_n - bigMBar, np.inf, tag=("ss_tax_tss_lb_cap", n)
+                {tss_idx: 1, z1_idx: -m_tss_cap}, 0.85 * zetaBar_n - m_tss_cap, np.inf, tag=("ss_tax_tss_lb_cap", n)
             )
             # t^σ_n ≥ 0.5·p^{σ,min}_n + 0.85·p^hi_n − M·z1  →  tss − 0.5·pmin − 0.85·phi + M·z1 ≥ 0
             self.A.addNewRow(
-                {tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: bigMBar},
+                {tss_idx: 1, pmin_idx: -0.5, phi_idx: -0.85, z1_idx: m_tss_formula},
                 0,
                 np.inf,
                 tag=("ss_tax_tss_lb_formula", n),
@@ -3345,15 +3399,10 @@ class Plan:
                 zl15_idx = self.vm["zl"].idx(0, n)  # regime binary: G_n < T15
                 zl20_idx = self.vm["zl"].idx(1, n)  # regime binary: G_n < T20
 
-                # Big-M: scale with gamma_n[n] (nominal dollars grow with inflation), following
-                # the pattern used elsewhere (e.g., bigMBar = bigM * gamma_n[n] in SS taxability).
-                # Default: 3*T20_n (already gamma-scaled, safe upper bound on G_n).
-                # Using T20_n alone is too tight — G_n can exceed T15+T20 in Roth conversion years.
-                base_Mltcg = getattr(self, "_bigMltcg", None)
-                if base_Mltcg is None or base_Mltcg <= 0:
-                    M_ltcg = 3.0 * T20_n  # gamma_n[n] already embedded in T20_n
-                else:
-                    M_ltcg = base_Mltcg * self.gamma_n[n]
+                # The link rows must reach from a threshold to whatever ordinary income can be,
+                # in either direction; the shutoff rows only have to cover the gains themselves.
+                ceiling_n = self._ceiling_n[n]
+                M_ltcg = max(T20_n, ceiling_n - T15_n)
 
                 # G_n equality: gn = sum_t f_tn  (ordinary taxable income)
                 row_gn = {gn_idx: 1}
@@ -3539,14 +3588,9 @@ class Plan:
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
             T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
 
-            # Big-M: scale with gamma_n[n] following the convention used elsewhere in the code.
-            # Default: 3*T20_n (already gamma-scaled via T20_n = gamma_n[n]*capGainRates).
-            T20_n = self.gamma_n[n] * tx.capGainRates[status_n][1]
-            base_Mniit = getattr(self, "_bigMniit", None)
-            if base_Mniit is None or base_Mniit <= 0:
-                M_niit = 3.0 * T20_n  # gamma_n[n] already embedded in T20_n
-            else:
-                M_niit = base_Mniit * self.gamma_n[n]
+            # MAGI and the NII surplus are bounded by the year's income; the tax itself by 3.8%
+            # of it. One constant covers all three rows, sized by the largest of them.
+            M_niit = max(self._ceiling_n[n], T_niit)
 
             Jn_idx = self.vm["Jn"].idx(n)
             magi_idx = self.vm["magi"].idx(n)
@@ -3555,7 +3599,7 @@ class Plan:
             e_idx = self.vm["e"].idx(n)
 
             # Bounds
-            self.B.setRange(Jn_idx, 0, M_niit)
+            self.B.setRange(Jn_idx, 0, 0.038 * self._ceiling_n[n])
             self.B.setRange(magi_idx, 0, M_niit)
             self.B.setRange(niis_idx, 0, M_niit)
 
@@ -3593,7 +3637,6 @@ class Plan:
         if options.get("withMedicare", "loop") != "optimize":
             return
 
-        bigM = u.get_numeric_option(options, "bigMamo", BIGM_AMO, min_value=0)
         Nmed = self.N_n - self.nm
         # Select exactly one IRMAA bracket per year (SOS1 behavior).
         for nn in range(Nmed):
@@ -3613,11 +3656,10 @@ class Plan:
                 # MAGI for the first two plan years is known (prevMAGI from user-supplied data).
                 self.A.addRow(row, self.prevMAGI[n], self.prevMAGI[n], tag=("irmaa_magi_def", nn))
                 # Pre-fix the bracket to match the known MAGI in all solver modes, including
-                # Benders.  The correct bracket is deterministic; pre-fixing (Lb == Ub) causes
-                # _benders_solve to exclude these zm columns from master_cols automatically.
-                # Without pre-fixing, the LP relaxation pushes h-values toward low-premium
+                # a decomposition.  The correct bracket is deterministic, so pre-fixing (Lb == Ub)
+                # settles it. Without pre-fixing, the LP relaxation pushes h-values toward low-premium
                 # brackets (maximizer behaviour) so argmax(h) picks the wrong bracket for these
-                # years, making the subproblem LP infeasible on the first Benders iteration.
+                # years.
                 magi = self.prevMAGI[n]
                 qsel = 0
                 for q in range(1, self.N_irmaa):
@@ -3686,7 +3728,7 @@ class Plan:
                     upper = self.Lbar_nq[nn, q]
                 else:
                     # Upper bound for last bracket so h_qn = 0 when z_q = 0.
-                    upper = bigM * self.gamma_n[self.nm + nn]
+                    upper = self._ceiling_n[self.nm + nn]  # the year's MAGI ceiling
                 self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0, tag=("irmaa_bracket_ub", nn, q))
 
     def _add_Medicare_costs(self, options):
@@ -3724,8 +3766,6 @@ class Plan:
         """
         if not self._aca_lp:
             return
-
-        bigM = u.get_numeric_option(options, "bigMaca", BIGM_AMO, min_value=0)
 
         # a) SOS1: exactly one bracket selected per year.
         for nn in range(self.n_aca):
@@ -3791,7 +3831,7 @@ class Plan:
                     upper = self.Lbar_aca_nr[nn, r]
                 else:
                     # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
-                    upper = bigM * self.gamma_n[nn]
+                    upper = self._ceiling_n[nn]  # the year's MAGI ceiling
                 self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0, tag=("aca_bracket_ub", nn, r))
 
     def _add_ACA_costs(self, options):
@@ -4162,7 +4202,6 @@ class Plan:
         knownOptions = [
             "absTol",
             "bequest",
-            "bigMamo",  # Big-M value for the remaining big-M constraint families (default: 5e7)
             "epsilon",
             "gap",
             "maxIter",
@@ -4174,6 +4213,7 @@ class Plan:
             "oppCostX",
             "previousMAGIs",
             "relTol",
+            "residualTol",  # dollars of parameter movement still allowed at convergence
             "solver",
             "spendingSlack",
             "timePreference",  # Subjective time discount rate (%/year) to front-load spending
@@ -4185,14 +4225,8 @@ class Plan:
             "units",
             "verbose",
             "withACA",  # ACA handling: "loop" (default) or "optimize"
-            "bigMaca",  # Big-M for ACA bracket upper bounds (default: BIGM_AMO)
-            "bigMss",  # Big-M for SS taxability MIP (when withSSTaxability="optimize")
             "withLTCG",  # LTCG handling: "loop" (default) or "optimize"
-            "bigMltcg",  # Big-M for LTCG bracket constraints (default: T20_n per year)
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
-            "bigMniit",  # Big-M for NIIT threshold constraints (default: 3*T20_n per year)
-            "bendersMaxIter",  # Maximum Benders iterations (default: 50)
-            "withDecomposition",  # MIP decomposition: "none" (default), "sequential", or "benders"
             "withMedicare",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
@@ -4344,11 +4378,17 @@ class Plan:
         rel_default = max(REL_TOL, gap / 300)
         rel_tol = u.get_numeric_option(options, "relTol", rel_default, min_value=0)
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
-        self.mylog.print(f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, and gap={gap:.1e}.")
+        residual_tol = u.get_numeric_option(options, "residualTol", RESIDUAL_TOL, min_value=0)
+        self._residual_tol = residual_tol
+        self.mylog.print(
+            f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
+            f"and residualTol={u.d(residual_tol)}."
+        )
 
         return {
             "includeMedicare": include_medicare,
             "fixedPsi": fixed_psi,
+            "residualTol": residual_tol,
             "gap": gap,
             "absTol": abs_tol,
             "relTol": rel_tol,
@@ -4377,8 +4417,17 @@ class Plan:
             return None
         return start + int(np.argmax(valid))
 
-    def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history):
+    def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history, residual=0.0):
+        """Converged when the objective has settled AND the quantities the loop feeds back have too.
+
+        The objective alone is not enough: the LP is built from the previous iterate's Medicare
+        premiums, SS taxable fraction, NIIT and ACA costs, so an iterate whose own income implies
+        different values is not a fixed point, however still the objective looks. `residual` is the
+        largest of those disagreements in today's dollars; residualTol is the bar it must clear.
+        """
         if abs_obj_diff > tol or (includeMedicare and it < 1):
+            return None
+        if residual > self._residual_tol:
             return None
 
         is_monotonic = all(
@@ -4589,29 +4638,11 @@ class Plan:
         it = 0
         old_x = np.zeros(self.nvars)
         trace = self._new_iteration_trace()
-        # Decomposition dispatch: replace the monolithic MIP with a hierarchical
-        # relax-and-fix or Benders solver (supported for both HiGHS and MOSEK).
-        decomp_mode = options.get("withDecomposition", "none")
-        # Use __func__ comparison to identify solver regardless of bound method identity.
-        is_milp = getattr(solverMethod, "__func__", None) is Plan._milpSolve
+        # Which backend the helper solves (_run_mip, _run_lp_with_duals) should use. Compare on
+        # __func__ so a bound method's identity does not matter.
         is_mosek = getattr(solverMethod, "__func__", None) is Plan._mosekSolve
-        is_decomposable = is_milp or is_mosek
         solverName = "MOSEK" if is_mosek else "HiGHS"
-        self._decomp_use_mosek = is_mosek  # consumed by _relax_and_fix_solve / _benders_solve
-        # Decomposition only helps when bracket-selector binaries are present in the model.
-        # Without them the master problem has nothing to fix; skip decomposition and warn.
-        _DECOMP_FAMILIES = ("zl", "zs", "zj", "zm", "za")
-        has_master_binaries = any(name in self.vm for name in _DECOMP_FAMILIES)
-        if decomp_mode == "sequential" and is_decomposable and has_master_binaries:
-            actualSolverMethod = self._relax_and_fix_solve
-        elif decomp_mode == "benders" and is_decomposable and has_master_binaries:
-            actualSolverMethod = self._benders_solve
-        else:
-            if decomp_mode in ("sequential", "benders") and not has_master_binaries:
-                self.mylog.print(f"withDecomposition='{decomp_mode}' ignored: no bracket-selector binaries active.")
-            elif decomp_mode not in ("none", "sequential", "benders"):
-                self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
-            actualSolverMethod = solverMethod
+        self._use_mosek = is_mosek
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
@@ -4627,7 +4658,7 @@ class Plan:
             ACA_n_lp = self.ACA_n.copy()
             J_n_lp = self.J_n.copy()
             Psi_n_lp = self.Psi_n.copy()
-            objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
+            objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
             # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
             # iterate below breaks that correspondence, which post-processing relies on.
             matricesMatchSolution = True
@@ -4686,19 +4717,40 @@ class Plan:
             trace["J_n_lp"].append(J_n_lp)
             trace["Psi_n_lp"].append(Psi_n_lp)
 
+            # How far this iterate's own income moves the quantities its LP was built with. The
+            # parameters were snapshotted before the solve; _computeNLstuff has just recomputed them.
+            g_today = self.gamma_n[: self.N_n]
+            ss_n = np.sum(self.zetaBar_in, axis=0)
+            # Psi_n carries a damping blend, so it understates the disagreement; the IRS formula on
+            # this iterate's own provisional income is what the next LP would have to charge.
+            psi_implied = (
+                self.Psi_n
+                if fixed_psi is not None or "tss" in self.vm
+                else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
+            )
+            moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today),
+                     np.sum(np.abs(self.J_n - J_n_lp) / g_today)]
+            if includeMedicare:
+                moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
+            if self.slcsp_annual > 0:
+                moves.append(np.sum(np.abs(self.ACA_n - ACA_n_lp) / g_today))
+            scResidual = float(max(moves))
+
             has_prev_obj = len(trace["scaledObjectives"]) > 1
             prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
             absObjDiff = abs(scaled_obj - prev_scaled_obj) if has_prev_obj else np.inf
             self.mylog.vprint(
                 f"Iter: {it:02}; f: {u.d(scaled_obj, f=0)}; gap: {solgap:.1e};"
-                f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}"
+                f" |dX|: {absSolDiff:.0f}; |df|: {u.d(absObjDiff, f=0)}; residual: {u.d(scResidual, f=0)}"
             )
 
             # Solution difference is calculated and reported but not used for convergence
             # since it scales with problem size and can prevent convergence for large cases.
             scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
             tol = max(abs_tol, rel_tol * scale)
-            decision = self._check_obj_convergence(it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"])
+            decision = self._check_obj_convergence(
+                it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"], scResidual
+            )
             if decision is None:
                 decision = self._check_cycle(it, trace["scaledObjectives"], tol)
             if decision is None:
@@ -4755,13 +4807,11 @@ class Plan:
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
-                # *previous* iteration's G_n (one-step lag). Re-solve with the monolithic solver
-                # (not Benders/sequential) until U_n <= 20% * Q_n or passes exhausted. When
-                # decomposition is active, the monolithic re-solve is the expensive path the
-                # user opted out of, so limit it to a single attempt; any residual degeneracy
-                # still surfaces via the "may be degenerate" warning in _aggregateResults.
+                # *previous* iteration's G_n (one-step lag). Re-solve until U_n <= 20% * Q_n or
+                # passes are exhausted; any residual degeneracy still surfaces via the
+                # "may be degenerate" warning in _aggregateResults.
                 if not getattr(self, "_ltcg_lp", False):
-                    max_passes = 1 if actualSolverMethod is not solverMethod else LTCG_CONSISTENCY_MAX_PASSES
+                    max_passes = LTCG_CONSISTENCY_MAX_PASSES
                     _ltcg_passes = 0
                     for _ltcg_pass in range(max_passes):
                         self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
@@ -4817,6 +4867,7 @@ class Plan:
             if self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
             self._check_cashflow_balance()
+            self._computeFixedPointResidual(includeMedicare)
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -4827,6 +4878,57 @@ class Plan:
             self.mylog.print(f"Optimization failed: case is {self.caseStatus}.", tag="WARNING")
 
         return None
+
+    def _computeFixedPointResidual(self, includeMedicare):
+        """Measure how far the solved plan sits from the model its own income implies.
+
+        Every quantity the self-consistent loop carries enters the LP as a constant taken from the
+        previous iterate. The loop stops on the objective, not on those constants, so a plan can be
+        reported while its own income would still move them -- and an "optimal" answer is only
+        optimal for the model that was built. This recomputes each of them from the returned plan
+        and records the difference, in today's dollars, as self.fixedPointResidual:
+        {family: {"sum", "abs_sum", "max_abs"}}. Purely diagnostic: nothing here changes a solution.
+        """
+        Nn = self.N_n
+        g = self.gamma_n[:Nn]
+        ss = np.sum(self.zetaBar_in, axis=0)
+        res = {}
+
+        psi_true = tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss, n_d=self.n_d)
+        res["SS"] = (self.Psi_n - psi_true) * ss / g
+
+        if includeMedicare or np.any(self.medicare_n > 0):
+            # A dollar of slack at the thresholds: the optimizer parks income exactly there, and
+            # cent-level rounding would otherwise flip a bracket and show a phantom residual.
+            M_true = tx.mediCosts(
+                self.yobs, self.horizons, self.MAGI_n - 1.0, self.prevMAGI, g, Nn,
+                include_part_d=getattr(self, "_include_medicare_part_d", True),
+                part_d_base_annual_per_person=getattr(self, "_medicare_part_d_base_annual_per_person", 0.0),
+            )
+            res["IRMAA"] = (self.medicare_n - M_true) / g
+
+        if self.slcsp_annual > 0:
+            n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
+            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n, g, self.slcsp_annual, Nn,
+                                   n_aca_start=n_aca_start)
+            res["ACA"] = (self.aca_costs_n - ACA_true) / g
+
+        res["NIIT"] = (self.J_n - tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, Nn)) / g
+
+        sigma_true = tx.taxParams(self.yobs, self.i_d, self.n_d, Nn, self.gamma_n, self.MAGI_n, self.yOBBBA)[0]
+        res["deduction"] = (self.sigmaBar_n - sigma_true) / g
+
+        self.fixedPointResidual = {
+            k: {"sum": float(np.sum(v)), "abs_sum": float(np.sum(np.abs(v))), "max_abs": float(np.max(np.abs(v)))}
+            for k, v in res.items()
+        }
+        worst = max(self.fixedPointResidual.items(), key=lambda kv: kv[1]["abs_sum"])
+        if worst[1]["abs_sum"] > 1.0:
+            self.mylog.vprint(
+                f"Fixed-point residual: {worst[0]} off by {u.d(worst[1]['abs_sum'])} over the horizon "
+                f"({u.d(worst[1]['max_abs'])} in one year); the plan's own income implies a slightly "
+                "different model than the one solved."
+            )
 
     def _amoContext(self, options):
         """Bundle what amorepair needs from this plan."""
@@ -5052,8 +5154,7 @@ class Plan:
     def _run_highs_lp_with_duals(self, A, B, c_obj, options, col_overrides=None, return_col_duals=False):
         """
         Solve LP (no integrality) via HiGHS and return primal + row dual variables.
-        Used by Benders decomposition for optimality cut generation and by
-        _computeDuals for shadow-price reporting.
+        Used by _computeDuals for shadow-price reporting.
 
         A, B, c_obj are abcapi objects (ConstraintMatrix, Bounds, Objective).
         col_overrides: optional dict {col_idx: (lb, ub)} to pin specific columns.
@@ -5244,6 +5345,12 @@ class Plan:
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
         self._apply_mosek_threads(task, options)
 
+        # Warm start: an incumbent lets branch-and-bound prune every node that cannot beat it.
+        warm = getattr(self, "_mip_warm_start", None)
+        if int_vars and warm is not None and len(warm) == nvars:
+            task.putxxslice(mosek.soltype.itg, 0, nvars, np.asarray(warm, dtype=float))
+            task.putintparam(mosek.iparam.mio_construct_sol, mosek.onoffkey.on)
+
         try:
             task.optimize()
         except mosek.Error as e:
@@ -5273,8 +5380,8 @@ class Plan:
         return None, np.zeros(nvars), False, f"MOSEK: {solsta}", -1.0
 
     def _run_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
-        """Dispatcher: LP solve with dual extraction for Benders (HiGHS or MOSEK)."""
-        if getattr(self, "_decomp_use_mosek", False):
+        """Dispatcher: LP solve with dual extraction (HiGHS or MOSEK)."""
+        if getattr(self, "_use_mosek", False):
             return self._run_mosek_lp_with_duals(A, B, c_obj, options, col_overrides)
         return self._run_highs_lp_with_duals(A, B, c_obj, options, col_overrides)
 
@@ -5334,7 +5441,7 @@ class Plan:
         For HiGHS, uses and optionally updates self._highs_warm_start.
         For MOSEK, delegates to _run_mosek_mip (no warm-start management needed).
         """
-        if getattr(self, "_decomp_use_mosek", False):
+        if getattr(self, "_use_mosek", False):
             return self._run_mosek_mip(A, B, c_obj, options, lp_relax=lp_relax, col_overrides=col_overrides)
         # HiGHS path: extract CSR arrays from abcapi objects.
         a_start, a_index, a_value = A.to_csr()
@@ -5347,7 +5454,9 @@ class Plan:
         ubvec = np.array(A.ub)
         integrality = np.zeros(A.nvars, dtype=np.int32) if lp_relax else B.integralityArray()
         c = c_obj.arrays()
-        warm = self._highs_warm_start if update_warm else None
+        warm = getattr(self, "_mip_warm_start", None)
+        if warm is None or len(warm) != A.nvars:
+            warm = self._highs_warm_start if update_warm else None
         result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=warm)
         if result[2] and update_warm:
             self._highs_warm_start = result[1].copy()
@@ -5374,333 +5483,6 @@ class Plan:
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
         return result
-
-    def _relax_and_fix_solve(self, objective, options):
-        """
-        Relax-and-fix MIP heuristic (withDecomposition='sequential').
-
-        1. LP relaxation of the full problem.
-        2. Round ALL bracket-selector binaries (zm, za, zs, zl, zj) at once.
-           For zm: use MAGI_n from previous SC iteration (solver-independent).
-           For za: use argmax of companion haca-block.
-           For other families (zs, zl, zj) round the fractional LP value directly.
-        3. Single solve with all bracket binaries fixed.
-        4. Fall back to monolithic MIP if LP relaxation fails or the fixed-bracket MIP fails.
-
-        Note: this is a heuristic — result is not proven globally optimal.
-        """
-        self._buildConstraints(objective, options)
-
-        bracket_names = [name for name in ("zs", "zj", "zm", "za", "zl") if name in self.vm]
-        if not bracket_names:
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        # LP relaxation.
-        lp_result = self._run_mip(self.A, self.B, self.c, options, lp_relax=True, update_warm=False)
-        if not lp_result[2]:
-            self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic.")
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        lp_x = lp_result[1]
-        self.mylog.vprint(f"Decomp: LP relaxation obj={-lp_result[0]:.0f}.")
-
-        # Round all bracket-selector binaries at once.
-        # For zm: use MAGI_n[n-2] (2-year Medicare lag) — solver-independent.
-        # For za: use argmax of companion haca-block.
-        # For other families (zs, zl, zj): round the fractional LP value directly.
-        Lb_all, Ub_all = self.B.arrays()
-        col_overrides = {}
-
-        for name in bracket_names:
-            blk = self.vm[name]
-            if len(blk.shape) == 2:
-                Nrows, Nq = blk.shape
-                if name == "zm":
-                    # Use MAGI from previous SC iteration for bracket selection.
-                    # This is solver-independent (avoids LP degeneracy issues with MOSEK).
-                    nmstart = self.N_n - Nrows
-                    for nn in range(Nrows):
-                        n = nmstart + nn
-                        magi_src = n - 2
-                        mymagi = self.MAGI_n[magi_src] if magi_src >= 0 else 0.0
-                        status = 0 if self.N_i == 1 or not (n < self.horizons[0] and n < self.horizons[1]) else 1
-                        best_q = 0
-                        for q in range(Nq - 1, -1, -1):
-                            if mymagi > self.gamma_n[n] * tx.irmaaBrackets[status][q]:
-                                best_q = q
-                                break
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-                elif name == "za" and "haca" in self.vm and self.vm["haca"].shape == blk.shape:
-                    h_blk = self.vm["haca"]
-                    for nn in range(Nrows):
-                        vals = np.array([lp_x[h_blk.idx(nn, q)] for q in range(Nq)])
-                        best_q = int(np.argmax(vals))
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-                else:
-                    for nn in range(Nrows):
-                        vals = np.array([lp_x[blk.idx(nn, q)] for q in range(Nq)])
-                        best_q = int(np.argmax(vals))
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-            else:
-                for col in range(blk.start, blk.end):
-                    if Lb_all[col] >= Ub_all[col] - 1e-9:
-                        continue
-                    v = float(round(lp_x[col]))
-                    col_overrides[col] = (v, v)
-
-        # Single MIP solve: bracket binaries fixed, zx free.
-        if not getattr(self, "_decomp_use_mosek", False):
-            self._highs_warm_start = lp_x  # seed from LP solution
-        result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
-        if result[2]:
-            return result
-
-        self.mylog.vprint("Decomp: fixed-bracket MIP failed; falling back to monolithic.")
-        return self._run_mip(self.A, self.B, self.c, options)
-
-    def _benders_solve(self, objective, options):  # noqa: C901
-        """
-        Benders decomposition (withDecomposition='benders').
-
-        Master problem: bracket-selector binaries (zm, za, zs, zl, zj).
-        Subproblem: the continuous variables; solved as MIP for UB, LP for Benders cut
-        generation.
-
-        For each z* (master assignment):
-          - SP LP (zx and continuous relaxed): generates optimality cut via LP duals.
-          - SP MIP (zx free, continuous free): provides the true upper bound.
-
-        z* initialization: zm uses MAGI_n[n-2] (2-year Medicare lag, solver-independent);
-        za uses argmax(haca) from LP relaxation; zs/zl/zj round LP directly.
-
-        The algorithm terminates when the gap closes, when the master z* stalls,
-        when the SP LP is infeasible for the current z*, or when max_iter is reached.
-        In all cases the best SP MIP solution found is returned. If the SP LP ever
-        becomes infeasible (master assigned a bracket the SP cannot achieve), the
-        algorithm stops immediately and returns the last good SP MIP result — this
-        avoids cascading no-good cuts that do not converge.
-        """
-        self._buildConstraints(objective, options)
-        nvars = self.A.nvars
-
-        # Master variables: bracket-selector binaries only.
-        # Exclude columns already hard-fixed (Lb == Ub), e.g. zm for years with known prevMAGI.
-        Lb_all, Ub_all = self.B.arrays()
-        master_cols = []
-        for name in ("zs", "zj", "zm", "za", "zl"):
-            if name in self.vm:
-                blk = self.vm[name]
-                for col in range(blk.start, blk.end):
-                    if Lb_all[col] < Ub_all[col] - 1e-9:
-                        master_cols.append(col)
-
-        if not master_cols:
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        n_master = len(master_cols)
-        master_col_to_pos = {col: pos for pos, col in enumerate(master_cols)}
-        master_col_set = set(master_cols)
-
-        # Column-to-row transpose for Benders cut coefficient computation.
-        col_rows = [[] for _ in range(nvars)]
-        for i, (inds, vals) in enumerate(zip(self.A.Aind, self.A.Aval, strict=True)):
-            for j, v in zip(inds, vals, strict=True):
-                col_rows[j].append((i, float(v)))
-
-        # Master-only rows: rows whose non-zeros lie entirely in master (binary) columns.
-        # These are the AMO constraints (sum_q zm[n,q] = 1, etc.) and zl monotonicity.
-        master_only_rows = [i for i, inds in enumerate(self.A.Aind) if inds and all(j in master_col_set for j in inds)]
-
-        # Build master problem: variables = [z_0, ..., z_{n_master-1}, eta].
-        mp_nvars = n_master + 1
-        eta_pos = n_master
-        BIG_ETA = 1e12
-
-        mp_B = abc.Bounds(mp_nvars, 0)
-        for pos in range(n_master):
-            mp_B.setBinary(pos)
-        mp_B.setRange(eta_pos, -BIG_ETA, BIG_ETA)
-
-        mp_c_obj = abc.Objective(mp_nvars)
-        mp_c_obj.setElem(eta_pos, 1.0)  # minimize eta
-
-        mp_A_static_rows = []
-        for i in master_only_rows:
-            rowDic = {master_col_to_pos[j]: v for j, v in zip(self.A.Aind[i], self.A.Aval[i], strict=True)}
-            mp_A_static_rows.append((rowDic, self.A.lb[i], self.A.ub[i], self.A.tags[i]))
-
-        def _build_master_A(cuts):
-            mp_A = abc.ConstraintMatrix(mp_nvars)
-            for rowDic, lb, ub, tag in mp_A_static_rows:
-                mp_A.addNewRow(rowDic, lb, ub, tag=tag)
-            for alpha, beta in cuts:
-                cut_dic = {eta_pos: 1.0}
-                for pos in range(n_master):
-                    b = float(beta[pos])
-                    if b != 0.0:
-                        cut_dic[pos] = -b
-                mp_A.addNewRow(cut_dic, float(alpha), np.inf, tag=("benders_cut",))
-            return mp_A
-
-        # Benders parameters.
-        max_iter = int(options.get("bendersMaxIter", 50))
-        mygap = float(options.get("gap", GAP))
-        UB = np.inf
-        LB = -np.inf
-        best_x = None
-        benders_cuts = []
-
-        if objective == "maxSpending":
-            display_scale = 1.0 / self.xi_n[0]
-        else:
-            display_scale = 1.0 / self.gamma_n[-1]
-
-        # Initial LP relaxation: LB and starting z*.
-        lp_obj, lp_x, _, lp_ok = self._run_lp_with_duals(self.A, self.B, self.c, options)
-        if not lp_ok:
-            self.mylog.vprint("Benders: LP relaxation failed; falling back to monolithic.")
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        LB = lp_obj
-        self.mylog.vprint(f"Benders: LP relaxation obj = {-LB * display_scale:.0f}.")
-
-        # Initialize z* from LP solution.
-        # For zm: use MAGI_n[n-2] (2-year Medicare lag) — solver-independent.
-        # For za: use argmax of companion haca-block from LP relaxation.
-        # For other families (zs, zl, zj): round the fractional LP value directly.
-        zm_init_pos = set()
-        za_init_pos = set()
-        z_star = np.zeros(n_master, dtype=np.float64)
-
-        if "zm" in self.vm:
-            z_blk = self.vm["zm"]
-            Nrows, Nq = z_blk.shape
-            nmstart = self.N_n - Nrows
-            for nn in range(Nrows):
-                n = nmstart + nn
-                magi_src = n - 2
-                mymagi = self.MAGI_n[magi_src] if magi_src >= 0 else 0.0
-                status = 0 if self.N_i == 1 or not (n < self.horizons[0] and n < self.horizons[1]) else 1
-                best_q = 0
-                for q in range(Nq - 1, -1, -1):
-                    if mymagi > self.gamma_n[n] * tx.irmaaBrackets[status][q]:
-                        best_q = q
-                        break
-                for q in range(Nq):
-                    col = z_blk.idx(nn, q)
-                    if col in master_col_to_pos:
-                        pos = master_col_to_pos[col]
-                        z_star[pos] = 1.0 if q == best_q else 0.0
-                        zm_init_pos.add(pos)
-
-        if "za" in self.vm and "haca" in self.vm and self.vm["za"].shape == self.vm["haca"].shape:
-            z_blk, h_blk = self.vm["za"], self.vm["haca"]
-            Nrows, Nq = z_blk.shape
-            for nn in range(Nrows):
-                h_vals = np.array([lp_x[h_blk.idx(nn, q)] for q in range(Nq)])
-                best_q = int(np.argmax(h_vals))
-                for q in range(Nq):
-                    col = z_blk.idx(nn, q)
-                    if col in master_col_to_pos:
-                        pos = master_col_to_pos[col]
-                        z_star[pos] = 1.0 if q == best_q else 0.0
-                        za_init_pos.add(pos)
-
-        handled_pos = zm_init_pos | za_init_pos
-        for pos, col in enumerate(master_cols):
-            if pos not in handled_pos:
-                z_star[pos] = float(round(lp_x[col]))
-
-        # Benders main loop.
-        for biter in range(max_iter):
-            sp_overrides = {col: (float(z_star[pos]), float(z_star[pos])) for pos, col in enumerate(master_cols)}
-
-            # SP LP: for Benders cut generation.
-            sp_lp_obj, _, pi, sp_lp_ok = self._run_lp_with_duals(
-                self.A, self.B, self.c, options, col_overrides=sp_overrides
-            )
-
-            if not sp_lp_ok:
-                # Master assigned a bracket combination the SP cannot satisfy.
-                # Stop and return the best MIP solution found so far.
-                self.mylog.vprint(f"Benders iter {biter + 1}: SP LP infeasible; terminating.")
-                break
-
-            # Benders optimality cut: eta >= alpha + beta^T z (tight at current z*).
-            beta = np.array([-sum(pi[r] * v for r, v in col_rows[col]) for col in master_cols])
-            alpha = sp_lp_obj - float(beta @ z_star)
-            benders_cuts.append((alpha, beta))
-
-            # SP MIP: fix bracket binaries, optimize zx and continuous → true UB.
-            sp_mip_res = self._run_mip(self.A, self.B, self.c, options, col_overrides=sp_overrides)
-            if sp_mip_res[2] and sp_mip_res[0] is not None and sp_mip_res[0] < UB:
-                UB = sp_mip_res[0]
-                best_x = sp_mip_res[1].copy()
-
-            if UB < np.inf:
-                gap_val = (UB - LB) / max(abs(UB), 1.0)
-                self.mylog.vprint(
-                    f"Benders iter {biter + 1}: "
-                    f"LB={-UB * display_scale:.0f}, UB={-LB * display_scale:.0f}, "
-                    f"gap={gap_val:.4f}."
-                )
-                if gap_val <= mygap:
-                    self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
-                    break
-
-            # Solve master MIP → new LB and z*.
-            mp_A = _build_master_A(benders_cuts)
-            mp_res = self._run_mip(mp_A, mp_B, mp_c_obj, options, update_warm=False)
-            if not mp_res[2] or mp_res[0] is None:
-                self.mylog.vprint(f"Benders iter {biter + 1}: master MIP failed; terminating.")
-                break
-            LB = max(LB, mp_res[0])
-
-            if UB < np.inf:
-                gap_val = (UB - LB) / max(abs(UB), 1.0)
-                if gap_val <= mygap:
-                    self.mylog.vprint(f"Benders: converged after {biter + 1} iterations.")
-                    break
-
-            z_star_new = np.round(mp_res[1][:n_master]).astype(np.float64)
-            if np.array_equal(z_star_new, z_star):
-                self.mylog.vprint(f"Benders iter {biter + 1}: z* unchanged; terminating.")
-                break
-            z_star = z_star_new
-
-        if best_x is not None:
-            final_gap = (UB - LB) / max(abs(UB), 1.0) if UB < np.inf and LB > -np.inf else -1.0
-            if final_gap > mygap:
-                # Benders could not certify optimality within the requested gap. This is
-                # typically an inherent LP-relaxation gap (fractional zx the cuts cannot
-                # close) or an early break on an SP-LP-infeasible / stalled z*. The
-                # returned best_x is feasible but possibly suboptimal, so fall back to the
-                # relax-and-fix heuristic and keep whichever objective is better (lower,
-                # since the problem is minimized). relax-and-fix does not call back into
-                # Benders, so there is no recursion.
-                self.mylog.vprint(f"Benders: gap {final_gap:.4f} > {mygap:.4f}; falling back to relax-and-fix.")
-                rf_obj, rf_x, rf_ok, rf_msg, rf_gap = self._relax_and_fix_solve(objective, options)
-                if rf_ok and rf_x is not None and rf_obj is not None and rf_obj < UB:
-                    return rf_obj, rf_x, True, f"Benders→relax-and-fix ({rf_msg})", float(rf_gap)
-            return UB, best_x, True, f"Benders ({len(benders_cuts)} cuts)", float(final_gap)
-
-        self.mylog.vprint("Benders: no feasible solution found; falling back to monolithic.")
-        return self._run_mip(self.A, self.B, self.c, options)
 
     def _mosekSolve(self, objective, options):
         """

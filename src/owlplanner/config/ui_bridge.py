@@ -56,7 +56,6 @@ ACC_CONF = ACCOUNT_TYPES
 # session keys and the translation logic below:
 #   withMedicare       -> computeMedicare / optimizeMedicare
 #   withACA / LTCG/NIIT -> optimizeACA / optimizeLTCG / optimizeNIIT (strings loop|optimize)
-#   withDecomposition  -> useDecomposition (+ guards)
 #   withSSTaxability   -> ssTaxabilityMode / ssTaxabilityValue
 #   withSSAges         -> ssAgesMode
 #   previousMAGIs      -> MAGI0 / MAGI1
@@ -66,12 +65,6 @@ ACC_CONF = ACCOUNT_TYPES
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "bequest",
-    "bigMaca",
-    "bigMamo",
-    "bigMltcg",
-    "bigMniit",
-    "bigMss",
-    "bendersMaxIter",
     "epsilon",
     "gap",
     "maxIter",
@@ -344,7 +337,6 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
-    dic["useDecomposition"] = so.get("withDecomposition", "none")
 
     # An absent stop year means "no end". The UI carries that as an explicit toggle rather
     # than a magic year, so a stop year can never be left behind by a horizon change.
@@ -640,15 +632,6 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     optimize_niit = bool(uidic.get("optimizeNIIT"))
     diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"
     diconf["solver_options"]["withNIIT"] = "optimize" if optimize_niit else "loop"
-
-    optimize_aca = uidic.get("optimizeACA", False)
-    use_decomp = uidic.get("useDecomposition", "none")
-    # Coerce legacy boolean (old TOML/session): True → "sequential", False → "none".
-    if isinstance(use_decomp, bool):
-        use_decomp = "sequential" if use_decomp else "none"
-    if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
-        use_decomp = "none"
-    diconf["solver_options"]["withDecomposition"] = use_decomp
 
     if uidic.get("stopRothConversionsEnabled", False):
         diconf["solver_options"]["stopRothConversions"] = _get_ui(
