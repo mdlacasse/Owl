@@ -725,33 +725,56 @@ def test_runners_do_not_demand_rates_up_front():
         assert "Rate method" not in str(e), f"guard wrongly demanded rates: {e}"
 
 
-def test_one_unsolvable_iterate_does_not_discard_the_run(monkeypatch):
-    """
-    A self-consistent iteration can hand the solver a problem it cannot take - typically a
-    MAGI that crossed an IRMAA threshold, so premiums jump and a spending floor no longer
-    fits. The earlier iterates are still valid plans, so the loop must fall back to the best
-    of them rather than reporting a feasible case as infeasible.
-    """
+def _flaky_plan(monkeypatch, fail_calls):
+    """Case_dana/1966 with _milpSolve forced to fail on the given call numbers."""
     p = owl.readConfig("examples/Case_dana.toml", verbose=False)
     p.setRates("historical", 1966)
-
     real_solver = plan.Plan._milpSolve
     calls = {"n": 0}
 
     def flaky(self, objective, options):
         calls["n"] += 1
-        if calls["n"] == 3:            # fail only after two iterates have succeeded
+        if calls["n"] in fail_calls:
             self._infeasible = True
             return None, None, False, "forced failure", -1.0
         return real_solver(self, objective, options)
 
     monkeypatch.setattr(plan.Plan, "_milpSolve", flaky)
-
     opts = dict(p.solverOptions)
     opts["solver"] = "HiGHS"
     p.solve("maxSpending", options=opts)
+    return p, calls
 
-    assert calls["n"] >= 3, "the forced failure never fired"
+
+def test_a_single_unsolvable_iterate_is_recovered_by_a_shorter_step(monkeypatch):
+    """
+    A step that lands outside the feasible region is retried with a shorter one.
+
+    The quantities the loop feeds back are costs, and the first is a jump from nothing to the
+    full amount; on a tight case that step alone can make the next LP infeasible, so the loop
+    would report that no plan exists when one does. Retrying with part of the step recovers it,
+    and unlike damping every step by a fixed weight it costs nothing on cases that never fail.
+    """
+    p, calls = _flaky_plan(monkeypatch, fail_calls={3})
+
+    assert calls["n"] >= 4, "the retry never fired"
+    assert p.caseStatus == "solved"
+    # Recovered on its own, so the fallback to an earlier iterate was never needed.
+    assert p.convergenceType != "unsolvable iterate"
+    assert p.basis > 0
+
+
+def test_a_persistently_unsolvable_iterate_falls_back_to_an_earlier_one(monkeypatch):
+    """
+    When even the shortest step fails, the earlier iterates are still valid plans.
+
+    Falling back to the best of them beats discarding the run, which is what reporting a
+    feasible case as infeasible amounts to. Calls 3 through 7 cover the failing iterate and
+    every backtracking retry after it.
+    """
+    p, calls = _flaky_plan(monkeypatch, fail_calls={3, 4, 5, 6, 7})
+
+    assert calls["n"] >= 7, "the retries never ran out"
     assert p.caseStatus == "solved", "one bad iterate discarded an otherwise good run"
     assert p.convergenceType == "unsolvable iterate"
     assert p.basis > 0

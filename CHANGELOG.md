@@ -22,6 +22,26 @@ historical record the exact all-four MIP went from solving a handful of windows 
 71 of them proven optimal, at a median of 236 s. The `bigMamo`, `bigMaca`, `bigMss`, `bigMltcg` and
 `bigMniit` options are retired: there is no longer a constant to tune.
 
+#### Fixed: a tight case is no longer reported as infeasible when a plan exists
+
+The self-consistent loop feeds costs back into the next LP, and the first update is a jump from
+no Medicare or ACA cost at all to the full amount. On a tight case that one step can put the next
+LP outside the feasible region, and the loop stopped there and said no plan satisfies the
+constraints. `Case_cameron` -- the smallest household in the examples, at \$119k -- did exactly
+that when asked for the most bequest at its own maximum spending, while the same case solved
+under `maxSpending` and returned the very plan the loop had just called impossible.
+
+A step that fails is now retried with a shorter one before the loop gives up. Cameron's frontier
+is recovered exactly: at 99% of maximum spending the bequest is \$31,748 against a straight-line
+frontier value of \$31,748, and at 100% it is \$20,000 against the \$20,000 `maxSpending`
+reports independently.
+
+Retrying only on failure is deliberate. Damping every step by a fixed weight also rescues cameron,
+but the outcome is chaotic in the weight -- 0.4 and 0.7 break a case that 0.3, 0.5, 0.6 and 0.8 all
+solve -- so a weight only changes which cases fall into the hole, and it costs every healthy case
+iterations it does not need (3 to 8, or to 17 at heavier damping) while biasing the result, since
+the cost estimate is still climbing when the loop exits.
+
 #### Changed: `residualTol` is a per-year bar, defaulting to \$50
 
 The convergence residual sums a family's disagreement over the whole horizon, so comparing it

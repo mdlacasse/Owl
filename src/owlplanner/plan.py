@@ -4672,6 +4672,35 @@ class Plan:
             # corrected below when a best-of-cycle iterate is accepted instead.
             self.solverGap = solgap
 
+            if (not solverSuccess or objfn is None) and trace["M_n_lp"]:
+                # Before giving up, walk the parameter step back. The quantities the loop feeds
+                # back are costs, and the first one is a jump from nothing to the full amount:
+                # on a tight case that step alone can put the next LP outside the feasible
+                # region, so the loop reports that no plan exists when one does. Retrying with a
+                # shorter move recovers it. Damping every step by a fixed weight does not: the
+                # outcome is chaotic in the weight (0.4 and 0.7 break a case that 0.3, 0.5, 0.6
+                # and 0.8 all solve), because a weight only changes which cases land in the hole.
+                # Retrying only on failure costs nothing on the cases that never fail.
+                prev = (trace["M_n_lp"][-1], trace["ACA_n_lp"][-1], trace["J_n_lp"][-1], trace["Psi_n_lp"][-1])
+                target = (self.M_n.copy(), self.ACA_n.copy(), self.J_n.copy(), self.Psi_n.copy())
+                for frac in (0.5, 0.25, 0.125, 0.0625):
+                    self.M_n, self.ACA_n, self.J_n, self.Psi_n = (
+                        p0 + frac * (p1 - p0) for p0, p1 in zip(prev, target, strict=True)
+                    )
+                    M_n_lp, ACA_n_lp = self.M_n.copy(), self.ACA_n.copy()
+                    J_n_lp, Psi_n_lp = self.J_n.copy(), self.Psi_n.copy()
+                    objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
+                    if solverSuccess and objfn is not None:
+                        self.solverGap = solgap
+                        self._infeasible = False
+                        self.mylog.vprint(
+                            f"Iteration {it} was unsolvable; recovered with {frac:.3g} of the "
+                            "parameter step."
+                        )
+                        break
+                else:
+                    self.M_n, self.ACA_n, self.J_n, self.Psi_n = target
+
             if not solverSuccess or objfn is None:
                 # A parameter update can hand the solver a problem it cannot take - most often
                 # a MAGI that crossed an IRMAA threshold, so the premiums jump and a spending
