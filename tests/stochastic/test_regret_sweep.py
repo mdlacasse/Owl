@@ -103,6 +103,9 @@ def test_rejects_bad_arguments(dana):
 # now detects the cycle and terminates as "oscillatory". The manuscript's never-convert regret
 # is computed as v_star - v_noconv, and v_noconv is unchanged, so that headline figure moves
 # from 25_764.84 to 19_475.35. The paper's ordering still holds, but the magnitude does not.
+# Refreshed again 2026-09-21 after the state bracket audit moved CA's brackets from 2023 to
+# 2025 values (Dana is in CA). These pins no longer reproduce the paper's published numbers;
+# the paper's sweeps must be rerun under the corrected tax data.
 @pytest.mark.toml
 def test_dana_1966_maxspending_reference(dana):
     """Pin the paper's 1966 maxSpending numbers (Cost-of-Committing sweep, 2026-07-16)."""
@@ -112,11 +115,11 @@ def test_dana_1966_maxspending_reference(dana):
         dana, "maxSpending", opts, [0, 60_000, 120_000], 1966, 1966, include_never_convert=False
     )
     assert res["start_years"].tolist() == [1966]
-    assert _rel(res["v_star"][0], 58_208.39) < RTOL
-    assert _rel(res["x_star"][0], 65_491.59) < RTOL
-    assert _rel(res["v_at"][0, 0], 58_194.28) < RTOL
-    assert _rel(res["v_at"][0, 1], 58_207.44) < RTOL
-    assert _rel(res["v_at"][0, 2], 58_018.64) < RTOL
+    assert _rel(res["v_star"][0], 58_248.07) < RTOL
+    assert _rel(res["x_star"][0], 67_974.79) < RTOL
+    assert _rel(res["v_at"][0, 0], 58_270.32) < RTOL
+    assert _rel(res["v_at"][0, 1], 58_274.27) < RTOL
+    assert _rel(res["v_at"][0, 2], 58_080.64) < RTOL
     # Pinned solves can beat the SC-loop baseline only within the noise floor.
     regret = res["v_star"][0] - res["v_at"][0, :]
     assert (regret > -NOISE).all()
@@ -130,14 +133,14 @@ def test_dana_1966_maxbequest_reference(dana):
     opts.pop("bequest", None)
     opts["netSpending"] = 58.0  # $k; the scenario-minimum spending used in the paper
     res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0, 63_636], 1966, 1966)
-    assert _rel(res["v_star"][0], 415_402.15) < RTOL
-    assert _rel(res["x_star"][0], 65_496.69) < RTOL
-    assert _rel(res["v_at"][0, 0], 414_463.13) < RTOL
-    assert _rel(res["v_at"][0, 1], 415_478.78) < RTOL
-    assert _rel(res["v_noconv"][0], 395_926.80) < RTOL
+    assert _rel(res["v_star"][0], 418_614.09) < RTOL
+    assert _rel(res["x_star"][0], 67_980.86) < RTOL
+    assert _rel(res["v_at"][0, 0], 417_283.58) < RTOL
+    assert _rel(res["v_at"][0, 1], 418_457.12) < RTOL
+    assert _rel(res["v_noconv"][0], 396_444.36) < RTOL
     # Orderings that carry the paper's story:
     # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
-    # The last link now leans on NOISE: a pinned solve comes back $77 above the SC-loop
+    # The last link leans on NOISE: a pinned solve can come back above the SC-loop
     # baseline, which is a reminder that v_star is a baseline solve and not a proven bound.
     assert res["v_noconv"][0] < res["v_at"][0, 0] < res["v_at"][0, 1] <= res["v_star"][0] + NOISE
 

@@ -369,7 +369,9 @@ class Plan:
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
-        self.st_re_cap_n = np.zeros(self.N_n)  # State retirement income exemption caps
+        self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
+        self.st_conv_ok = True  # Whether Roth conversions count toward the state exemption
+        self.st_re_in = np.zeros((self.N_i, self.N_n))  # State retirement exemption claimed per person
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
         self.other_medical_n = np.zeros(self.N_n)  # Inflation-adjusted per-year version (nominal $)
@@ -2434,10 +2436,10 @@ class Plan:
         # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
         st_lp = bool(self.state) and bool(np.any(self.st_theta_tn > 0))
         self._st_lp = st_lp
-        st_re_lp = st_lp and np.any(self.st_re_cap_n > 0)
+        st_re_lp = st_lp and np.any(self.st_re_cap_in > 0)
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
-        vm.add_if(st_re_lp, "st_re", self.N_n)  # retirement income exemption
+        vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2547,9 +2549,10 @@ class Plan:
         for n in range(self.N_n):
             self.B.setRange(vm["st_e"].idx(n), 0, self.st_sigmaBar_n[n])
         if "st_re" in vm:
-            for n in range(self.N_n):
-                cap = self.st_re_cap_n[n]
-                self.B.setRange(vm["st_re"].idx(n), 0, cap if np.isfinite(cap) else 1e9)
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    cap = self.st_re_cap_in[i, n]
+                    self.B.setRange(vm["st_re"].idx(i, n), 0, cap if np.isfinite(cap) else 1e9)
 
     def _add_state_taxable_income(self):
         """Equality constraint: state bracket allocations = state AGI - deductions.
@@ -2561,15 +2564,17 @@ class Plan:
 
         The LP then subtracts the state standard deduction (st_e) and retirement income
         exemption (st_re), with st_e and st_re bounded to prevent negative state tax.
+        The exemption is per person: each individual's st_re is capped by the state amount
+        and by that individual's own eligible income (tax-deferred withdrawals, Roth
+        conversions when the state allows it, and pensions when the state has no separate
+        pension exemption). Unused amounts do not transfer between spouses.
         """
         vm = self.vm
         for n in range(self.N_n):
             # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
             ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
-            # Pension exemption (parameter): cap = per-person; N_i persons.
-            pe_total = float(np.sum(self.piBar_in[:, n]))
-            pe_cap = float(self.st_pe_cap_n[n]) if np.isfinite(self.st_pe_cap_n[n]) else pe_total
-            pe_adj = min(pe_total, pe_cap * self.N_i)
+            # Pension exemption (parameter): each person's pension up to their own cap.
+            pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
             rhs = -ss_excl - pe_adj
 
             row = self.A.newRow()
@@ -2577,20 +2582,26 @@ class Plan:
                 row.addElem(vm["st_f"].idx(t, n), 1)  # state brackets (sum = state taxable income)
             row.addElem(vm["st_e"].idx(n), 1)  # state standard deduction
             if "st_re" in vm:
-                row.addElem(vm["st_re"].idx(n), 1)  # retirement income exemption
+                for i in range(self.N_i):
+                    row.addElem(vm["st_re"].idx(i, n), 1)  # retirement income exemption
             for t in range(self.N_t):
                 row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal ordinary income)
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
-        # IRA withdrawal cap: can't exempt more IRA income than actually withdrawn.
+        # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
-            for n in range(self.N_n):
-                row = self.A.newRow({vm["st_re"].idx(n): 1})
-                for i in range(self.N_i):
+            # Pensions share the retirement exemption unless the state has a separate pension one.
+            pension_eligible = tax_state.get_state_entry(self.state, 0).get("pension_exemption", 0) == 0
+            for i in range(self.N_i):
+                for n in range(self.N_n):
+                    row = self.A.newRow({vm["st_re"].idx(i, n): 1})
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                self.A.addRow(row, -np.inf, 0, tag=("state_ret_exempt_cap", n))
+                    if self.st_conv_ok:
+                        row.addElem(vm["x"].idx(i, n), -1)
+                    rhs = self.piBar_in[i, n] if pension_eligible else 0
+                    self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
 
     def _add_defunct_constraints(self):
         if self.N_i == 2:
@@ -4316,11 +4327,14 @@ class Plan:
                 self.st_theta_tn,
                 self.st_DeltaBar_tn,
                 self.st_sigmaBar_n,
-                self.st_re_cap_n,
-                self.st_pe_cap_n,
+                self.st_re_cap_in,
+                self.st_pe_cap_in,
+                self.st_conv_ok,
                 self.st_tax_ss,
                 _st_ss_thresh_n,
-            ) = tax_state.st_taxParams(self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs)
+            ) = tax_state.st_taxParams(
+                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
+            )
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
@@ -5771,6 +5785,8 @@ class Plan:
             self.st_T_n = np.sum(self.st_T_tn, axis=0)
         else:
             self.st_T_n = np.zeros(Nn)
+        # State retirement income exemption claimed by each individual.
+        self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
 
         self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)

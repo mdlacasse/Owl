@@ -80,7 +80,9 @@ def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     return rates, widths
 
 
-def st_taxParams(state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, toml_path=None) -> tuple:
+def st_taxParams(
+    state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
+) -> tuple:
     """Compute state income tax parameter arrays for the LP.
 
     Parameters
@@ -91,21 +93,24 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, 
     N_n     : number of plan years
     gamma_n : cumulative inflation multipliers, length N_n+1
     yobs    : list of birth years, length N_i
+    mobs    : list of birth months (1-12), length N_i; used for fractional exemption ages (59.5)
     toml_path : optional override for data file location (used in tests)
 
     Returns
     -------
     (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-     st_re_cap_n, st_pe_cap_n, st_tax_ss, st_ss_thresh_n)
+     st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n)
 
     N_st           — number of state brackets (max across Single and MFJ)
     st_theta_tn    — shape (N_st, N_n) marginal rates (decimals)
     st_DeltaBar_tn — shape (N_st, N_n) inflation-adjusted bracket widths
     st_sigmaBar_n  — shape (N_n,) inflation-adjusted state standard deduction
-    st_re_cap_n    — shape (N_n,) retirement income exemption cap per person
+    st_re_cap_in   — shape (N_i, N_n) retirement income exemption cap of each individual,
+                     zero until that individual meets exemption_age
                      (0 = none, np.inf = fully exempt)
-    st_pe_cap_n    — shape (N_n,) pension-only exemption cap per person
-                     (0 = use st_re_cap_n for all retirement income)
+    st_pe_cap_in   — shape (N_i, N_n) pension-only exemption cap of each individual
+                     (0 = pensions count toward st_re_cap_in instead)
+    st_conv_ok     — bool, whether Roth conversion income counts toward st_re_cap_in
     st_tax_ss      — bool, whether state taxes Social Security benefits
     st_ss_thresh_n — shape (N_n,) AGI threshold below which SS is exempt
                      (0 = not applicable)
@@ -171,27 +176,22 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, 
     pe_raw = entry_single.get("pension_exemption", 0)
     pe_base = np.inf if pe_raw == -1 else float(pe_raw)
 
-    # Age gating: cap is zero until each year satisfies exemption_age for
-    # the relevant individual(s). Use the older individual's age as a proxy
-    # (conservative: exemption available as soon as any person qualifies).
+    st_conv_ok = bool(entry_single.get("roth_conversion_eligible", True))
+
+    # Age gating is per individual: each spouse qualifies on their own age, and an unused
+    # cap cannot be claimed by the other spouse. An individual qualifies in the first year
+    # in which they reach exemption_age (e.g. 59.5) by December 31.
     exemption_age = entry_single.get("exemption_age", 0)
-    st_re_cap_n = np.zeros(N_n)
-    st_pe_cap_n = np.zeros(N_n)
+    st_re_cap_in = np.zeros((N_i, N_n))
+    st_pe_cap_in = np.zeros((N_i, N_n))
 
     if re_base > 0 or pe_base > 0:
-        for n in range(N_n):
-            year = thisyear + n
-            # Check if at least one individual meets the age requirement.
-            age_ok = exemption_age == 0 or any(year - yob >= exemption_age for yob in yobs)
-            if age_ok:
-                if re_base == np.inf:
-                    st_re_cap_n[n] = np.inf
-                else:
-                    st_re_cap_n[n] = re_base * gamma_n[n]
-                if pe_base == np.inf:
-                    st_pe_cap_n[n] = np.inf
-                else:
-                    st_pe_cap_n[n] = pe_base * gamma_n[n]
+        for i in range(N_i):
+            for n in range(N_n):
+                age = thisyear + n - yobs[i] + (12 - mobs[i]) / 12
+                if exemption_age == 0 or age >= exemption_age:
+                    st_re_cap_in[i, n] = np.inf if re_base == np.inf else re_base * gamma_n[n]
+                    st_pe_cap_in[i, n] = np.inf if pe_base == np.inf else pe_base * gamma_n[n]
 
     # --- SS treatment ---
     # Use MFJ entry when couple; single entry otherwise. Both entries carry the same value
@@ -201,7 +201,10 @@ def st_taxParams(state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, 
     ss_thresh_base = float(ss_entry.get("ss_exemption_threshold", 0))
     st_ss_thresh_n = np.array([ss_thresh_base * gamma_n[n] for n in range(N_n)])
 
-    return (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n, st_re_cap_n, st_pe_cap_n, st_tax_ss, st_ss_thresh_n)
+    return (
+        N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
+        st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n,
+    )
 
 
 def valid_states() -> list:
