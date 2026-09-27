@@ -2057,7 +2057,6 @@ def genDic(plan):
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = plan.solverOptions.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
-    dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none")
 
     enabled, swap_year, swap_first = parse_swap_roth_converters(
         plan.solverOptions.get("swapRothConverters", 0), plan.inames

@@ -1568,7 +1568,7 @@ def test_run_historical_from_file_solves():
     result = _run(
         run_historical(
             filename="examples/Case_bill.toml",
-            overrides=["solver_options.withMedicare=None", "solver_options.withDecomposition=none"],
+            overrides=["solver_options.withMedicare=None"],
             ystart=1990,
             yend=2000,
         )
@@ -1695,7 +1695,6 @@ def test_run_monte_carlo_from_file_deterministic_toml():
             filename="examples/Case_bill.toml",
             overrides=[
                 "solver_options.withMedicare=None",
-                "solver_options.withDecomposition=none",
             ],
             rate_method="gmm",
             n_scenarios=15,

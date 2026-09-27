@@ -365,7 +365,6 @@ class SolverOptions(BaseModel):
     withLTCG: Optional[str] = None
     withNIIT: Optional[str] = None
     withSSTaxability: Optional[Union[str, float]] = None
-    withDecomposition: Optional[str] = None
     withSSAges: Optional[Union[str, List[str]]] = None
     withDuals: Optional[bool] = None
     withdrawalOrder: Optional[str] = None

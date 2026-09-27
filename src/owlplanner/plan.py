@@ -79,6 +79,13 @@ _BIGM_RETIRED = (
     "that year's fixed income, or the benefit share the row switches on -- so there is nothing left "
     "to tune. The flat constants these keys set were hundreds to thousands of times too large"
 )
+_DECOMP_RETIRED = (
+    "the only mode it offered, 'sequential', never once worked: it rounded all five bracket "
+    "families at once from a single LP relaxation, which is jointly infeasible even when each "
+    "family is feasible alone, so every solve fell back to the monolithic MIP it was meant to "
+    "avoid. Measured over 8 windows it cost a discarded LP per iteration and returned the "
+    "monolithic answer every time"
+)
 _SCLOOP_RETIRED = (
     "no mode can solve without the self-consistent loop -- the standard exemption's OBBBA "
     "phaseout and the cost-basis gain fractions are nonlinear in the solution -- and turning "
@@ -93,6 +100,7 @@ RETIRED_OPTIONS = {
     "bigMss": _BIGM_RETIRED,
     "bigMltcg": _BIGM_RETIRED,
     "bigMniit": _BIGM_RETIRED,
+    "withDecomposition": _DECOMP_RETIRED,
     "withSCLoop": _SCLOOP_RETIRED,
 }
 
@@ -4194,7 +4202,6 @@ class Plan:
             "withACA",  # ACA handling: "loop" (default) or "optimize"
             "withLTCG",  # LTCG handling: "loop" (default) or "optimize"
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
-            "withDecomposition",  # MIP decomposition: "none" (default) or "sequential"
             "withMedicare",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
@@ -4603,27 +4610,11 @@ class Plan:
         it = 0
         old_x = np.zeros(self.nvars)
         trace = self._new_iteration_trace()
-        # Decomposition dispatch: replace the monolithic MIP with a hierarchical
-        # relax-and-fix solver (supported for both HiGHS and MOSEK).
-        decomp_mode = options.get("withDecomposition", "none")
-        # Use __func__ comparison to identify solver regardless of bound method identity.
-        is_milp = getattr(solverMethod, "__func__", None) is Plan._milpSolve
+        # Which backend the helper solves (_run_mip, _run_lp_with_duals) should use. Compare on
+        # __func__ so a bound method's identity does not matter.
         is_mosek = getattr(solverMethod, "__func__", None) is Plan._mosekSolve
-        is_decomposable = is_milp or is_mosek
         solverName = "MOSEK" if is_mosek else "HiGHS"
-        self._decomp_use_mosek = is_mosek  # consumed by _relax_and_fix_solve
-        # Decomposition only helps when bracket-selector binaries are present in the model.
-        # Without them the master problem has nothing to fix; skip decomposition and warn.
-        _DECOMP_FAMILIES = ("zl", "zs", "zj", "zm", "za")
-        has_master_binaries = any(name in self.vm for name in _DECOMP_FAMILIES)
-        if decomp_mode == "sequential" and is_decomposable and has_master_binaries:
-            actualSolverMethod = self._relax_and_fix_solve
-        else:
-            if decomp_mode == "sequential" and not has_master_binaries:
-                self.mylog.print(f"withDecomposition='{decomp_mode}' ignored: no bracket-selector binaries active.")
-            elif decomp_mode not in ("none", "sequential"):
-                self.mylog.print(f"Unknown withDecomposition mode '{decomp_mode}'; using 'none'.")
-            actualSolverMethod = solverMethod
+        self._use_mosek = is_mosek
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
@@ -4639,7 +4630,7 @@ class Plan:
             ACA_n_lp = self.ACA_n.copy()
             J_n_lp = self.J_n.copy()
             Psi_n_lp = self.Psi_n.copy()
-            objfn, xx, solverSuccess, solverMsg, solgap = actualSolverMethod(objective, options)
+            objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
             # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
             # iterate below breaks that correspondence, which post-processing relies on.
             matricesMatchSolution = True
@@ -4788,13 +4779,11 @@ class Plan:
                 else:
                     self.mylog.print(decision["message"], tag=decision.get("tag", "INFO"))
                 # Consistency solve: LTCG bracket room (room15_n, room20_n) is built from the
-                # *previous* iteration's G_n (one-step lag). Re-solve with the monolithic solver
-                # (not the decomposition) until U_n <= 20% * Q_n or passes exhausted. When
-                # decomposition is active, the monolithic re-solve is the expensive path the
-                # user opted out of, so limit it to a single attempt; any residual degeneracy
-                # still surfaces via the "may be degenerate" warning in _aggregateResults.
+                # *previous* iteration's G_n (one-step lag). Re-solve until U_n <= 20% * Q_n or
+                # passes are exhausted; any residual degeneracy still surfaces via the
+                # "may be degenerate" warning in _aggregateResults.
                 if not getattr(self, "_ltcg_lp", False):
-                    max_passes = 1 if actualSolverMethod is not solverMethod else LTCG_CONSISTENCY_MAX_PASSES
+                    max_passes = LTCG_CONSISTENCY_MAX_PASSES
                     _ltcg_passes = 0
                     for _ltcg_pass in range(max_passes):
                         self._computeNLstuff(xx, includeMedicare=False, fixedPsi=fixed_psi)
@@ -5364,7 +5353,7 @@ class Plan:
 
     def _run_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
         """Dispatcher: LP solve with dual extraction (HiGHS or MOSEK)."""
-        if getattr(self, "_decomp_use_mosek", False):
+        if getattr(self, "_use_mosek", False):
             return self._run_mosek_lp_with_duals(A, B, c_obj, options, col_overrides)
         return self._run_highs_lp_with_duals(A, B, c_obj, options, col_overrides)
 
@@ -5424,7 +5413,7 @@ class Plan:
         For HiGHS, uses and optionally updates self._highs_warm_start.
         For MOSEK, delegates to _run_mosek_mip (no warm-start management needed).
         """
-        if getattr(self, "_decomp_use_mosek", False):
+        if getattr(self, "_use_mosek", False):
             return self._run_mosek_mip(A, B, c_obj, options, lp_relax=lp_relax, col_overrides=col_overrides)
         # HiGHS path: extract CSR arrays from abcapi objects.
         a_start, a_index, a_value = A.to_csr()
@@ -5466,104 +5455,6 @@ class Plan:
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
         return result
-
-    def _relax_and_fix_solve(self, objective, options):
-        """
-        Relax-and-fix MIP heuristic (withDecomposition='sequential').
-
-        1. LP relaxation of the full problem.
-        2. Round ALL bracket-selector binaries (zm, za, zs, zl, zj) at once.
-           For zm: use MAGI_n from previous SC iteration (solver-independent).
-           For za: use argmax of companion haca-block.
-           For other families (zs, zl, zj) round the fractional LP value directly.
-        3. Single solve with all bracket binaries fixed.
-        4. Fall back to monolithic MIP if LP relaxation fails or the fixed-bracket MIP fails.
-
-        Note: this is a heuristic — result is not proven globally optimal.
-        """
-        self._buildConstraints(objective, options)
-
-        bracket_names = [name for name in ("zs", "zj", "zm", "za", "zl") if name in self.vm]
-        if not bracket_names:
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        # LP relaxation.
-        lp_result = self._run_mip(self.A, self.B, self.c, options, lp_relax=True, update_warm=False)
-        if not lp_result[2]:
-            self.mylog.vprint("Decomp: LP relaxation failed; falling back to monolithic.")
-            return self._run_mip(self.A, self.B, self.c, options)
-
-        lp_x = lp_result[1]
-        self.mylog.vprint(f"Decomp: LP relaxation obj={-lp_result[0]:.0f}.")
-
-        # Round all bracket-selector binaries at once.
-        # For zm: use MAGI_n[n-2] (2-year Medicare lag) — solver-independent.
-        # For za: use argmax of companion haca-block.
-        # For other families (zs, zl, zj): round the fractional LP value directly.
-        Lb_all, Ub_all = self.B.arrays()
-        col_overrides = {}
-
-        for name in bracket_names:
-            blk = self.vm[name]
-            if len(blk.shape) == 2:
-                Nrows, Nq = blk.shape
-                if name == "zm":
-                    # Use MAGI from previous SC iteration for bracket selection.
-                    # This is solver-independent (avoids LP degeneracy issues with MOSEK).
-                    nmstart = self.N_n - Nrows
-                    for nn in range(Nrows):
-                        n = nmstart + nn
-                        magi_src = n - 2
-                        mymagi = self.MAGI_n[magi_src] if magi_src >= 0 else 0.0
-                        status = 0 if self.N_i == 1 or not (n < self.horizons[0] and n < self.horizons[1]) else 1
-                        best_q = 0
-                        for q in range(Nq - 1, -1, -1):
-                            if mymagi > self.gamma_n[n] * tx.irmaaBrackets[status][q]:
-                                best_q = q
-                                break
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-                elif name == "za" and "haca" in self.vm and self.vm["haca"].shape == blk.shape:
-                    h_blk = self.vm["haca"]
-                    for nn in range(Nrows):
-                        vals = np.array([lp_x[h_blk.idx(nn, q)] for q in range(Nq)])
-                        best_q = int(np.argmax(vals))
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-                else:
-                    for nn in range(Nrows):
-                        vals = np.array([lp_x[blk.idx(nn, q)] for q in range(Nq)])
-                        best_q = int(np.argmax(vals))
-                        for q in range(Nq):
-                            col = blk.idx(nn, q)
-                            if Lb_all[col] >= Ub_all[col] - 1e-9:
-                                continue
-                            v = 1.0 if q == best_q else 0.0
-                            col_overrides[col] = (v, v)
-            else:
-                for col in range(blk.start, blk.end):
-                    if Lb_all[col] >= Ub_all[col] - 1e-9:
-                        continue
-                    v = float(round(lp_x[col]))
-                    col_overrides[col] = (v, v)
-
-        # Single MIP solve: bracket binaries fixed, zx free.
-        if not getattr(self, "_decomp_use_mosek", False):
-            self._highs_warm_start = lp_x  # seed from LP solution
-        result = self._run_mip(self.A, self.B, self.c, options, col_overrides=col_overrides)
-        if result[2]:
-            return result
-
-        self.mylog.vprint("Decomp: fixed-bracket MIP failed; falling back to monolithic.")
-        return self._run_mip(self.A, self.B, self.c, options)
 
     def _mosekSolve(self, objective, options):
         """

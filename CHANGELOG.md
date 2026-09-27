@@ -1,5 +1,41 @@
 ### Version 2026.9.2
 
+#### Removed: `withDecomposition`, which never worked
+
+The only mode it offered, `sequential`, rounded all five bracket-selector families at once from a
+single LP relaxation. That assignment is jointly infeasible even when each family is feasible
+alone, so the fixed-bracket solve failed every time and fell back to the monolithic MIP it was
+meant to avoid: 16 attempts over four historical windows, 16 failures, no successes. Measured
+across eight windows it returned the monolithic answer to the cent every time, having spent one
+discarded LP relaxation per self-consistent iteration to do so.
+
+The option is retired rather than rejected, so existing case files load with a warning. The expert
+radio is gone from *Run Options*, and the `withDecomposition` key has been dropped from the shipped
+examples.
+
+#### Changed: big-M constants are derived per year instead of tuned
+
+Every bracket-selector row is now relaxed by a bound computed from the quantity that row gates —
+the year's income ceiling, or the share of a benefit the row switches on — replacing a single flat
+constant that had been sized for constraints removed some time ago. On a shipped case over the
+historical record the exact all-four MIP went from solving a handful of windows to solving all 72,
+71 of them proven optimal, at a median of 236 s. The `bigMamo`, `bigMaca`, `bigMss`, `bigMltcg` and
+`bigMniit` options are retired: there is no longer a constant to tune.
+
+#### New: `plan.fixedPointResidual`
+
+Every solved plan reports how far it sits from the model its own income implies, per tax family.
+The self-consistent loop exits on the objective, not on the quantities it feeds back, so a plan
+could be called converged while its own income would still move them. `residualTol` now also makes
+the loop wait for those quantities to settle before declaring convergence.
+
+#### Note: use MOSEK for the `optimize` tax modes
+
+With every tax mode in `loop` mode the problem is a linear program and both solvers are equivalent.
+Once any bracket option is set to `optimize` they are not: over five historical windows of a
+shipped case, HiGHS took 49 to 238 times longer than MOSEK and proved optimality in none of them,
+returning answers up to \$7,505 below the proven optimum.
+
 #### Changed: the fixed-asset bequest note says when the figure is path-dependent
 
 Whether an asset's today's-dollar bequest value moves with the drawn inflation path is a

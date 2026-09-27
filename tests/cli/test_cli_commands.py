@@ -27,8 +27,6 @@ FAST_OPTS = [
     "rates_selection.method=conservative",
     "--set",
     "solver_options.withMedicare=None",
-    "--set",
-    "solver_options.withDecomposition=none",
 ]
 
 
@@ -399,7 +397,6 @@ def test_mcp_list_rate_models_invalid_category():
 MCP_FAST_OVERRIDES = [
     "rates_selection.method=conservative",
     "solver_options.withMedicare=None",
-    "solver_options.withDecomposition=none",
 ]
 
 

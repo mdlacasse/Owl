@@ -1508,7 +1508,6 @@ against future IRMAA simultaneously.
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal.
 - *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
@@ -1523,10 +1522,13 @@ Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-Both solvers (HiGHS and MOSEK) provide very similar results.
-In most cases, `MOSEK` will provide the best performance.
-Selecting `HiGHS` will provide comparable results in a little more time.
-Both solvers support the sequential decomposition mode.
+Both solvers (HiGHS and MOSEK) provide very similar results with every tax mode in *loop* mode,
+which is the default and a pure linear program; `MOSEK` is somewhat faster.
+The two are **not** comparable once any bracket option is set to *optimize*, which turns the
+problem into a mixed-integer program. Measured over historical windows of a shipped case, `HiGHS`
+took 49 to 238 times longer than `MOSEK` and did not close the gap in any of them, returning
+answers up to \\$7,505 below the proven optimum after hours of work.
+Use `MOSEK` for the *optimize* modes.
 """)
 
 # --- Results tab ---

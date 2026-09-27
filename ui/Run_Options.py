@@ -37,7 +37,6 @@ kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("otherMedical", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
-kz.initCaseKey("useDecomposition", "none")
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
 
@@ -242,28 +241,6 @@ else:
             )
             ret = kz.getToggle(
                 "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff
-            )
-            # The last two toggles are drawn in the next column, below. Reading them here is
-            # still current: each toggle writes to the case on change, before the rerun.
-            decompoff = not (
-                kz.getCaseKey("optimizeMedicare")
-                or kz.getCaseKey("optimizeACA")
-                or kz.getCaseKey("optimizeLTCG")
-                or kz.getCaseKey("optimizeNIIT")
-            )
-            decomp_choices = ["none", "sequential"]
-            helpmsg_decomp = (
-                "'none': monolithic MIP (default). "
-                "'sequential': relax-and-fix heuristic — fixes Medicare/ACA/SS bracket binaries "
-                "sequentially; fast but not guaranteed globally optimal. "
-                "Only applies when the Medicare or ACA brackets are solved with MILP."
-            )
-            ret = kz.getRadio(
-                "MIP decomposition (expert)",
-                decomp_choices,
-                "useDecomposition",
-                help=helpmsg_decomp,
-                disabled=decompoff,
             )
         with col2:
             kz.initCaseKey("noLateSurplus", False)

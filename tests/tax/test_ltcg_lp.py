@@ -379,21 +379,6 @@ class TestLTCGScLoopConsistency:
             f"U_n={p.U_n[violations].tolist()}, Q_n={p.Q_n[violations].tolist()}"
         )
 
-    def test_u_n_bounded_by_q_n_sequential(self):
-        """Same guard for sequential (relax-and-fix) decomposition."""
-        p = self._make_large_taxable_couple("ltcg_consistency_sequential")
-        p.solve(
-            "maxBequest",
-            {
-                "withMedicare": "optimize",
-                "withDecomposition": "sequential",
-                "netSpending": 80,
-                "gap": 0.05,
-            },
-        )
-        assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
-        self._check_u_n_bounded(p)
-
 
 # ---------------------------------------------------------------------------
 # Pinned conversions: q-variable partition must stay tight even with a
@@ -435,7 +420,7 @@ class TestLTCGPartitionBoundRothFile:
         p = self._make_plan_with_fixed_conversion("ltcg_roth_file_partition", 200_000)
         p.solve(
             "maxSpending",
-            {"withMedicare": "None", "withDecomposition": "none"},
+            {"withMedicare": "None"},
         )
         assert p.caseStatus == "solved", f"Solver status: {p.caseStatus}"
 

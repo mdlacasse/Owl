@@ -546,34 +546,51 @@ def test_other_medical_expenses_default_zero():
     assert out["optimization_parameters"].get("other_medical_expenses", 0.0) == 0.0
 
 
+def _plan_known_options():
+    """The knownOptions list from Plan.solve, read from source.
+
+    It is a local variable, so it cannot be imported. Parsing it is still better than copying it
+    here: a copied list drifts silently, and every option removed from the engine on this branch
+    was left advertised somewhere until something went looking for it.
+    """
+    import ast
+    import pathlib
+
+    import owlplanner
+
+    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text()
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "knownOptions":
+            return {e.value for e in node.value.elts if isinstance(e, ast.Constant)}
+    raise AssertionError("knownOptions not found in plan.py")
+
+
 def test_solver_ui_passthrough_keys_match_plan_known_options():
-    """SOLVER_UI_PASSTHROUGH_KEYS must each appear in Plan.solve knownOptions (no typos / drift)."""
+    """Every key the UI passes through verbatim must be one solve() accepts."""
     from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 
-    # Subset of src/owlplanner/plan.py solve() knownOptions for passthrough scalars.
-    # swapRothConverters is intentionally excluded: it is derived from
-    # swapRothConvertersEnabled/First/Year (see config_to_ui / ui_to_config).
-    plan_known = {
-        "absTol",
-        "bequest",
-        "epsilon",
-        "gap",
-        "maxIter",
-        "maxRothConversion",
-        "maxTime",
-        "netSpending",
-        "noLateSurplus",
-        "noRothConversions",
-        "oppCostX",
-        "relTol",
-        "solver",
-        "spendingSlack",
-        "startRothConversions",
-        "timePreference",
-        "units",
-        "verbose",
-    }
-    assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
+    unknown = set(SOLVER_UI_PASSTHROUGH_KEYS) - _plan_known_options()
+    assert not unknown, f"UI passes options solve() does not accept: {sorted(unknown)}"
+
+
+def test_ui_translated_solver_options_are_accepted_by_solve():
+    """The options sskeys builds by translation must also be ones solve() accepts.
+
+    These never appear in SOLVER_UI_PASSTHROUGH_KEYS because the UI stores them under different
+    session keys (optimizeLTCG -> withLTCG, and so on), so the passthrough check above cannot see
+    them. Without this, removing an option from the engine leaves the UI emitting a name that is
+    silently ignored at solve time.
+    """
+    import pathlib
+    import re
+
+    import ui.sskeys as sskeys  # noqa: F401  (import guards the path used below)
+
+    src = pathlib.Path(sskeys.__file__).read_text()
+    emitted = set(re.findall(r'options\["([A-Za-z]+)"\]', src))
+    assert emitted, "no translated solver options found — the regex or sskeys.py changed shape"
+    unknown = emitted - _plan_known_options()
+    assert not unknown, f"UI emits options solve() does not accept: {sorted(unknown)}"
 
 
 @pytest.mark.parametrize("method", CONSTRAIN_MEAN_METHODS)

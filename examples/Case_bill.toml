@@ -64,7 +64,6 @@ withMedicare = "none"
 withACA = "none"
 withLTCG = "none"
 withNIIT = "none"
-withDecomposition = "none"
 withSSTaxability = "loop"
 withSSAges = "fixed"
 

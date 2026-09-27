@@ -63,7 +63,6 @@ noRothConversions = "Jill"
 startRothConversions = 2026
 withMedicare = "optimize"
 withSSTaxability = "loop"
-withDecomposition = "none"
 bequest = 400
 solver = "default"
 spendingSlack = 0
