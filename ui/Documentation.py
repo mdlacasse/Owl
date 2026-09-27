@@ -597,9 +597,11 @@ where:
 - *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
   The asset type determines the tax treatment upon disposition (see *Tax Treatment at Disposition* below).
 - *year* is the **reference year** (this year or after). If the year is in the past, it will be
-  automatically reset to the current year when reading from the HFP file. Assets acquired in
-  the future have a future reference year. The asset is considered assessed (current) or acquired (future)
-  at the beginning of the year.
+  automatically reset to the current year when reading from the HFP file. The rule is simply that
+  **an asset appears in the first year it is present in January**: one you already own carries the
+  current year, and one you buy during 2026 is entered as 2027, because it was not there in
+  January 2026. *value* is stated in reference-year dollars, so for a future purchase it is the
+  price you expect to pay, carried to that January.
 - *basis* is the **cost basis** of the asset — the actual purchase price or adjusted tax basis in nominal dollars
   (what you paid, not inflation-adjusted to the reference year). For future acquisitions, enter the expected
   purchase price in the nominal dollars of the acquisition year. The basis is used to calculate capital gains
@@ -633,8 +635,10 @@ where:
   is applied to the future value of the asset at disposition to calculate the net proceeds after commission.
 
 **Asset Lifecycle:**
-- Assets are **acquired at the beginning** of the year specified in the *year* column.
-- Assets are **disposed at the beginning** of the year specified in *yod* (if within the plan duration).
+- An asset is listed from the first year it is **present in January** — the *year* column.
+- An asset is **sold during** the year in *yod* (if within the plan duration). It was present that
+  January, so it is still listed in that year, and the proceeds reach the savings accounts the
+  following January.
 - The asset value grows from the acquisition year to the disposition year using the specified growth rate.
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
