@@ -963,7 +963,7 @@ def summarize_conversion_regret(
     convergence = None
     if nnm is not None and vsc is not None:
         nnm_ok = np.asarray(nnm)[ok]
-        vsc_ok = [c for c, k in zip(vsc, ok) if k]
+        vsc_ok = [c for c, k in zip(vsc, ok, strict=True) if k]
         convergence = {
             # windows whose clairvoyant baseline converged monotonically (interior of
             # the bracket structure — cleanest)
@@ -1015,7 +1015,7 @@ def summarize_conversion_regret(
     # drawing an axis that is almost entirely a red infeasible region.
     # "Feasible in one scenario out of eighteen" is not a curve either, so the test is
     # whether enough scenarios survive to average, not whether every single one fails.
-    above_zero = [g for g, x in zip(by_grid, grid) if x > 0]
+    above_zero = [g for g, x in zip(by_grid, grid, strict=True) if x > 0]
     quorum = max(2, int(0.1 * n_scenarios))
     out["conversions_blocked"] = bool(
         above_zero

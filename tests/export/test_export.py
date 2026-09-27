@@ -649,7 +649,7 @@ def _check_accounts_final_row(plan, i=0, scale=1.0):
     header, last = _accounts_final_row(plan, i)
     assert len(last) == len(header), "terminal row width does not match the header"
 
-    cell = dict(zip(header, last))
+    cell = dict(zip(header, last, strict=True))
     assert cell["year"] == plan.year_n[-1] + 1
     for name, j in _ACCOUNT_FINAL_BALANCES.items():
         assert name in header, f"{name!r} column missing from Accounts sheet"

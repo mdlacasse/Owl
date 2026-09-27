@@ -408,7 +408,7 @@ def validate_survivor_claim_age(survivor_claim_age):
         except ValueError:
             raise ValueError(
                 f"Unknown survivor_claim_age {survivor_claim_age!r}; expected 'immediate', 'FRA', or an age."
-            )
+            ) from None
     else:
         age = float(survivor_claim_age)
 

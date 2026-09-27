@@ -290,5 +290,3 @@ def test_niit_optimize_joe_fixed_asset_capital_gains():
     )
     J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
     np.testing.assert_allclose(p.J_n, J_ref, atol=200.0, err_msg="NIIT optimize J_n vs reference with fixed-asset CG")
-
-

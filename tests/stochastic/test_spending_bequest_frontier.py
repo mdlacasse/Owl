@@ -29,6 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from itertools import pairwise
 import numpy as np
 import pytest
 
@@ -79,7 +80,7 @@ class TestDeterministic:
         """A Pareto frontier: reserving more for the estate can never buy more spending."""
         b = result["base_basis"]
         assert not np.isnan(b).any(), "every level in this grid should be reachable"
-        for lo, hi in zip(b, b[1:]):
+        for lo, hi in pairwise(b):
             assert hi <= lo + NOISE, f"spending rose from {lo:.2f} to {hi:.2f} as the floor increased"
 
     def test_shadow_price_is_slack_at_zero_and_binding_above(self, result):
@@ -139,7 +140,7 @@ class TestHistorical:
         G = result["g_at_success"]
         for j in range(G.shape[1]):
             col = G[:, j]
-            for lo, hi in zip(col, col[1:]):
+            for lo, hi in pairwise(col):
                 assert hi <= lo + NOISE, f"spending rose from {lo:.2f} to {hi:.2f} at column {j}"
 
     def test_confidence_fan_is_ordered(self, result):
