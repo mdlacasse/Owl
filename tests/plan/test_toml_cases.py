@@ -110,13 +110,18 @@ def getHFP(exdir, case, check_exists=True):
 # only the two CA cases moved (darwin, verified under both solvers). kim+sam-spending
 # 186_498 -> 186_583 (HiGHS), 186_403 -> 186_456 (MOSEK); kim+sam-bequest 1_972_270 ->
 # 1_976_280 under HiGHS, and MOSEK now lands on the same value.
+#
+# Re-measured on darwin under both solvers when the residual exit test was merged with that
+# bracket audit. The two changes move the same cases for unrelated reasons, so neither branch's
+# pins survived the merge and hand-reconciling them would have produced numbers right for
+# neither: jack+jill 102_515 -> 102_577 (the loop now waits for its fed-back quantities to
+# settle) and kim+sam-spending 186_583 -> 186_590 under HiGHS.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
         "bequest": 84_252,
     },
     "Case_jack+jill": {
-        # 102_515 before the residual exit test; unsettled cases now iterate longer (+62).
         "net_spending_basis": 102_577,
         "bequest": 400_000,
     },
@@ -125,7 +130,7 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_583,
+        "net_spending_basis": 186_590,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
@@ -150,30 +155,17 @@ def test_reproducibility():
     Also verifies that the associated HFP (Household Financial Profile) file
     is successfully loaded for each case.
     """
-    # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # after the LTCG bracket-partition and state-tax LP fixes and the HSA-deduction removal.
+    # Two cases still land on a different SC-loop fixed point under MOSEK than under HiGHS.
+    # Re-measured on darwin after the residual exit test met the state bracket audit.
     if _active_solver() == "MOSEK":
-        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 102_556
         # MOSEK keeps the pre-removal fixed point on this oscillatory case.
         EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
-        # Both kim+sam cases settle a little lower under MOSEK.
-<<<<<<< HEAD
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_403
-        # kim+sam-bequest is the one case where MOSEK also differs by platform: measured on
-        # win32 2026-08-28, where it lands ~1_014 below darwin/linux. Two Windows runs gave
-        # 1_964_306 and 1_964_386, so this value carries ~4e-5 of run-to-run wobble under
-        # MOSEK -- well inside rel_tol, but it is why the pin is not exact.
-        # darwin/linux measured after the residual exit test (was 1_965_320); the win32 value is
-        # carried over unverified, as before, and the case remains the one that wobbles by ~4e-5.
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = (
-            1_964_306 if platform == "win32" else 1_966_376
-        )
-=======
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_456
-        # kim+sam-bequest used to differ by platform under MOSEK (win32 ~1_014 below darwin,
-        # measured 2026-08-28). After the 2026-09 CA bracket update MOSEK matches HiGHS on
-        # darwin (1_976_280); win32 has not been re-measured, so no override is kept for now.
->>>>>>> 9425980e ([fix] Some states had wrong calculation for retirement-income exemptions (issue #144, #145).)
+        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_519
+        # Two overrides that used to live here are gone because the solvers now agree:
+        # jack+jill (both 102_577 once the loop waits for its quantities to settle) and
+        # kim+sam-bequest (both 1_976_280 after the CA bracket update). The latter also used to
+        # carry a win32 split of ~1_014 below darwin, measured 2026-08-28; win32 has not been
+        # re-measured since, so no platform override is kept for it.
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
