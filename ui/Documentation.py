@@ -1452,8 +1452,10 @@ This provides good accuracy with reasonable computation time.
 For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
-It can be significantly slower (sometimes many minutes) due to additional binary variables.
-Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
+It is significantly slower than the loop — seconds to many minutes, depending on the case — because
+of the additional binary variables, and it wants MOSEK.
+Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios, where a
+solve that takes minutes instead of a fraction of a second is multiplied by every draw.
 
 Medicare premiums start automatically in the year each individual reaches age 65.
 While the *Medicare and IRMAA calculations* toggle is on and anyone in the case is age 64 or older,
@@ -1476,6 +1478,20 @@ up to 50% between those thresholds and \\$34k (single) / \\$44k (MFJ), and up to
 above the upper threshold — Medicare/IRMAA when Medicare is enabled, and ACA marketplace
 premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
 re-solves, and repeats until convergence.
+
+Convergence means two things, not one. The objective has to stop moving, and so do the quantities
+the loop feeds back: a plan whose own income implies different Medicare premiums or a different
+taxable fraction of Social Security has not reached a fixed point, however steady the objective
+looks. Every solved plan reports the distance still remaining, per tax family and in today's
+dollars, and the `residualTol` option (default \\$100) sets how much is tolerated. A few dollars
+is ordinary rounding; hundreds means the plan is still moving and its tax figures should not be
+read too precisely.
+
+One caveat worth knowing. Within each pass the fed-back values are constants, so the optimizer
+cannot weigh income against them — it cannot see that a little less income would drop an IRMAA
+bracket. The loop can therefore settle on an answer that is entirely self-consistent and still not
+the best one. The *MILP (expert)* options below remove that limitation for the families they
+cover, at a cost in time.
 The loop always runs. It cannot be switched off, because two of the quantities it settles
 have no place inside the optimization at all: the phase-out of the senior deduction, which
 depends on the MAGI the solution produces, and the cost basis of the taxable account, which
@@ -1514,8 +1530,10 @@ against future IRMAA simultaneously.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables; this can be slower and require additional configuration
-like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).
+exactly within the LP using binary variables. This is slower than the loop but no longer needs the
+`gap` to be loosened by hand: on the shipped *jack+jill* case it takes about 20 seconds with MOSEK
+at default settings, against about 1 second for the loop, and finds a spending basis 1.4% higher.
+Prefer MOSEK for it — the same case took over two minutes with HiGHS and returned a worse answer.
 
 Different mixed-integer linear programming solvers can be selected.
 Choose `default` to auto-select MOSEK when available, otherwise HiGHS.

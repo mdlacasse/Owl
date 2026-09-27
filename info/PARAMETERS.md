@@ -339,6 +339,7 @@ Options controlling the optimization solver and constraints.
 | `maxTime` | float | *(Advanced)* Per-iteration solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
 | `noLateSurplus` | boolean | Disallow surplus deposits in the final two years of the plan. | `false` |
+| `numThreads` | integer | *(Advanced)* Threads the solver may use. Worth setting when several plans are solved at once — the default lets one solve take the machine, which slows the others. Omit to use the solver's own default. | Solver default |
 | `noRothConversions` | string | Name of individual for whom Roth conversions are disabled, or `"none"` to allow conversions for all. | `"none"` |
 | `oppCostX` | float | *(Advanced)* Opportunity cost applied to Roth conversions (percent). | `0` |
 | `previousMAGIs` | array | *(Advanced)* Two-element list of prior-year MAGI values (in `units`) for Medicare calculations. | `[0, 0]` |
