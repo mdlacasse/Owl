@@ -38,6 +38,7 @@ from . import tax_federal as tx
 from . import tax_state
 from . import abcapi as abc
 from . import rates
+from .version import __version__
 from . import config
 from . import hfp_io
 from . import export
@@ -4384,8 +4385,12 @@ class Plan:
         max_iterations = int(u.get_numeric_option(options, "maxIter", MAX_ITERATIONS, min_value=1))
         residual_tol = u.get_numeric_option(options, "residualTol", RESIDUAL_TOL, min_value=0)
         self._residual_tol = residual_tol
+        # The version belongs in the log because results move between versions and a captured
+        # log is often all that survives: derived big-M bounds changed values, residualTol became
+        # a per-year bar and changed where the loop stops, and a retried step changed which cases
+        # solve at all -- none of which a saved run says about itself otherwise.
         self.mylog.print(
-            f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
+            f"Owl {__version__} using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
             f"and residualTol={u.d(residual_tol)}/yr."
         )
 
