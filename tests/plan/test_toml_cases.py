@@ -116,6 +116,9 @@ def getHFP(exdir, case, check_exists=True):
 # pins survived the merge and hand-reconciling them would have produced numbers right for
 # neither: jack+jill 102_515 -> 102_577 (the loop now waits for its fed-back quantities to
 # settle) and kim+sam-spending 186_583 -> 186_590 under HiGHS.
+#
+# kim+sam-spending returned to 186_583 under HiGHS when residualTol became a per-year bar: at
+# $50/yr it converges where it did before the exit test, while MOSEK still settles at 186_519.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
@@ -130,7 +133,7 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_590,
+        "net_spending_basis": 186_583,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {

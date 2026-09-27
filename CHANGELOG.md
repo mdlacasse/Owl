@@ -22,6 +22,18 @@ historical record the exact all-four MIP went from solving a handful of windows 
 71 of them proven optimal, at a median of 236 s. The `bigMamo`, `bigMaca`, `bigMss`, `bigMltcg` and
 `bigMniit` options are retired: there is no longer a constant to tune.
 
+#### Changed: `residualTol` is a per-year bar, defaulting to \$50
+
+The convergence residual sums a family's disagreement over the whole horizon, so comparing it
+against a flat figure was three times stricter on a 33-year plan than on an 11-year one. It is now
+compared per year. Calibrated over the seventeen shipped cases: anything from \$25 to \$200 a year
+produces the same outcome on all of them, so the default sits in the middle of a flat region
+rather than on an edge.
+
+The previous \$100 total worked out to about \$3 a year on a typical plan, which nine of the
+seventeen could not meet; the loop kept iterating on cases that had nothing left to gain, and the
+extra work changed the answer on exactly one of them.
+
 #### New: `plan.fixedPointResidual`
 
 Every solved plan reports how far it sits from the model its own income implies, per tax family.

@@ -1487,7 +1487,8 @@ Convergence means two things, not one. The objective has to stop moving, and so 
 the loop feeds back: a plan whose own income implies different Medicare premiums or a different
 taxable fraction of Social Security has not reached a fixed point, however steady the objective
 looks. Every solved plan reports the distance still remaining, per tax family and in today's
-dollars, and the `residualTol` option (default \\$100) sets how much is tolerated. A few dollars
+dollars, and the `residualTol` option sets how much is tolerated -- \\$50 a year by default,
+measured per year so the bar means the same on a short plan as on a long one. A few dollars a year
 is ordinary rounding; hundreds means the plan is still moving and its tax figures should not be
 read too precisely.
 

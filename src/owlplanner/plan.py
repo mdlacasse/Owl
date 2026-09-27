@@ -117,9 +117,13 @@ STAGNATION_WINDOW = 8  # SC iterations without improvement before early-exit che
 STAGNATION_TIMEOUTS = 3  # min gap=inf MILP timeouts in window to trigger stagnation exit
 ABS_TOL = 100
 REL_TOL = 5e-5
-# Largest disagreement, in today's dollars over the horizon, between a quantity the LP was built
-# with and the value the resulting plan implies, before the loop may call itself converged.
-RESIDUAL_TOL = 100.0
+# Largest disagreement, in today's dollars PER YEAR, between a quantity the LP was built with and
+# the value the resulting plan implies, before the loop may call itself converged. Per year, not
+# per plan: the underlying measure sums over the horizon, so a flat figure would be three times
+# stricter on a 33-year plan than on an 11-year one and would mean different things to different
+# households. Calibrated over the shipped cases -- anything from $25 to $200 a year behaves the
+# same on all seventeen, so this sits in the middle of a flat region rather than on an edge.
+RESIDUAL_TOL = 50.0
 TIME_LIMIT = 900
 EPSILON = 1e-8
 # Tie-break for degenerate directions inside a MIP. EPSILON is sized for the simplex, which
@@ -4382,7 +4386,7 @@ class Plan:
         self._residual_tol = residual_tol
         self.mylog.print(
             f"Using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
-            f"and residualTol={u.d(residual_tol)}."
+            f"and residualTol={u.d(residual_tol)}/yr."
         )
 
         return {
@@ -4423,11 +4427,13 @@ class Plan:
         The objective alone is not enough: the LP is built from the previous iterate's Medicare
         premiums, SS taxable fraction, NIIT and ACA costs, so an iterate whose own income implies
         different values is not a fixed point, however still the objective looks. `residual` is the
-        largest of those disagreements in today's dollars; residualTol is the bar it must clear.
+        largest of those disagreements, summed over the horizon in today's dollars; residualTol is
+        the bar it must clear, expressed per year so that it means the same thing on a short plan
+        as on a long one.
         """
         if abs_obj_diff > tol or (includeMedicare and it < 1):
             return None
-        if residual > self._residual_tol:
+        if residual / self.N_n > self._residual_tol:
             return None
 
         is_monotonic = all(
