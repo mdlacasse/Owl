@@ -22,6 +22,30 @@ historical record the exact all-four MIP went from solving a handful of windows 
 71 of them proven optimal, at a median of 236 s. The `bigMamo`, `bigMaca`, `bigMss`, `bigMltcg` and
 `bigMniit` options are retired: there is no longer a constant to tune.
 
+#### Changed: the default `epsilon` is 5e-7, which makes the loop converge
+
+`epsilon` puts a small penalty on Roth conversions to break ties. At its old default of `1e-8` it
+broke them only nominally, and the conversion schedule stayed free to migrate between
+near-equivalent years. Since a conversion moves provisional income directly, each move can flip a
+Social Security tier or a Medicare bracket, so the self-consistent loop ended up chasing its own
+schedule: `Case_chris+pat` converts in 5 years, but 16 different years see its schedule move
+during the search.
+
+Three shipped cases never converged at all and now do -- chris+pat, helen+ruth and
+kim+sam-spending, each of which used to exhaust its iteration budget. chris+pat's residual falls
+from 2,882 to 48 \$/yr and its iterations from 30 to 20; across the shipped cases the total drops
+from 222 iterations to 171. Nine of the seventeen are unaffected at any value.
+
+It also removes three places where HiGHS and MOSEK disagreed, which turn out to have been
+degeneracy rather than anything about the solvers: jack+jill's spending (they now agree at
+89,532), john+sally's bequest, and dana's 1966 maxBequest window, where the two had differed by
+3%.
+
+The cost is real and worth stating: about 0.1 to 0.25% of objective on the four cases that move.
+Larger values cost more than they are worth -- at `1e-3` the measured Roth conversion regret falls
+23%, the conditioning eating the very quantity being measured, and at `1e-2` conversion years are
+deleted outright. `2e-7` fixes nothing, so the useful threshold lies between that and `5e-7`.
+
 #### Fixed: a tight case is no longer reported as infeasible when a plan exists
 
 The self-consistent loop feeds costs back into the next LP, and the first update is a jump from

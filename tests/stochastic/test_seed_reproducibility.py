@@ -86,9 +86,13 @@ def test_seeded_case_series_matches_reference():
 # The MOSEK values were re-measured after the residual exit test, which makes this case iterate
 # to the limit instead of stopping early (117_050.45 before). HiGHS moved by 23, inside tolerance,
 # so its values stand; win32 is carried over unverified, as before.
+# Re-measured on darwin when the default epsilon became 5e-7. chris+pat is the case that
+# benefits most: it ran to max iteration with a 2,882 $/yr residual and now converges in 20 with
+# 48, at a cost of about $163 of basis. linux carries the darwin figures, as it did before;
+# win32 has not been re-measured since 2026-08-28 and its numbers predate the change.
 CHRIS_PAT_BASIS = {
-    "darwin": {"HiGHS": 117_194.50, "MOSEK": 117_133.47},
-    "linux": {"HiGHS": 117_194.50, "MOSEK": 117_133.47},
+    "darwin": {"HiGHS": 116_917.20, "MOSEK": 116_970.06},
+    "linux": {"HiGHS": 116_917.20, "MOSEK": 116_970.06},
     "win32": {"HiGHS": 117_069.00, "MOSEK": 116_967.00},
 }
 

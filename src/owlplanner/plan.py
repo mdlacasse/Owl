@@ -126,7 +126,21 @@ REL_TOL = 5e-5
 # same on all seventeen, so this sits in the middle of a flat region rather than on an edge.
 RESIDUAL_TOL = 50.0
 TIME_LIMIT = 900
-EPSILON = 1e-8
+# Lexicographic weight on Roth conversions, and the loop's main conditioning term. At 1e-8 it
+# breaks ties only nominally: the conversion schedule stays free to migrate between near-equivalent
+# years, and since a conversion moves provisional income directly, each move can flip a Social
+# Security tier or an IRMAA bracket -- the loop ends up chasing its own schedule. Case_chris+pat
+# converts in 5 years but 16 different years see its schedule move during the search.
+#
+# Measured over the shipped cases. 2e-7 fixes nothing; 5e-7 and 1e-6 both eliminate every
+# max-iteration case, so the threshold lies between. 5e-7 is the cheaper side of it and needs
+# fewer iterations overall (171 against 175, and 222 undamped). The cost is real, not an artifact
+# of convergence: chris+pat's exact answer is above every epsilon result, so the penalty distorts
+# rather than corrects -- about 0.1-0.25% on the four cases that move, and nothing at all on the
+# nine that are already well behaved. Larger values start eating the economics: at 1e-3 the
+# measured Roth conversion regret falls 23%, which is the conditioning consuming the quantity
+# being measured, and at 1e-2 conversion years are deleted outright.
+EPSILON = 5e-7
 # Tie-break for degenerate directions inside a MIP. EPSILON is sized for the simplex, which
 # resolves ties exactly; a branch-and-bound gap swallows anything smaller than the optimality
 # tolerance, so a MIP tie-break has to be visible above it while staying far below any real

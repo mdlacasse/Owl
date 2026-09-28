@@ -122,7 +122,7 @@ def getHFP(exdir, case, check_exists=True):
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
-        "bequest": 84_252,
+        "bequest": 82_934,
     },
     "Case_jack+jill": {
         "net_spending_basis": 102_577,
@@ -133,7 +133,7 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_583,
+        "net_spending_basis": 186_352,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
@@ -158,12 +158,13 @@ def test_reproducibility():
     Also verifies that the associated HFP (Household Financial Profile) file
     is successfully loaded for each case.
     """
-    # Two cases still land on a different SC-loop fixed point under MOSEK than under HiGHS.
-    # Re-measured on darwin after the residual exit test met the state bracket audit.
+    # One case still lands on a different SC-loop fixed point under MOSEK than under HiGHS.
+    # Re-measured on darwin when the default epsilon became 5e-7: john+sally's override is gone,
+    # because the two solvers now agree at 82_934 where they used to differ by 1,318. Stronger
+    # tie-breaking leaves fewer near-equivalent optima for a solver to choose between, so some of
+    # the solver-to-solver spread was degeneracy rather than anything about the solvers.
     if _active_solver() == "MOSEK":
-        # MOSEK keeps the pre-removal fixed point on this oscillatory case.
-        EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_519
+        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_315
         # Two overrides that used to live here are gone because the solvers now agree:
         # jack+jill (both 102_577 once the loop waits for its quantities to settle) and
         # kim+sam-bequest (both 1_976_280 after the CA bracket update). The latter also used to

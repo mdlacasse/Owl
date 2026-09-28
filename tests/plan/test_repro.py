@@ -41,19 +41,19 @@ import owlplanner as owl
 # no relaxation can produce. Most of the move is which fixed point the loop lands on, not a
 # change in what is achievable, so these are reproducibility anchors and not optimality claims.
 if platform == "darwin":
-    SPENDING1 = 89_314
+    SPENDING1 = 89_532
     BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 89_314
+    SPENDING1 = 89_532
     BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 89_314
+    SPENDING1 = 89_532
     BEQUEST1 = 960_684
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
@@ -61,11 +61,11 @@ elif platform in "win32":
 else:
     raise RuntimeError(f"Unknown platform {platform!r}: no reference reproducibility values defined")
 
-# MOSEK converges to a slightly different SC-loop fixed point than HiGHS for the jack+jill
-# maxSpending case (89_532 vs 89_314). The two now agree on BEQUEST1.
-# The conftest session fixture pins the solver to HiGHS unless OWL_TEST_SOLVER=mosek.
-if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek":
-    SPENDING1 = 89_532
+# The solvers used to land on different SC-loop fixed points here (HiGHS 89_314, MOSEK 89_532).
+# They agree at 89_532 since the default epsilon became 5e-7: a stronger tie-break leaves fewer
+# near-equivalent optima for a solver to pick between, so the split was degeneracy rather than
+# anything about the solvers. The same happened to john+sally's bequest and to dana's 1966
+# maxBequest window, where the two had differed by 3%.
 
 REL_TOL = 3e-5
 ABS_TOL = 50.0  # Widened from 20 to tolerate minor HiGHS version differences across Python releases

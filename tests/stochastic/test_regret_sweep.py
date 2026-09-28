@@ -134,10 +134,14 @@ def test_dana_1966_maxbequest_reference(dana):
     opts.pop("bequest", None)
     opts["netSpending"] = 58.0  # $k; the scenario-minimum spending used in the paper
     res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0, 63_636], 1966, 1966)
-    assert _rel(res["v_star"][0], 418_614.09) < RTOL
+    # Re-pinned when the default epsilon became 5e-7. These moved +3.1%, and not because the
+    # penalty cost anything: at 1e-8 HiGHS settled on a fixed point 3% below MOSEK's on this
+    # window, and the stronger tie-break brings it up to 431,374.54 against MOSEK's 431,377 --
+    # agreement to 0.0006% where there had been a 3% solver split.
+    assert _rel(res["v_star"][0], 431_374.54) < RTOL
     assert _rel(res["x_star"][0], 67_980.86) < RTOL
-    assert _rel(res["v_at"][0, 0], 417_283.58) < RTOL
-    assert _rel(res["v_at"][0, 1], 418_457.12) < RTOL
+    assert _rel(res["v_at"][0, 0], 430_295.48) < RTOL
+    assert _rel(res["v_at"][0, 1], 431_323.47) < RTOL
     assert _rel(res["v_noconv"][0], 396_444.36) < RTOL
     # Orderings that carry the paper's story:
     # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
