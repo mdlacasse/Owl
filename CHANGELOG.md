@@ -102,6 +102,8 @@ following January. Entered that way a purchase paid for with a big-ticket item n
 double-counts on the balance sheet in the year it is bought, nor loses a year of appreciation.
 No change in behaviour.
 
+#### Changed: *Spending vs Bequest* notes are bulleted, with wrapped lines indented under their text
+
 ### Version 2026.9.21
 
 #### Fixed: state retirement-income exemptions ([#145](https://github.com/mdlacasse/Owl/issues/145), [#146](https://github.com/mdlacasse/Owl/issues/146))

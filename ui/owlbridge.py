@@ -843,8 +843,10 @@ def _render_frontier(result, plotter):
         )
     else:
         notes.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
-    # Fold each note to the table's width, keeping any leading indent on every continuation
-    # line so an indented sub-note stays visually attached to its parent. The floor is a
+    # Fold each note to the table's width under a bullet, with a hanging indent so every
+    # continuation line sits under the text rather than the bullet; otherwise consecutive
+    # notes run together into one block. A note given a leading indent is a sub-note and
+    # takes a lesser mark one level in, so it reads as part of its parent. The floor is a
     # reading width, not a guess: the header runs from 62 columns (savings and spending
     # alone) to 104 (three success rates plus the estate columns), and folding prose to the
     # narrow end leaves it in a cramped ribbon down the left of a much wider block. Going
@@ -852,8 +854,10 @@ def _render_frontier(result, plotter):
     # whatever the table does.
     wrap_at = max(len(head), 88)
     for note in notes:
-        indent = " " * (len(note) - len(note.lstrip(" ")))
-        lines.extend(textwrap.wrap(note.strip(), width=wrap_at, initial_indent=indent, subsequent_indent=indent))
+        lead = "  \u2013 " if note.startswith(" ") else "\u2022 "
+        lines.extend(
+            textwrap.wrap(note.strip(), width=wrap_at, initial_indent=lead, subsequent_indent=" " * len(lead))
+        )
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 
