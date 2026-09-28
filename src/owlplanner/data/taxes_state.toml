@@ -959,6 +959,7 @@ retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # NY brackets/deductions are not indexed by statute (Tax Law §601)
 
 [NY_MFJ]
 brackets = [
@@ -973,6 +974,7 @@ retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # NY brackets/deductions are not indexed by statute (Tax Law §601)
 
 [ND_Single]
 # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted

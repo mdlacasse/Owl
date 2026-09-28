@@ -1,8 +1,8 @@
 """
 State income tax parameters for Owl retirement planner.
 
-Provides st_taxParams(), which mirrors the interface of tax_federal.taxParams() but
-returns state-specific bracket rates, widths, deductions, and exemption caps.
+Provides st_taxParams(), which returns a StateTaxParams dataclass with
+state-specific bracket rates, widths, deductions, and exemption caps.
 Data is loaded from src/owlplanner/data/taxes_state.toml.
 
 Bracket rates in the TOML are stored as percentages (e.g. 5.35 = 5.35%);
@@ -24,10 +24,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from __future__ import annotations
+
 import toml
+from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -38,8 +42,42 @@ _TOML_PATH = Path(__file__).parent / "data" / "taxes_state.toml"
 # only matters as a large-enough upper bound; 10x the top LTCG threshold is safe.
 _LAST_BRACKET_SENTINEL = 5_000_000.0
 
-# States with zero income tax — stored as single zero-rate bracket for uniformity.
+# States with zero income tax -- stored as single zero-rate bracket for uniformity.
 NO_TAX_STATES = frozenset(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"])
+
+
+@dataclass(frozen=True)
+class StateTaxParams:
+    """State income tax parameter arrays for the LP.
+
+    Attributes
+    ----------
+    N_st           -- number of state brackets (max across Single and MFJ)
+    theta_tn       -- shape (N_st, N_n) marginal rates (decimals)
+    DeltaBar_tn    -- shape (N_st, N_n) bracket widths (inflation-adjusted when indexed)
+    sigmaBar_n     -- shape (N_n,) state standard deduction (inflation-adjusted when indexed)
+    re_cap_in      -- shape (N_i, N_n) retirement income exemption cap per individual
+    pe_cap_in      -- shape (N_i, N_n) pension-only exemption cap per individual
+    conv_ok        -- whether Roth conversion income counts toward re_cap_in
+    tax_ss         -- whether state taxes Social Security benefits
+    ss_thresh_n    -- shape (N_n,) AGI threshold below which SS is exempt (0 = N/A)
+    indexed        -- whether brackets/deductions scale with inflation (gamma_n)
+    income_base    -- "agi" or "federal_taxable"
+    recapture      -- recapture tier data (None until PR 4)
+    """
+
+    N_st: int
+    theta_tn: np.ndarray
+    DeltaBar_tn: np.ndarray
+    sigmaBar_n: np.ndarray
+    re_cap_in: np.ndarray
+    pe_cap_in: np.ndarray
+    conv_ok: bool
+    tax_ss: bool
+    ss_thresh_n: np.ndarray
+    indexed: bool = True
+    income_base: str = "agi"
+    recapture: Optional[dict] = None
 
 
 @lru_cache(maxsize=1)
@@ -68,8 +106,8 @@ def get_state_entry(state: str, filing_status: int, toml_path=None) -> dict:
 def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     """Convert [[lower, rate_pct], ...] to (rates, widths) arrays (decimal rates).
 
-    rates  — 1-D array of marginal rates as decimals
-    widths — 1-D array of bracket widths; last entry = sentinel
+    rates  -- 1-D array of marginal rates as decimals
+    widths -- 1-D array of bracket widths; last entry = sentinel
     """
     n = len(brackets)
     rates = np.array([b[1] / 100.0 for b in brackets])
@@ -80,9 +118,25 @@ def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     return rates, widths
 
 
+def _read_indexed(entry: dict) -> bool:
+    """Read the optional 'indexed' field (default True)."""
+    val = entry.get("indexed", True)
+    if not isinstance(val, bool):
+        raise ValueError(f"Invalid indexed value '{val}': expected true or false.")
+    return val
+
+
+def _read_income_base(entry: dict) -> str:
+    """Read the optional 'income_base' field (default "agi")."""
+    base = entry.get("income_base", "agi")
+    if base not in ("agi", "federal_taxable"):
+        raise ValueError(f"Invalid income_base '{base}': expected 'agi' or 'federal_taxable'.")
+    return base
+
+
 def st_taxParams(
     state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
-) -> tuple:
+) -> StateTaxParams:
     """Compute state income tax parameter arrays for the LP.
 
     Parameters
@@ -98,22 +152,8 @@ def st_taxParams(
 
     Returns
     -------
-    (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-     st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n)
-
-    N_st           — number of state brackets (max across Single and MFJ)
-    st_theta_tn    — shape (N_st, N_n) marginal rates (decimals)
-    st_DeltaBar_tn — shape (N_st, N_n) inflation-adjusted bracket widths
-    st_sigmaBar_n  — shape (N_n,) inflation-adjusted state standard deduction
-    st_re_cap_in   — shape (N_i, N_n) retirement income exemption cap of each individual,
-                     zero until that individual meets exemption_age
-                     (0 = none, np.inf = fully exempt)
-    st_pe_cap_in   — shape (N_i, N_n) pension-only exemption cap of each individual
-                     (0 = pensions count toward st_re_cap_in instead)
-    st_conv_ok     — bool, whether Roth conversion income counts toward st_re_cap_in
-    st_tax_ss      — bool, whether state taxes Social Security benefits
-    st_ss_thresh_n — shape (N_n,) AGI threshold below which SS is exempt
-                     (0 = not applicable)
+    StateTaxParams with arrays scaled to inflation when ``indexed`` is True
+    (default) and held at statutory dollars when ``indexed`` is False.
     """
     state = state.upper()
     data = load_state_data(toml_path)
@@ -126,6 +166,12 @@ def st_taxParams(
 
     entry_single = data[single_key]
     entry_mfj = data[mfj_key] if mfj_key in data else entry_single
+
+    # --- Indexing flag: both entries should agree; prefer the single-filer value ---
+    indexed = _read_indexed(entry_single)
+
+    # --- Income base ---
+    income_base = _read_income_base(entry_single)
 
     # --- Derive N_st (max brackets across both filing statuses) ---
     n_single = len(entry_single["brackets"])
@@ -146,9 +192,9 @@ def st_taxParams(
     rates_m, widths_m = _brackets_to_rates_and_widths(brackets_mfj, _LAST_BRACKET_SENTINEL)
 
     # --- Build per-year arrays, switching filing status at n_d ---
-    st_theta_tn = np.zeros((N_st, N_n))
-    st_DeltaBar_tn = np.zeros((N_st, N_n))
-    st_sigmaBar_n = np.zeros(N_n)
+    theta_tn = np.zeros((N_st, N_n))
+    DeltaBar_tn = np.zeros((N_st, N_n))
+    sigmaBar_n = np.zeros(N_n)
 
     thisyear = date.today().year
     filing_status = N_i - 1  # 1 = MFJ, 0 = Single
@@ -157,17 +203,18 @@ def st_taxParams(
         if n == n_d:
             filing_status = max(0, filing_status - 1)
 
-        gn = gamma_n[n]
+        # Non-indexed states use nominal statutory dollars (no gamma_n scaling).
+        gn = gamma_n[n] if indexed else 1.0
         if filing_status == 1:
-            st_theta_tn[:, n] = rates_m
-            st_DeltaBar_tn[:, n] = widths_m * gn
-            st_sigmaBar_n[n] = entry_mfj["standard_deduction"] * gn
+            theta_tn[:, n] = rates_m
+            DeltaBar_tn[:, n] = widths_m * gn
+            sigmaBar_n[n] = entry_mfj["standard_deduction"] * gn
         else:
-            st_theta_tn[:, n] = rates_s
-            st_DeltaBar_tn[:, n] = widths_s * gn
-            st_sigmaBar_n[n] = entry_single["standard_deduction"] * gn
+            theta_tn[:, n] = rates_s
+            DeltaBar_tn[:, n] = widths_s * gn
+            sigmaBar_n[n] = entry_single["standard_deduction"] * gn
 
-    # --- Retirement income exemption cap (per person, inflation-adjusted) ---
+    # --- Retirement income exemption cap (per person) ---
     # Use the single-filer entry value (same per-person cap regardless of filing status).
     re_raw = entry_single["retirement_income_exemption"]
     re_base = np.inf if re_raw == -1 else float(re_raw)
@@ -176,34 +223,47 @@ def st_taxParams(
     pe_raw = entry_single.get("pension_exemption", 0)
     pe_base = np.inf if pe_raw == -1 else float(pe_raw)
 
-    st_conv_ok = bool(entry_single.get("roth_conversion_eligible", True))
+    conv_ok = bool(entry_single.get("roth_conversion_eligible", True))
 
     # Age gating is per individual: each spouse qualifies on their own age, and an unused
     # cap cannot be claimed by the other spouse. An individual qualifies in the first year
     # in which they reach exemption_age (e.g. 59.5) by December 31.
+    # The retirement exclusion cap stays nominal when indexed=False (NY's $20k is statutory).
     exemption_age = entry_single.get("exemption_age", 0)
-    st_re_cap_in = np.zeros((N_i, N_n))
-    st_pe_cap_in = np.zeros((N_i, N_n))
+    re_cap_in = np.zeros((N_i, N_n))
+    pe_cap_in = np.zeros((N_i, N_n))
 
     if re_base > 0 or pe_base > 0:
         for i in range(N_i):
             for n in range(N_n):
                 age = thisyear + n - yobs[i] + (12 - mobs[i]) / 12
                 if exemption_age == 0 or age >= exemption_age:
-                    st_re_cap_in[i, n] = np.inf if re_base == np.inf else re_base * gamma_n[n]
-                    st_pe_cap_in[i, n] = np.inf if pe_base == np.inf else pe_base * gamma_n[n]
+                    gn = gamma_n[n] if indexed else 1.0
+                    re_cap_in[i, n] = np.inf if re_base == np.inf else re_base * gn
+                    pe_cap_in[i, n] = np.inf if pe_base == np.inf else pe_base * gn
 
     # --- SS treatment ---
     # Use MFJ entry when couple; single entry otherwise. Both entries carry the same value
     # for all current states, but prefer the filing-status-appropriate entry for correctness.
     ss_entry = entry_mfj if N_i == 2 else entry_single
-    st_tax_ss = bool(ss_entry["tax_social_security"])
+    tax_ss = bool(ss_entry["tax_social_security"])
     ss_thresh_base = float(ss_entry.get("ss_exemption_threshold", 0))
-    st_ss_thresh_n = np.array([ss_thresh_base * gamma_n[n] for n in range(N_n)])
+    gn_ss = gamma_n if indexed else np.ones(len(gamma_n))
+    ss_thresh_n = np.array([ss_thresh_base * gn_ss[n] for n in range(N_n)])
 
-    return (
-        N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-        st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n,
+    return StateTaxParams(
+        N_st=N_st,
+        theta_tn=theta_tn,
+        DeltaBar_tn=DeltaBar_tn,
+        sigmaBar_n=sigmaBar_n,
+        re_cap_in=re_cap_in,
+        pe_cap_in=pe_cap_in,
+        conv_ok=conv_ok,
+        tax_ss=tax_ss,
+        ss_thresh_n=ss_thresh_n,
+        indexed=indexed,
+        income_base=income_base,
+        recapture=None,
     )
 
 
@@ -214,10 +274,7 @@ def get_income_base(state: str, filing_status: int = 0, toml_path=None) -> str:
     deduction); ``"federal_taxable"`` means it starts from federal taxable income.
     """
     entry = get_state_entry(state, filing_status, toml_path)
-    base = entry.get("income_base", "agi")
-    if base not in ("agi", "federal_taxable"):
-        raise ValueError(f"Invalid income_base '{base}' for {state}: expected 'agi' or 'federal_taxable'.")
-    return base
+    return _read_income_base(entry)
 
 
 def valid_states() -> list:

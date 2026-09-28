@@ -4341,20 +4341,19 @@ class Plan:
         # returned but not yet used in the LP — those states are currently treated as binary
         # (SS fully exempt or fully taxed). Full threshold modeling is a known limitation.
         if self.state:
-            (
-                self.N_st,
-                self.st_theta_tn,
-                self.st_DeltaBar_tn,
-                self.st_sigmaBar_n,
-                self.st_re_cap_in,
-                self.st_pe_cap_in,
-                self.st_conv_ok,
-                self.st_tax_ss,
-                _st_ss_thresh_n,
-            ) = tax_state.st_taxParams(
+            sp = tax_state.st_taxParams(
                 self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
             )
-            self.st_income_base = tax_state.get_income_base(self.state)
+            self.N_st = sp.N_st
+            self.st_theta_tn = sp.theta_tn
+            self.st_DeltaBar_tn = sp.DeltaBar_tn
+            self.st_sigmaBar_n = sp.sigmaBar_n
+            self.st_re_cap_in = sp.re_cap_in
+            self.st_pe_cap_in = sp.pe_cap_in
+            self.st_conv_ok = sp.conv_ok
+            self.st_tax_ss = sp.tax_ss
+            self.st_income_base = sp.income_base
+            self.st_indexed = sp.indexed
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
