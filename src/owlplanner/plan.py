@@ -248,6 +248,36 @@ class Plan:
     """
 
     # Class-level counter for unique Plan IDs
+    # SC-loop parameters: the NL quantities the loop feeds back into each LP solve.
+    # Adding a new loop-fed cost (e.g. state recapture) means adding its attribute name here;
+    # snapshot/restore/blend and the iteration trace pick it up automatically.
+    _SC_PARAMS = ("M_n", "ACA_n", "J_n", "Psi_n")
+
+    def _snapshot_sc(self):
+        "Copy the current SC-loop parameters into a dict."
+        return {name: getattr(self, name).copy() for name in self._SC_PARAMS}
+
+    def _restore_sc(self, d):
+        "Restore SC-loop parameters from a dict produced by _snapshot_sc."
+        for name in self._SC_PARAMS:
+            setattr(self, name, d[name])
+
+    def _blend_sc(self, prev, target, frac):
+        "Move SC-loop parameters frac of the way from prev to target."
+        for name in self._SC_PARAMS:
+            p0, p1 = prev[name], target[name]
+            setattr(self, name, p0 + frac * (p1 - p0))
+
+    def _sc_trace_entry(self, trace, idx=None):
+        "Return the SC-loop parameter dict from the trace at idx (last if None)."
+        i = -1 if idx is None else idx
+        return {name: trace[f"{name}_lp"][i] for name in self._SC_PARAMS}
+
+    def _sc_trace_append(self, trace, sc_lp):
+        "Append an SC-loop parameter snapshot to the trace."
+        for name in self._SC_PARAMS:
+            trace[f"{name}_lp"].append(sc_lp[name])
+
     _id_counter = 0
 
     @classmethod
@@ -4415,16 +4445,15 @@ class Plan:
         }
 
     def _new_iteration_trace(self):
-        return {
+        trace = {
             "scaledObjectives": [],
             "solutions": [],
             "objectives": [],
             "gaps": [],
-            "M_n_lp": [],  # M_n parameter used by each iteration's LP
-            "ACA_n_lp": [],  # ACA_n parameter used by each iteration's LP
-            "J_n_lp": [],  # J_n parameter used by each iteration's LP
-            "Psi_n_lp": [],  # Psi_n parameter used by each iteration's LP
         }
+        for name in self._SC_PARAMS:
+            trace[f"{name}_lp"] = []
+        return trace
 
     def _valid_history_start(self, includeMedicare):
         return 1 if includeMedicare else 0
@@ -4667,18 +4696,13 @@ class Plan:
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
-        M_n_lp = self.M_n.copy()
-        ACA_n_lp = self.ACA_n.copy()
-        Psi_n_lp = self.Psi_n.copy()
+        sc_lp = self._snapshot_sc()
         while True:
             # Snapshot the NL parameters actually embedded in this iteration's LP constraints.
             # _buildConstraints runs inside the solver call below, so these are the values it
             # embeds. Psi_n belongs here for the same reason as the other three: the taxable
             # income row carries Psi_n * zetaBar as a parameter.
-            M_n_lp = self.M_n.copy()
-            ACA_n_lp = self.ACA_n.copy()
-            J_n_lp = self.J_n.copy()
-            Psi_n_lp = self.Psi_n.copy()
+            sc_lp = self._snapshot_sc()
             objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
             # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
             # iterate below breaks that correspondence, which post-processing relies on.
@@ -4696,14 +4720,11 @@ class Plan:
                 # outcome is chaotic in the weight (0.4 and 0.7 break a case that 0.3, 0.5, 0.6
                 # and 0.8 all solve), because a weight only changes which cases land in the hole.
                 # Retrying only on failure costs nothing on the cases that never fail.
-                prev = (trace["M_n_lp"][-1], trace["ACA_n_lp"][-1], trace["J_n_lp"][-1], trace["Psi_n_lp"][-1])
-                target = (self.M_n.copy(), self.ACA_n.copy(), self.J_n.copy(), self.Psi_n.copy())
+                prev = self._sc_trace_entry(trace)
+                target = self._snapshot_sc()
                 for frac in (0.5, 0.25, 0.125, 0.0625):
-                    self.M_n, self.ACA_n, self.J_n, self.Psi_n = (
-                        p0 + frac * (p1 - p0) for p0, p1 in zip(prev, target, strict=True)
-                    )
-                    M_n_lp, ACA_n_lp = self.M_n.copy(), self.ACA_n.copy()
-                    J_n_lp, Psi_n_lp = self.J_n.copy(), self.Psi_n.copy()
+                    self._blend_sc(prev, target, frac)
+                    sc_lp = self._snapshot_sc()
                     objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
                     if solverSuccess and objfn is not None:
                         self.solverGap = solgap
@@ -4714,7 +4735,7 @@ class Plan:
                         )
                         break
                 else:
-                    self.M_n, self.ACA_n, self.J_n, self.Psi_n = target
+                    self._restore_sc(target)
 
             if not solverSuccess or objfn is None:
                 # A parameter update can hand the solver a problem it cannot take - most often
@@ -4739,10 +4760,7 @@ class Plan:
                 )
                 xx = trace["solutions"][best_idx]
                 objfn = trace["objectives"][best_idx]
-                M_n_lp = trace["M_n_lp"][best_idx]
-                ACA_n_lp = trace["ACA_n_lp"][best_idx]
-                J_n_lp = trace["J_n_lp"][best_idx]
-                Psi_n_lp = trace["Psi_n_lp"][best_idx]
+                sc_lp = self._sc_trace_entry(trace, best_idx)
                 self.solverGap = trace["gaps"][best_idx]
                 matricesMatchSolution = False
                 self.convergenceType = "unsolvable iterate"
@@ -4762,10 +4780,7 @@ class Plan:
             trace["solutions"].append(xx)
             trace["objectives"].append(objfn)
             trace["gaps"].append(solgap)
-            trace["M_n_lp"].append(M_n_lp)
-            trace["ACA_n_lp"].append(ACA_n_lp)
-            trace["J_n_lp"].append(J_n_lp)
-            trace["Psi_n_lp"].append(Psi_n_lp)
+            self._sc_trace_append(trace, sc_lp)
 
             # How far this iterate's own income moves the quantities its LP was built with. The
             # parameters were snapshotted before the solve; _computeNLstuff has just recomputed them.
@@ -4778,12 +4793,10 @@ class Plan:
                 if fixed_psi is not None or "tss" in self.vm
                 else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
             )
-            moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today),
-                     np.sum(np.abs(self.J_n - J_n_lp) / g_today)]
-            if includeMedicare:
-                moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
-            if self.slcsp_annual > 0:
-                moves.append(np.sum(np.abs(self.ACA_n - ACA_n_lp) / g_today))
+            moves = [np.sum(np.abs(psi_implied - sc_lp["Psi_n"]) * ss_n / g_today)]
+            for _name, _active in (("J_n", True), ("M_n", includeMedicare), ("ACA_n", self.slcsp_annual > 0)):
+                if _active:
+                    moves.append(np.sum(np.abs(getattr(self, _name) - sc_lp[_name]) / g_today))
             scResidual = float(max(moves))
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
@@ -4835,10 +4848,7 @@ class Plan:
                     best_idx = len(trace["scaledObjectives"]) - cycle_len + cycle_offset
                     xx = trace["solutions"][best_idx]
                     objfn = trace["objectives"][best_idx]
-                    M_n_lp = trace["M_n_lp"][best_idx]
-                    ACA_n_lp = trace["ACA_n_lp"][best_idx]
-                    J_n_lp = trace["J_n_lp"][best_idx]
-                    Psi_n_lp = trace["Psi_n_lp"][best_idx]
+                    sc_lp = self._sc_trace_entry(trace, best_idx)
                     self.solverGap = trace["gaps"][best_idx]
                     matricesMatchSolution = False
                     self.mylog.print("Accepting best solution from cycle and terminating.")
@@ -4848,10 +4858,7 @@ class Plan:
                     if best_idx is not None:
                         xx = trace["solutions"][best_idx]
                         objfn = trace["objectives"][best_idx]
-                        M_n_lp = trace["M_n_lp"][best_idx]
-                        ACA_n_lp = trace["ACA_n_lp"][best_idx]
-                        J_n_lp = trace["J_n_lp"][best_idx]
-                        Psi_n_lp = trace["Psi_n_lp"][best_idx]
+                        sc_lp = self._sc_trace_entry(trace, best_idx)
                         self.solverGap = trace["gaps"][best_idx]
                         matricesMatchSolution = False
                 else:
@@ -4868,10 +4875,7 @@ class Plan:
                         max_excess = float(np.max(self.U_n - 0.20 * np.maximum(self.Q_n, 0)))
                         if max_excess <= LTCG_CONSISTENCY_TOL:
                             break
-                        M_n_lp = self.M_n.copy()
-                        ACA_n_lp = self.ACA_n.copy()
-                        J_n_lp = self.J_n.copy()
-                        Psi_n_lp = self.Psi_n.copy()
+                        sc_lp = self._snapshot_sc()
                         _, xx_fix, fix_ok, _, _ = solverMethod(objective, options)
                         if not fix_ok or xx_fix is None:
                             break
@@ -4898,7 +4902,7 @@ class Plan:
             # MAGI_aca_n wrong by exactly that step. In optimize mode Psi_n is derived from
             # the tss variable during aggregation and is consistent already, so leave it.
             if "tss" not in self.vm:
-                self.Psi_n = Psi_n_lp
+                self.Psi_n = sc_lp["Psi_n"]
             self._aggregateResults(xx)
             # Restore the NL parameters to what was actually embedded in the final LP
             # constraints. _computeNLstuff runs after every LP solve (for convergence
@@ -4909,13 +4913,13 @@ class Plan:
             # Only applies to loop-mode quantities (LP-mode variants are already extracted
             # from solver variables and are always consistent).
             if includeMedicare:
-                self.M_n = M_n_lp
+                self.M_n = sc_lp["M_n"]
                 hsa_total = np.sum(self.w_ijn[:, 3, :], axis=0)
                 self.hsa_medicare_n = np.minimum(hsa_total, self.medicare_n)
             if not getattr(self, "_niit_lp", False):
-                self.J_n = J_n_lp
+                self.J_n = sc_lp["J_n"]
             if self.slcsp_annual > 0 and not self._aca_lp:
-                self.ACA_n = ACA_n_lp
+                self.ACA_n = sc_lp["ACA_n"]
             self._check_cashflow_balance()
             self._computeFixedPointResidual(includeMedicare)
             if options.get("withDuals", False):
