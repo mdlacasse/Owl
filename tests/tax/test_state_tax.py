@@ -389,3 +389,155 @@ def test_ks_two_rate_structure():
     """KS has had two rates (5.2%, 5.58%) since 2024."""
     assert _brackets("KS_Single") == [(0.0, 5.2), (23000.0, 5.58)]
     assert _brackets("KS_MFJ") == [(0.0, 5.2), (46000.0, 5.58)]
+
+
+# ---------------------------------------------------------------------------
+# PR 1: AGI-based state tax base
+# ---------------------------------------------------------------------------
+
+
+def test_state_tax_base_is_agi():
+    """State taxable income uses AGI (e_n + G_n + Q_n), not federal taxable income."""
+    p = _make_plan("NY")
+    p.solve("maxSpending", options={"verbose": False, "noRothConversions": "Jack"})
+    assert p.caseStatus == "solved"
+
+    n = 0
+    # Federal AGI = standard deduction + ordinary taxable income + capital gains
+    agi = p.e_n[n] + p.G_n[n] + p.Q_n[n]
+    # NY excludes SS: subtract federally taxable SS from the base
+    ss_taxable = p.Psi_n[n] * float(np.sum(p.zetaBar_in[:, n]))
+    # Pension exemption (parameter)
+    pe_adj = float(np.sum(np.minimum(p.piBar_in[:, n], p.st_pe_cap_in[:, n])))
+    st_re = float(np.sum(p.st_re_in[:, n]))
+    st_ti = agi - ss_taxable - pe_adj - p.st_sigmaBar_n[n] - st_re
+    st_ti = max(st_ti, 0.0)
+
+    # Verify the LP's state taxable income matches the hand-computed AGI-based value
+    lp_ti = float(np.sum(p.st_f_tn[:, n]))
+    assert lp_ti == pytest.approx(st_ti, rel=1e-3), (
+        f"LP state taxable income {lp_ti} != hand-computed AGI-based {st_ti}"
+    )
+
+    # Verify graduated tax on st_ti matches st_T_n
+    expected_tax = 0.0
+    remaining = st_ti
+    for t in range(p.N_st):
+        take = min(remaining, p.st_DeltaBar_tn[t, n])
+        expected_tax += take * p.st_theta_tn[t, n]
+        remaining -= take
+        if remaining <= 0:
+            break
+    assert p.st_T_n[n] == pytest.approx(expected_tax, rel=1e-3), (
+        f"st_T_n[{n}]={p.st_T_n[n]} != hand-computed graduated tax {expected_tax}"
+    )
+
+
+def test_state_tax_base_includes_standard_deduction():
+    """AGI base is larger than federal-taxable base by exactly e_n."""
+    p = _make_plan("NY")
+    p.solve("maxSpending", options={"verbose": False, "noRothConversions": "Jack"})
+    assert p.caseStatus == "solved"
+
+    n = 0
+    # State taxable income from LP
+    lp_ti = float(np.sum(p.st_f_tn[:, n]))
+    # Federal taxable income without state-specific adjustments
+    fed_taxable = p.G_n[n] + p.Q_n[n]  # e_n already subtracted in G_n
+    # AGI base should be fed_taxable + e_n minus SS/pe adjustments
+    ss_taxable = p.Psi_n[n] * float(np.sum(p.zetaBar_in[:, n]))
+    pe_adj = float(np.sum(np.minimum(p.piBar_in[:, n], p.st_pe_cap_in[:, n])))
+    st_re = float(np.sum(p.st_re_in[:, n]))
+    # With AGI base: st_ti = (e_n + G_n + Q_n) - ss - pe - sigma - re
+    agi_ti = (p.e_n[n] + p.G_n[n] + p.Q_n[n]) - ss_taxable - pe_adj - p.st_sigmaBar_n[n] - st_re
+    # With old federal_taxable base: st_ti = (G_n + Q_n) - ss - pe - sigma - re
+    old_ti = (p.G_n[n] + p.Q_n[n]) - ss_taxable - pe_adj - p.st_sigmaBar_n[n] - st_re
+    # The AGI base must yield more taxable income (by e_n)
+    assert agi_ti == pytest.approx(lp_ti, rel=1e-3)
+    assert agi_ti > old_ti or p.e_n[n] == 0, "AGI base should exceed federal-taxable base by e_n"
+
+
+def test_get_income_base_default_is_agi(tmp_path):
+    """income_base defaults to 'agi' when the field is absent."""
+    toml_content = """
+[XX_Single]
+brackets = [[0.0, 5.0]]
+standard_deduction = 1000
+tax_social_security = false
+ss_exemption_threshold = 0
+retirement_income_exemption = 0
+exemption_age = 0
+pension_exemption = 0
+roth_conversion_eligible = true
+"""
+    f = tmp_path / "test_state.toml"
+    f.write_text(toml_content)
+    assert tax_state.get_income_base("XX", 0, toml_path=str(f)) == "agi"
+
+
+def test_get_income_base_federal_taxable(tmp_path):
+    """income_base = 'federal_taxable' is read correctly."""
+    toml_content = """
+[XX_Single]
+brackets = [[0.0, 5.0]]
+standard_deduction = 1000
+tax_social_security = false
+ss_exemption_threshold = 0
+retirement_income_exemption = 0
+exemption_age = 0
+pension_exemption = 0
+roth_conversion_eligible = true
+income_base = "federal_taxable"
+"""
+    f = tmp_path / "test_state.toml"
+    f.write_text(toml_content)
+    assert tax_state.get_income_base("XX", 0, toml_path=str(f)) == "federal_taxable"
+
+
+def test_get_income_base_invalid_raises(tmp_path):
+    """An invalid income_base value raises ValueError."""
+    toml_content = """
+[XX_Single]
+brackets = [[0.0, 5.0]]
+standard_deduction = 1000
+tax_social_security = false
+ss_exemption_threshold = 0
+retirement_income_exemption = 0
+exemption_age = 0
+pension_exemption = 0
+roth_conversion_eligible = true
+income_base = "bogus"
+"""
+    f = tmp_path / "test_state.toml"
+    f.write_text(toml_content)
+    with pytest.raises(ValueError, match="income_base"):
+        tax_state.get_income_base("XX", 0, toml_path=str(f))
+
+
+def test_federal_taxable_base_omits_e_n(monkeypatch):
+    """When income_base='federal_taxable', the state base omits e_n (old formula)."""
+    monkeypatch.setattr(tax_state, "get_income_base", lambda *a, **kw: "federal_taxable")
+    p = _make_plan("NY")
+    p.solve("maxSpending", options={"verbose": False, "noRothConversions": "Jack"})
+    assert p.caseStatus == "solved"
+
+    n = 0
+    ss_taxable = p.Psi_n[n] * float(np.sum(p.zetaBar_in[:, n]))
+    pe_adj = float(np.sum(np.minimum(p.piBar_in[:, n], p.st_pe_cap_in[:, n])))
+    st_re = float(np.sum(p.st_re_in[:, n]))
+    # Old formula: base = G_n + Q_n (federal taxable, no e_n)
+    old_ti = (p.G_n[n] + p.Q_n[n]) - ss_taxable - pe_adj - p.st_sigmaBar_n[n] - st_re
+    old_ti = max(old_ti, 0.0)
+    lp_ti = float(np.sum(p.st_f_tn[:, n]))
+    assert lp_ti == pytest.approx(old_ti, rel=1e-3), (
+        f"federal_taxable base: LP ti {lp_ti} != old-formula {old_ti}"
+    )
+
+
+def test_income_base_field_accepted_in_schema():
+    """The income_base field is a valid optional field for all states."""
+    for state in tax_state.valid_states():
+        for filing in (0, 1):
+            entry = tax_state.get_state_entry(state, filing)
+            base = entry.get("income_base", "agi")
+            assert base in ("agi", "federal_taxable"), f"{state}: invalid income_base '{base}'"

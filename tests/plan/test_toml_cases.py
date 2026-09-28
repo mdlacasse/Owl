@@ -117,12 +117,16 @@ def getHFP(exdir, case, check_exists=True):
 # neither: jack+jill 102_515 -> 102_577 (the loop now waits for its fed-back quantities to
 # settle) and kim+sam-spending 186_583 -> 186_590 under HiGHS.
 #
+# Updated after the AGI-base state-tax fix (state taxable income now starts from federal AGI
+# rather than federal taxable income). Cases with state tax shifted: john+sally bequest
+# 84_252 -> 20_219 (MN), kim+sam-spending 186_583 -> 185_390 (CA), kim+sam-bequest
+# 1_976_280 -> 1_917_651 (CA), robin 44_365 -> 44_069 (NY). No-tax states unchanged.
 # kim+sam-spending returned to 186_583 under HiGHS when residualTol became a per-year bar: at
 # $50/yr it converges where it did before the exit test, while MOSEK still settles at 186_519.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
-        "bequest": 84_252,
+        "bequest": 20_219,
     },
     "Case_jack+jill": {
         "net_spending_basis": 102_577,
@@ -133,15 +137,15 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_583,
+        "net_spending_basis": 185_390,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145_000,
-        "bequest": 1_976_280,
+        "bequest": 1_917_651,
     },
     "Case_robin": {
-        "net_spending_basis": 44_365,
+        "net_spending_basis": 44_069,
         "bequest": 50_000,
     },
 }
@@ -162,6 +166,7 @@ def test_reproducibility():
     # Re-measured on darwin after the residual exit test met the state bracket audit.
     if _active_solver() == "MOSEK":
         # MOSEK keeps the pre-removal fixed point on this oscillatory case.
+        # TODO: re-measure MOSEK values after the AGI-base state-tax fix; these are stale.
         EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
         EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_519
         # Two overrides that used to live here are gone because the solvers now agree:

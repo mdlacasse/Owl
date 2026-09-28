@@ -28,6 +28,14 @@
 #   roth_conversion_eligible  = true/false — whether Roth conversion income counts toward
 #                               retirement_income_exemption (default true; false for MD,
 #                               whose pension exclusion does not cover IRAs or conversions)
+#   income_base               = "agi" (default) or "federal_taxable":
+#                               "agi"            — state starts from federal AGI (before the
+#                                                  federal standard deduction). This is correct
+#                                                  for most states (NY, CA, MN, CO, ...).
+#                               "federal_taxable" — state starts from federal taxable income
+#                                                  (after the federal standard deduction).
+#                                                  Omit this field unless the state explicitly
+#                                                  begins from federal taxable income.
 #
 # Exemption caps are per person: each spouse's exemption is limited by that spouse's own
 # age and eligible income (tax-deferred withdrawals, Roth conversions, pensions), and an

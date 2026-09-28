@@ -104,6 +104,10 @@ def test_rejects_bad_arguments(dana):
 # now detects the cycle and terminates as "oscillatory". The manuscript's never-convert regret
 # is computed as v_star - v_noconv, and v_noconv is unchanged, so that headline figure moves
 # from 25_764.84 to 19_475.35. The paper's ordering still holds, but the magnitude does not.
+# Refreshed again after the AGI-base state-tax fix (state taxable income starts from federal AGI
+# rather than federal taxable income). Dana is in CA, so every value shifted down by the
+# additional state tax on the federal standard deduction. maxBequest moved more than
+# maxSpending because the higher tax rate compounds on the larger estate.
 # Refreshed again 2026-09-21 after the state bracket audit moved CA's brackets from 2023 to
 # 2025 values (Dana is in CA). These pins no longer reproduce the paper's published numbers;
 # the paper's sweeps must be rerun under the corrected tax data.
@@ -116,11 +120,11 @@ def test_dana_1966_maxspending_reference(dana):
         dana, "maxSpending", opts, [0, 60_000, 120_000], 1966, 1966, include_never_convert=False
     )
     assert res["start_years"].tolist() == [1966]
-    assert _rel(res["v_star"][0], 58_248.07) < RTOL
-    assert _rel(res["x_star"][0], 67_974.79) < RTOL
-    assert _rel(res["v_at"][0, 0], 58_270.32) < RTOL
-    assert _rel(res["v_at"][0, 1], 58_274.27) < RTOL
-    assert _rel(res["v_at"][0, 2], 58_080.64) < RTOL
+    assert _rel(res["v_star"][0], 57_848.20) < RTOL
+    assert _rel(res["x_star"][0], 59_924.62) < RTOL
+    assert _rel(res["v_at"][0, 0], 57_834.84) < RTOL
+    assert _rel(res["v_at"][0, 1], 57_848.15) < RTOL
+    assert _rel(res["v_at"][0, 2], 57_521.79) < RTOL
     # Pinned solves can beat the SC-loop baseline only within the noise floor.
     regret = res["v_star"][0] - res["v_at"][0, :]
     assert (regret > -NOISE).all()
@@ -134,11 +138,11 @@ def test_dana_1966_maxbequest_reference(dana):
     opts.pop("bequest", None)
     opts["netSpending"] = 58.0  # $k; the scenario-minimum spending used in the paper
     res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0, 63_636], 1966, 1966)
-    assert _rel(res["v_star"][0], 418_614.09) < RTOL
-    assert _rel(res["x_star"][0], 67_980.86) < RTOL
-    assert _rel(res["v_at"][0, 0], 417_283.58) < RTOL
-    assert _rel(res["v_at"][0, 1], 418_457.12) < RTOL
-    assert _rel(res["v_noconv"][0], 396_444.36) < RTOL
+    assert _rel(res["v_star"][0], 389_539.57) < RTOL
+    assert _rel(res["x_star"][0], 59_920.91) < RTOL
+    assert _rel(res["v_at"][0, 0], 388_590.35) < RTOL
+    assert _rel(res["v_at"][0, 1], 389_334.77) < RTOL
+    assert _rel(res["v_noconv"][0], 362_189.09) < RTOL
     # Orderings that carry the paper's story:
     # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
     # The last link leans on NOISE: a pinned solve can come back above the SC-loop

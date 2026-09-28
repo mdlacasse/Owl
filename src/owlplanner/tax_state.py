@@ -207,6 +207,19 @@ def st_taxParams(
     )
 
 
+def get_income_base(state: str, filing_status: int = 0, toml_path=None) -> str:
+    """Return the income base for *state*: ``"agi"`` (default) or ``"federal_taxable"``.
+
+    ``"agi"`` means the state starts from federal AGI (before the federal standard
+    deduction); ``"federal_taxable"`` means it starts from federal taxable income.
+    """
+    entry = get_state_entry(state, filing_status, toml_path)
+    base = entry.get("income_base", "agi")
+    if base not in ("agi", "federal_taxable"):
+        raise ValueError(f"Invalid income_base '{base}' for {state}: expected 'agi' or 'federal_taxable'.")
+    return base
+
+
 def valid_states() -> list:
     """Return sorted list of valid two-letter state abbreviations."""
     data = load_state_data()

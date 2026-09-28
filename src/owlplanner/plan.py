@@ -2561,10 +2561,14 @@ class Plan:
     def _add_state_taxable_income(self):
         """Equality constraint: state bracket allocations = state AGI - deductions.
 
-        State AGI = federal ordinary income (G_n via f[t,n])
-                  + capital gains (Q_n via q[p,n], taxed as ordinary by most states)
-                  - SS exclusion (when state does not tax SS: subtract Psi_n * zetaBar_n)
+        State AGI = federal AGI (e_n + G_n via f[t,n] + Q_n via q[p,n])
+                  - SS exclusion (when state does not tax SS)
                   - pension exemption cap (parameter)
+
+        When ``income_base == "agi"`` (default), the base is federal AGI: the federal
+        standard deduction e_n is added back to the federal taxable-income quantities.
+        When ``income_base == "federal_taxable"``, the base starts from federal taxable
+        income (e_n omitted), for states that begin from that figure.
 
         The LP then subtracts the state standard deduction (st_e) and retirement income
         exemption (st_re), with st_e and st_re bounded to prevent negative state tax.
@@ -2574,9 +2578,16 @@ class Plan:
         pension exemption). Unused amounts do not transfer between spouses.
         """
         vm = self.vm
+        ss_lp = "tss" in vm  # withSSTaxability="optimize": taxable SS is an LP variable
+        agi_base = getattr(self, "st_income_base", "agi") == "agi"
         for n in range(self.N_n):
-            # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
-            ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
+            # SS adjustment: remove taxable SS from the state base when the state excludes SS.
+            if ss_lp:
+                # When tss is an LP variable, exclude SS through tss (coefficient +1 on
+                # the row subtracts it from the base) instead of the stale Psi_n parameter.
+                ss_excl = 0.0
+            else:
+                ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
             # Pension exemption (parameter): each person's pension up to their own cap.
             pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
             rhs = -ss_excl - pe_adj
@@ -2588,10 +2599,14 @@ class Plan:
             if "st_re" in vm:
                 for i in range(self.N_i):
                     row.addElem(vm["st_re"].idx(i, n), 1)  # retirement income exemption
+            if agi_base:
+                row.addElem(vm["e"].idx(n), -1)  # add back federal standard deduction → AGI base
             for t in range(self.N_t):
                 row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal ordinary income)
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
+            if ss_lp and not self.st_tax_ss:
+                row.addElem(vm["tss"].idx(n), 1)  # subtract taxable SS from state base
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
@@ -4339,6 +4354,7 @@ class Plan:
             ) = tax_state.st_taxParams(
                 self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
             )
+            self.st_income_base = tax_state.get_income_base(self.state)
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
