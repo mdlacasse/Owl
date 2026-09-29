@@ -1,13 +1,32 @@
 ### Unreleased
 
+#### New: New York benefit recapture
+
+Above \$107,650 of New York AGI, New York takes back the benefit of the lower brackets: the tax is the
+bracket tax plus a supplemental amount that phases in over \$50,000 of AGI, tier by tier, until the
+whole taxable income is taxed at the rate of its top bracket. For a married couple that is
+about 0.7% more at the margin from \$107,650 to \$157,650 of AGI and 1.6% more from \$161,550 to \$211,550, and it was missing. It is
+data (`recapture_agi_start`, `recapture_width`, `recapture_until` in `taxes_state.toml`) with the rule
+in `tax_state.state_recapture`, whose tier amounts reproduce every constant on the 2025 IT-201-I
+tax computation worksheets. The amounts follow from the brackets, so they use the 2026 rates without
+another edit; the 2026 worksheets are not published yet.
+
+The recapture enters as a self-consistent-loop quantity, like the NIIT: the LP is charged its amount
+but does not see its marginal effect, so a Roth-conversion schedule is not steered away from the
+phase-in range. `Plan.st_recap_n` gives it by year; it is included in `st_T_n`, and a Yonkers
+surcharge applies to it. The fixed-point residual reports a `state recapture` family. The tax also
+jumps when taxable income crosses a tier threshold while AGI is inside that tier's phase-in, exactly
+as the worksheets compute it. The flat 10.9% above \$25M of AGI is not modeled.
+
 #### New: local income tax (`basic_info.locality`)
 
 `locality = "NYC"` or `"Yonkers"` adds New York City's resident income tax (four brackets on New York
 taxable income) or the Yonkers surcharge (16.75% of net New York tax). The tax appears inside the
 state-tax figures, and `Plan.lt_T_n` gives the local part. Localities are data in
 `data/taxes_local.toml`, whose header explains how to add one; a flat rate above a threshold is just
-two brackets. Wage-only local taxes do not belong there. The NYC thresholds were entered from memory
-and are flagged in the file as not yet checked against the IT-201 instructions.
+two brackets. Wage-only local taxes do not belong there. The NYC rates and thresholds and the Yonkers
+rate were checked against the 2025 IT-201-I (2026 not yet published; the Yonkers rate is unchanged in
+the 2026 withholding tables).
 
 #### New: change of state during the plan
 

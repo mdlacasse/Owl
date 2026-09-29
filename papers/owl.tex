@@ -1004,6 +1004,12 @@ federal AGI (federal ordinary taxable income plus the federal standard
 deduction, plus capital gains, which most states tax as ordinary income), minus
 the exempted portion of Social Security, pension exemptions, the state
 standard deduction, and any capped retirement-income exemption.
+New York recaptures the benefit of its lower brackets above \$107{,}650 of state
+AGI: a supplemental amount $R_n$, a function of the state AGI and taxable income
+that phases in over \$50{,}000 of AGI tier by tier (rule in \code{tax\_state.state\_recapture},
+reproducing the IT-201-I tax computation worksheets), is added to the state tax.
+Like the NIIT it is a self-consistent-loop parameter: $R_n$ enters the cash flow as
+a constant from the previous iterate.
 A city tax can sit on top of the state's (\code{locality}, data in
 \code{data/taxes\_local.toml}): either a set of brackets on the state taxable
 income, which adds bracket variables $f^{\ell}_{tn}$ with

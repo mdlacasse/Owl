@@ -67,6 +67,9 @@ class StateTaxParams:
     fed_sd         -- shape (N_n,) bool, whether the state takes the federal standard deduction
     senior_bonus   -- shape (N_n,) bool, whether that includes the OBBBA senior deduction
     indexed        -- shape (N_n,) bool, whether brackets and dollar amounts scale with inflation
+    recap_start_n  -- shape (N_n,) state AGI where benefit recapture begins (np.inf = none)
+    recap_width_n  -- shape (N_n,) width of each phase-in, in AGI dollars
+    recap_until_n  -- shape (N_n,) highest bracket threshold that starts a recapture tier
 
     The flag arrays are per year because the state can change during the plan.
     """
@@ -84,6 +87,9 @@ class StateTaxParams:
     fed_sd: np.ndarray
     senior_bonus: np.ndarray
     indexed: np.ndarray
+    recap_start_n: np.ndarray
+    recap_width_n: np.ndarray
+    recap_until_n: np.ndarray
 
 
 @lru_cache(maxsize=1)
@@ -222,20 +228,23 @@ def st_taxParams(
     theta_tn = np.zeros((N_st, N_n))
     DeltaBar_tn = np.zeros((N_st, N_n))
     sigmaBar_n = np.zeros(N_n)
+    recap = np.tile(np.array([[np.inf], [1.0], [0.0]]), (1, N_n))  # start, width, until
 
     thisyear = date.today().year
     filing_status_n = filing_status_by_year(N_i, n_d, N_n)
 
     for n in range(N_n):
         gn = gamma_n[n] if indexed else 1.0
-        if filing_status_n[n] == 1:
-            theta_tn[:, n] = rates_m
-            DeltaBar_tn[:, n] = widths_m * gn
-            sigmaBar_n[n] = _deduction_amount(entry_mfj) * gn
-        else:
-            theta_tn[:, n] = rates_s
-            DeltaBar_tn[:, n] = widths_s * gn
-            sigmaBar_n[n] = _deduction_amount(entry_single) * gn
+        entry = entry_mfj if filing_status_n[n] == 1 else entry_single
+        theta_tn[:, n] = rates_m if filing_status_n[n] == 1 else rates_s
+        DeltaBar_tn[:, n] = (widths_m if filing_status_n[n] == 1 else widths_s) * gn
+        sigmaBar_n[n] = _deduction_amount(entry) * gn
+        if "recapture_agi_start" in entry:
+            recap[:, n] = [
+                entry["recapture_agi_start"] * gn,
+                entry.get("recapture_width", 50000.0) * gn,
+                entry["recapture_until"] * gn,
+            ]
 
     # --- Retirement income exemption cap (per person, inflation-adjusted) ---
     # Use the single-filer entry value (same per-person cap regardless of filing status).
@@ -292,6 +301,9 @@ def st_taxParams(
         fed_sd=flag(fed_sd),
         senior_bonus=flag(senior_bonus),
         indexed=flag(indexed),
+        recap_start_n=recap[0],
+        recap_width_n=recap[1],
+        recap_until_n=recap[2],
     )
 
 
@@ -318,6 +330,7 @@ def st_taxParams_schedule(
     ss_thresh_n = np.zeros(N_n)
     flags = {name: np.zeros(N_n, dtype=bool) for name in ("conv_ok", "tax_ss", "pe_pooled", "fed_sd", "senior_bonus")}
     flags["indexed"] = np.ones(N_n, dtype=bool)
+    recap = np.tile(np.array([[np.inf], [1.0], [0.0]]), (1, N_n))
 
     for n, s in enumerate(states_n):
         if not s:
@@ -333,6 +346,7 @@ def st_taxParams_schedule(
         ss_thresh_n[n] = p.ss_thresh_n[n]
         for name, arr in flags.items():
             arr[n] = getattr(p, name)[n]
+        recap[:, n] = [p.recap_start_n[n], p.recap_width_n[n], p.recap_until_n[n]]
 
     return StateTaxParams(
         N_st=N_st,
@@ -342,8 +356,56 @@ def st_taxParams_schedule(
         re_cap_in=re_cap_in,
         pe_cap_in=pe_cap_in,
         ss_thresh_n=ss_thresh_n,
+        recap_start_n=recap[0],
+        recap_width_n=recap[1],
+        recap_until_n=recap[2],
         **flags,
     )
+
+
+def bracket_tax(ti: float, theta: np.ndarray, Delta: np.ndarray) -> float:
+    """Tax on taxable income *ti* from one year's marginal rates and bracket widths."""
+    lower = np.concatenate(([0.0], np.cumsum(Delta)[:-1]))
+    return float(np.sum(theta * np.clip(ti - lower, 0.0, Delta)))
+
+
+def state_recapture(
+    agi: float, ti: float, theta: np.ndarray, Delta: np.ndarray, start: float, width: float, until: float,
+    round_phase: bool = False,
+) -> float:
+    """Supplemental tax that takes back the benefit of the lower brackets (NY Tax Law sec. 601(d)).
+
+    The state's tax on *ti* comes from the brackets; above state AGI *start* the benefit of paying
+    less than the top rate on the lower slices is recaptured, in tiers:
+
+    - The bracket that contains *start* gives the rate r1. While *ti* is below the next bracket
+      threshold, the recapture is (r1 * ti - tax(ti)), phased in linearly as AGI rises from
+      *start* to *start* + *width*.
+    - Once *ti* reaches a higher bracket threshold L, with rate r and the rate below it r0, the
+      recapture is the fully phased amount up to L, r0 * L - tax(L), plus (r - r0) * L phased in
+      as AGI rises from L to L + *width*. The highest threshold that counts is *until*.
+
+    This reproduces the constants on the IT-201-I tax computation worksheets (2025). *round_phase*
+    rounds the phase-in fraction to four decimals, as the worksheets do.
+    """
+    if agi <= start:
+        return 0.0
+
+    def phase(x):
+        f = min(max(x / width, 0.0), 1.0)
+        return round(f, 4) if round_phase else f
+
+    real = Delta > 0
+    theta, Delta = theta[real], Delta[real]
+    lower = np.concatenate(([0.0], np.cumsum(Delta)[:-1]))
+    j0 = int(np.searchsorted(lower, start, side="right")) - 1  # bracket holding the start
+    tiers = [k for k in range(j0 + 1, len(lower)) if lower[k] <= until]
+    reached = [k for k in tiers if ti >= lower[k]]
+    if not reached:
+        return (theta[j0] * ti - bracket_tax(ti, theta, Delta)) * phase(agi - start)
+    k = reached[-1]
+    base = theta[k - 1] * lower[k] - bracket_tax(lower[k], theta, Delta)
+    return base + (theta[k] - theta[k - 1]) * lower[k] * phase(agi - lower[k])
 
 
 def valid_states() -> list:

@@ -40,6 +40,15 @@
 #                               for states whose statute fixes them in nominal dollars, so that
 #                               inflation pushes income into higher brackets (NY, per Tax Law
 #                               sec. 601). Read from the Single entry.
+#   recapture_agi_start       = state AGI above which the state takes back the benefit of the
+#                               lower brackets (NY: $107,650). Omit for states without it. Above
+#                               it, the tax is the bracket tax plus a supplemental amount that
+#                               phases in over recapture_width of AGI, tier by tier; see
+#                               tax_state.state_recapture for the rule, which reproduces the
+#                               IT-201-I worksheets. Amounts follow from the brackets, so a rate
+#                               change needs no other edit.
+#   recapture_width           = AGI dollars over which each tier phases in (default 50000)
+#   recapture_until           = highest bracket threshold that starts a tier
 #
 # Exemption caps are per person: each spouse's exemption is limited by that spouse's own
 # age and eligible income (tax-deferred withdrawals, Roth conversions, pensions), and an
@@ -980,6 +989,9 @@ exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
 indexed = false  # brackets, deduction and exclusion are statutory dollars (Tax Law sec. 601, 612, 614)
+recapture_agi_start = 107650  # benefit recapture, Tax Law sec. 601(d); see the header
+recapture_width = 50000
+recapture_until = 5000000  # the 25M cliff (flat 10.9%) is not modeled
 
 [NY_MFJ]
 brackets = [
@@ -995,6 +1007,9 @@ exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
 indexed = false  # brackets, deduction and exclusion are statutory dollars (Tax Law sec. 601, 612, 614)
+recapture_agi_start = 107650  # benefit recapture, Tax Law sec. 601(d); see the header
+recapture_width = 50000
+recapture_until = 5000000  # the 25M cliff (flat 10.9%) is not modeled
 
 [ND_Single]
 # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted

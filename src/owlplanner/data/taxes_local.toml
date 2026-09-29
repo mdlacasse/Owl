@@ -27,7 +27,7 @@
 # else needs to change. Say in "description" where each number comes from.
 
 ["NY:NYC_MFJ"]
-description = "New York City resident income tax (Tax Law sec. 1304). Rates from the IT-201 NYC rate schedule; thresholds recalled from it and NOT yet checked against the current instructions. Household and school-tax credits not modeled."
+description = "New York City resident income tax (Tax Law sec. 1304), applied to NYS taxable income (IT-201 line 47 = line 38). Rates and thresholds checked against the 2025 IT-201-I NYC rate schedule; 2026 not yet published. Household and school-tax credits not modeled."
 type = "brackets"
 base = "state_taxable"
 brackets = [[0.0, 3.078], [21600.0, 3.762], [45000.0, 3.819], [90000.0, 3.876]]
@@ -41,7 +41,7 @@ brackets = [[0.0, 3.078], [12000.0, 3.762], [25000.0, 3.819], [50000.0, 3.876]]
 indexed = false
 
 ["NY:Yonkers"]
-description = "Yonkers resident income tax surcharge (Tax Law sec. 1327): 16.75% of net New York State tax."
+description = "Yonkers resident income tax surcharge (Tax Law sec. 1327): 16.75% of net New York State tax, recapture included (IT-201-I Yonkers worksheet; rate unchanged in the 2026 Yonkers withholding tables). Credits not modeled."
 type = "surcharge"
 base = "net_state_tax"
 rate = 16.75

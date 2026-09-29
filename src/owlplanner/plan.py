@@ -265,9 +265,9 @@ class Plan:
     """
 
     # SC-loop parameters: the NL quantities the loop feeds back into each LP solve.
-    # Adding a new loop-fed cost (e.g. state recapture) means adding its attribute name here;
+    # Adding a new loop-fed cost means adding its attribute name here;
     # snapshot/restore/blend and the iteration trace pick it up automatically.
-    _SC_PARAMS = ("M_n", "ACA_n", "J_n", "Psi_n")
+    _SC_PARAMS = ("M_n", "ACA_n", "J_n", "Psi_n", "STR_n")
 
     def _snapshot_sc(self):
         "Copy the current SC-loop parameters into a dict."
@@ -422,6 +422,8 @@ class Plan:
         self.N_lt = 0  # Number of local tax brackets (0 when no locality has a bracket schedule)
         self.lt_surcharge_n = np.zeros(self.N_n)  # Local surcharge as a fraction of net state tax
         self.lt_T_n = np.zeros(self.N_n)  # Local income tax per year (included in st_T_n)
+        self.STR_n = np.zeros(self.N_n)  # State benefit recapture per year (SC-loop parameter; in st_T_n)
+        self._str_active = False  # True when the state recaptures the benefit of its lower brackets
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
@@ -3147,6 +3149,8 @@ class Plan:
             rhs = -self.M_n[n] - self.ACA_n[n]
             if not getattr(self, "_niit_lp", False):
                 rhs -= self.J_n[n]
+            # State recapture is part of the state tax, so a local surcharge applies to it too.
+            rhs -= self.STR_n[n] * (1 + self.lt_surcharge_n[n])
             # Add fixed assets proceeds (positive cash flow)
             rhs += (
                 self.fixed_assets_tax_free_n[n]
@@ -4447,6 +4451,8 @@ class Plan:
         self.N_lt = 0
         self.lt_surcharge_n = np.zeros(self.N_n)
         self.st_fed_sd = np.zeros(self.N_n, dtype=bool)
+        self.st_recap = None
+        self._str_active = False
         if self._has_state_tax():
             residence_n = self._residence_by_year()
             sp = tax_state.st_taxParams_schedule(
@@ -4469,6 +4475,8 @@ class Plan:
             self.st_pe_pooled = sp.pe_pooled
             self.st_fed_sd = sp.fed_sd
             self.st_senior_bonus = sp.senior_bonus
+            self.st_recap = (sp.recap_start_n, sp.recap_width_n, sp.recap_until_n)
+            self._str_active = bool(np.any(np.isfinite(sp.recap_start_n)))
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
@@ -4883,7 +4891,9 @@ class Plan:
                 else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
             )
             moves = [np.sum(np.abs(psi_implied - sc_lp["Psi_n"]) * ss_n / g_today)]
-            for _name, _active in (("J_n", True), ("M_n", includeMedicare), ("ACA_n", self.slcsp_annual > 0)):
+            for _name, _active in (
+                ("J_n", True), ("M_n", includeMedicare), ("ACA_n", self.slcsp_annual > 0), ("STR_n", self._str_active)
+            ):
                 if _active:
                     moves.append(np.sum(np.abs(getattr(self, _name) - sc_lp[_name]) / g_today))
             # LTCG bracket room is set from the previous iterate's ordinary income, so the LP's
@@ -5012,6 +5022,8 @@ class Plan:
                 self.J_n = sc_lp["J_n"]
             if self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = sc_lp["ACA_n"]
+            self.STR_n = sc_lp["STR_n"]
+            self._finalize_state_tax()
             self._check_cashflow_balance()
             self._computeFixedPointResidual(includeMedicare)
             if options.get("withDuals", False):
@@ -5024,6 +5036,53 @@ class Plan:
             self.mylog.print(f"Optimization failed: case is {self.caseStatus}.", tag="WARNING")
 
         return None
+
+    def _state_agi_and_ti(self):
+        """State AGI and taxable income of the current solution, per year.
+
+        AGI is federal AGI less the Social Security the state exempts, the pension exemption
+        and the retirement exclusion claimed: the same terms the state_taxable_income row uses.
+        """
+        if self.N_st == 0:
+            return np.zeros(self.N_n), np.zeros(self.N_n)
+        ti = np.sum(self.st_f_tn, axis=0)
+        ss_excl = np.where(self.st_tax_ss, 0.0, self.Psi_n * np.sum(self.zetaBar_in, axis=0))
+        pe_adj = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
+        agi = self.G_n + self.e_n + self.Q_n - ss_excl - pe_adj - np.sum(self.st_re_in, axis=0)
+        return agi, ti
+
+    def _state_recapture_implied(self):
+        "Benefit recapture the current solution's own state AGI and taxable income imply."
+        STR = np.zeros(self.N_n)
+        if not self._str_active:
+            return STR
+        start, width, until = self.st_recap
+        for n in range(self.N_n):
+            if np.isfinite(start[n]):
+                STR[n] = tax_state.state_recapture(
+                    self.st_agi_n[n], self.st_ti_n[n], self.st_theta_tn[:, n], self.st_DeltaBar_tn[:, n],
+                    start[n], width[n], until[n],
+                )
+        return STR
+
+    def _finalize_state_tax(self):
+        """Assemble state, recapture and local tax from the pieces of the last aggregation.
+
+        st_T_n is the total sub-federal income tax, so cash-flow identities hold without knowing
+        about recapture or localities; st_recap_n and lt_T_n are its parts. A local surcharge is a
+        share of the state tax including the recapture.
+        """
+        Nn = self.N_n
+        if self.N_st > 0:
+            self.st_T_tn = self.st_f_tn * self.st_theta_tn
+            state = np.sum(self.st_T_tn, axis=0) + self.STR_n
+        else:
+            state = np.zeros(Nn)
+        self.st_recap_n = self.STR_n.copy() if self.N_st > 0 else np.zeros(Nn)
+        self.lt_T_n = self.lt_surcharge_n * state
+        if self.N_lt > 0:
+            self.lt_T_n = self.lt_T_n + np.sum(self.lt_f_tn * self.lt_theta_tn, axis=0)
+        self.st_T_n = state + self.lt_T_n
 
     def _ltcg_tax_implied(self):
         """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly."""
@@ -5070,6 +5129,9 @@ class Plan:
         res["deduction"] = (self.sigmaBar_n - sigma_true) / g
 
         res["LTCG"] = (self.U_n - self._ltcg_tax_implied()) / g
+
+        if self._str_active:
+            res["state recapture"] = (self.STR_n - self._state_recapture_implied()) / g
 
         self.fixedPointResidual = {
             k: {"sum": float(np.sum(v)), "abs_sum": float(np.sum(np.abs(v))), "max_abs": float(np.max(np.abs(v)))}
@@ -5731,6 +5793,7 @@ class Plan:
             self.MAGI_n = np.zeros(self.N_n)
             self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
+            self.STR_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.ACA_n = np.zeros(self.N_n)
             # Seed I_n for first NIIT LP iteration: portfolio part is zero before first solve.
@@ -5739,6 +5802,8 @@ class Plan:
             return
 
         self._aggregateResults(x, short=True)
+        # Uses the Psi_n the LP was built with, so it has to come before _update_Psi_n.
+        self.STR_n = self._state_recapture_implied()
         # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
         # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
         # Also skip when fixedPsi is set (numeric withSSTaxability).
@@ -5927,26 +5992,17 @@ class Plan:
         # Also add net investment income from rent/trust (netinv_in) for NIIT purposes.
         self.I_n = np.maximum(0, np.sum(I_in, axis=0)) + np.sum(self.netinv_in, axis=0)
 
+        # State taxable income and AGI, which the benefit recapture is a function of.
+        self.st_f_tn = vm["st_f"].extract(x) if "st_f" in vm else np.zeros((self.N_st, Nn))
+        self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
+        self.st_agi_n, self.st_ti_n = self._state_agi_and_ti()
+
         # Stop after building minimum required for self-consistent loop.
         if short:
             return
 
-        # Extract state income tax.
-        if "st_f" in vm:
-            self.st_f_tn = vm["st_f"].extract(x)
-            self.st_T_tn = self.st_f_tn * self.st_theta_tn
-            self.st_T_n = np.sum(self.st_T_tn, axis=0)
-        else:
-            self.st_T_n = np.zeros(Nn)
-        # Local tax: its own brackets plus any surcharge on the state tax just computed.
-        # st_T_n is the total, so cash-flow identities hold without knowing about localities.
-        self.lt_T_n = self.lt_surcharge_n * self.st_T_n
-        if "lt_f" in vm:
-            self.lt_f_tn = vm["lt_f"].extract(x)
-            self.lt_T_n = self.lt_T_n + np.sum(self.lt_f_tn * self.lt_theta_tn, axis=0)
-        self.st_T_n = self.st_T_n + self.lt_T_n
-        # State retirement income exemption claimed by each individual.
-        self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
+        self.lt_f_tn = vm["lt_f"].extract(x) if "lt_f" in vm else np.zeros((self.N_lt, Nn))
+        self._finalize_state_tax()
 
         self.T_tn = self.f_tn * self.theta_tn
         self.T_n = np.sum(self.T_tn, axis=0)

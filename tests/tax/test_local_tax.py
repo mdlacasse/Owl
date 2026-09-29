@@ -142,7 +142,7 @@ def test_yonkers_is_16_75_percent_of_the_state_tax():
     yonkers = _solve(_plan("Yonkers"))
     assert plain.st_T_n.sum() > 10_000, "test needs a real state tax"
     assert np.all(plain.lt_T_n == 0)
-    net_state = np.sum(yonkers.st_T_tn, axis=0)
+    net_state = np.sum(yonkers.st_T_tn, axis=0) + yonkers.st_recap_n  # the surcharge base includes recapture
     np.testing.assert_allclose(yonkers.lt_T_n, 0.1675 * net_state, rtol=1e-9)
     np.testing.assert_allclose(yonkers.st_T_n, 1.1675 * net_state, rtol=1e-9)
     # The surcharge also nudges the optimum, so against the plain plan only the size is comparable.
@@ -160,13 +160,13 @@ def test_nyc_tax_is_the_schedule_applied_to_state_taxable_income():
             else [(0, 3.078), (12000, 3.762), (25000, 3.819), (50000, 3.876)]
         )
         assert p.lt_T_n[n] == pytest.approx(_apply_brackets(sched, base[n]), abs=0.5)
-    np.testing.assert_allclose(p.st_T_n - p.lt_T_n, np.sum(p.st_T_tn, axis=0), rtol=1e-9)
+    np.testing.assert_allclose(p.st_T_n - p.lt_T_n, np.sum(p.st_T_tn, axis=0) + p.st_recap_n, rtol=1e-9)
 
 
 def test_locality_adds_to_the_total_and_cash_flow_still_balances():
     p = _solve(_plan("NYC"))
     assert p.lt_T_n.sum() > 0
-    assert p.st_T_n.sum() == pytest.approx(np.sum(p.st_T_tn) + p.lt_T_n.sum())
+    assert p.st_T_n.sum() == pytest.approx(np.sum(p.st_T_tn) + p.st_recap_n.sum() + p.lt_T_n.sum())
 
 
 def test_locality_lowers_spending():

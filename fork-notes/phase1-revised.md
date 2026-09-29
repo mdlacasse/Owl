@@ -44,7 +44,7 @@ Recapture optimize mode needs a big-M. `_ceiling_n` survives and is what NIIT/Me
 | – | Padding fix for unequal Single/MFJ bracket counts (NJ) | Done. Found while writing the residency merge; upstream bug, not in our earlier plan. |
 | 4 | Residency schedule (`basic_info.moves`) | Done. Per-year flags; `residency.py`. |
 | 5 | Local layer (`taxes_local.toml`: `brackets`, `surcharge`; `basic_info.locality`) | Done, moved ahead of recapture (it only needs the state tax total; the surcharge will pick recapture up when that lands). NYC thresholds unverified. |
-| 6 | State recapture, loop mode | **Blocked on data, not code**: the sandbox cannot reach tax.ny.gov, nysenate.gov, legiscan or findlaw, so Tax Law sec. 601(d) and the IT-201 worksheets cannot be read. Nothing NY-specific goes in until they can be; see below. |
+| 6 | State recapture, loop mode | **Done** (network opened; worksheets read). The blocked-data note below is kept for history. Was: **Blocked on data, not code**: the sandbox cannot reach tax.ny.gov, nysenate.gov, legiscan or findlaw, so Tax Law sec. 601(d) and the IT-201 worksheets cannot be read. Nothing NY-specific goes in until they can be; see below. |
 | 7 | Recapture, optimize mode | After 6, and after asking upstream whether MIP internals have settled. |
 
 ## Why recapture waits
