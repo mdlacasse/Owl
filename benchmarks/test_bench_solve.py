@@ -91,6 +91,19 @@ def _solve_loop(plan):
 
 
 def test_lp_build(benchmark, couple):
+    """A full build, as on the first iteration of the self-consistent loop."""
+    plan = clone(couple, verbose=False)
+    _solve_loop(plan)
+
+    def build():
+        plan._fixedRows = {}
+        plan._buildConstraints("maxSpending", plan.solverOptions)
+
+    benchmark(build)
+
+
+def test_lp_rebuild(benchmark, couple):
+    """A later iteration's build, which replays the loop-invariant blocks."""
     plan = clone(couple, verbose=False)
     _solve_loop(plan)
     benchmark(plan._buildConstraints, "maxSpending", plan.solverOptions)
