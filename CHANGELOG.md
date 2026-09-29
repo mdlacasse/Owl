@@ -1,3 +1,12 @@
+### Version 2026.9.29
+
+#### Fixed: state tax no longer also deducts the federal standard deduction
+
+State taxable income now starts from gross ordinary income, so only the state's own deduction
+and exemptions apply. State tax was previously understated in every income-tax state; plans in
+those states now show higher state tax and lower spending or bequest. Test references were
+updated accordingly.
+
 ### Version 2026.9.27
 
 #### Removed: `withDecomposition`, which never worked

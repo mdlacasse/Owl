@@ -2576,7 +2576,9 @@ class Plan:
     def _add_state_taxable_income(self):
         """Equality constraint: state bracket allocations = state AGI - deductions.
 
-        State AGI = federal ordinary income (G_n via f[t,n])
+        State AGI = gross ordinary income (G_n + e_n: federal brackets f[t,n] plus the
+                    federal standard deduction e_n, so the federal deduction is not
+                    also taken against the state base)
                   + capital gains (Q_n via q[p,n], taxed as ordinary by most states)
                   - SS exclusion (when state does not tax SS: subtract Psi_n * zetaBar_n)
                   - pension exemption cap (parameter)
@@ -2604,7 +2606,8 @@ class Plan:
                 for i in range(self.N_i):
                     row.addElem(vm["st_re"].idx(i, n), 1)  # retirement income exemption
             for t in range(self.N_t):
-                row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal ordinary income)
+                row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal taxable ordinary income)
+            row.addElem(vm["e"].idx(n), -1)  # add back the federal standard deduction
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))

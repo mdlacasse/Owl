@@ -269,7 +269,14 @@ class TestSurplusNetting:
 
 
 class TestMatchesRecordedOptimum:
-    """The recorded fixture is what the exclusion binaries produced, before their removal."""
+    """The recorded fixture is what the exclusion binaries produced, before their removal.
+
+    Exception: the cases listed under ``_rerecorded_cases`` in the fixture were re-recorded
+    from this LP build on 2026-09-28, when the state base stopped also deducting the federal
+    standard deduction. Only their ``basis``, ``bequest`` and per-year flows changed; for them
+    the fixture pins the corrected tax model rather than the binary-constrained optimum.
+    Cases in no-income-tax states were unaffected and keep their original MIP records.
+    """
 
     @pytest.mark.toml
     @pytest.mark.parametrize("case", _comparable_cases())

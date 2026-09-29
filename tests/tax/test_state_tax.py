@@ -182,6 +182,20 @@ def test_bracket_identity():
     np.testing.assert_allclose(computed_T_n, p.st_T_n, atol=1.0)
 
 
+def test_state_base_starts_from_gross_income():
+    """State taxable income = gross ordinary income + gains - state deduction.
+
+    Guards against taking the federal standard deduction (e_n) against the state base
+    in addition to the state's own deduction. MN taxes SS and has no retirement
+    exemption, so no other adjustment enters the base.
+    """
+    p = _make_plan("MN")
+    p.solve("maxSpending", options={"verbose": False})
+    expected = np.maximum(0, p.G_n + p.e_n + p.Q_n - p.st_sigmaBar_n)
+    assert np.any(expected > 1_000), "test needs years with positive state taxable income"
+    np.testing.assert_allclose(np.sum(p.st_f_tn, axis=0), expected, atol=1.0)
+
+
 # ---------------------------------------------------------------------------
 # Task 6: Cash flow balance
 # ---------------------------------------------------------------------------
