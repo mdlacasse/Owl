@@ -82,7 +82,7 @@ _VALUES = [
 ]
 
 
-@pytest.mark.parametrize("lb, ub", itertools.product(_VALUES, _VALUES))
+@pytest.mark.parametrize("lb, ub", list(itertools.product(_VALUES, _VALUES)))
 def test_bound_key_matches_numpy_reference(lb, ub):
     assert _bound_key(lb, ub) == _reference_key(lb, ub)
     assert _isclose(lb, ub) == bool(np.isclose(lb, ub))
