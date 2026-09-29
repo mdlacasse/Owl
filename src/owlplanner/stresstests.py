@@ -27,7 +27,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from itertools import product
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from scipy.optimize import linprog
 
 from . import fixedassets as fxasst
@@ -1372,6 +1372,7 @@ def run_stochastic_spending(
     with_longevity=False,
     sexes=None,
     seed=None,
+    executor="threads",
 ):
     """
     Run stochastic spending optimization over a set of scenarios.
@@ -1403,6 +1404,14 @@ def run_stochastic_spending(
     seed : int or None, optional
         Random seed for reproducible longevity draws.  Only used when
         ``with_longevity=True``.
+    executor : str, optional
+        "threads" (default) solves the scenarios in a thread pool, "processes" in a
+        process pool.  Building each scenario's LP is Python and holds the GIL, so
+        threads stop scaling at a few cores while processes scale with the machine.
+        Results are identical either way: every random draw happens here, in the
+        parent.  Threads remain the default because a worker process logs to its own
+        stdout and stderr rather than to the plan's log streams, and because a
+        process pool needs an importable main module on platforms that spawn.
 
     Returns
     -------
@@ -1436,6 +1445,9 @@ def run_stochastic_spending(
                                scenario (see _year1_snapshot); None for infeasible or
                                short-horizon scenarios. Summarize with summarize_year1().
     """
+    if executor not in ("threads", "processes"):
+        raise ValueError(f"executor must be 'threads' or 'processes', not {executor!r}.")
+
     if with_longevity and scenario_method == "historical":
         raise ValueError(
             "Longevity risk is not supported with historical scenarios "
@@ -1582,20 +1594,26 @@ def run_stochastic_spending(
         raise ValueError(f"Unknown scenario_method '{scenario_method}'. Use 'historical' or 'mc'.")
 
     # ------------------------------------------------------------------
-    # Solve all scenarios in parallel using threads.
-    # HiGHS releases the GIL during solve, so threads give real parallelism.
-    # No pickling needed — clones are plain Python objects.
+    # Solve all scenarios in parallel.
+    # HiGHS releases the GIL during solve, but building each LP is Python, so a
+    # thread pool tops out at a few cores; a process pool (which pickles the
+    # clones) scales further. Both see the same pre-drawn inputs.
     # Short-horizon scenarios (both individuals die within <=2 years) are
     # pre-populated in results_map with basis=0 and not submitted to workers.
     # ------------------------------------------------------------------
     n_to_solve = len(args_list)
     n_workers = min(os.cpu_count() or 1, n_to_solve) if n_to_solve > 0 else 1
-    plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker thread(s).")
+    if executor == "processes":
+        pool = ProcessPoolExecutor(max_workers=n_workers)
+        plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker process(es).")
+    else:
+        pool = ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scenario")
+        plan.mylog.print(f"Solving {total} scenarios using {n_workers} parallel worker thread(s).")
     progcall.start()
     completed = n_short_horizon  # pre-count already-resolved short-horizon scenarios
 
-    with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="scenario") as executor:
-        futures = {executor.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
+    with pool:
+        futures = {pool.submit(_scenario_worker, args): orig_idx for orig_idx, args in args_list}
         for fut in as_completed(futures):
             orig_idx = futures[fut]
             try:
