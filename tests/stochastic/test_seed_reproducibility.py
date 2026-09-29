@@ -29,7 +29,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-from sys import platform
 
 import numpy as np
 import pytest
@@ -74,48 +73,57 @@ def test_seeded_case_series_matches_reference():
     )
 
 
-# Identical inputs should give an identical plan, so the objective is pinned too: it is
-# the number a reader would try to reproduce, and pinning the series alone would not tell
-# us whether it carried through to a result.
+# Identical inputs should give an identical plan, so the objective is pinned too: pinning the
+# series alone would not tell us whether it carried through to a result.
 #
-# The series above is bit-identical on every platform, so what varies here is the solve,
-# not the draw: the basis has to be keyed by platform as well as by solver. darwin was
-# recorded 2026-08-12, win32 measured 2026-08-28. linux/HiGHS is confirmed by CI;
-# linux/MOSEK is untested (CI installs MOSEK without a license) and inherits the darwin
-# value until someone runs it on a licensed Linux machine.
-# The MOSEK values were re-measured after the residual exit test, which makes this case iterate
-# to the limit instead of stopping early (117_050.45 before). HiGHS moved by 23, inside tolerance,
-# so its values stand; win32 is carried over unverified, as before.
-# Re-measured on darwin when the default epsilon became 5e-7. chris+pat is the case that
-# benefits most: it ran to max iteration with a 2,882 $/yr residual and now converges in 20 with
-# 48, at a cost of about $163 of basis. linux carries the darwin figures: CI confirms them on
-# Python 3.11, 3.12 and 3.14, while 3.13 lands $103 higher on a different HiGHS build -- see the
-# tolerance note below. win32 has not been re-measured since 2026-08-28 and predates the change.
-CHRIS_PAT_BASIS = {
-    "darwin": {"HiGHS": 116_917.20, "MOSEK": 116_970.06},
-    "linux": {"HiGHS": 116_917.20, "MOSEK": 116_970.06},
-    "win32": {"HiGHS": 117_069.00, "MOSEK": 116_967.00},
-}
+# The draw depends on the rate model, its window and the seed -- not on the household -- so any
+# case can carry it, and the series above is reproduced exactly by every one tried. That matters
+# because the case used here decides how noisy the pin is, and Case_chris+pat was a poor choice:
+# it is the pool's most oscillation-prone plan, cycling on the Social Security ramp so that the
+# loop returns the better of two states. Which state it lands on moves with anything that
+# perturbs the arithmetic -- $84 with the MOSEK thread count, $103 between HiGHS builds, and a
+# different value on each platform -- so the pin needed a platform-by-solver table and had to be
+# re-measured three times in two months, every time telling us about branch-and-bound rather than
+# about seeds.
+#
+# Case_bill carries the same draw and converges monotonically in 2 iterations with a zero
+# residual, giving 52,032.45 under HiGHS and MOSEK alike. So the objective is a constant here
+# rather than a fixed point that happened to be selected, and one number needs no keying.
+BILL_SEEDED_BASIS = 52_032.45
 
 
 @pytest.mark.toml
-def test_seeded_case_objective_matches_reference():
-    """A reproducible series should give a reproducible plan."""
+def test_a_seeded_series_carries_through_to_a_plan():
+    """The series is exact; this checks it reaches the solver and yields the same plan.
+
+    Any case can carry the draw, so this uses one whose answer does not wander: Case_bill is
+    monotonic in 2 iterations and agrees between solvers to the cent. A failure here means the
+    seeded series stopped reaching the plan, not that branch-and-bound picked differently.
+    """
     solver = "MOSEK" if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
-    if platform not in CHRIS_PAT_BASIS:
-        pytest.skip(f"No reference basis recorded for platform {platform!r}")
-    p = owl.readConfig(os.path.join("examples", "Case_chris+pat"))
+    p = owl.readConfig(os.path.join("examples", "Case_bill"))
+    p.setReproducible(True, seed=2026)
+    p.setRates("historical_lognormal", frm=1928, to=2025)
     p.solverOptions["solver"] = solver
     p.resolve()
     assert p.caseStatus == "solved"
-    # The tolerance is a property of the case, not slack. Case_chris+pat is the pool's most
-    # oscillation-prone plan -- it cycles on the Social Security ramp and the loop picks the better
-    # of two states -- so which state it lands on moves with anything that perturbs the arithmetic:
-    # $84 with the MOSEK thread count, and $103 between HiGHS builds (linux/3.13 returns 117,020.5
-    # where 3.11, 3.12 and 3.14 return the recorded figure). What this test is for is that a seeded
-    # rate series gives a reproducible plan, not that every build agrees on the last dollar of a
-    # cycling case, so the floor covers the build spread with margin.
-    assert p.basis == pytest.approx(CHRIS_PAT_BASIS[platform][solver], rel=5e-4, abs=250)
+    np.testing.assert_allclose(p.tau_kn[:, :3].T, CHRIS_PAT_FIRST_YEARS, rtol=RTOL,
+                               err_msg="the seeded draw is not reproduced when another case carries it")
+    assert p.basis == pytest.approx(BILL_SEEDED_BASIS, rel=5e-4, abs=50)
+
+
+@pytest.mark.toml
+def test_the_shipped_stochastic_case_still_solves():
+    """Case_chris+pat is the one shipped example that draws its returns, so it must still solve.
+
+    Its objective is deliberately not pinned: see the note above. This keeps the end-to-end
+    coverage -- a stochastic case loading, drawing and solving -- without pinning a number that
+    moves for reasons unrelated to the seed.
+    """
+    p = owl.readConfig(os.path.join("examples", "Case_chris+pat"))
+    p.resolve()
+    assert p.caseStatus == "solved"
+    assert p.basis > 0
 
 
 @pytest.mark.toml
