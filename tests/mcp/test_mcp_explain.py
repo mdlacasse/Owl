@@ -20,12 +20,12 @@ def _run(coro):
     return asyncio.run(coro)
 
 
-def _solved_plan(**opts):
+def _solved_plan(state="CA", **opts):
     plan = _build_plan_from_params(
         names=["Pat"],
         birth_dates=["1960-07-01"],
         life_expectancy=[88],
-        state="CA",
+        state=state,
         taxable=[200_000],
         tax_deferred=[800_000],
         roth=[100_000],
@@ -242,3 +242,37 @@ def test_explain_results_downgrades_milp_tax_modes():
     # The loop-mode solve still produces the full explanation.
     assert "this_year" in data["explanation"]
     assert "bequest_floor" in data["explanation"]["shadow_prices"]
+
+
+@pytest.mark.toml
+def test_build_explanation_reports_state_tax():
+    """An income-tax state gets its tax and bracket fill, consistent with the solved plan."""
+    plan = _solved_plan()
+    ex = build_explanation(plan)
+    g = plan.gamma_n[: plan.N_n]
+
+    year0 = ex["this_year"]["state_tax"]
+    assert year0["state"] == "CA"
+    assert year0["state_tax"] == pytest.approx(plan.st_T_n[0] / g[0], abs=0.01)
+
+    st = ex["state_tax_brackets"]
+    assert st["state"] == "CA"
+    assert st["total_state_tax_today"] == pytest.approx(float((plan.st_T_n / g).sum()), rel=1e-6)
+    assert st["total_state_tax_today"] > 0
+    top_rate = 100 * float(plan.st_theta_tn.max())
+    for row in st["by_year"]:
+        assert 0 < row["top_bracket_rate_pct"] <= top_rate + 1e-9
+        assert row.get("headroom_in_bracket_today", 0) >= 0
+    # Each reported year's tax is the plan's own state tax for that year.
+    by_year = {r["year"]: r["state_tax_today"] for r in st["by_year"]}
+    for n, year in enumerate(plan.year_n):
+        if int(year) in by_year:
+            assert by_year[int(year)] == pytest.approx(plan.st_T_n[n] / g[n], abs=0.01)
+
+
+@pytest.mark.toml
+def test_build_explanation_omits_state_tax_without_income_tax():
+    """A no-income-tax state gets no state sections."""
+    ex = build_explanation(_solved_plan(state="TX"))
+    assert "state_tax" not in ex["this_year"]
+    assert "state_tax_brackets" not in ex

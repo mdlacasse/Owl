@@ -2485,7 +2485,8 @@ async def explain_results(
       - this_year: the first plan year's decisions — the only ones that are executed.
         Per-person Roth conversion, withdrawals by account, and RMD due; the bracket
         the optimizer fills and the headroom left in it; proximity to tax thresholds
-        (NIIT, IRMAA with its two-year lookback, ACA, SS taxability); and the marginal
+        (NIIT, IRMAA with its two-year lookback, ACA, SS taxability); in a state with an
+        income tax, the state tax and state bracket position (state_tax); and the marginal
         value of a dollar now. Lead the narration with this section — later years are
         projections under current law and assumed returns, re-optimized every year.
       - shadow_prices: what each active goal or rule is worth at the margin — the
@@ -2500,6 +2501,8 @@ async def explain_results(
         where the conversion cap is binding and what one more dollar of cap is worth.
       - tax_brackets: the top federal bracket reached each year, the headroom left in
         it, and the years the optimizer deliberately fills the bracket to the boundary.
+      - state_tax_brackets: in a state with an income tax, the same per year for the state
+        brackets, with the state tax paid. Absent for no-income-tax states.
       - account_depletion: the order and timing in which accounts are drawn to zero.
       - binding_constraints: which named constraints are active.
 
@@ -2772,6 +2775,7 @@ def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_metho
     ]
 
     return {
+        "engine": result.get("engine"),  # the engine that produced the run
         "status": "completed",
         "case_name": plan._name,
         "scenario_method": scenario_method,
@@ -3335,6 +3339,7 @@ def _frontier_blocking(
 def _build_frontier_json(plan, result, summary):
     """Shape a trade-off result for the assistant. All dollars are today's dollars."""
     out = {
+        "engine": summary.get("engine"),  # the engine that produced the frontier
         "status": "ok",
         "case_name": plan._name,
         "scenario_method": summary["scenario_method"],
@@ -3756,6 +3761,7 @@ def _build_year1_json(plan, result, base_year1, scenario_method):
         "top_bracket_pct": base_year1["top_bracket_pct"],
     }
     return {
+        "engine": result.get("engine"),  # the engine that produced the run
         "status": "completed",
         "case_name": plan._name,
         "scenario_method": scenario_method,

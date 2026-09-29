@@ -19,6 +19,18 @@ per scenario. Thanks to Ben Mabey (@bmabey) for this work (#150, #151, #152).
 run, and can compare against a saved baseline; see *Benchmarks* in `CONTRIBUTING.md`. Contributed
 by Ben Mabey (@bmabey) (#150).
 
+#### New: plan explanations cover state income tax
+
+In a state with an income tax, `explain_results` reports this year's state tax and the state
+bracket reached, with the room left in it (`this_year.state_tax`), and the same for every year
+of the plan (`state_tax_brackets`). Plans in states without an income tax are unchanged.
+
+#### Changed: MCP stochastic and frontier results record the engine
+
+`run_stochastic`, `run_year1_robustness`, `run_longevity_stochastic` and
+`run_spending_bequest_frontier` now return the `engine` entry (Owl version and git commit), like
+the other results.
+
 #### Changed: dependencies updated
 
 MOSEK 11.2.5, fonttools 4.66.1, PyJWT 2.15.1 and sse-starlette 3.5.0. The optional `assistant`
