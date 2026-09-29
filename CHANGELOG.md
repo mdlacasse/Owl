@@ -1,10 +1,38 @@
+### Version 2026.9.30
+
+#### Fixed: NJ income above $1M is taxed at the top rate
+
+In New Jersey, a Single filer, or the surviving spouse of a couple after the first death, paid no
+NJ tax on taxable income above $1,000,000. That income is now taxed at the 10.75% top rate, so
+such plans show higher NJ tax and lower spending or bequest. No other state was affected. Thanks
+to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#149).
+
+#### Changed: faster solves and Monte Carlo runs
+
+Each iteration of the self-consistent loop builds its LP faster. Stochastic runs with historical
+Gaussian or lognormal rates fit the rate distribution once per historical window instead of once
+per scenario. Thanks to Ben Mabey (@bmabey) for this work (#150, #151, #152).
+
+#### New: timing benchmarks
+
+`uv run pytest benchmarks --benchmark-only` times the LP build, single solves and a Monte Carlo
+run, and can compare against a saved baseline; see *Benchmarks* in `CONTRIBUTING.md`. Contributed
+by Ben Mabey (@bmabey) (#150).
+
+#### Changed: dependencies updated
+
+MOSEK 11.2.5, fonttools 4.66.1, PyJWT 2.15.1 and sse-starlette 3.5.0. The optional `assistant`
+and `notebooks` extras move to anthropic 1.9.0, ipykernel 7.4.0, platformdirs 4.12.2 and
+fqdn 1.6.0.
+
 ### Version 2026.9.29
 
 #### Fixed: state tax no longer also deducts the federal standard deduction
 
 State taxable income now starts from gross ordinary income, so only the state's own deduction
 and exemptions apply. State tax was previously understated in every income-tax state; plans in
-those states now show higher state tax and lower spending or bequest.
+those states now show higher state tax and lower spending or bequest. Thanks to Florin Mateoc
+(@fmateoc) for reporting it (#147), and to @SamMadDev for reporting it independently (#154).
 
 #### Changed: states that use the federal standard deduction now follow it
 

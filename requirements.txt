@@ -41,7 +41,7 @@ defusedxml==0.7.1
     # via odfpy
 et-xmlfile==2.0.0
     # via openpyxl
-fonttools==4.66.0
+fonttools==4.66.1
     # via matplotlib
 h11==0.16.0
     # via
@@ -88,7 +88,7 @@ mcp==2.2.0
     # via owlplanner
 mcp-types==2.2.0
     # via mcp
-mosek==11.2.4
+mosek==11.2.5
     # via owlplanner
 narwhals==2.26.0
     # via
@@ -156,7 +156,7 @@ pydantic-core==2.46.5
     # via pydantic
 pydeck==0.9.3
     # via streamlit
-pyjwt==2.15.0
+pyjwt==2.15.1
     # via mcp
 pyparsing==3.3.3
     # via matplotlib
@@ -188,7 +188,7 @@ seaborn==0.13.2
     # via owlplanner
 six==1.17.0
     # via python-dateutil
-sse-starlette==3.4.11
+sse-starlette==3.5.0
     # via mcp
 starlette==1.7.0
     # via
