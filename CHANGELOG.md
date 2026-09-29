@@ -7,6 +7,12 @@ NJ tax on taxable income above $1,000,000. That income is now taxed at the 10.75
 such plans show higher NJ tax and lower spending or bequest. No other state was affected. Thanks
 to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#149).
 
+#### Fixed: a married case can omit `pension_indexed` and `pension_ages`
+
+A couple's case without these keys in `[fixed_income]` failed every solve with an `IndexError`.
+They now default for each person (indexed, age 65), and a list of the wrong length is reported as
+a clear error. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#155).
+
 #### Changed: faster solves and Monte Carlo runs
 
 Each iteration of the self-consistent loop builds its LP faster. Stochastic runs with historical

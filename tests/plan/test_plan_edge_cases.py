@@ -203,6 +203,31 @@ def test_set_pension_invalid_lengths():
         p.setPension([1000, 2000], [65])  # Wrong length for amounts
 
 
+def test_set_pension_rejects_short_indexed_list():
+    """A one-entry `indexed` for a couple is a clear ValueError, not an IndexError at solve (#155)."""
+    p = owl.Plan(["Jack", "Jill"], ["1962-01-15", "1965-01-15"], [89, 92], "test")
+    with pytest.raises(ValueError, match="'indexed' must have 2 entries"):
+        p.setPension([1000, 0], [65, 65], [True])
+
+
+@pytest.mark.toml
+def test_couple_case_without_pension_indexed_or_ages_solves(tmp_path):
+    """Omitting pension_indexed and pension_ages defaults them for every person (#155)."""
+    import shutil
+
+    lines = open("examples/Case_john+sally.toml").read().splitlines()
+    kept = [ln for ln in lines if not ln.startswith(("pension_indexed", "pension_ages"))]
+    assert len(kept) == len(lines) - 2
+    (tmp_path / "Case_couple.toml").write_text("\n".join(kept) + "\n")
+    shutil.copy("examples/HFP_john+sally.xlsx", tmp_path)
+
+    p = owl.readConfig(str(tmp_path / "Case_couple.toml"), verbose=False)
+    assert list(p.pensionIsIndexed) == [True, True]
+    assert len(p.pensionAges) == 2
+    p.solve("maxSpending", {**p.solverOptions, "solver": "HiGHS"})
+    assert p.caseStatus == "solved"
+
+
 def test_set_pension_survivor_fraction():
     """Test setPension with survivor_fraction stores correctly."""
     p = owl.Plan(["Jack", "Jill"], ["1962-01-15", "1965-01-15"], [89, 92], "test")
