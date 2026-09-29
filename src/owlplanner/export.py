@@ -443,6 +443,11 @@ def build_summary_dic(plan, N=None):
         stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
         stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
         _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
+        # Parts of the state total above (not in addition to it), shown only where they exist.
+        parts = (("Total state benefit recapture paid", plan.st_recap_n), ("Total local income tax paid", plan.lt_T_n))
+        for label, arr in parts:
+            if np.any(arr > 0):
+                _summary_currency_pair(dic, label, np.sum(arr[:N] / plan.gamma_n[:N]), np.sum(arr[:N]))
 
     taxPaid = np.sum(plan.medicare_n[:N], axis=0)
     taxPaidNow = np.sum(plan.medicare_n[:N] / plan.gamma_n[:N], axis=0)
@@ -1141,6 +1146,10 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["10% penalty"] = plan.P_n
     if np.any(plan.st_T_n > 0):
         TxDic["State tax"] = plan.st_T_n
+        if np.any(plan.st_recap_n > 0):
+            TxDic["of which recapture"] = plan.st_recap_n
+        if np.any(plan.lt_T_n > 0):
+            TxDic["of which local"] = plan.lt_T_n
     TxDic["Medicare+IRMAA"] = plan.medicare_n
     if np.any(plan.aca_costs_n > 0):
         TxDic["ACA premiums"] = plan.aca_costs_n

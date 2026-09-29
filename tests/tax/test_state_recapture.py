@@ -205,3 +205,12 @@ def test_no_recapture_outside_new_york_or_after_leaving():
     assert not nj._str_active and np.all(nj.st_recap_n == 0)
     moved = _plan([14000, 8000], moves=[(2031, "FL")])
     assert np.all(moved.st_recap_n[1:5] > 0) and np.all(moved.st_recap_n[5:] == 0)
+
+
+def test_summary_breaks_out_recapture_and_local_tax():
+    from owlplanner.export import build_summary_dic
+
+    labels = " ".join(build_summary_dic(_plan([14000, 8000], locality="Yonkers")))
+    assert "Total state benefit recapture paid" in labels and "Total local income tax paid" in labels
+    labels = " ".join(build_summary_dic(_plan([14000, 8000], state="NJ")))
+    assert "recapture" not in labels and "local income tax" not in labels

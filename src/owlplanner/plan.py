@@ -423,6 +423,7 @@ class Plan:
         self.lt_surcharge_n = np.zeros(self.N_n)  # Local surcharge as a fraction of net state tax
         self.lt_T_n = np.zeros(self.N_n)  # Local income tax per year (included in st_T_n)
         self.STR_n = np.zeros(self.N_n)  # State benefit recapture per year (SC-loop parameter; in st_T_n)
+        self.st_recap_n = np.zeros(self.N_n)  # Recapture charged in the solved plan (part of st_T_n)
         self._str_active = False  # True when the state recaptures the benefit of its lower brackets
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
