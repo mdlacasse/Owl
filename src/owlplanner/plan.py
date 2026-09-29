@@ -232,6 +232,31 @@ def _checkConfiguration(func=None, *, requireRates=True):
     return decorate if func is None else decorate(func)
 
 
+def _fixedAcrossIterations(builder):
+    """
+    Decorator for a constraint builder whose rows are the same on every iteration of
+    the self-consistent loop: the rows and bounds it adds on the first build of a solve
+    are replayed on the later ones instead of being rebuilt.
+
+    Only for builders that read nothing the loop updates between iterations: M_n, ACA_n,
+    J_n, Psi_n, G_n, Q_n, I_n, the gain fraction, and sigmaBar_n (which follows MAGI).
+    Rebuilding those rows was most of the cost of each iteration's LP.
+    """
+
+    @wraps(builder)
+    def wrapper(self, *args):
+        saved = self._fixedRows.get(builder.__name__)
+        if saved is None:
+            ncons, nranges = self.A.ncons, len(self.B.ind)
+            builder(self, *args)
+            self._fixedRows[builder.__name__] = (self.A.rowsSince(ncons), self.B.rangesSince(nranges))
+        else:
+            self.A.extendRows(saved[0])
+            self.B.extendRanges(saved[1])
+
+    return wrapper
+
+
 def _timer(func):
     """
     Decorator to report CPU and Wall time.
@@ -402,6 +427,7 @@ class Plan:
         self.mu = 0.0172  # Dividend rate (decimal)
         self.taxable_basis_i = None  # Per-person initial cost basis (N_i,); None = legacy cap-gain approx
         self.gain_fraction_in = None  # (N_i, N_n) unrealized gain fraction; updated each SC iteration
+        self._fixedRows = {}  # Rows of the loop-invariant constraint builders; reset by solve()
         self.nu = 0.300  # Heirs tax rate (decimal)
         self.liquidationTaxRate = 0.240  # Assumed ordinary tax rate on tax-deferred/HSA if liquidated (decimal)
         self.liquidationCapGainsRate = 0.150  # Assumed capital-gains tax rate on fixed-asset disposition (decimal)
@@ -2575,6 +2601,7 @@ class Plan:
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
         self._add_withdrawal_limits()
+        self._add_hsa_medical_cap()
         self._add_withdrawal_ordering(options)
         self._add_objective_constraints(objective, options)
         self._add_initial_balances()
@@ -2597,6 +2624,7 @@ class Plan:
         self._configure_NIIT_binary_variables(options)
         self._build_objective_vector(objective, options)
 
+    @_fixedAcrossIterations
     def _add_rmd_inequalities(self):
         """
         Enforce Required Minimum Distributions (RMDs) on tax-deferred accounts (j=1) only.
@@ -2623,6 +2651,7 @@ class Plan:
                     # floor on the withdrawal that has to be taken as taxable income.
                     self.A.addNewRow(rowDic, -self.qcd_in[i, n], np.inf, tag=("rmd", i, n))
 
+    @_fixedAcrossIterations
     def _add_tax_bracket_bounds(self):
         for t in range(self.N_t):
             for n in range(self.N_n):
@@ -2633,7 +2662,11 @@ class Plan:
             self.B.setRange(self.vm["e"].idx(n), 0, self.sigmaBar_n[n])
 
     def _add_state_tax_bounds(self):
-        """Set variable bounds for state income tax LP variables."""
+        """Set variable bounds for state income tax LP variables.
+
+        Not cached across iterations: st_sigmaBar_n follows MAGI where the state conforms
+        to the federal standard deduction with the OBBBA senior bonus.
+        """
         vm = self.vm
         for t in range(self.N_st):
             for n in range(self.N_n):
@@ -2686,15 +2719,15 @@ class Plan:
         # Under withSSTaxability="optimize", taxable SS is the tss variable, so exclude it
         # through tss: Psi_n there lags the LP by one self-consistent iteration.
         ss_lp = "tss" in vm
+        # SS adjustment: federal G_n contains taxable SS; remove it if state excludes SS.
+        # st_tax_ss is per year because the state can change during the plan.
+        excluded_n = ~self.st_tax_ss & (not ss_lp)
+        ss_excl_n = np.where(excluded_n, self.Psi_n * np.sum(self.zetaBar_in, axis=0), 0.0)
+        # Pension exemption (parameter): each person's pension up to their own cap.
+        pe_adj_n = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
+        rhs_n = -ss_excl_n - pe_adj_n
         for n in range(self.N_n):
-            # SS adjustment: federal G_n contains taxable SS; remove it if state excludes SS.
-            if self.st_tax_ss[n] or ss_lp:
-                ss_excl = 0.0
-            else:
-                ss_excl = self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
-            # Pension exemption (parameter): each person's pension up to their own cap.
-            pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
-            rhs = -ss_excl - pe_adj
+            rhs = float(rhs_n[n])
 
             row = self.A.newRow()
             for t in range(self.N_st):
@@ -2724,6 +2757,7 @@ class Plan:
                     rhs = self.piBar_in[i, n] if self.st_pe_pooled[n] else 0
                     self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
 
+    @_fixedAcrossIterations
     def _add_defunct_constraints(self):
         if self.N_i == 2:
             for n in range(self.n_d, self.N_n):
@@ -2732,6 +2766,7 @@ class Plan:
                 for j in range(self.N_j):
                     self.B.setRange(self.vm["w"].idx(self.i_d, j, n), 0, 0)
 
+    @_fixedAcrossIterations
     def _add_roth_maturation_constraints(self):
         """
         Enforce the Roth 5-year seasoning rule for conversions and contribution gains.
@@ -2754,6 +2789,7 @@ class Plan:
         # Assume 10% per year for contributions and conversions for past 5 years.
         # Future years will use the assumed returns.
         oldTau1 = 1.10
+        Tau1_in = 1 + np.sum(self.alpha_ijkn[:, 2, :, : self.N_n] * self.tau_kn, axis=1)
         for i in range(self.N_i):
             h = self.horizons[i]
             for n in range(h):
@@ -2766,9 +2802,8 @@ class Plan:
                 for dn in range(1, 6):
                     nn = n - dn
                     if nn >= 0:  # Past of future is now or in the future: use variables or parameters.
-                        Tau1 = 1 + np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
                         # Ignore market downs.
-                        cgains *= max(1, Tau1)
+                        cgains *= max(1, Tau1_in[i, nn])
                         row.addElem(self.vm["x"].idx(i, nn), -cgains)
                         # If a contribution, it has only penalty on gains, not on deposited amount.
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
@@ -2781,6 +2816,7 @@ class Plan:
 
                 self.A.addRow(row, rhs, np.inf, tag=("roth_maturation", i, n))
 
+    @_fixedAcrossIterations
     def _add_roth_conversion_constraints(self, options):
         """
         Enforce Roth conversion limits and add converted amounts to taxable income.
@@ -2887,6 +2923,7 @@ class Plan:
                 v = self.myRothX_in[i][n]
                 self.B.setRange(self.vm["x"].idx(i, n), v, v)
 
+    @_fixedAcrossIterations
     def _add_safety_net(self, options):
         """
         Enforce minimum taxable account balances (safety net) for each individual.
@@ -2906,6 +2943,7 @@ class Plan:
                 rhs = min_dollar * self.gamma_n[n]
                 self.B.setRange(self.vm["b"].idx(i, 0, n), rhs, np.inf)
 
+    @_fixedAcrossIterations
     def _add_withdrawal_limits(self):
         for i in range(self.N_i):
             # Wierdly enough, setting horizons causes a effects on HiGHS and MOSEK
@@ -2918,6 +2956,7 @@ class Plan:
                     rowDic = {self.vm["w"].idx(i, j, n): -1, self.vm["b"].idx(i, j, n): 1}
                     self.A.addNewRow(rowDic, 0, np.inf, tag=("withdrawal_limit", i, j, n))
 
+    def _add_hsa_medical_cap(self):
         # HSA qualified medical expense cap: sum_i w[i,3,n] - m_n <= M_n[n] + other_medical_n[n]
         # m_n is the Medicare LP variable; fixed to loop-computed value in SC-loop mode.
         # Pre-Medicare years: M_n = m_n = 0, so cap = other_medical_n[n] only.
@@ -2952,6 +2991,7 @@ class Plan:
         ceiling[self.N_n] = wealth
         return 2.0 * np.maximum(ceiling, 1.0)
 
+    @_fixedAcrossIterations
     def _add_withdrawal_ordering(self, options):
         """
         Enforce the conventional withdrawal order — taxable first, then tax-deferred,
@@ -3039,6 +3079,7 @@ class Plan:
         )
         return self._portfolioCeiling()[:Nn] + fixed
 
+    @_fixedAcrossIterations
     def _add_objective_constraints(self, objective, options):
         if objective == "maxSpending":
             if "bequest" in options:
@@ -3064,6 +3105,7 @@ class Plan:
             spending = u.get_monetary_option(options, "netSpending", 1)
             self.B.setRange(self.vm["g"].idx(0), spending, spending)
 
+    @_fixedAcrossIterations
     def _add_initial_balances(self):
         # Back project balances to the beginning of the year.
         yearSpent = 1 - self.yearFracLeft
@@ -3074,6 +3116,7 @@ class Plan:
                 rhs = self.beta_ij[i, j] / backTau
                 self.B.setRange(self.vm["b"].idx(i, j, 0), rhs, rhs)
 
+    @_fixedAcrossIterations
     def _add_surplus_deposit_linking(self, options):
         for i in range(self.N_i):
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
@@ -3091,12 +3134,9 @@ class Plan:
             self.B.setRange(self.vm["s"].idx(self.N_n - 2), 0, 0)
             self.B.setRange(self.vm["s"].idx(self.N_n - 1), 0, 0)
 
+    @_fixedAcrossIterations
     def _add_account_balance_carryover(self):
-        tau_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
-        for i in range(self.N_i):
-            for j in range(self.N_j):
-                for n in range(self.N_n):
-                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
+        tau_ijn = np.sum(self.alpha_ijkn[:, :, :, : self.N_n] * self.tau_kn, axis=2)
 
         # Weights are normalized on k: sum_k[alpha*(1 + tau)] = 1 + sum_k[alpha*tau]
         Tau1_ijn = 1 + tau_ijn
@@ -3211,6 +3251,7 @@ class Plan:
 
             self.A.addRow(row, rhs, rhs, tag=("cash_flow", n))
 
+    @_fixedAcrossIterations
     def _add_income_profile(self, objective):
         spLo = 1 - self.lambdha
         spHi = 1 + self.lambdha
@@ -3222,6 +3263,8 @@ class Plan:
 
     def _add_taxable_income(self, options=None):
         ss_lp = options is not None and options.get("withSSTaxability", "loop") == "optimize"
+        # Only positive returns are taxable (interest/dividends); losses don't reduce income.
+        fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
         for n in range(self.N_n):
             # Add fixed assets ordinary income
             rhs = self.fixed_assets_ordinary_income_n[n]
@@ -3248,10 +3291,7 @@ class Plan:
                     )
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
-                # Only positive returns are taxable (interest/dividends); losses don't reduce income.
-                fak = np.sum(
-                    np.maximum(0, self.tau_kn[1 : self.N_k, n]) * self.alpha_ijkn[i, 0, 1 : self.N_k, n], axis=0
-                )
+                fak = fak_in[i, n]
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row.addElem(self.vm["b"].idx(i, 0, n), -fak)
                 row.addElem(self.vm["w"].idx(i, 0, n), fak)
@@ -3417,6 +3457,7 @@ class Plan:
         not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
         return pia_i == 0 or already_claimed or not_selected
 
+    @_fixedAcrossIterations
     def _configure_ss_age_variables(self):
         """
         Add SS claiming-age optimization constraints (withSSAges='optimize' mode).
@@ -3628,6 +3669,7 @@ class Plan:
             loss_buf = max(fixed_loss, prev_loss) + tol
             self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf, tag=("ltcg_partition_hi", n))
 
+    @_fixedAcrossIterations
     def _add_magi_lp(self, options):
         """
         Add MAGI equality constraints when withNIIT='optimize'.
@@ -3858,6 +3900,7 @@ class Plan:
                     upper = self._ceiling_n[self.nm + nn]  # the year's MAGI ceiling
                 self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0, tag=("irmaa_bracket_ub", nn, q))
 
+    @_fixedAcrossIterations
     def _add_Medicare_costs(self, options):
         if options.get("withMedicare", "loop") != "optimize":
             # In loop mode, Medicare costs are computed outside the solver (M_n).
@@ -3961,6 +4004,7 @@ class Plan:
                     upper = self._ceiling_n[nn]  # the year's MAGI ceiling
                 self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0, tag=("aca_bracket_ub", nn, r))
 
+    @_fixedAcrossIterations
     def _add_ACA_costs(self, options):
         """
         Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
@@ -4442,6 +4486,7 @@ class Plan:
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
+        self._fixedRows = {}  # Rows of the loop-invariant builders, built on the first iteration
         self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
         # Compute state tax parameters when a state is configured.

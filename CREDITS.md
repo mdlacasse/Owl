@@ -7,6 +7,7 @@ Martin-D. Lacasse (mdlacasse)
  Clark Jefcoat (@hubcity) for fruitful interactions,
  @kg333 for fixing an error in Docker's instructions,
  John Leonard (@jleonard99) for great suggestions, website, improved logger, stochastic rate generation, reproducibility, testing, and more to come...
+ Ben Mabey (@bmabey) for greatly enhancing computational performance and devising benchmarks,
  Florin Mateoc (@fmateoc) for auditing the code, identifying critical bugs, and providing fixes,
  @khoguer10 for reporting bug in logic for saving HFP file,
  Benjamin Quinn (@blquinn) for improvements and bug fixes,

@@ -535,35 +535,42 @@ roth_conversion_eligible = true
     assert sp.indexed.all()
 
 
-def _fill_brackets(sp, n, income):
-    """Tax from filling brackets in order, as the LP does for a convex schedule."""
+def _schedule_tax(income, brackets):
+    """Tax from a TOML [[lower, rate_pct], ...] schedule, top bracket open-ended."""
+    tax = 0.0
+    for i, (lower, rate) in enumerate(brackets):
+        upper = brackets[i + 1][0] if i + 1 < len(brackets) else np.inf
+        tax += max(0.0, min(income, upper) - lower) * rate / 100
+    return tax
+
+
+def _lp_bracket_tax(income, theta, delta):
+    """Tax from filling the LP brackets (rates, widths) in order."""
     tax, left = 0.0, income
-    for t in range(sp.N_st):
-        take = min(left, sp.DeltaBar_tn[t, n])
-        tax += take * sp.theta_tn[t, n]
-        left -= take
-    return tax, left
+    for rate, width in zip(theta, delta):
+        filled = min(left, width)
+        tax += filled * rate
+        left -= filled
+    return tax
 
 
-_NJ_SINGLE_TAX_ON_1P5M = (
-    20000 * 0.014 + 15000 * 0.0175 + 5000 * 0.035 + 35000 * 0.05525
-    + 425000 * 0.0637 + 500000 * 0.0897 + 500000 * 0.1075
-)
-
-
-def test_padding_keeps_top_bracket_open_for_the_shorter_schedule():
-    """NJ Single has 7 brackets and MFJ 8: income above the top threshold is still taxed at 10.75%."""
+@pytest.mark.parametrize("income", [900_000, 1_500_000, 3_000_000])
+def test_nj_single_keeps_top_bracket(income):
+    """NJ Single (7 brackets) is padded to MFJ's 8 without losing its open-ended 10.75% (issue #149)."""
     sp = tax_state.st_taxParams("NJ", 1, 30, 30, np.ones(31), [1960], mobs=[1])
-    tax, left = _fill_brackets(sp, 0, 1_500_000.0)
-    assert left == 0.0, "income must not overflow the brackets"
-    assert tax == pytest.approx(_NJ_SINGLE_TAX_ON_1P5M)
+    theta, delta = sp.theta_tn, sp.DeltaBar_tn
+    expected = _schedule_tax(income, tax_state.get_state_entry("NJ", 0)["brackets"])
+    assert _lp_bracket_tax(income, theta[:, 0], delta[:, 0]) == pytest.approx(expected)
 
 
-def test_padding_after_spouse_death_uses_single_schedule():
-    """The MFJ to Single switch at n_d must not lose the top bracket either."""
-    sp = tax_state.st_taxParams("NJ", 2, 10, 30, np.ones(31), [1960, 1960], mobs=[1, 1])
-    tax_mfj, _ = _fill_brackets(sp, 0, 1_500_000.0)
-    tax_single, left = _fill_brackets(sp, 20, 1_500_000.0)
-    assert left == 0.0
-    assert tax_single == pytest.approx(_NJ_SINGLE_TAX_ON_1P5M)
-    assert tax_mfj < tax_single
+def test_nj_survivor_keeps_top_bracket():
+    """After n_d, a couple's survivor files Single and must keep NJ's top bracket (issue #149)."""
+    n_d = 10
+    sp = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1])
+    theta, delta = sp.theta_tn, sp.DeltaBar_tn
+    single = tax_state.get_state_entry("NJ", 0)["brackets"]
+    mfj = tax_state.get_state_entry("NJ", 1)["brackets"]
+    income = 1_500_000
+    assert _lp_bracket_tax(income, theta[:, n_d - 1], delta[:, n_d - 1]) == pytest.approx(_schedule_tax(income, mfj))
+    for n in range(n_d, 30):
+        assert _lp_bracket_tax(income, theta[:, n], delta[:, n]) == pytest.approx(_schedule_tax(income, single))

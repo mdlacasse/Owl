@@ -135,6 +135,8 @@ def _padded_rates_and_widths(brackets: list, n_st: int):
 
     The open-ended top bracket keeps its sentinel width; padding entries repeat the top
     rate with zero width, so they can never take income from the real top bracket.
+    Padding before converting would give the real top bracket zero width and the
+    padding the open end (issue #149).
     """
     rates, widths = _brackets_to_rates_and_widths(brackets, _LAST_BRACKET_SENTINEL)
     extra = n_st - len(rates)

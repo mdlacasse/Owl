@@ -214,3 +214,25 @@ def test_summary_breaks_out_recapture_and_local_tax():
     assert "Total state benefit recapture paid" in labels and "Total local income tax paid" in labels
     labels = " ".join(build_summary_dic(_plan([14000, 8000], state="NJ")))
     assert "recapture" not in labels and "local income tax" not in labels
+
+
+def test_replayed_rows_match_a_fresh_build_with_recapture_local_tax_and_a_move():
+    """The loop-invariant builders are replayed after the first iteration (upstream #151). None of them may
+    read what recapture, local tax or a move changes; compare a replayed build with a fresh one."""
+    import importlib.util
+    from pathlib import Path
+
+    spec = importlib.util.spec_from_file_location(
+        "fixed_rows", Path(__file__).parents[1] / "solver" / "test_fixed_rows.py"
+    )
+    fr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(fr)
+
+    p = _plan([14000, 8000], moves=[(2031, "NY", "NYC"), (2036, "NJ")], locality="Yonkers")
+    assert p.st_recap_n.sum() > 0 and p.lt_T_n.sum() > 0
+    assert p._fixedRows
+    p._buildConstraints(p.objective, p.solverOptions)
+    replayed = fr._lp_arrays(p)
+    p._fixedRows = {}
+    p._buildConstraints(p.objective, p.solverOptions)
+    fr._assert_same_lp(fr._lp_arrays(p), replayed)

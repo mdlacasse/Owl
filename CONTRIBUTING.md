@@ -75,6 +75,33 @@ MOSEK requires a separate licence. HiGHS is free and is the default.
 
 ---
 
+## Benchmarks
+
+`benchmarks/` holds timing benchmarks for the LP build and solve path, driven by
+[pytest-benchmark](https://pytest-benchmark.readthedocs.io/). They are not collected by
+`uv run pytest` (which is limited to `tests/`), so the regular run and CI are unaffected.
+
+```shell
+# Run the benchmarks (timings only, on an otherwise idle machine)
+uv run pytest benchmarks --benchmark-only
+
+# Save a baseline, then compare a later run against it and fail on a regression
+uv run pytest benchmarks --benchmark-only --benchmark-save=baseline
+uv run pytest benchmarks --benchmark-only --benchmark-compare=0001_baseline --benchmark-compare-fail=median:10%
+```
+
+Saved runs land in `.benchmarks/` (ignored by git). Compare medians rather than means:
+the solver is deterministic, so the spread is noise from the machine, not from Owl.
+
+Benchmark results are local for now. Absolute timings are only comparable between runs
+on the same machine, so compare a change against a baseline you saved yourself, and never
+against numbers from another computer. CI does not run or check the benchmarks. Making
+them part of CI is open future work; the usual options are to benchmark the base branch
+and the PR in the same CI job, to use an instruction-counting service such as
+[CodSpeed](https://codspeed.io), or to keep history on a dedicated benchmark machine.
+
+---
+
 ## Linting
 
 ```shell

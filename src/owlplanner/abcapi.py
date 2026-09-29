@@ -22,12 +22,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import math
+
 import numpy as np
+
+# np.isclose's defaults. The test is written out in _isclose rather than calling
+# np.isclose, whose per-call overhead on two scalars dominated the LP build.
+_RTOL = 1e-5
+_ATOL = 1e-8
+
+
+def _isclose(a, b):
+    """np.isclose(a, b) for two scalars: same tolerances, same asymmetry, same infinities."""
+    if a == b:
+        return True
+    if math.isinf(a) or math.isinf(b):
+        return False
+    return abs(a - b) <= _ATOL + _RTOL * abs(b)
 
 
 def _bound_key(lb, ub):
     """Classify a bound pair as a MOSEK-style key string."""
-    if np.isclose(lb, ub):
+    if _isclose(lb, ub):
         return "fx"
     elif ub == np.inf and lb == -np.inf:
         return "fr"
@@ -123,6 +139,33 @@ class ConstraintMatrix:
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub, tag)
 
+    def rowsSince(self, start):
+        """
+        Return the rows added since the matrix had ``start`` rows, in a form
+        ``extendRows`` accepts.
+        """
+        return (
+            self.Aind[start:],
+            self.Aval[start:],
+            self.lb[start:],
+            self.ub[start:],
+            self.key[start:],
+            self.tags[start:],
+        )
+
+    def extendRows(self, rows):
+        """
+        Append rows previously returned by ``rowsSince``.
+        """
+        Aind, Aval, lb, ub, key, tags = rows
+        self.Aind.extend(Aind)
+        self.Aval.extend(Aval)
+        self.lb.extend(lb)
+        self.ub.extend(ub)
+        self.key.extend(key)
+        self.tags.extend(tags)
+        self.ncons += len(Aind)
+
     def keys(self):
         """
         Return list of MOSEK-style bound keys for each constraint row.
@@ -198,6 +241,22 @@ class Bounds:
         self.lb.append(lb)
         self.ub.append(ub)
         self.key.append(_bound_key(lb, ub))
+
+    def rangesSince(self, start):
+        """
+        Return the ranges set since ``start`` entries existed, in a form ``extendRanges`` accepts.
+        """
+        return self.ind[start:], self.lb[start:], self.ub[start:], self.key[start:]
+
+    def extendRanges(self, ranges):
+        """
+        Append ranges previously returned by ``rangesSince``.
+        """
+        ind, lb, ub, key = ranges
+        self.ind.extend(ind)
+        self.lb.extend(lb)
+        self.ub.extend(ub)
+        self.key.extend(key)
 
     def keys(self):
         keys = ["lo"] * self.nvars
