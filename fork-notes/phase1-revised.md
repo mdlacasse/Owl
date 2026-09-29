@@ -36,12 +36,23 @@ Recapture optimize mode needs a big-M. `_ceiling_n` survives and is what NIIT/Me
 
 ## Revised Phase 1 order (all stacked on upstream/main)
 
-1. ~~State base~~ upstream.
-2. Typed params + `indexed`. Done (ad4452d).
-3. SC registry. Done (d3d44dd).
-4. **Residency schedule.** Per-year state scalars; `setResidency([(year, state, locality)])`; TOML `basic_info.moves`; CLI/`--set`. Single-state plans must produce identical LPs.
-5. **State recapture, loop mode** (NY §601(d-1), generic tiers in TOML). `STR_n` joins `_SC_PARAMS`. State AGI expression added to aggregation. Rates re-verified against the 2026 IT-201 worksheets before pinning tests, because NY cut the first five rates for 2026.
-6. **Local layer** (`taxes_local.toml`: `brackets` and `surcharge`). Yonkers surcharge multiplies recapture too (IT-201 base is line 39 plus the supplemental tax). Per-year arrays from the start.
-7. **Recapture, optimize mode**, after asking upstream whether MIP internals have settled.
+| # | Piece | State |
+|---|---|---|
+| 1 | State base | Upstream. Ours dropped. |
+| 2 | Typed params + `indexed` | Done. |
+| 3 | SC registry | Done. |
+| – | Padding fix for unequal Single/MFJ bracket counts (NJ) | Done. Found while writing the residency merge; upstream bug, not in our earlier plan. |
+| 4 | Residency schedule (`basic_info.moves`) | Done. Per-year flags; `residency.py`. |
+| 5 | Local layer (`taxes_local.toml`: `brackets`, `surcharge`; `basic_info.locality`) | Done, moved ahead of recapture (it only needs the state tax total; the surcharge will pick recapture up when that lands). NYC thresholds unverified. |
+| 6 | State recapture, loop mode | **Blocked on data, not code**: the sandbox cannot reach tax.ny.gov, nysenate.gov, legiscan or findlaw, so Tax Law sec. 601(d) and the IT-201 worksheets cannot be read. Nothing NY-specific goes in until they can be; see below. |
+| 7 | Recapture, optimize mode | After 6, and after asking upstream whether MIP internals have settled. |
 
-Loop mode fixes the recapture *amount* but the LP does not see its marginal effect, so a conversion schedule is not deterred from the phase-in range. That is why step 7 exists; step 5 is still worth having alone because the amounts are otherwise missing entirely (earlier estimate $330–$1,100/yr, computed before the 2026 rate cut and not yet re-verified).
+## Why recapture waits
+
+The earlier plan pinned tier amounts ($332.50, $807.75) and thresholds (107,650 / 161,550 / 215,400 / 323,200) from memory, and said the implementation must verify them. That was the right instruction and it cannot be followed here. NY also cut its first five rates for 2026 (3.9/4.4/5.15/5.4/5.9), which changes every derived amount. Shipping recapture data that has not been checked against the worksheets would replace a known omission with an unknown error, so it does not ship.
+
+To unblock: allow `www.tax.ny.gov` in the environment's network settings (or put the IT-201-I instructions PDF in the repo), and I will read the tax computation worksheets and sec. 601(d) and build against them.
+
+## Loop-mode behaviour worth knowing
+
+`withMedicare="loop"` converges to different fixed points depending on where the state layer starts it. On one synthetic couple, staying in NY gave $124,921 and moving to FL after five years gave $124,179 (lower), while moving after one year gave $126,178 and living in FL gave $126,615. Roth conversions differed by 2x between the first two. That is the existing self-consistent loop settling on different local optima, not a residency error: the constant-schedule test shows the LP inputs are identical to the single-state path. Compare residency scenarios under the same solver options, and treat differences under about 1% as noise unless the exact modes (`withMedicare="optimize"`) agree.
