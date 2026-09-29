@@ -187,3 +187,24 @@ def test_compute_piBar_in_rate_sensitivity():
     assert piBar_flat[1, 5] == pytest.approx(6000)
     assert piBar_2x[1, 5] == pytest.approx(6000 * gamma_2x[5], rel=0.01)
     assert piBar_2x[1, 9] == pytest.approx(6000 * gamma_2x[9], rel=0.01)
+
+
+@pytest.mark.toml
+def test_couple_without_pension_indexed_in_config_solves():
+    """A married case may leave out pension_indexed; the default must cover both spouses."""
+    from owlplanner.config import config_to_plan, load_toml
+
+    diconf, dirname, _ = load_toml("examples/Case_john+sally.toml")
+    diconf["fixed_income"].pop("pension_indexed", None)
+    p = config_to_plan(diconf, dirname, verbose=False)
+    assert list(p.pensionIsIndexed) == [True, True]
+    p.solve(p.objective, p.solverOptions)
+    assert p.caseStatus == "solved"
+
+
+def test_setPension_rejects_indexed_of_the_wrong_length():
+    from owlplanner import Plan
+
+    p = Plan(["A", "B"], ["1964-06-15", "1964-12-15"], [90, 90], "short")
+    with pytest.raises(ValueError, match="'indexed' must have 2 entries"):
+        p.setPension([0, 0], [65, 65], [True])

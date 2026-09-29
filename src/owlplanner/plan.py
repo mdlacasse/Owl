@@ -1054,6 +1054,7 @@ class Plan:
         u.require_list(ages, "ages", self.N_i)
         if indexed is None:
             indexed = [False] * self.N_i
+        u.require_list(indexed, "indexed", self.N_i)
         if survivor_fraction is None:
             survivor_fraction = [0.0] * self.N_i
         u.require_list(survivor_fraction, "survivor_fraction", self.N_i)

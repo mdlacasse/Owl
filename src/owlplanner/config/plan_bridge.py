@@ -116,7 +116,7 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         dtype=np.float32,
     )
     pension_ages = np.array(known["fixed_income"].get("pension_ages", [65.0]))
-    pension_indexed = known["fixed_income"].get("pension_indexed", [True])
+    pension_indexed = known["fixed_income"].get("pension_indexed", [True] * icount)
     survivor_frac = known["fixed_income"].get("pension_survivor_fraction")
     if survivor_frac is not None:
         survivor_frac = [float(x) for x in survivor_frac]
