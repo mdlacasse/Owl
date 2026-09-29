@@ -73,3 +73,15 @@ Synthetic NY couple (62/62, $1.95M pre-tax/taxable, SS at 67), `maxSpending`, ch
 | FL throughout | 126,615 | 128,895 |
 
 Under the default loop, moving after five years scored below staying, and Roth conversions differed by 2x. With the two loop-fed quantities pinned the LP is exact and the order is monotone, as it must be. So the anomaly is the self-consistent loop settling on different fixed points, not the residency layer. Compare residency scenarios under the same solver options, and do not read differences under about 1% as decisions unless an exact mode agrees. The demo script is not in the repo; the numbers are a sanity check, not a result about any real household.
+
+## Stock-upstream search for the loop anomaly (2026-09-29, on `fb539f4`)
+
+Question: on upstream code alone, does a change that can only help ever lower the objective by more than the ~0.25% that upstream already accepts as the cost of `epsilon`?
+
+1. All 17 shipped cases, each with its own solver options; levers +$5k/+$20k/+$50k taxable, +$20k tax-free, +$20k tax-deferred, and state→FL where the case has an income-tax state: no drop at all (threshold 0.005%).
+2. All 17 cases, taxable balance swept in $1k steps over $40k (41 solves each): drops in two cases only, both small:
+   - `Case_chris+pat`: 5 of 40 steps, worst -0.074% (118,603 → 118,516 $/yr).
+   - `Case_jack+jill`: 2 of 40 steps, worst -0.088% (102,742 → 102,652 $/yr).
+3. The synthetic NY couple from the residency check, NY vs FL at taxable balances $100k-$1M (19 points, default loop and `withMedicare="loop"`): FL never below NY.
+
+Verdict: not worth an issue. The drops are the loop noise upstream already documents (chris+pat is the case their `epsilon` changelog entry names) and sit well under the 0.1-0.25% they state. The 0.6% NY→FL-at-year-5 gap from our residency check did not reproduce with anything stock can express. Mention it in the residency PR description instead. Scripts were one-off (scratchpad), not committed.
