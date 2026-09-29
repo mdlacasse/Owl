@@ -1,3 +1,18 @@
+### Unreleased
+
+#### New: states can declare their dollar amounts non-indexed
+
+The state data accepts `indexed = false` for states whose statute fixes bracket thresholds, the
+standard deduction and the retirement exclusion in nominal dollars. Owl scaled every state's
+amounts by inflation, which understated future New York tax: the brackets do not move, so
+inflation pushes income into higher ones. New York is now marked `indexed = false`; the default is
+unchanged.
+
+#### Changed: `st_taxParams` returns a `StateTaxParams` dataclass
+
+The nine-element tuple is replaced by a frozen dataclass with named fields. `Plan` attribute names
+are unchanged.
+
 ### Version 2026.9.29
 
 #### Fixed: state tax no longer also deducts the federal standard deduction

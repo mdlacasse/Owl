@@ -35,6 +35,11 @@
 #   roth_conversion_eligible  = true/false — whether Roth conversion income counts toward
 #                               retirement_income_exemption (default true; false for MD,
 #                               whose pension exclusion does not cover IRAs or conversions)
+#   indexed                   = true/false — whether bracket thresholds, the standard deduction,
+#                               and dollar caps grow with inflation (default true). Set false
+#                               for states whose statute fixes them in nominal dollars, so that
+#                               inflation pushes income into higher brackets (NY, per Tax Law
+#                               sec. 601). Read from the Single entry.
 #
 # Exemption caps are per person: each spouse's exemption is limited by that spouse's own
 # age and eligible income (tax-deferred withdrawals, Roth conversions, pensions), and an
@@ -974,6 +979,7 @@ retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # brackets, deduction and exclusion are statutory dollars (Tax Law sec. 601, 612, 614)
 
 [NY_MFJ]
 brackets = [
@@ -988,6 +994,7 @@ retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # brackets, deduction and exclusion are statutory dollars (Tax Law sec. 601, 612, 614)
 
 [ND_Single]
 # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted

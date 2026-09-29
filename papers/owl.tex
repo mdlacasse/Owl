@@ -996,19 +996,24 @@ retirement-income and pension exemption caps for all 50 states and the District
 of Columbia are read from a data table (\code{data/taxes_state.toml}) with
 separate entries for Single and Married Filing Jointly filers; the filing
 status switches to Single at the passing of a spouse, and bracket widths and
-deductions are indexed to inflation through $\gamma_n$.
+deductions are indexed to inflation through $\gamma_n$, except for states whose
+statute fixes them in nominal dollars (New York), which the data table marks
+\code{indexed = false}.
 State taxable income is derived from quantities already present in the model:
-federal ordinary taxable income, plus capital gains (which most states tax as
-ordinary income), minus the exempted portion of Social Security, pension
-exemptions, the state standard deduction, and any capped retirement-income
-exemption.
+federal AGI (federal ordinary taxable income plus the federal standard
+deduction, plus capital gains, which most states tax as ordinary income), minus
+the exempted portion of Social Security, pension exemptions, the state
+standard deduction, and any capped retirement-income exemption.
+A state that allows the federal standard deduction itself
+(\code{standard\_deduction = "federal"} in the data table) takes that year's
+federal amount, including the additional amount for age 65 and over.
 The resulting state tax joins the cash-flow constraint alongside its federal
 counterpart.
 The LP formulation is given in Sec.~(\ref{Sec:StateTax}).
 States without an income tax simply generate no state-tax variables.
 
 \subsection*{Limitations and assumptions}
-State AGI is approximated from federal quantities; state-specific additions and
+State AGI is approximated from federal AGI; state-specific additions and
 subtractions beyond those listed above are not modeled.
 Capital gains are taxed as ordinary income, which is accurate for most but not
 all states.
@@ -2834,13 +2839,19 @@ In this case, the objective function will need to consider the sum over all year
 	\begin{equation}
 		\label{Eq:StateTI}
 		\sum_{t=0}^{N_s-1} f^{s}_{tn} + e^{s}_n + r^{s}_n
-		- \sum_{t=0}^{N_t-1} f_{tn} - \sum_{p=0}^{2} q_{pn}
+		- e_n - \sum_{t=0}^{N_t-1} f_{tn} - \sum_{p=0}^{2} q_{pn}
 		= -E^{\sigma}_n - E^{\pi}_n,
 	\end{equation}
-	where $E^{\sigma}_n = R_n\sum_i \bar\zeta_{in}$ when the state does not tax
+	where $e_n$ is the federal standard deduction, so that the state base is
+	federal AGI, $e_n + \sum_t f_{tn} + \sum_p q_{pn}$, rather than federal
+	taxable income; the state then applies its own deduction $e^{s}_n$.
+	$E^{\sigma}_n = R_n\sum_i \bar\zeta_{in}$ when the state does not tax
 	Social Security --- removing the federally taxable portion embedded in
-	Eq.~(\ref{Eq:C6}), with $R_n$ the self-consistent taxability ratio --- and
-	$E^{\sigma}_n = 0$ otherwise, and where
+	Eq.~(\ref{Eq:C6}), with $R_n$ the self-consistent taxability ratio ---
+	and $E^{\sigma}_n = 0$ otherwise; when Social Security taxability is
+	optimised (\code{withSSTaxability="optimize"}) the exclusion is applied
+	through the taxable-benefit variable $t^{\sigma}_n$ instead of the
+	parameter $R_n$.
 	$E^{\pi}_n = \min\left(\sum_i \bar{\pi}_{in},\; N_i\,\bar{c}^{\,\pi}_n\right)$
 	applies the state pension exemption with per-person cap $\bar{c}^{\,\pi}_n$.
 	The retirement-income exemption cannot exceed the tax-deferred income

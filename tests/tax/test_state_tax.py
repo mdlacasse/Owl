@@ -61,6 +61,7 @@ def test_toml_all_states_load(state):
             assert 0 <= rate <= 15, f"{state}: rate {rate}% out of expected range [0, 15]"
         assert entry["standard_deduction"] == "federal" or entry["standard_deduction"] >= 0
         assert isinstance(entry["tax_social_security"], bool)
+        assert isinstance(entry.get("indexed", True), bool), f"{state}: indexed must be a bool"
 
 
 # ---------------------------------------------------------------------------
@@ -71,16 +72,14 @@ def test_toml_all_states_load(state):
 def test_st_taxparams_shape():
     """st_taxParams returns arrays with correct shapes."""
     gamma = np.ones(31)  # N_n=30 years + 1
-    N_st, theta, delta, sigma, re_cap, pe_cap, conv_ok, tax_ss, ss_thresh = tax_state.st_taxParams(
-        "MN", 1, 30, 30, gamma, [1960], mobs=[1]
-    )
-    assert theta.shape == (N_st, 30)
-    assert delta.shape == (N_st, 30)
-    assert sigma.shape == (30,)
-    assert re_cap.shape == (1, 30)
-    assert pe_cap.shape == (1, 30)
-    assert ss_thresh.shape == (30,)
-    assert N_st >= 4  # MN has 4 brackets for single
+    sp = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1960], mobs=[1])
+    assert sp.theta_tn.shape == (sp.N_st, 30)
+    assert sp.DeltaBar_tn.shape == (sp.N_st, 30)
+    assert sp.sigmaBar_n.shape == (30,)
+    assert sp.re_cap_in.shape == (1, 30)
+    assert sp.pe_cap_in.shape == (1, 30)
+    assert sp.ss_thresh_n.shape == (30,)
+    assert sp.N_st >= 4  # MN has 4 brackets for single
 
 
 def test_st_taxparams_inflation_scaling():
@@ -88,29 +87,23 @@ def test_st_taxparams_inflation_scaling():
     gamma_flat = np.ones(31)
     gamma_inflated = np.array([1.02**n for n in range(31)])
     for state in ("MN", "CA"):
-        _, _, delta_flat, sigma_flat, _, _, _, _, _ = tax_state.st_taxParams(
-            state, 1, 30, 30, gamma_flat, [1960], mobs=[1]
-        )
-        _, _, delta_inf, sigma_inf, _, _, _, _, _ = tax_state.st_taxParams(
-            state, 1, 30, 30, gamma_inflated, [1960], mobs=[1]
-        )
+        flat = tax_state.st_taxParams(state, 1, 30, 30, gamma_flat, [1960], mobs=[1])
+        inflated = tax_state.st_taxParams(state, 1, 30, 30, gamma_inflated, [1960], mobs=[1])
         # Year 10 should be inflated relative to year 0
-        assert delta_inf[0, 10] > delta_flat[0, 10]
-        assert sigma_inf[10] > sigma_flat[10]
+        assert inflated.DeltaBar_tn[0, 10] > flat.DeltaBar_tn[0, 10]
+        assert inflated.sigmaBar_n[10] > flat.sigmaBar_n[10]
 
 
 def test_st_taxparams_filing_status_transition():
     """Bracket widths switch from MFJ to Single at n_d."""
     gamma = np.ones(31)
     n_d = 10
-    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _, _ = tax_state.st_taxParams(
-        "MN", 2, n_d, 30, gamma, [1955, 1958], mobs=[1, 1]
-    )
+    mfj = tax_state.st_taxParams("MN", 2, n_d, 30, gamma, [1955, 1958], mobs=[1, 1])
     # Before n_d: MFJ brackets
     # After n_d: Single brackets
-    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958], mobs=[1])
+    single = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958], mobs=[1])
     # Deduction after death should match single
-    assert pytest.approx(sigma_mfj[n_d], rel=1e-6) == sigma_s[0]
+    assert pytest.approx(mfj.sigmaBar_n[n_d], rel=1e-6) == single.sigmaBar_n[0]
 
 
 def test_st_taxparams_exemption_age_gating():
@@ -118,7 +111,7 @@ def test_st_taxparams_exemption_age_gating():
     # CO has exemption_age=65 for re
     gamma = np.ones(31)
     # born 1995 → turns 65 in 2060 → past 30-year plan end (2026+29=2055)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995], mobs=[1])
+    re_cap = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995], mobs=[1]).re_cap_in
     # All zeros since never reaches 65 during the plan
     assert np.all(re_cap == 0), "CO re_cap should be 0 when never 65+ during plan"
 
@@ -126,7 +119,7 @@ def test_st_taxparams_exemption_age_gating():
 def test_st_taxparams_exemption_age_active():
     """Retirement income exemption applies once age requirement is met."""
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+    re_cap = tax_state.st_taxParams(
         "CO",
         1,
         30,
@@ -134,7 +127,7 @@ def test_st_taxparams_exemption_age_active():
         gamma,
         [1955],  # born 1955 → already 65+ at plan start
         mobs=[1],
-    )
+    ).re_cap_in
     assert np.any(re_cap > 0), "CO re_cap should be nonzero for someone already 65+"
 
 
@@ -342,9 +335,7 @@ def test_st_taxparams_exemption_is_per_person():
     """Each spouse qualifies on their own age (CO: 65+)."""
     thisyear = date.today().year
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
-        "CO", 2, 30, 30, gamma, [thisyear - 70, thisyear - 50], mobs=[1, 1]
-    )
+    re_cap = tax_state.st_taxParams("CO", 2, 30, 30, gamma, [thisyear - 70, thisyear - 50], mobs=[1, 1]).re_cap_in
     assert re_cap[0, 0] == pytest.approx(24000)
     assert re_cap[1, 0] == 0
     assert re_cap[1, 14] == 0 and re_cap[1, 15] == pytest.approx(24000)
@@ -354,9 +345,7 @@ def test_st_taxparams_ny_age_59_and_a_half():
     """NY exclusion starts in the year the individual reaches 59.5."""
     thisyear = date.today().year
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
-        "NY", 2, 30, 30, gamma, [thisyear - 59, thisyear - 59], mobs=[6, 7]
-    )
+    re_cap = tax_state.st_taxParams("NY", 2, 30, 30, gamma, [thisyear - 59, thisyear - 59], mobs=[6, 7]).re_cap_in
     assert re_cap[0, 0] == pytest.approx(20000)  # June birthday: 59.5 by December 31
     assert re_cap[1, 0] == 0 and re_cap[1, 1] == pytest.approx(20000)  # July birthday: next year
 
@@ -364,8 +353,7 @@ def test_st_taxparams_ny_age_59_and_a_half():
 @pytest.mark.parametrize("state,expected", [("NY", True), ("IL", True), ("KY", True), ("MD", False)])
 def test_st_taxparams_roth_conversion_eligibility(state, expected):
     """Roth conversion income counts toward the exemption except in MD."""
-    _, _, _, _, _, _, conv_ok, _, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
-    assert conv_ok is expected
+    assert tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1]).conv_ok is expected
 
 
 def _exempt_plan(state, names, dobs, deferred, taxable=0):
@@ -450,3 +438,96 @@ def test_ks_two_rate_structure():
     """KS has had two rates (5.2%, 5.58%) since 2024."""
     assert _brackets("KS_Single") == [(0.0, 5.2), (23000.0, 5.58)]
     assert _brackets("KS_MFJ") == [(0.0, 5.2), (46000.0, 5.58)]
+
+
+# ---------------------------------------------------------------------------
+# PR 2: typed state params and non-indexed flag
+# ---------------------------------------------------------------------------
+
+
+def test_state_taxparams_returns_dataclass():
+    """st_taxParams returns a StateTaxParams with named fields."""
+    sp = tax_state.st_taxParams("MN", 1, 30, 30, np.ones(31), [1960], mobs=[1])
+    assert isinstance(sp, tax_state.StateTaxParams)
+    assert sp.N_st >= 4
+    assert sp.indexed is True
+    assert isinstance(sp.conv_ok, bool)
+    assert isinstance(sp.tax_ss, bool)
+
+
+def test_ny_not_indexed():
+    """NY brackets and deduction use nominal statutory dollars (no gamma_n)."""
+    gamma_flat = np.ones(31)
+    gamma_inflated = np.array([1.02**n for n in range(31)])
+    sp_flat = tax_state.st_taxParams("NY", 1, 30, 30, gamma_flat, [1960], mobs=[1])
+    sp_inf = tax_state.st_taxParams("NY", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
+    assert sp_flat.indexed is False
+    assert sp_inf.indexed is False
+    # Non-indexed: year 10 must equal year 0 regardless of gamma_n
+    np.testing.assert_array_equal(sp_inf.DeltaBar_tn[:, 10], sp_inf.DeltaBar_tn[:, 0])
+    assert sp_inf.sigmaBar_n[10] == pytest.approx(sp_inf.sigmaBar_n[0])
+    # And flat vs inflated should give identical arrays
+    np.testing.assert_array_equal(sp_inf.DeltaBar_tn, sp_flat.DeltaBar_tn)
+    np.testing.assert_array_equal(sp_inf.sigmaBar_n, sp_flat.sigmaBar_n)
+
+
+def test_mn_still_indexed():
+    """MN (default indexed=true) still scales with gamma_n."""
+    gamma_flat = np.ones(31)
+    gamma_inflated = np.array([1.02**n for n in range(31)])
+    sp_flat = tax_state.st_taxParams("MN", 1, 30, 30, gamma_flat, [1960], mobs=[1])
+    sp_inf = tax_state.st_taxParams("MN", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
+    assert sp_flat.indexed is True
+    assert sp_inf.indexed is True
+    assert sp_inf.DeltaBar_tn[0, 10] > sp_flat.DeltaBar_tn[0, 10]
+
+
+def test_ny_re_cap_not_inflated():
+    """NY retirement exclusion cap stays nominal when indexed=False."""
+    gamma_inflated = np.array([1.02**n for n in range(31)])
+    sp = tax_state.st_taxParams("NY", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
+    # NY cap is $20k statutory; year 0 and year 10 must both be $20k
+    active = sp.re_cap_in[0, sp.re_cap_in[0, :] > 0]
+    assert active[0] == pytest.approx(20000.0)
+    assert active[-1] == pytest.approx(20000.0)
+
+
+def test_indexed_false_in_toml(tmp_path):
+    """indexed = false is read from TOML."""
+    toml_content = """
+[XX_Single]
+brackets = [[0.0, 5.0], [50000.0, 6.0]]
+standard_deduction = 1000
+tax_social_security = false
+ss_exemption_threshold = 0
+retirement_income_exemption = 0
+exemption_age = 0
+pension_exemption = 0
+roth_conversion_eligible = true
+indexed = false
+"""
+    f = tmp_path / "test_state.toml"
+    f.write_text(toml_content)
+    sp = tax_state.st_taxParams("XX", 1, 30, 30, np.array([1.02**n for n in range(31)]), [1960], mobs=[1], toml_path=str(f))
+    assert sp.indexed is False
+    # Non-indexed: year 10 == year 0
+    np.testing.assert_array_equal(sp.DeltaBar_tn[:, 10], sp.DeltaBar_tn[:, 0])
+
+
+def test_indexed_default_is_true(tmp_path):
+    """indexed defaults to true when the field is absent."""
+    toml_content = """
+[XX_Single]
+brackets = [[0.0, 5.0]]
+standard_deduction = 1000
+tax_social_security = false
+ss_exemption_threshold = 0
+retirement_income_exemption = 0
+exemption_age = 0
+pension_exemption = 0
+roth_conversion_eligible = true
+"""
+    f = tmp_path / "test_state.toml"
+    f.write_text(toml_content)
+    sp = tax_state.st_taxParams("XX", 1, 30, 30, np.ones(31), [1960], mobs=[1], toml_path=str(f))
+    assert sp.indexed is True
