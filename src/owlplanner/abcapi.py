@@ -139,6 +139,33 @@ class ConstraintMatrix:
         row = self.newRow(rowDic)
         self.addRow(row, lb, ub, tag)
 
+    def rowsSince(self, start):
+        """
+        Return the rows added since the matrix had ``start`` rows, in a form
+        ``extendRows`` accepts.
+        """
+        return (
+            self.Aind[start:],
+            self.Aval[start:],
+            self.lb[start:],
+            self.ub[start:],
+            self.key[start:],
+            self.tags[start:],
+        )
+
+    def extendRows(self, rows):
+        """
+        Append rows previously returned by ``rowsSince``.
+        """
+        Aind, Aval, lb, ub, key, tags = rows
+        self.Aind.extend(Aind)
+        self.Aval.extend(Aval)
+        self.lb.extend(lb)
+        self.ub.extend(ub)
+        self.key.extend(key)
+        self.tags.extend(tags)
+        self.ncons += len(Aind)
+
     def keys(self):
         """
         Return list of MOSEK-style bound keys for each constraint row.
@@ -214,6 +241,22 @@ class Bounds:
         self.lb.append(lb)
         self.ub.append(ub)
         self.key.append(_bound_key(lb, ub))
+
+    def rangesSince(self, start):
+        """
+        Return the ranges set since ``start`` entries existed, in a form ``extendRanges`` accepts.
+        """
+        return self.ind[start:], self.lb[start:], self.ub[start:], self.key[start:]
+
+    def extendRanges(self, ranges):
+        """
+        Append ranges previously returned by ``rangesSince``.
+        """
+        ind, lb, ub, key = ranges
+        self.ind.extend(ind)
+        self.lb.extend(lb)
+        self.ub.extend(ub)
+        self.key.extend(key)
 
     def keys(self):
         keys = ["lo"] * self.nvars
