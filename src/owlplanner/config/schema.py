@@ -64,9 +64,12 @@ class BasicInfo(BaseModel):
     sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
     state: str = Field(default="", description="Two-letter US state abbreviation (e.g. 'MN'). Empty = no state tax.")
+    locality: str = Field(
+        default="", description="City or county whose income tax applies on top of the state's (e.g. 'NYC', 'Yonkers')."
+    )
     moves: List[dict] = Field(
         default=[],
-        description="Later changes of state, e.g. [{year = 2032, state = 'FL'}]; the state applies from that year on.",
+        description="Later changes of residence, e.g. [{year = 2032, state = 'FL'}]; each applies from that year on.",
     )
 
 

@@ -280,10 +280,10 @@ def _apply_state_to_plan(plan, known):
     """Set the state of residence and any later moves from ``basic_info``."""
     bi = known["basic_info"]
     state = bi.get("state", "")
-    moves = [(m["year"], m.get("state", "")) for m in bi.get("moves", [])]
+    moves = [(m["year"], m.get("state", ""), m.get("locality", "")) for m in bi.get("moves", [])]
     if state or moves:
         try:
-            plan.setStateTax(state, moves)
+            plan.setStateTax(state, moves, bi.get("locality", ""))
         except (ValueError, KeyError, TypeError) as e:
             raise ValueError(f"Invalid state in config: {e}") from e
 
@@ -429,8 +429,13 @@ def plan_to_config(myplan: "Plan") -> dict:
         "start_date": myplan.startDate,
         "state": getattr(myplan, "state", ""),
     }
+    if getattr(myplan, "locality", ""):
+        diconf["basic_info"]["locality"] = myplan.locality
     if getattr(myplan, "state_moves", ()):
-        diconf["basic_info"]["moves"] = [{"year": y, "state": st} for y, st in myplan.state_moves]
+        diconf["basic_info"]["moves"] = [
+            {"year": m.year, "state": m.state, **({"locality": m.locality} if m.locality else {})}
+            for m in myplan.state_moves
+        ]
 
     # Savings Assets
     diconf["savings_assets"] = {}

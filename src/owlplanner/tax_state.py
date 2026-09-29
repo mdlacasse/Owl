@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import NamedTuple
 
 import numpy as np
 
@@ -136,6 +135,13 @@ def _padded_rates_and_widths(brackets: list, n_st: int):
     return np.append(rates, np.full(extra, rates[-1])), np.append(widths, np.zeros(extra))
 
 
+def filing_status_by_year(N_i: int, n_d: int, N_n: int) -> np.ndarray:
+    """Filing status in each plan year: 1 = MFJ, 0 = Single (a couple files Single from year n_d on)."""
+    status = np.full(N_n, N_i - 1, dtype=int)
+    status[n_d:] = max(0, N_i - 2)
+    return status
+
+
 def _deduction_amount(entry: dict) -> float:
     """Dollar standard deduction of a TOML entry; 0 when it follows the federal one.
 
@@ -218,14 +224,11 @@ def st_taxParams(
     sigmaBar_n = np.zeros(N_n)
 
     thisyear = date.today().year
-    filing_status = N_i - 1  # 1 = MFJ, 0 = Single
+    filing_status_n = filing_status_by_year(N_i, n_d, N_n)
 
     for n in range(N_n):
-        if n == n_d:
-            filing_status = max(0, filing_status - 1)
-
         gn = gamma_n[n] if indexed else 1.0
-        if filing_status == 1:
+        if filing_status_n[n] == 1:
             theta_tn[:, n] = rates_m
             DeltaBar_tn[:, n] = widths_m * gn
             sigmaBar_n[n] = _deduction_amount(entry_mfj) * gn
@@ -290,40 +293,6 @@ def st_taxParams(
         senior_bonus=flag(senior_bonus),
         indexed=flag(indexed),
     )
-
-
-class Residence(NamedTuple):
-    """From *year* on, the household is resident in *state* ("" = a state with no income tax)."""
-
-    year: int
-    state: str
-
-
-def residence_by_year(state: str, moves, first_year: int, N_n: int) -> list:
-    """Return the state in force in each of the N_n plan years, "" meaning none.
-
-    The state in force on December 31 governs the whole year: there is no part-year split.
-    *moves* is an iterable of Residence (or (year, state) pairs); each must fall after the
-    first plan year and within the horizon, and no year may appear twice.
-    """
-    valid = set(valid_states())
-    states_n = [state.upper().strip() if state else ""] * N_n
-    seen = set()
-    for year, dest in sorted((Residence(int(y), s) for y, s in moves)):
-        dest = dest.upper().strip() if dest else ""
-        if dest and dest not in valid:
-            raise ValueError(f"Unknown state '{dest}' in move to {year}. Use a valid two-letter abbreviation.")
-        if not first_year < year < first_year + N_n:
-            raise ValueError(
-                f"A move must fall after the first plan year and within the plan "
-                f"({first_year + 1}-{first_year + N_n - 1}); got {year}."
-            )
-        if year in seen:
-            raise ValueError(f"Two moves in {year}.")
-        seen.add(year)
-        for n in range(year - first_year, N_n):
-            states_n[n] = dest
-    return states_n
 
 
 def st_taxParams_schedule(

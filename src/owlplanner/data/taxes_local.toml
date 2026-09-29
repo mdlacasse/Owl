@@ -1,0 +1,47 @@
+# Local (city and county) income tax data for Owl retirement planner.
+#
+# A locality belongs to a state and is taxed on top of that state's income tax. Only taxes
+# that apply to a retiree's investment, pension, IRA and Social Security income belong here.
+# Taxes on wages or earned income alone (most municipal taxes in PA, OH, KY, ...) do not.
+#
+# Each table is named "<STATE>:<Locality>". Where the schedule depends on filing status, use
+# "<STATE>:<Locality>_MFJ" and "<STATE>:<Locality>_Single" instead; a single table applies to
+# both. Owl switches to the Single table in the year one spouse dies.
+#
+# Fields:
+#   description   = free text: what the tax is and where the numbers come from
+#   type          = "brackets"  — graduated (or flat) rates on a base income
+#                   "surcharge" — a percentage of the state's own income tax
+#   base          = "state_taxable" (brackets)  — the state's taxable income, after the state
+#                                                  deduction and exemptions
+#                   "net_state_tax" (surcharge) — the state's income tax, recapture included
+#   brackets      = [[lower_income, rate_pct], ...]   (type = "brackets")
+#                   Same layout as taxes_state.toml. A flat rate above a threshold T is
+#                   [[0, 0], [T, rate_pct]].
+#   rate          = percent of the state tax (type = "surcharge")
+#   indexed       = true/false — whether bracket thresholds grow with inflation (default true)
+#
+# Not modeled: household and school-tax credits, and any tax on income the state does not tax.
+#
+# To add a locality, add the table(s) below and a test in tests/tax/test_local_tax.py; nothing
+# else needs to change. Say in "description" where each number comes from.
+
+["NY:NYC_MFJ"]
+description = "New York City resident income tax (Tax Law sec. 1304). Rates from the IT-201 NYC rate schedule; thresholds recalled from it and NOT yet checked against the current instructions. Household and school-tax credits not modeled."
+type = "brackets"
+base = "state_taxable"
+brackets = [[0.0, 3.078], [21600.0, 3.762], [45000.0, 3.819], [90000.0, 3.876]]
+indexed = false
+
+["NY:NYC_Single"]
+description = "New York City resident income tax (Tax Law sec. 1304); see NYC_MFJ."
+type = "brackets"
+base = "state_taxable"
+brackets = [[0.0, 3.078], [12000.0, 3.762], [25000.0, 3.819], [50000.0, 3.876]]
+indexed = false
+
+["NY:Yonkers"]
+description = "Yonkers resident income tax surcharge (Tax Law sec. 1327): 16.75% of net New York State tax."
+type = "surcharge"
+base = "net_state_tax"
+rate = 16.75

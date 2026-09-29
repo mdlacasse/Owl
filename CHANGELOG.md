@@ -1,9 +1,18 @@
 ### Unreleased
 
+#### New: local income tax (`basic_info.locality`)
+
+`locality = "NYC"` or `"Yonkers"` adds New York City's resident income tax (four brackets on New York
+taxable income) or the Yonkers surcharge (16.75% of net New York tax). The tax appears inside the
+state-tax figures, and `Plan.lt_T_n` gives the local part. Localities are data in
+`data/taxes_local.toml`, whose header explains how to add one; a flat rate above a threshold is just
+two brackets. Wage-only local taxes do not belong there. The NYC thresholds were entered from memory
+and are flagged in the file as not yet checked against the IT-201 instructions.
+
 #### New: change of state during the plan
 
 `basic_info.moves` (and `Plan.setStateTax(state, moves)`) lists later changes of residence, e.g.
-`moves = [{year = 2032, state = "FL"}]`. From that year on the new state taxes the household, so
+`moves = [{year = 2032, state = "FL"}]`, optionally naming a `locality`. From that year on the new state taxes the household, so
 the optimizer sees today's rates against tomorrow's when timing Roth conversions or withdrawals.
 The state in force on December 31 governs the whole year; part-year residency is not apportioned.
 A plan with no `moves` is unchanged. The web UI preserves `moves` from a file but does not edit them.

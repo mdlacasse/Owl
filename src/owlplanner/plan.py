@@ -36,6 +36,8 @@ from . import amorepair
 from . import utils as u
 from . import tax_federal as tx
 from . import tax_state
+from . import tax_local
+from . import residency
 from . import abcapi as abc
 from . import rates
 from .version import __version__, engine_commit
@@ -415,7 +417,11 @@ class Plan:
         self._aca_lp = False  # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)  # ACA LP cost variable extraction result
         self.state = ""  # Two-letter US state for state income tax ("" = none)
-        self.state_moves = ()  # Later moves, as (calendar year, state) pairs
+        self.locality = ""  # Locality within the state, e.g. "NYC" ("" = none)
+        self.state_moves = ()  # Later moves, as residency.Residence(year, state, locality)
+        self.N_lt = 0  # Number of local tax brackets (0 when no locality has a bracket schedule)
+        self.lt_surcharge_n = np.zeros(self.N_n)  # Local surcharge as a fraction of net state tax
+        self.lt_T_n = np.zeros(self.N_n)  # Local income tax per year (included in st_T_n)
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
@@ -1629,7 +1635,7 @@ class Plan:
             self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 
-    def setStateTax(self, state, moves=()):
+    def setStateTax(self, state, moves=(), locality=""):
         """
         Set two-letter US state abbreviation for state income tax modeling.
 
@@ -1645,28 +1651,30 @@ class Plan:
         state : str
             Two-letter state abbreviation (e.g. 'MN', 'CA', 'TX'). Case-insensitive.
             This is the state of residence in the first plan year.
-        moves : iterable of (year, state)
+        moves : iterable of (year, state[, locality])
             Later changes of residence: from the calendar *year* on, the household
-            lives in *state* ("" for none). The state in force on December 31 taxes
-            the whole year. Each year must fall within the plan, after its first year.
+            lives in *state* ("" for none) and *locality*. The residence on December 31
+            taxes the whole year. Each year must fall within the plan, after its first year.
+        locality : str
+            City or county whose income tax applies on top of the state's, e.g. 'NYC' or
+            'Yonkers' for NY (see data/taxes_local.toml). Blank for none.
         """
-        state = state.upper().strip() if state else ""
-        if state and state not in tax_state.valid_states():
-            raise ValueError(
-                f"Unknown state '{state}'. Use a valid two-letter abbreviation from: {tax_state.valid_states()}"
-            )
-        moves = tuple((int(y), s.upper().strip() if s else "") for y, s in moves)
-        tax_state.residence_by_year(state, moves, int(self.year_n[0]), self.N_n)  # validates
+        state, locality = residency.normalize(state, locality)
+        moves = tuple(residency.Residence(*m) for m in moves)
+        residency.residence_by_year(state, locality, moves, int(self.year_n[0]), self.N_n)  # validates
         self.state = state
-        self.state_moves = moves
+        self.locality = locality
+        self.state_moves = tuple(residency.Residence(m.year, *residency.normalize(m.state, m.locality)) for m in moves)
         self.caseStatus = "modified"
 
-    def _state_by_year(self):
-        "State in force in each plan year (\"\" = none)."
-        return tax_state.residence_by_year(self.state, self.state_moves, int(self.year_n[0]), self.N_n)
+    def _residence_by_year(self):
+        "(state, locality) in force in each plan year."
+        return residency.residence_by_year(
+            self.state, self.locality, self.state_moves, int(self.year_n[0]), self.N_n
+        )
 
     def _has_state_tax(self):
-        return any(self._state_by_year())
+        return any(state for state, _ in self._residence_by_year())
 
     def setInterpolationMethod(self, method, center=15, width=5):
         """
@@ -2518,6 +2526,8 @@ class Plan:
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
         vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
+        lt_lp = st_lp and self.N_lt > 0 and bool(np.any(self.lt_theta_tn > 0))
+        vm.add_if(lt_lp, "lt_f", self.N_lt, self.N_n)  # local bracket allocations
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2572,6 +2582,7 @@ class Plan:
         self._add_taxable_income(options)
         if self._st_lp:
             self._add_state_taxable_income()
+            self._add_local_taxable_income()
         self._configure_ss_taxability_lp(options)
         self._configure_ss_age_variables()
         self._configure_ltcg_constraints()
@@ -2631,6 +2642,23 @@ class Plan:
                 for n in range(self.N_n):
                     cap = self.st_re_cap_in[i, n]
                     self.B.setRange(vm["st_re"].idx(i, n), 0, cap if np.isfinite(cap) else 1e9)
+
+    def _add_local_taxable_income(self):
+        """Local bracket allocations add up to the state taxable income, in years with a local schedule."""
+        vm = self.vm
+        if "lt_f" not in vm:
+            return
+        for n in range(self.N_n):
+            for t in range(self.N_lt):
+                self.B.setRange(vm["lt_f"].idx(t, n), 0, self.lt_DeltaBar_tn[t, n])
+            if not np.any(self.lt_DeltaBar_tn[:, n] > 0):
+                continue
+            row = self.A.newRow()
+            for t in range(self.N_lt):
+                row.addElem(vm["lt_f"].idx(t, n), 1)
+            for t in range(self.N_st):
+                row.addElem(vm["st_f"].idx(t, n), -1)
+            self.A.addRow(row, 0, 0, tag=("local_taxable_income", n))
 
     def _add_state_taxable_income(self):
         """Equality constraint: state bracket allocations = state AGI - deductions.
@@ -3166,7 +3194,11 @@ class Plan:
             # State income tax from state bracket variables.
             if "st_f" in self.vm:
                 for t in range(self.N_st):
-                    row.addElem(self.vm["st_f"].idx(t, n), self.st_theta_tn[t, n])
+                    # A local surcharge is a share of the state's own tax.
+                    row.addElem(self.vm["st_f"].idx(t, n), self.st_theta_tn[t, n] * (1 + self.lt_surcharge_n[n]))
+            if "lt_f" in self.vm:
+                for t in range(self.N_lt):
+                    row.addElem(self.vm["lt_f"].idx(t, n), self.lt_theta_tn[t, n])
 
             # NIIT: when optimize mode, use LP variable Jn; otherwise already in rhs.
             if getattr(self, "_niit_lp", False):
@@ -4412,11 +4444,20 @@ class Plan:
         # returned but not yet used in the LP — those states are currently treated as binary
         # (SS fully exempt or fully taxed). Full threshold modeling is a known limitation.
         self.N_st = 0
+        self.N_lt = 0
+        self.lt_surcharge_n = np.zeros(self.N_n)
         self.st_fed_sd = np.zeros(self.N_n, dtype=bool)
         if self._has_state_tax():
+            residence_n = self._residence_by_year()
             sp = tax_state.st_taxParams_schedule(
-                self._state_by_year(), self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
+                [state for state, _ in residence_n],
+                self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs,
             )
+            lp = tax_local.local_taxParams_schedule(residence_n, self.N_i, self.n_d, self.N_n, self.gamma_n)
+            self.N_lt = lp.N_lt
+            self.lt_theta_tn = lp.theta_tn
+            self.lt_DeltaBar_tn = lp.DeltaBar_tn
+            self.lt_surcharge_n = lp.surcharge_n
             self.N_st = sp.N_st
             self.st_theta_tn = sp.theta_tn
             self.st_DeltaBar_tn = sp.DeltaBar_tn
@@ -5897,6 +5938,13 @@ class Plan:
             self.st_T_n = np.sum(self.st_T_tn, axis=0)
         else:
             self.st_T_n = np.zeros(Nn)
+        # Local tax: its own brackets plus any surcharge on the state tax just computed.
+        # st_T_n is the total, so cash-flow identities hold without knowing about localities.
+        self.lt_T_n = self.lt_surcharge_n * self.st_T_n
+        if "lt_f" in vm:
+            self.lt_f_tn = vm["lt_f"].extract(x)
+            self.lt_T_n = self.lt_T_n + np.sum(self.lt_f_tn * self.lt_theta_tn, axis=0)
+        self.st_T_n = self.st_T_n + self.lt_T_n
         # State retirement income exemption claimed by each individual.
         self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
 

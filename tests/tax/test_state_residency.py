@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import owlplanner as owl
-from owlplanner import tax_state
+from owlplanner import residency, tax_state
 from owlplanner.config import config_to_plan, plan_to_config
 
 THISYEAR = date.today().year
@@ -22,19 +22,32 @@ def _params(states_n, **kw):
 # ---------------------------------------------------------------------------
 
 
+def _states(state, moves, N_n, locality=""):
+    return [s for s, _ in residency.residence_by_year(state, locality, moves, THISYEAR, N_n)]
+
+
 def test_residence_by_year_applies_moves_in_order():
-    got = tax_state.residence_by_year("ny", [(THISYEAR + 8, "nj"), (THISYEAR + 3, "FL")], THISYEAR, 12)
+    got = _states("ny", [(THISYEAR + 8, "nj"), (THISYEAR + 3, "FL")], 12)
     assert got == ["NY"] * 3 + ["FL"] * 5 + ["NJ"] * 4
 
 
 def test_residence_by_year_without_moves_is_constant():
-    assert tax_state.residence_by_year("MN", (), THISYEAR, 5) == ["MN"] * 5
-    assert tax_state.residence_by_year("", (), THISYEAR, 5) == [""] * 5
+    assert _states("MN", (), 5) == ["MN"] * 5
+    assert _states("", (), 5) == [""] * 5
 
 
 def test_residence_by_year_can_start_with_no_state():
-    got = tax_state.residence_by_year("", [(THISYEAR + 2, "NY")], THISYEAR, 4)
-    assert got == ["", "", "NY", "NY"]
+    assert _states("", [(THISYEAR + 2, "NY")], 4) == ["", "", "NY", "NY"]
+
+
+def test_locality_does_not_survive_a_move_to_another_state():
+    got = residency.residence_by_year("NY", "NYC", [(THISYEAR + 2, "NJ")], THISYEAR, 4)
+    assert got == [("NY", "NYC")] * 2 + [("NJ", "")] * 2
+
+
+def test_a_move_can_name_a_locality():
+    got = residency.residence_by_year("NY", "NYC", [(THISYEAR + 2, "NY", "yonkers")], THISYEAR, 4)
+    assert got == [("NY", "NYC")] * 2 + [("NY", "Yonkers")] * 2
 
 
 @pytest.mark.parametrize(
@@ -43,16 +56,22 @@ def test_residence_by_year_can_start_with_no_state():
         ((THISYEAR, "FL"), "after the first plan year"),
         ((THISYEAR + 5, "FL"), "within the plan"),
         ((THISYEAR + 2, "ZZ"), "Unknown state"),
+        ((THISYEAR + 2, "FL", "NYC"), "Unknown locality"),
     ],
 )
 def test_residence_by_year_rejects_bad_moves(move, msg):
     with pytest.raises(ValueError, match=msg):
-        tax_state.residence_by_year("NY", [move], THISYEAR, 5)
+        residency.residence_by_year("NY", "", [move], THISYEAR, 5)
 
 
 def test_residence_by_year_rejects_two_moves_in_one_year():
     with pytest.raises(ValueError, match="Two moves"):
-        tax_state.residence_by_year("NY", [(THISYEAR + 2, "FL"), (THISYEAR + 2, "NJ")], THISYEAR, 5)
+        residency.residence_by_year("NY", "", [(THISYEAR + 2, "FL"), (THISYEAR + 2, "NJ")], THISYEAR, 5)
+
+
+def test_locality_needs_a_state():
+    with pytest.raises(ValueError, match="needs a state"):
+        residency.normalize("", "NYC")
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +190,7 @@ def test_config_round_trip_keeps_moves():
     p = _plan("NY", [(THISYEAR + 4, "FL"), (THISYEAR + 9, "NJ")])
     conf = plan_to_config(p)
     assert conf["basic_info"]["moves"] == [{"year": THISYEAR + 4, "state": "FL"}, {"year": THISYEAR + 9, "state": "NJ"}]
+    assert "locality" not in conf["basic_info"]
     q = config_to_plan(conf)
     assert q.state == "NY" and q.state_moves == p.state_moves
 

@@ -36,6 +36,13 @@ def _state_choices():
     return [""] + _ts.valid_states()
 
 
+@st.cache_data
+def _locality_choices(state):
+    from owlplanner import tax_local as _tl
+
+    return [""] + _tl.valid_localities(state) if state else [""]
+
+
 def _loadHFPExample(file):
     if file:
         hfp_name = tomlex.getHFPName(file)
@@ -148,6 +155,18 @@ else:
     )
     with col3:
         kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state", help=_state_help)
+        kz.initCaseKey("locality", "")
+        localities = _locality_choices(kz.getCaseKey("state") or "")
+        if kz.getCaseKey("locality") not in localities:
+            kz.setCaseKey("locality", "")  # the state changed to one without that city
+            st.session_state.pop(kz.genCaseKey("locality"), None)
+        if len(localities) > 1:
+            kz.getSelectbox(
+                "City income tax (optional)",
+                localities,
+                "locality",
+                help="Adds the city's resident income tax on top of the state's. Blank means the rest of the state.",
+            )
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."

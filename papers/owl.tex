@@ -1004,6 +1004,11 @@ federal AGI (federal ordinary taxable income plus the federal standard
 deduction, plus capital gains, which most states tax as ordinary income), minus
 the exempted portion of Social Security, pension exemptions, the state
 standard deduction, and any capped retirement-income exemption.
+A city tax can sit on top of the state's (\code{locality}, data in
+\code{data/taxes\_local.toml}): either a set of brackets on the state taxable
+income, which adds bracket variables $f^{\ell}_{tn}$ with
+$\sum_t f^{\ell}_{tn} = \sum_t f^{s}_{tn}$, or a surcharge that scales the
+state's own marginal rates by $1+\varsigma_n$.
 The state can change during the plan: each year takes its brackets, deduction,
 and exemptions from the state in force on December 31, and the bracket
 dimension is padded to the longest schedule with zero-width brackets at the top
