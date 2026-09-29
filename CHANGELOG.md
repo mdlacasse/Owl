@@ -26,6 +26,13 @@ convergence while that difference exceeds `residualTol`.
 
 #### Changed: UI log lines no longer carry the `ScriptRunner.scriptThread` tag
 
+#### New: results record the engine that produced them
+
+`plan_to_dict()` and the results of `run_conversion_regret_sweep()`, `run_stochastic_spending()`
+and `run_spending_bequest_frontier()` carry an `engine` entry with the Owl version and the git
+commit (suffixed `-dirty` for uncommitted changes, `None` outside a checkout); their summaries
+carry the engine of the result they summarize. The solve log line now shows the commit as well.
+
 ### Version 2026.9.27
 
 #### Removed: `withDecomposition`, which never worked

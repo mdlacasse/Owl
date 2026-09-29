@@ -33,6 +33,7 @@ from scipy.optimize import linprog
 from . import fixedassets as fxasst
 from . import mylogging as log
 from . import progress
+from .version import engine_provenance
 from . import rates
 from . import utils as u
 from .config.plan_bridge import clone
@@ -856,6 +857,7 @@ def run_conversion_regret_sweep(
         plan.mylog.print(f"{n_failed} of {total} scenario baselines failed to solve.", tag="WARNING")
 
     return {
+        "engine": engine_provenance(),
         "grid": grid,
         "start_years": np.array(years),
         "v_star": v_star,
@@ -990,6 +992,7 @@ def summarize_conversion_regret(
             )
             convergence["v_star_osc_max"] = float(np.round(osc.max(), 2))
     out = {
+        "engine": result.get("engine"),  # the engine that produced the sweep, not this one
         "n_scenarios": n_scenarios,
         "n_failed_baselines": int((~ok).sum()),
         "max_achieved_gap": None if gaps is None else float(np.max(gaps)),
@@ -1663,6 +1666,7 @@ def run_stochastic_spending(
     _, frontier_g_y1, frontier_prob_y1, frontier_shortfall_y1 = _compute_efficient_frontier(bases_year1)
 
     return {
+        "engine": engine_provenance(),
         "bases": bases,
         "bases_year1": bases_year1,
         "start_years": start_years,
@@ -2006,6 +2010,7 @@ def run_spending_bequest_frontier(
                 frontier_g[k, :], frontier_prob[k, :], frontier_shortfall[k, :] = f
 
     return {
+        "engine": engine_provenance(),
         "bequest_grid": np.array(grid),
         "bequest_dollars": np.array(grid) * unit_fac,
         "base_basis": base_basis,
@@ -2169,6 +2174,7 @@ def summarize_spending_bequest_frontier(result, *, target_success_rate_pct=90.0)
     gaps = np.asarray(result["max_gap"], float)
 
     return {
+        "engine": result.get("engine"),  # the engine that produced the frontier, not this one
         "scenario_method": result["scenario_method"],
         "n_scenarios": int(result["n_scenarios"]),
         "success_rates": rates_pct,

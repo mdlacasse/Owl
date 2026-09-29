@@ -172,6 +172,14 @@ def test_metrics_column_map_fmt_values():
 # ---------------------------------------------------------------------------
 
 
+def test_plan_to_dict_records_the_engine(solved_single):
+    from owlplanner import __version__
+
+    engine = plan_to_dict(solved_single)["engine"]
+    assert engine["version"] == __version__
+    assert "commit" in engine
+
+
 def test_plan_to_dict_top_level_keys(solved_single):
     d = plan_to_dict(solved_single)
     for key in (

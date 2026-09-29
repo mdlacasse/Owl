@@ -12,6 +12,7 @@ import json
 import numpy as np
 
 from owlplanner.export import plan_metrics, balance_sheet_arrays
+from owlplanner.version import engine_provenance
 
 
 class _NumpyEncoder(json.JSONEncoder):
@@ -173,6 +174,7 @@ def plan_to_dict(plan) -> dict:
     # ---- top-level document ---------------------------------------------
     state = plan.state if plan.state else "none"
     return {
+        "engine": engine_provenance(),
         "status": plan.caseStatus,
         "convergence": plan.convergenceType,
         "fixed_point_residual_today_dollars": residual,

@@ -38,7 +38,7 @@ from . import tax_federal as tx
 from . import tax_state
 from . import abcapi as abc
 from . import rates
-from .version import __version__
+from .version import __version__, engine_commit
 from . import config
 from . import hfp_io
 from . import export
@@ -4432,8 +4432,8 @@ class Plan:
         # a per-year bar and changed where the loop stops, and a retried step changed which cases
         # solve at all -- none of which a saved run says about itself otherwise.
         self.mylog.print(
-            f"Owl {__version__} using relTol={rel_tol:.1e}, absTol={abs_tol:.1e}, gap={gap:.1e}, "
-            f"and residualTol={u.d(residual_tol)}/yr."
+            f"Owl {__version__} ({engine_commit() or 'no git'}) using relTol={rel_tol:.1e}, "
+            f"absTol={abs_tol:.1e}, gap={gap:.1e}, and residualTol={u.d(residual_tol)}/yr."
         )
 
         return {
