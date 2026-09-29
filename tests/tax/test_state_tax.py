@@ -59,7 +59,7 @@ def test_toml_all_states_load(state):
         for lower, rate in brackets:
             assert lower >= 0, f"{state}: negative lower bound"
             assert 0 <= rate <= 15, f"{state}: rate {rate}% out of expected range [0, 15]"
-        assert entry["standard_deduction"] >= 0
+        assert entry["standard_deduction"] == "federal" or entry["standard_deduction"] >= 0
         assert isinstance(entry["tax_social_security"], bool)
 
 
@@ -193,6 +193,53 @@ def test_state_base_starts_from_gross_income():
     p.solve("maxSpending", options={"verbose": False})
     expected = np.maximum(0, p.G_n + p.e_n + p.Q_n - p.st_sigmaBar_n)
     assert np.any(expected > 1_000), "test needs years with positive state taxable income"
+    np.testing.assert_allclose(np.sum(p.st_f_tn, axis=0), expected, atol=1.0)
+
+
+@pytest.mark.parametrize(
+    "state,expected",
+    [("CO", (True, True)), ("ND", (True, True)), ("AZ", (True, False)), ("MO", (True, False)), ("CA", (False, False))],
+)
+def test_federal_deduction_flags(state, expected):
+    assert tax_state.federal_deduction(state) == expected
+
+
+def test_federal_deduction_follows_age_and_senior_bonus():
+    """A "federal" state deduction is the federal one each year: age-65 additions included,
+    and the OBBBA senior bonus only where the state takes it (CO yes, AZ no)."""
+    p_co = _make_plan("CO")
+    p_co.solve("maxSpending", options={"verbose": False})
+    np.testing.assert_allclose(p_co.st_sigmaBar_n, p_co.sigmaBar_n)
+
+    p_az = _make_plan("AZ")
+    p_az.solve("maxSpending", options={"verbose": False})
+    years = date.today().year + np.arange(p_az.N_n)
+    gap = p_az.sigmaBar_n - p_az.st_sigmaBar_n
+    # Jack is 65+ throughout: the bonus is at most $6,000 through 2028 and gone after.
+    assert np.all(gap[years <= 2028] >= -1e-6) and np.all(gap[years <= 2028] <= 6000 + 1e-6)
+    assert np.any(gap[years <= 2028] > 0), "expected some senior bonus left out for AZ"
+    np.testing.assert_allclose(gap[years > 2028], 0, atol=1e-6)
+    # The age-65 addition is in: the 2026 amount exceeds the $16,100 single base.
+    assert p_az.st_sigmaBar_n[0] > 16_100
+
+
+def test_state_ss_exclusion_uses_lp_taxable_ss():
+    """Under withSSTaxability='optimize', a state that exempts SS removes exactly the taxable
+    SS the LP charged federally (tss), not the Psi_n parameter left by the previous iterate."""
+    p = Plan(["Jack"], ["1958-01-01"], [78], "TestStateSSopt")
+    p.setStateTax("CA")
+    p.setAccountBalances(taxable=[50], taxDeferred=[300], taxFree=[0])
+    p.setSocialSecurity([2500], [67])
+    p.setRates("conservative")
+    p.setAllocationRatios("individual", generic=np.array([[[60, 40, 0, 0], [60, 40, 0, 0]]]))
+    p.setSpendingProfile("flat")
+    p.solve("maxSpending", {"withSSTaxability": "optimize", "withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    # In optimize mode, Psi_n is re-derived from tss when results are aggregated.
+    taxable_ss = p.Psi_n * np.sum(p.zetaBar_in, axis=0)
+    ss_years = np.sum(p.zetaBar_in, axis=0) > 0
+    assert np.any(p.Psi_n[ss_years] < 0.8), "test needs years where taxable SS is below 85%"
+    expected = np.maximum(0, p.G_n + p.e_n + p.Q_n - taxable_ss - p.st_sigmaBar_n)
     np.testing.assert_allclose(np.sum(p.st_f_tn, axis=0), expected, atol=1.0)
 
 

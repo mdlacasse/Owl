@@ -14,6 +14,13 @@
 #                               reduce taxable income the same way. Not inflation-adjusted
 #                               in file; Owl applies gamma_n scaling at runtime.
 #                               Income-based phase-outs are not modeled.
+#                               "federal" = the state allows the federal standard deduction
+#                               itself (AZ, CO, DC, IA, ID, MO, MT, ND, NM), recomputed each
+#                               year by Owl with the additional amount for age 65+.
+#   senior_deduction          = true/false — with a "federal" deduction, whether the state also
+#                               allows the OBBBA $6,000 senior deduction (default false). True
+#                               for CO, ID, ND, which begin from federal taxable income and
+#                               pick it up (Tax Foundation, Sept 2025).
 #   tax_social_security       = true/false — whether state taxes SS benefits at all
 #   ss_exemption_threshold    = AGI below which SS is fully exempt (0 = not applicable).
 #                               Only meaningful when tax_social_security = true.
@@ -229,7 +236,8 @@ roth_conversion_eligible = true
 
 [AZ_Single]
 brackets = [[0.0, 2.5]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -239,7 +247,8 @@ roth_conversion_eligible = true
 
 [AZ_MFJ]
 brackets = [[0.0, 2.5]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -250,7 +259,8 @@ roth_conversion_eligible = true
 [CO_Single]
 # CO fully exempts SS for those 65+; retirement income: $24k/person exemption (65+)
 brackets = [[0.0, 4.4]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 24000
@@ -260,7 +270,8 @@ roth_conversion_eligible = true
 
 [CO_MFJ]
 brackets = [[0.0, 4.4]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 24000
@@ -296,7 +307,8 @@ roth_conversion_eligible = true
 # Audit 2026-09: 0% on the first $4,811/$9,622 of taxable income; Tax Foundation 2026 table.
 # ID: HB 40 (2025) cut the flat rate to 5.3%, retroactive to Jan 1, 2025.
 brackets = [[0.0, 0.0], [4811.0, 5.3]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -306,7 +318,8 @@ roth_conversion_eligible = true
 
 [ID_MFJ]
 brackets = [[0.0, 0.0], [9622.0, 5.3]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -360,7 +373,8 @@ roth_conversion_eligible = true
 [IA_Single]
 # Iowa: all retirement income exempt for those 55+ (effective 2023)
 brackets = [[0.0, 3.8]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -370,7 +384,8 @@ roth_conversion_eligible = true
 
 [IA_MFJ]
 brackets = [[0.0, 3.8]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -609,7 +624,8 @@ roth_conversion_eligible = true
 
 [DC_Single]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -619,7 +635,8 @@ roth_conversion_eligible = true
 
 [DC_MFJ]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -820,7 +837,8 @@ brackets = [
     [0.0, 0.0], [1348.0, 2.0], [2696.0, 2.5], [4044.0, 3.0],
     [5392.0, 3.5], [6740.0, 4.0], [8088.0, 4.5], [9436.0, 4.7]
 ]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 100000
 retirement_income_exemption = 0
@@ -833,7 +851,8 @@ brackets = [
     [0.0, 0.0], [1348.0, 2.0], [2696.0, 2.5], [4044.0, 3.0],
     [5392.0, 3.5], [6740.0, 4.0], [8088.0, 4.5], [9436.0, 4.7]
 ]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 100000
 retirement_income_exemption = 0
@@ -846,7 +865,8 @@ roth_conversion_eligible = true
 # MT: HB 337 (2025) cut top rate to 5.65% and expanded lower bracket to $47,500 (single)
 # or $95,000 (MFJ), effective Jan 1, 2026. MT taxes SS; no retirement income exemption.
 brackets = [[0.0, 4.7], [47500.0, 5.65]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -856,7 +876,8 @@ roth_conversion_eligible = true
 
 [MT_MFJ]
 brackets = [[0.0, 4.7], [95000.0, 5.65]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -914,7 +935,8 @@ brackets = [
     [0.0, 1.5], [5500.0, 3.2], [16500.0, 4.3], [33500.0, 4.7],
     [66500.0, 4.9], [210000.0, 5.9]
 ]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 10000
@@ -927,7 +949,8 @@ brackets = [
     [0.0, 1.5], [8000.0, 3.2], [25000.0, 4.3], [50000.0, 4.7],
     [100000.0, 4.9], [315000.0, 5.9]
 ]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 10000
@@ -970,7 +993,8 @@ roth_conversion_eligible = true
 # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted
 # from 2025 official values): 0% to $48,475; 1.95% $48,475-$244,825; 2.5% above.
 brackets = [[0.0, 0.0], [48475.0, 1.95], [244825.0, 2.5]]
-standard_deduction = 16100
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -980,7 +1004,8 @@ roth_conversion_eligible = true
 
 [ND_MFJ]
 brackets = [[0.0, 0.0], [80975.0, 1.95], [298075.0, 2.5]]
-standard_deduction = 32200
+standard_deduction = "federal"
+senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0

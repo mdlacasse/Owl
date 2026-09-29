@@ -390,6 +390,8 @@ class Plan:
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
         self.st_conv_ok = True  # Whether Roth conversions count toward the state exemption
+        self.st_fed_sd = False  # Whether the state follows the federal standard deduction
+        self.st_senior_bonus = False  # Whether that includes the OBBBA senior bonus
         self.st_re_in = np.zeros((self.N_i, self.N_n))  # State retirement exemption claimed per person
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
@@ -2238,6 +2240,18 @@ class Plan:
             self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, MAGI_n, self.yOBBBA
         )
 
+        # A state that follows the federal standard deduction takes this year's federal
+        # amount, age-65 additions included; the OBBBA senior bonus only where it conforms.
+        if self.state and self.st_fed_sd:
+            if self.st_senior_bonus:
+                self.st_sigmaBar_n = self.sigmaBar_n.copy()
+            else:
+                # Infinite MAGI phases the senior bonus out entirely.
+                no_bonus = np.full(self.N_n, np.inf)
+                self.st_sigmaBar_n = tx.taxParams(
+                    self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA
+                )[0]
+
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
             self.DeltaBar_tn = self.Delta_tn * gamma_n[:-1]
@@ -2580,7 +2594,9 @@ class Plan:
                     federal standard deduction e_n, so the federal deduction is not
                     also taken against the state base)
                   + capital gains (Q_n via q[p,n], taxed as ordinary by most states)
-                  - SS exclusion (when state does not tax SS: subtract Psi_n * zetaBar_n)
+                  - SS exclusion (when state does not tax SS: subtract the taxable SS that
+                    G_n carries -- the tss_n variable under withSSTaxability="optimize",
+                    the Psi_n * zetaBar_n parameter otherwise)
                   - pension exemption cap (parameter)
 
         The LP then subtracts the state standard deduction (st_e) and retirement income
@@ -2591,9 +2607,15 @@ class Plan:
         pension exemption). Unused amounts do not transfer between spouses.
         """
         vm = self.vm
+        # Under withSSTaxability="optimize", taxable SS is the tss variable, so exclude it
+        # through tss: Psi_n there lags the LP by one self-consistent iteration.
+        ss_lp = "tss" in vm
         for n in range(self.N_n):
-            # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
-            ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
+            # SS adjustment: federal G_n contains taxable SS; remove it if state excludes SS.
+            if self.st_tax_ss or ss_lp:
+                ss_excl = 0.0
+            else:
+                ss_excl = self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
             # Pension exemption (parameter): each person's pension up to their own cap.
             pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
             rhs = -ss_excl - pe_adj
@@ -2610,6 +2632,8 @@ class Plan:
             row.addElem(vm["e"].idx(n), -1)  # add back the federal standard deduction
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
+            if ss_lp and not self.st_tax_ss:
+                row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
@@ -4357,6 +4381,7 @@ class Plan:
             ) = tax_state.st_taxParams(
                 self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
             )
+            self.st_fed_sd, self.st_senior_bonus = tax_state.federal_deduction(self.state)
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)

@@ -7,6 +7,18 @@ and exemptions apply. State tax was previously understated in every income-tax s
 those states now show higher state tax and lower spending or bequest. Test references were
 updated accordingly.
 
+#### Changed: states that use the federal standard deduction now follow it
+
+AZ, CO, DC, IA, ID, MO, MT, ND and NM take the federal standard deduction each year, including
+the additional amount for age 65+, instead of a fixed amount. CO, ID and ND also take the OBBBA
+senior deduction. In the state data, `standard_deduction = "federal"` selects this and
+`senior_deduction` controls the senior bonus.
+
+#### Fixed: with `withSSTaxability = "optimize"`, state SS exclusion matches the federal amount
+
+States that exempt Social Security now remove exactly the taxable benefit the optimizer
+computed, rather than the previous iteration's estimate.
+
 ### Version 2026.9.27
 
 #### Removed: `withDecomposition`, which never worked

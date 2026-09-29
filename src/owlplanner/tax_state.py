@@ -80,6 +80,28 @@ def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     return rates, widths
 
 
+def _deduction_amount(entry: dict) -> float:
+    """Dollar standard deduction of a TOML entry; 0 when it follows the federal one.
+
+    A "federal" deduction is filled in by the Plan from the federal standard deduction,
+    which depends on age and MAGI and so cannot be tabulated here.
+    """
+    sd = entry["standard_deduction"]
+    return 0.0 if sd == "federal" else float(sd)
+
+
+def federal_deduction(state: str, toml_path=None) -> tuple:
+    """Return (uses_federal, with_senior_bonus) for *state*'s standard deduction.
+
+    uses_federal      — the state allows the federal standard deduction, including the
+                        additional amount for age 65+, rather than a fixed amount of its own
+    with_senior_bonus — the state also allows the OBBBA \$6,000 senior deduction
+    """
+    entry = get_state_entry(state, 0, toml_path)
+    uses_federal = entry["standard_deduction"] == "federal"
+    return uses_federal, uses_federal and bool(entry.get("senior_deduction", False))
+
+
 def st_taxParams(
     state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
 ) -> tuple:
@@ -105,6 +127,7 @@ def st_taxParams(
     st_theta_tn    — shape (N_st, N_n) marginal rates (decimals)
     st_DeltaBar_tn — shape (N_st, N_n) inflation-adjusted bracket widths
     st_sigmaBar_n  — shape (N_n,) inflation-adjusted state standard deduction
+                     (zeros for a "federal" deduction, which the Plan fills in)
     st_re_cap_in   — shape (N_i, N_n) retirement income exemption cap of each individual,
                      zero until that individual meets exemption_age
                      (0 = none, np.inf = fully exempt)
@@ -161,11 +184,11 @@ def st_taxParams(
         if filing_status == 1:
             st_theta_tn[:, n] = rates_m
             st_DeltaBar_tn[:, n] = widths_m * gn
-            st_sigmaBar_n[n] = entry_mfj["standard_deduction"] * gn
+            st_sigmaBar_n[n] = _deduction_amount(entry_mfj) * gn
         else:
             st_theta_tn[:, n] = rates_s
             st_DeltaBar_tn[:, n] = widths_s * gn
-            st_sigmaBar_n[n] = entry_single["standard_deduction"] * gn
+            st_sigmaBar_n[n] = _deduction_amount(entry_single) * gn
 
     # --- Retirement income exemption cap (per person, inflation-adjusted) ---
     # Use the single-filer entry value (same per-person cap regardless of filing status).
