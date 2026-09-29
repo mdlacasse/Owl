@@ -7,6 +7,8 @@ __pycache__/
 .coverage
 .coverage.*
 .pytest_cache/
+# Benchmark runs are machine-specific and stay local; see CONTRIBUTING.md ("Benchmarks").
+.benchmarks/
 .mypy_cache/
 .ruff_cache/
 

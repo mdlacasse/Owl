@@ -22,12 +22,28 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import math
+
 import numpy as np
+
+# np.isclose's defaults. The test is written out in _isclose rather than calling
+# np.isclose, whose per-call overhead on two scalars dominated the LP build.
+_RTOL = 1e-5
+_ATOL = 1e-8
+
+
+def _isclose(a, b):
+    """np.isclose(a, b) for two scalars: same tolerances, same asymmetry, same infinities."""
+    if a == b:
+        return True
+    if math.isinf(a) or math.isinf(b):
+        return False
+    return abs(a - b) <= _ATOL + _RTOL * abs(b)
 
 
 def _bound_key(lb, ub):
     """Classify a bound pair as a MOSEK-style key string."""
-    if np.isclose(lb, ub):
+    if _isclose(lb, ub):
         return "fx"
     elif ub == np.inf and lb == -np.inf:
         return "fr"
