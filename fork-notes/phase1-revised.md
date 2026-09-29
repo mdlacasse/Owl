@@ -55,4 +55,13 @@ To unblock: allow `www.tax.ny.gov` in the environment's network settings (or put
 
 ## Loop-mode behaviour worth knowing
 
-`withMedicare="loop"` converges to different fixed points depending on where the state layer starts it. On one synthetic couple, staying in NY gave $124,921 and moving to FL after five years gave $124,179 (lower), while moving after one year gave $126,178 and living in FL gave $126,615. Roth conversions differed by 2x between the first two. That is the existing self-consistent loop settling on different local optima, not a residency error: the constant-schedule test shows the LP inputs are identical to the single-state path. Compare residency scenarios under the same solver options, and treat differences under about 1% as noise unless the exact modes (`withMedicare="optimize"`) agree.
+Synthetic NY couple (62/62, $1.95M pre-tax/taxable, SS at 67), `maxSpending`, checked by running the same five residencies twice:
+
+| Residency | `withMedicare="loop"` (default SS loop) | `withMedicare="None"`, `withSSTaxability=0.85` |
+|---|---|---|
+| NY throughout | 124,921 | 127,690 |
+| NY, FL from year 5 | **124,179** | 128,405 |
+| NY, FL from year 1 | 126,178 | 128,815 |
+| FL throughout | 126,615 | 128,895 |
+
+Under the default loop, moving after five years scored below staying, and Roth conversions differed by 2x. With the two loop-fed quantities pinned the LP is exact and the order is monotone, as it must be. So the anomaly is the self-consistent loop settling on different fixed points, not the residency layer. Compare residency scenarios under the same solver options, and do not read differences under about 1% as decisions unless an exact mode agrees. The demo script is not in the repo; the numbers are a sanity check, not a result about any real household.
