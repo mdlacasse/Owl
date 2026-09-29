@@ -177,6 +177,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
         start_date_str = str(date.today())
     dic["startDate"] = _start_date_to_ui(start_date_str)
     dic["state"] = bi.get("state", "")
+    dic["moves"] = list(bi.get("moves", []))
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
     _ic = aa.get("interpolation_center")
@@ -512,6 +513,8 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "worksheet_real_dollars": bool(uidic.get("worksheetRealDollars", False)),
         },
     }
+    if uidic.get("moves"):
+        diconf["basic_info"]["moves"] = list(uidic["moves"])
 
     # Savings: UI $k = config $k (per doc: tables dollars, UI thousands except fixed income)
     for j, acc in enumerate(ACC_CONF):

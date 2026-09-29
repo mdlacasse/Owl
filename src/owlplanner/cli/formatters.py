@@ -173,6 +173,7 @@ def plan_to_dict(plan) -> dict:
 
     # ---- top-level document ---------------------------------------------
     state = plan.state if plan.state else "none"
+    state_moves = [{"year": y, "state": st or "none"} for y, st in plan.state_moves]
     return {
         "engine": engine_provenance(),
         "status": plan.caseStatus,
@@ -182,6 +183,7 @@ def plan_to_dict(plan) -> dict:
         "objective": plan.objective,
         "individuals": list(plan.inames),
         "state": state,
+        **({"state_moves": state_moves} if state_moves else {}),
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,

@@ -34,6 +34,7 @@ Basic information about the individuals in the plan.
 | `life_expectancy` | list of `N_i` integers | Life expectancy in years for each individual |
 | `start_date` | string | Start date of the plan (e.g., `"01-01"`, `"01/01"`, `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
 | `state` | string | *(Optional)* Two-letter US state abbreviation for state income tax calculations (e.g., `"MN"`, `"CA"`). Omit or set to `""` for federal-only (no state tax) |
+| `moves` | array of tables | *(Optional)* Later changes of state, e.g. `[{year = 2032, state = "FL"}]`. From that calendar year on, that state taxes the household; `state` is the state in the first plan year (may be blank if the first state has no tax you wish to model). The state in force on December 31 governs the whole year: there is no part-year split. Each year must fall within the plan, after its first year. Not yet editable in the web UI, which preserves what the file says |
 
 -------
 

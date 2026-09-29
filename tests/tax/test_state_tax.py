@@ -353,7 +353,8 @@ def test_st_taxparams_ny_age_59_and_a_half():
 @pytest.mark.parametrize("state,expected", [("NY", True), ("IL", True), ("KY", True), ("MD", False)])
 def test_st_taxparams_roth_conversion_eligibility(state, expected):
     """Roth conversion income counts toward the exemption except in MD."""
-    assert tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1]).conv_ok is expected
+    conv_ok = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1]).conv_ok
+    assert np.all(conv_ok == expected)
 
 
 def _exempt_plan(state, names, dobs, deferred, taxable=0):
@@ -450,9 +451,9 @@ def test_state_taxparams_returns_dataclass():
     sp = tax_state.st_taxParams("MN", 1, 30, 30, np.ones(31), [1960], mobs=[1])
     assert isinstance(sp, tax_state.StateTaxParams)
     assert sp.N_st >= 4
-    assert sp.indexed is True
-    assert isinstance(sp.conv_ok, bool)
-    assert isinstance(sp.tax_ss, bool)
+    assert sp.indexed.all()
+    assert sp.conv_ok.shape == sp.tax_ss.shape == (30,)
+    assert sp.conv_ok.dtype == sp.tax_ss.dtype == bool
 
 
 def test_ny_not_indexed():
@@ -461,8 +462,8 @@ def test_ny_not_indexed():
     gamma_inflated = np.array([1.02**n for n in range(31)])
     sp_flat = tax_state.st_taxParams("NY", 1, 30, 30, gamma_flat, [1960], mobs=[1])
     sp_inf = tax_state.st_taxParams("NY", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
-    assert sp_flat.indexed is False
-    assert sp_inf.indexed is False
+    assert not sp_flat.indexed.any()
+    assert not sp_inf.indexed.any()
     # Non-indexed: year 10 must equal year 0 regardless of gamma_n
     np.testing.assert_array_equal(sp_inf.DeltaBar_tn[:, 10], sp_inf.DeltaBar_tn[:, 0])
     assert sp_inf.sigmaBar_n[10] == pytest.approx(sp_inf.sigmaBar_n[0])
@@ -477,8 +478,8 @@ def test_mn_still_indexed():
     gamma_inflated = np.array([1.02**n for n in range(31)])
     sp_flat = tax_state.st_taxParams("MN", 1, 30, 30, gamma_flat, [1960], mobs=[1])
     sp_inf = tax_state.st_taxParams("MN", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
-    assert sp_flat.indexed is True
-    assert sp_inf.indexed is True
+    assert sp_flat.indexed.all()
+    assert sp_inf.indexed.all()
     assert sp_inf.DeltaBar_tn[0, 10] > sp_flat.DeltaBar_tn[0, 10]
 
 
@@ -508,8 +509,9 @@ indexed = false
 """
     f = tmp_path / "test_state.toml"
     f.write_text(toml_content)
-    sp = tax_state.st_taxParams("XX", 1, 30, 30, np.array([1.02**n for n in range(31)]), [1960], mobs=[1], toml_path=str(f))
-    assert sp.indexed is False
+    gamma = np.array([1.02**n for n in range(31)])
+    sp = tax_state.st_taxParams("XX", 1, 30, 30, gamma, [1960], mobs=[1], toml_path=str(f))
+    assert not sp.indexed.any()
     # Non-indexed: year 10 == year 0
     np.testing.assert_array_equal(sp.DeltaBar_tn[:, 10], sp.DeltaBar_tn[:, 0])
 
@@ -530,7 +532,8 @@ roth_conversion_eligible = true
     f = tmp_path / "test_state.toml"
     f.write_text(toml_content)
     sp = tax_state.st_taxParams("XX", 1, 30, 30, np.ones(31), [1960], mobs=[1], toml_path=str(f))
-    assert sp.indexed is True
+    assert sp.indexed.all()
+
 
 def _fill_brackets(sp, n, income):
     """Tax from filling brackets in order, as the LP does for a convex schedule."""

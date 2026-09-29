@@ -1971,6 +1971,7 @@ def genDic(plan):
     dic["caseStatus"] = "new"
     dic["status"] = ["unknown", "single", "married"][plan.N_i]
     dic["state"] = getattr(plan, "state", "")
+    dic["moves"] = [{"year": y, "state": st} for y, st in getattr(plan, "state_moves", ())]
     # Prepend year if not there.
     tdate = plan.startDate.replace("/", "-").split("-")
     if len(tdate) == 2:

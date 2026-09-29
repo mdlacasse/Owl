@@ -1004,6 +1004,10 @@ federal AGI (federal ordinary taxable income plus the federal standard
 deduction, plus capital gains, which most states tax as ordinary income), minus
 the exempted portion of Social Security, pension exemptions, the state
 standard deduction, and any capped retirement-income exemption.
+The state can change during the plan: each year takes its brackets, deduction,
+and exemptions from the state in force on December 31, and the bracket
+dimension is padded to the longest schedule with zero-width brackets at the top
+rate. No part-year apportionment is made.
 A state that allows the federal standard deduction itself
 (\code{standard\_deduction = "federal"} in the data table) takes that year's
 federal amount, including the additional amount for age 65 and over.

@@ -1,5 +1,13 @@
 ### Unreleased
 
+#### New: change of state during the plan
+
+`basic_info.moves` (and `Plan.setStateTax(state, moves)`) lists later changes of residence, e.g.
+`moves = [{year = 2032, state = "FL"}]`. From that year on the new state taxes the household, so
+the optimizer sees today's rates against tomorrow's when timing Roth conversions or withdrawals.
+The state in force on December 31 governs the whole year; part-year residency is not apportioned.
+A plan with no `moves` is unchanged. The web UI preserves `moves` from a file but does not edit them.
+
 #### Fixed: the top state bracket was lost when Single and MFJ schedules differ in length
 
 Padding the shorter schedule put a zero-rate, unbounded bracket after the real top one and gave the

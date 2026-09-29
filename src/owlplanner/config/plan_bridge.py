@@ -276,6 +276,18 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     plan.yOBBBA = max(plan.yOBBBA, this_year)
 
 
+def _apply_state_to_plan(plan, known):
+    """Set the state of residence and any later moves from ``basic_info``."""
+    bi = known["basic_info"]
+    state = bi.get("state", "")
+    moves = [(m["year"], m.get("state", "")) for m in bi.get("moves", [])]
+    if state or moves:
+        try:
+            plan.setStateTax(state, moves)
+        except (ValueError, KeyError, TypeError) as e:
+            raise ValueError(f"Invalid state in config: {e}") from e
+
+
 def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
     """Apply ACA settings and other qualified medical expenses from config to plan."""
     other_med = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
@@ -357,12 +369,7 @@ def config_to_plan(
     _apply_optimization_to_plan(p, known)
     _apply_solver_options_to_plan(p, known)
     _apply_aca_to_plan(p, known)
-    state = known["basic_info"].get("state", "")
-    if state:
-        try:
-            p.setStateTax(state)
-        except ValueError as e:
-            raise ValueError(f"Invalid state in config: {e}") from e
+    _apply_state_to_plan(p, known)
 
     res = known.get("results", {})
     p.setDefaultPlots(res.get("default_plots", "nominal"))
@@ -393,12 +400,7 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_optimization_to_plan(plan, known)
     _apply_solver_options_to_plan(plan, known)
     _apply_aca_to_plan(plan, known)
-    state = known["basic_info"].get("state", "")
-    if state:
-        try:
-            plan.setStateTax(state)
-        except ValueError as e:
-            raise ValueError(f"Invalid state in config: {e}") from e
+    _apply_state_to_plan(plan, known)
 
     res = known.get("results", {})
     plan.setDefaultPlots(res.get("default_plots", "nominal"))
@@ -427,6 +429,8 @@ def plan_to_config(myplan: "Plan") -> dict:
         "start_date": myplan.startDate,
         "state": getattr(myplan, "state", ""),
     }
+    if getattr(myplan, "state_moves", ()):
+        diconf["basic_info"]["moves"] = [{"year": y, "state": st} for y, st in myplan.state_moves]
 
     # Savings Assets
     diconf["savings_assets"] = {}

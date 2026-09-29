@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple
 
 import numpy as np
 
@@ -61,12 +61,15 @@ class StateTaxParams:
                       that individual meets exemption_age (0 = none, np.inf = fully exempt)
     pe_cap_in      -- shape (N_i, N_n) pension-only exemption cap per individual
                       (0 = pensions count toward re_cap_in instead)
-    conv_ok        -- whether Roth conversion income counts toward re_cap_in
-    tax_ss         -- whether state taxes Social Security benefits
     ss_thresh_n    -- shape (N_n,) AGI threshold below which SS is exempt (0 = not applicable)
-    fed_sd         -- whether the state takes the federal standard deduction
-    senior_bonus   -- whether that includes the OBBBA senior deduction
-    indexed        -- whether brackets and dollar amounts scale with inflation (gamma_n)
+    conv_ok        -- shape (N_n,) bool, whether Roth conversion income counts toward re_cap_in
+    tax_ss         -- shape (N_n,) bool, whether the state taxes Social Security benefits
+    pe_pooled      -- shape (N_n,) bool, whether pensions share re_cap_in (no separate pension cap)
+    fed_sd         -- shape (N_n,) bool, whether the state takes the federal standard deduction
+    senior_bonus   -- shape (N_n,) bool, whether that includes the OBBBA senior deduction
+    indexed        -- shape (N_n,) bool, whether brackets and dollar amounts scale with inflation
+
+    The flag arrays are per year because the state can change during the plan.
     """
 
     N_st: int
@@ -75,12 +78,13 @@ class StateTaxParams:
     sigmaBar_n: np.ndarray
     re_cap_in: np.ndarray
     pe_cap_in: np.ndarray
-    conv_ok: bool
-    tax_ss: bool
     ss_thresh_n: np.ndarray
-    fed_sd: bool = False
-    senior_bonus: bool = False
-    indexed: bool = True
+    conv_ok: np.ndarray
+    tax_ss: np.ndarray
+    pe_pooled: np.ndarray
+    fed_sd: np.ndarray
+    senior_bonus: np.ndarray
+    indexed: np.ndarray
 
 
 @lru_cache(maxsize=1)
@@ -268,6 +272,9 @@ def st_taxParams(
 
     fed_sd, senior_bonus = federal_deduction(state, toml_path)
 
+    def flag(value):
+        return np.full(N_n, value, dtype=bool)
+
     return StateTaxParams(
         N_st=N_st,
         theta_tn=theta_tn,
@@ -275,12 +282,98 @@ def st_taxParams(
         sigmaBar_n=sigmaBar_n,
         re_cap_in=re_cap_in,
         pe_cap_in=pe_cap_in,
-        conv_ok=conv_ok,
-        tax_ss=tax_ss,
         ss_thresh_n=ss_thresh_n,
-        fed_sd=fed_sd,
-        senior_bonus=senior_bonus,
-        indexed=indexed,
+        conv_ok=flag(conv_ok),
+        tax_ss=flag(tax_ss),
+        pe_pooled=flag(pe_base == 0),
+        fed_sd=flag(fed_sd),
+        senior_bonus=flag(senior_bonus),
+        indexed=flag(indexed),
+    )
+
+
+class Residence(NamedTuple):
+    """From *year* on, the household is resident in *state* ("" = a state with no income tax)."""
+
+    year: int
+    state: str
+
+
+def residence_by_year(state: str, moves, first_year: int, N_n: int) -> list:
+    """Return the state in force in each of the N_n plan years, "" meaning none.
+
+    The state in force on December 31 governs the whole year: there is no part-year split.
+    *moves* is an iterable of Residence (or (year, state) pairs); each must fall after the
+    first plan year and within the horizon, and no year may appear twice.
+    """
+    valid = set(valid_states())
+    states_n = [state.upper().strip() if state else ""] * N_n
+    seen = set()
+    for year, dest in sorted((Residence(int(y), s) for y, s in moves)):
+        dest = dest.upper().strip() if dest else ""
+        if dest and dest not in valid:
+            raise ValueError(f"Unknown state '{dest}' in move to {year}. Use a valid two-letter abbreviation.")
+        if not first_year < year < first_year + N_n:
+            raise ValueError(
+                f"A move must fall after the first plan year and within the plan "
+                f"({first_year + 1}-{first_year + N_n - 1}); got {year}."
+            )
+        if year in seen:
+            raise ValueError(f"Two moves in {year}.")
+        seen.add(year)
+        for n in range(year - first_year, N_n):
+            states_n[n] = dest
+    return states_n
+
+
+def st_taxParams_schedule(
+    states_n: list, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
+) -> StateTaxParams:
+    """State tax parameters when the state can differ from year to year.
+
+    *states_n* holds the state in force in each year ("" = none), as returned by
+    residence_by_year. Each column is taken from that state's own st_taxParams; the bracket
+    dimension is padded to the longest schedule with zero-width top-rate brackets.
+    """
+    per_state = {
+        s: st_taxParams(s, N_i, n_d, N_n, gamma_n, yobs, mobs=mobs, toml_path=toml_path)
+        for s in sorted({s for s in states_n if s})
+    }
+    N_st = max((p.N_st for p in per_state.values()), default=1)
+
+    theta_tn = np.zeros((N_st, N_n))
+    DeltaBar_tn = np.zeros((N_st, N_n))
+    sigmaBar_n = np.zeros(N_n)
+    re_cap_in = np.zeros((N_i, N_n))
+    pe_cap_in = np.zeros((N_i, N_n))
+    ss_thresh_n = np.zeros(N_n)
+    flags = {name: np.zeros(N_n, dtype=bool) for name in ("conv_ok", "tax_ss", "pe_pooled", "fed_sd", "senior_bonus")}
+    flags["indexed"] = np.ones(N_n, dtype=bool)
+
+    for n, s in enumerate(states_n):
+        if not s:
+            DeltaBar_tn[0, n] = _LAST_BRACKET_SENTINEL * gamma_n[n]  # zero-rate placeholder: no state tax
+            continue
+        p = per_state[s]
+        theta_tn[: p.N_st, n] = p.theta_tn[:, n]
+        theta_tn[p.N_st :, n] = p.theta_tn[-1, n]
+        DeltaBar_tn[: p.N_st, n] = p.DeltaBar_tn[:, n]
+        sigmaBar_n[n] = p.sigmaBar_n[n]
+        re_cap_in[:, n] = p.re_cap_in[:, n]
+        pe_cap_in[:, n] = p.pe_cap_in[:, n]
+        ss_thresh_n[n] = p.ss_thresh_n[n]
+        for name, arr in flags.items():
+            arr[n] = getattr(p, name)[n]
+
+    return StateTaxParams(
+        N_st=N_st,
+        theta_tn=theta_tn,
+        DeltaBar_tn=DeltaBar_tn,
+        sigmaBar_n=sigmaBar_n,
+        re_cap_in=re_cap_in,
+        pe_cap_in=pe_cap_in,
+        ss_thresh_n=ss_thresh_n,
+        **flags,
     )
 
 

@@ -415,13 +415,14 @@ class Plan:
         self._aca_lp = False  # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)  # ACA LP cost variable extraction result
         self.state = ""  # Two-letter US state for state income tax ("" = none)
+        self.state_moves = ()  # Later moves, as (calendar year, state) pairs
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
-        self.st_conv_ok = True  # Whether Roth conversions count toward the state exemption
-        self.st_fed_sd = False  # Whether the state follows the federal standard deduction
-        self.st_senior_bonus = False  # Whether that includes the OBBBA senior bonus
+        self.st_conv_ok = np.ones(self.N_n, dtype=bool)  # Per year: Roth conversions count toward the exemption
+        self.st_fed_sd = np.zeros(self.N_n, dtype=bool)  # Per year: state follows the federal standard deduction
+        self.st_senior_bonus = np.zeros(self.N_n, dtype=bool)  # Per year: that includes the OBBBA senior bonus
         self.st_re_in = np.zeros((self.N_i, self.N_n))  # State retirement exemption claimed per person
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
@@ -1628,7 +1629,7 @@ class Plan:
             self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 
-    def setStateTax(self, state):
+    def setStateTax(self, state, moves=()):
         """
         Set two-letter US state abbreviation for state income tax modeling.
 
@@ -1643,14 +1644,29 @@ class Plan:
         ----------
         state : str
             Two-letter state abbreviation (e.g. 'MN', 'CA', 'TX'). Case-insensitive.
+            This is the state of residence in the first plan year.
+        moves : iterable of (year, state)
+            Later changes of residence: from the calendar *year* on, the household
+            lives in *state* ("" for none). The state in force on December 31 taxes
+            the whole year. Each year must fall within the plan, after its first year.
         """
-        from . import tax_state as ts
-
         state = state.upper().strip() if state else ""
-        if state and state not in ts.valid_states():
-            raise ValueError(f"Unknown state '{state}'. Use a valid two-letter abbreviation from: {ts.valid_states()}")
+        if state and state not in tax_state.valid_states():
+            raise ValueError(
+                f"Unknown state '{state}'. Use a valid two-letter abbreviation from: {tax_state.valid_states()}"
+            )
+        moves = tuple((int(y), s.upper().strip() if s else "") for y, s in moves)
+        tax_state.residence_by_year(state, moves, int(self.year_n[0]), self.N_n)  # validates
         self.state = state
+        self.state_moves = moves
         self.caseStatus = "modified"
+
+    def _state_by_year(self):
+        "State in force in each plan year (\"\" = none)."
+        return tax_state.residence_by_year(self.state, self.state_moves, int(self.year_n[0]), self.N_n)
+
+    def _has_state_tax(self):
+        return any(self._state_by_year())
 
     def setInterpolationMethod(self, method, center=15, width=5):
         """
@@ -2272,15 +2288,14 @@ class Plan:
 
         # A state that follows the federal standard deduction takes this year's federal
         # amount, age-65 additions included; the OBBBA senior bonus only where it conforms.
-        if self.state and self.st_fed_sd:
-            if self.st_senior_bonus:
-                self.st_sigmaBar_n = self.sigmaBar_n.copy()
-            else:
-                # Infinite MAGI phases the senior bonus out entirely.
-                no_bonus = np.full(self.N_n, np.inf)
-                self.st_sigmaBar_n = tx.taxParams(
-                    self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA
-                )[0]
+        if np.any(self.st_fed_sd):
+            # Infinite MAGI phases the senior bonus out entirely.
+            no_bonus = np.full(self.N_n, np.inf)
+            sigma_no_bonus = tx.taxParams(
+                self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA
+            )[0]
+            federal_n = np.where(self.st_senior_bonus, self.sigmaBar_n, sigma_no_bonus)
+            self.st_sigmaBar_n = np.where(self.st_fed_sd, federal_n, self.st_sigmaBar_n)
 
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
@@ -2497,7 +2512,7 @@ class Plan:
         # State income tax LP variables (continuous, before binary block).
         # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
         # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
-        st_lp = bool(self.state) and bool(np.any(self.st_theta_tn > 0))
+        st_lp = self.N_st > 0 and bool(np.any(self.st_theta_tn > 0))
         self._st_lp = st_lp
         st_re_lp = st_lp and np.any(self.st_re_cap_in > 0)
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
@@ -2642,7 +2657,7 @@ class Plan:
         ss_lp = "tss" in vm
         for n in range(self.N_n):
             # SS adjustment: federal G_n contains taxable SS; remove it if state excludes SS.
-            if self.st_tax_ss or ss_lp:
+            if self.st_tax_ss[n] or ss_lp:
                 ss_excl = 0.0
             else:
                 ss_excl = self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
@@ -2662,21 +2677,20 @@ class Plan:
             row.addElem(vm["e"].idx(n), -1)  # add back the federal standard deduction
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
-            if ss_lp and not self.st_tax_ss:
+            if ss_lp and not self.st_tax_ss[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
             # Pensions share the retirement exemption unless the state has a separate pension one.
-            pension_eligible = tax_state.get_state_entry(self.state, 0).get("pension_exemption", 0) == 0
             for i in range(self.N_i):
                 for n in range(self.N_n):
                     row = self.A.newRow({vm["st_re"].idx(i, n): 1})
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                    if self.st_conv_ok:
+                    if self.st_conv_ok[n]:
                         row.addElem(vm["x"].idx(i, n), -1)
-                    rhs = self.piBar_in[i, n] if pension_eligible else 0
+                    rhs = self.piBar_in[i, n] if self.st_pe_pooled[n] else 0
                     self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
 
     def _add_defunct_constraints(self):
@@ -4397,9 +4411,11 @@ class Plan:
         # Note: st_ss_thresh_n (AGI threshold for SS exemption, e.g. KS $75k, MO $100k) is
         # returned but not yet used in the LP — those states are currently treated as binary
         # (SS fully exempt or fully taxed). Full threshold modeling is a known limitation.
-        if self.state:
-            sp = tax_state.st_taxParams(
-                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
+        self.N_st = 0
+        self.st_fed_sd = np.zeros(self.N_n, dtype=bool)
+        if self._has_state_tax():
+            sp = tax_state.st_taxParams_schedule(
+                self._state_by_year(), self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
             )
             self.N_st = sp.N_st
             self.st_theta_tn = sp.theta_tn
@@ -4409,6 +4425,7 @@ class Plan:
             self.st_pe_cap_in = sp.pe_cap_in
             self.st_conv_ok = sp.conv_ok
             self.st_tax_ss = sp.tax_ss
+            self.st_pe_pooled = sp.pe_pooled
             self.st_fed_sd = sp.fed_sd
             self.st_senior_bonus = sp.senior_bonus
 
@@ -6558,7 +6575,7 @@ class Plan:
         # All taxes: ordinary income, dividends, NIIT, and state income tax.
         allTaxes = self.T_n + self.U_n + self.J_n
         aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
-        st_n = self.st_T_n if self.state else None
+        st_n = self.st_T_n if self._has_state_tax() else None
         fig = self._plotter.plot_taxes(
             self.year_n, allTaxes, self.medicare_n, self.gamma_n, value, title, self.inames, A_n=aca_n, ST_n=st_n
         )
