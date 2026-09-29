@@ -148,22 +148,6 @@ class Logger(object):
         if self._verboseStack:
             self._verbose = self._verboseStack.pop()
 
-    def __getstate__(self):
-        """
-        Pickle the settings, not the streams: a Logger travels to a worker process with
-        the plan it belongs to, and file objects cannot be pickled. The worker gets a
-        logger writing to its own stdout and stderr, which cannot be the parent's streams
-        in another process anyway.
-        """
-        state = self.__dict__.copy()
-        state["_logstreams"] = None
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        if not self._use_loguru:
-            self._logstreams = [sys.stdout, sys.stderr]
-
     def __deepcopy__(self, memo):
         """
         Custom deepcopy implementation to handle file descriptors properly.
