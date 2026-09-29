@@ -4,8 +4,7 @@
 
 State taxable income now starts from gross ordinary income, so only the state's own deduction
 and exemptions apply. State tax was previously understated in every income-tax state; plans in
-those states now show higher state tax and lower spending or bequest. Test references were
-updated accordingly.
+those states now show higher state tax and lower spending or bequest.
 
 #### Changed: states that use the federal standard deduction now follow it
 
@@ -18,6 +17,14 @@ senior deduction. In the state data, `standard_deduction = "federal"` selects th
 
 States that exempt Social Security now remove exactly the taxable benefit the optimizer
 computed, rather than the previous iteration's estimate.
+
+#### New: LTCG family in `plan.fixedPointResidual`
+
+The fixed-point residual now reports the difference between the capital-gains tax charged and
+the tax the plan's own income implies, and the self-consistent loop no longer declares
+convergence while that difference exceeds `residualTol`.
+
+#### Changed: UI log lines no longer carry the `ScriptRunner.scriptThread` tag
 
 ### Version 2026.9.27
 

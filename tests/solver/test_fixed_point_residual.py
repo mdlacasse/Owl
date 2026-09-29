@@ -20,7 +20,7 @@ import pytest
 
 import owlplanner as owl
 
-FAMILIES = ("SS", "IRMAA", "NIIT", "deduction")
+FAMILIES = ("SS", "IRMAA", "NIIT", "deduction", "LTCG")
 
 
 def _plan(name="residual"):
@@ -38,7 +38,7 @@ def test_residual_is_reported_and_small_on_a_converged_plan():
     p = _plan()
     p.solve("maxSpending", options={"bequest": 0})
     assert p.caseStatus == "solved"
-    assert set(p.fixedPointResidual) >= {"SS", "NIIT", "deduction"}
+    assert set(p.fixedPointResidual) >= {"SS", "NIIT", "deduction", "LTCG"}
     for fam, v in p.fixedPointResidual.items():
         assert set(v) == {"sum", "abs_sum", "max_abs"}
         # A converged plan should be nearly self-consistent; this is the claim "solved" implies.

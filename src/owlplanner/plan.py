@@ -4472,8 +4472,8 @@ class Plan:
         """Converged when the objective has settled AND the quantities the loop feeds back have too.
 
         The objective alone is not enough: the LP is built from the previous iterate's Medicare
-        premiums, SS taxable fraction, NIIT and ACA costs, so an iterate whose own income implies
-        different values is not a fixed point, however still the objective looks. `residual` is the
+        premiums, SS taxable fraction, NIIT, ACA costs and LTCG bracket room, so an iterate whose
+        own income implies different values is not a fixed point, however still the objective looks. `residual` is the
         largest of those disagreements, summed over the horizon in today's dollars; residualTol is
         the bar it must clear, expressed per year so that it means the same thing on a short plan
         as on a long one.
@@ -4816,6 +4816,9 @@ class Plan:
                 moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
             if self.slcsp_annual > 0:
                 moves.append(np.sum(np.abs(self.ACA_n - ACA_n_lp) / g_today))
+            # LTCG bracket room is set from the previous iterate's ordinary income, so the LP's
+            # gains tax can disagree with the tax this iterate's own income implies.
+            moves.append(np.sum(np.abs(self.U_n - self._ltcg_tax_implied()) / g_today))
             scResidual = float(max(moves))
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
@@ -4961,6 +4964,11 @@ class Plan:
 
         return None
 
+    def _ltcg_tax_implied(self):
+        """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly."""
+        Nn = self.N_n
+        return tx.capitalGainTax(self.N_i, self.G_n + self.Q_n, self.Q_n, self.gamma_n[:Nn], self.n_d, Nn)
+
     def _computeFixedPointResidual(self, includeMedicare):
         """Measure how far the solved plan sits from the model its own income implies.
 
@@ -4999,6 +5007,8 @@ class Plan:
 
         sigma_true = tx.taxParams(self.yobs, self.i_d, self.n_d, Nn, self.gamma_n, self.MAGI_n, self.yOBBBA)[0]
         res["deduction"] = (self.sigmaBar_n - sigma_true) / g
+
+        res["LTCG"] = (self.U_n - self._ltcg_tax_implied()) / g
 
         self.fixedPointResidual = {
             k: {"sum": float(np.sum(v)), "abs_sum": float(np.sum(np.abs(v))), "max_abs": float(np.max(np.abs(v)))}

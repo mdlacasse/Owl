@@ -95,7 +95,7 @@ def federal_deduction(state: str, toml_path=None) -> tuple:
 
     uses_federal      — the state allows the federal standard deduction, including the
                         additional amount for age 65+, rather than a fixed amount of its own
-    with_senior_bonus — the state also allows the OBBBA \$6,000 senior deduction
+    with_senior_bonus — the state also allows the OBBBA $6,000 senior deduction
     """
     entry = get_state_entry(state, 0, toml_path)
     uses_federal = entry["standard_deduction"] == "federal"

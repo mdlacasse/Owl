@@ -87,6 +87,15 @@ def test_worker_line_carries_thread_name():
     assert "Hello" in line
 
 
+def test_streamlit_script_thread_carries_no_thread_field():
+    # Every UI line comes from Streamlit's script thread, which stands in for the main thread.
+    strio = StringIO()
+    mylog = log.Logger(True, [strio])
+    line = _logFromThread(mylog, "ScriptRunner.scriptThread")
+    assert line.count("|") == 3
+    assert "ScriptRunner" not in line
+
+
 def test_explicit_label_replaces_thread_name():
     # Pool threads are reused across scenarios, so a label naming the scenario is
     # more useful than the name of the slot that happened to run it.

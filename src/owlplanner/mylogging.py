@@ -77,13 +77,20 @@ def threadLabel(label):
         setThreadLabel(previous)
 
 
+# Threads that play the part of the main thread and so carry no tag. Streamlit runs every page
+# script in a thread of this name; without this, each UI line would carry it.
+_MAIN_LIKE_THREADS = frozenset({"ScriptRunner.scriptThread"})
+
+
 def _threadTag():
     """Identify the emitting thread, or None when it is the unlabelled main thread."""
     label = getattr(_threadCtx, "label", None)
     if label:
         return label
     thread = threading.current_thread()
-    return None if thread is threading.main_thread() else thread.name
+    if thread is threading.main_thread() or thread.name in _MAIN_LIKE_THREADS:
+        return None
+    return thread.name
 
 
 def _threadMessage(args):
