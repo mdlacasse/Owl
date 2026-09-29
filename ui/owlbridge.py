@@ -2393,7 +2393,7 @@ def regretCost():
     yend = kz.getCaseKey("regret_yend") or histYendMax()
     S = regretScenarioCount(preset, ystart, yend)
     n = estimateRegretSolves(preset, ystart, yend)
-    return n, S, f"**{preset}**: {S} scenarios x {(n // S) if S else 0} solves"
+    return n, S, f"**{preset}**: {S} scenarios × {(n // S) if S else 0} solves"
 
 
 def histRangeCost():
@@ -2405,14 +2405,14 @@ def histRangeCost():
         plan = kz.getCaseKey("plan")
         # Augmented sweeps every (reverse, roll) pair: 2 x N_n variants of each year.
         variants = 2 * (plan.N_n if plan is not None else 30)
-        return S * variants, S, f"{S} years x {variants} variants"
-    return S, S, f"{S} years x 1 solve"
+        return S * variants, S, f"{S} years × {variants} variants"
+    return S, S, f"{S} years × 1 solve"
 
 
 def monteCarloCost():
     """(solves, width, detail) for a Monte Carlo run: one solve per trial."""
     n = int(kz.getCaseKey("MC_cases") or 0)
-    return n, n, f"{n:,} trials x 1 solve"
+    return n, n, f"{n:,} trials × 1 solve"
 
 
 def stochasticSpendingCost():
@@ -2421,9 +2421,9 @@ def stochasticSpendingCost():
         ystart = kz.getCaseKey("stoch_ystart") or FROM
         yend = kz.getCaseKey("stoch_yend") or histYendMax()
         S = max(int(yend) - int(ystart) + 1, 0)
-        return S, S, f"{S} historical windows"
+        return S, S, f"{S} historical windows × 1 solve"
     n = int(kz.getCaseKey("stoch_N_mc") or 0)
-    return n, n, f"{n:,} scenarios"
+    return n, n, f"{n:,} scenarios × 1 solve"
 
 
 def frontierCost():
@@ -2438,15 +2438,16 @@ def frontierCost():
     except ValueError:
         levels = 1
     method = kz.getCaseKey("frontier_scenario_method") or "deterministic"
+    plural = "level" if levels == 1 else "levels"
     if method == "deterministic":
-        return levels, 1, f"{levels} level(s) x 1 solve"
+        return levels, 1, f"{levels} bequest {plural} × 1 solve"
     if method == "historical":
         ystart = kz.getCaseKey("frontier_ystart") or FROM
         yend = kz.getCaseKey("frontier_yend") or histYendMax()
         S = max(int(yend) - int(ystart) + 1, 0)
     else:
         S = int(kz.getCaseKey("frontier_N_mc") or 0)
-    return levels * S, S, f"{levels} level(s) x {S:,} scenarios"
+    return levels * S, S, f"{levels} bequest {plural} × {S:,} scenarios"
 
 
 def costOfRun(nsolves, width, detail=""):
@@ -2458,13 +2459,15 @@ def costOfRun(nsolves, width, detail=""):
     """
     nsolves = int(nsolves)
     secs = estimateSeconds(nsolves, width)
-    parts = [f"{detail} = **{nsolves:,} optimizations**" if detail else f"**{nsolves:,} optimizations**"]
+    parts = [f"{detail} = **{nsolves:,} optimizations**." if detail else f"**{nsolves:,} optimizations**."]
     if secs is None:
-        parts.append("Solve this case once for a time estimate.")
+        parts.append("Solve this case once on the *Graphs* page to also get a run-time estimate.")
+    elif secs < 1:
+        parts.append("Estimated run time **under 1 s**, scaled from this case's last single solve.")
     elif secs < 90:
-        parts.append(f"Roughly **{secs:.0f} s** at this case's measured solve time.")
+        parts.append(f"Estimated run time **{secs:.0f} s**, scaled from this case's last single solve.")
     else:
-        parts.append(f"Roughly **{secs / 60:.0f} min** at this case's measured solve time.")
+        parts.append(f"Estimated run time **{secs / 60:.0f} min**, scaled from this case's last single solve.")
 
     if budgetIsUncapped():
         return True, " ".join(parts)

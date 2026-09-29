@@ -102,7 +102,9 @@ following January. Entered that way a purchase paid for with a big-ticket item n
 double-counts on the balance sheet in the year it is bought, nor loses a year of appreciation.
 No change in behaviour.
 
-#### Changed: *Spending vs Bequest* notes are bulleted, with wrapped lines indented under their text
+#### Changed: *Spending vs Bequest* notes are bulleted, with wrapped lines indented under their text.
+
+#### Changed: *Stress Tests* Improve wording for reporting computing time in UI.
 
 ### Version 2026.9.21
 
