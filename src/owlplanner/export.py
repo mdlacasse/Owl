@@ -37,6 +37,7 @@ from . import utils as u
 from . import tax_federal as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
 from .utils import worksheet_age_on_dec_31_or_blank
+from .version import __version__, engine_commit
 
 
 def _person_index_for_worksheet(sheet_name, inames):
@@ -617,6 +618,8 @@ def build_summary_dic(plan, N=None):
     rel_half = plan.oscillationRel / 2.0
     dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
     dic["Case executed on"] = str(plan._timestamp)
+    # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.
+    dic["Owl version"] = f"{__version__} ({engine_commit() or 'no git'})"
 
     return dic
 

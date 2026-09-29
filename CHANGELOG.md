@@ -25,11 +25,19 @@ In a state with an income tax, `explain_results` reports this year's state tax a
 bracket reached, with the room left in it (`this_year.state_tax`), and the same for every year
 of the plan (`state_tax_brackets`). Plans in states without an income tax are unchanged.
 
-#### Changed: MCP stochastic and frontier results record the engine
+#### Changed: MCP results record the engine and each plan's convergence
 
-`run_stochastic`, `run_year1_robustness`, `run_longevity_stochastic` and
-`run_spending_bequest_frontier` now return the `engine` entry (Owl version and git commit), like
-the other results.
+`run_stochastic`, `run_year1_robustness`, `run_longevity_stochastic`,
+`run_spending_bequest_frontier`, `compare_cases` and `compare_to_baseline` now return the `engine`
+entry (Owl version and git commit), like the other results, and so does every response for a plan
+that did not solve. `compare_cases` and `compare_to_baseline` also report how each plan's
+self-consistent loop ended and its fixed-point residual, so a difference between two plans can be
+checked against whether both converged.
+
+#### New: the summary names the Owl version
+
+The plan summary, and the *Summary* sheet of saved workbooks, end with the Owl version and git
+commit that produced them.
 
 #### Changed: dependencies updated
 
