@@ -1,5 +1,12 @@
 ### Unreleased
 
+#### Fixed: the top state bracket was lost when Single and MFJ schedules differ in length
+
+Padding the shorter schedule put a zero-rate, unbounded bracket after the real top one and gave the
+real top bracket zero width, so income above the top threshold was taxed at 0%. Only NJ has
+schedules of different lengths (7 Single, 8 MFJ); it affected a Single filer, or the survivor of a
+couple, above \$1M of taxable income. Padding entries now repeat the top rate with zero width.
+
 #### New: states can declare their dollar amounts non-indexed
 
 The state data accepts `indexed = false` for states whose statute fixes bracket thresholds, the

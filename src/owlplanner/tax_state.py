@@ -121,6 +121,17 @@ def _brackets_to_rates_and_widths(brackets: list, sentinel: float):
     return rates, widths
 
 
+def _padded_rates_and_widths(brackets: list, n_st: int):
+    """Like _brackets_to_rates_and_widths, padded to *n_st* entries.
+
+    The open-ended top bracket keeps its sentinel width; padding entries repeat the top
+    rate with zero width, so they can never take income from the real top bracket.
+    """
+    rates, widths = _brackets_to_rates_and_widths(brackets, _LAST_BRACKET_SENTINEL)
+    extra = n_st - len(rates)
+    return np.append(rates, np.full(extra, rates[-1])), np.append(widths, np.zeros(extra))
+
+
 def _deduction_amount(entry: dict) -> float:
     """Dollar standard deduction of a TOML entry; 0 when it follows the federal one.
 
@@ -193,17 +204,9 @@ def st_taxParams(
     N_st = max(n_single, n_mfj)
 
     # --- Pre-compute base rates and widths for each filing status ---
-    # Pad shorter bracket list with zero-width, zero-rate brackets at the end.
-    def _pad(brackets, target_n):
-        while len(brackets) < target_n:
-            brackets.append([brackets[-1][0], 0.0])
-        return brackets[:target_n]
-
-    brackets_single = _pad(list(entry_single["brackets"]), N_st)
-    brackets_mfj = _pad(list(entry_mfj["brackets"]) if N_i == 2 else list(entry_single["brackets"]), N_st)
-
-    rates_s, widths_s = _brackets_to_rates_and_widths(brackets_single, _LAST_BRACKET_SENTINEL)
-    rates_m, widths_m = _brackets_to_rates_and_widths(brackets_mfj, _LAST_BRACKET_SENTINEL)
+    brackets_mfj = entry_mfj["brackets"] if N_i == 2 else entry_single["brackets"]
+    rates_s, widths_s = _padded_rates_and_widths(entry_single["brackets"], N_st)
+    rates_m, widths_m = _padded_rates_and_widths(brackets_mfj, N_st)
 
     # --- Build per-year arrays, switching filing status at n_d ---
     theta_tn = np.zeros((N_st, N_n))
