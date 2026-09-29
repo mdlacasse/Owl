@@ -4012,6 +4012,7 @@ class Plan:
         with_longevity=False,
         sexes=None,
         seed=None,
+        executor="threads",
     ):
         return run_stochastic_spending(
             self,
@@ -4026,6 +4027,7 @@ class Plan:
             with_longevity=with_longevity,
             sexes=sexes,
             seed=seed,
+            executor=executor,
         )
 
     @_checkConfiguration(requireRates=False)

@@ -104,15 +104,17 @@ def test_solve_loop_single(benchmark, single):
     benchmark.pedantic(_solve_loop, setup=lambda: ((clone(single, verbose=False),), {}), rounds=10, warmup_rounds=1)
 
 
-def test_stochastic_spending_mc(benchmark, couple):
-    def setup():
-        plan = clone(couple, verbose=False)
-        plan.setReproducible(True, seed=2026)
-        plan.setRates("histogaussian", frm=1928, to=2025)
-        return (plan,), {}
+def _seeded_mc_plan(couple):
+    plan = clone(couple, verbose=False)
+    plan.setReproducible(True, seed=2026)
+    plan.setRates("histogaussian", frm=1928, to=2025)
+    return (plan,), {}
 
+
+@pytest.mark.parametrize("executor", ["threads", "processes"])
+def test_stochastic_spending_mc(benchmark, couple, executor):
     def run(plan):
-        result = run_stochastic_spending(plan, _loop_options(plan), "mc", N=MC_SCENARIOS)
+        result = run_stochastic_spending(plan, _loop_options(plan), "mc", N=MC_SCENARIOS, executor=executor)
         assert result["n_infeasible"] == 0
 
-    benchmark.pedantic(run, setup=setup, rounds=3, warmup_rounds=1)
+    benchmark.pedantic(run, setup=lambda: _seeded_mc_plan(couple), rounds=3, warmup_rounds=1)
