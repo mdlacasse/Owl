@@ -450,3 +450,42 @@ def test_ks_two_rate_structure():
     """KS has had two rates (5.2%, 5.58%) since 2024."""
     assert _brackets("KS_Single") == [(0.0, 5.2), (23000.0, 5.58)]
     assert _brackets("KS_MFJ") == [(0.0, 5.2), (46000.0, 5.58)]
+
+
+def _schedule_tax(income, brackets):
+    """Tax from a TOML [[lower, rate_pct], ...] schedule, top bracket open-ended."""
+    tax = 0.0
+    for i, (lower, rate) in enumerate(brackets):
+        upper = brackets[i + 1][0] if i + 1 < len(brackets) else np.inf
+        tax += max(0.0, min(income, upper) - lower) * rate / 100
+    return tax
+
+
+def _lp_bracket_tax(income, theta, delta):
+    """Tax from filling the LP brackets (rates, widths) in order."""
+    tax, left = 0.0, income
+    for rate, width in zip(theta, delta):
+        filled = min(left, width)
+        tax += filled * rate
+        left -= filled
+    return tax
+
+
+@pytest.mark.parametrize("income", [900_000, 1_500_000, 3_000_000])
+def test_nj_single_keeps_top_bracket(income):
+    """NJ Single (7 brackets) is padded to MFJ's 8 without losing its open-ended 10.75% (issue #149)."""
+    _, theta, delta, *_ = tax_state.st_taxParams("NJ", 1, 30, 30, np.ones(31), [1960], mobs=[1])
+    expected = _schedule_tax(income, tax_state.get_state_entry("NJ", 0)["brackets"])
+    assert _lp_bracket_tax(income, theta[:, 0], delta[:, 0]) == pytest.approx(expected)
+
+
+def test_nj_survivor_keeps_top_bracket():
+    """After n_d, a couple's survivor files Single and must keep NJ's top bracket (issue #149)."""
+    n_d = 10
+    _, theta, delta, *_ = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1])
+    single = tax_state.get_state_entry("NJ", 0)["brackets"]
+    mfj = tax_state.get_state_entry("NJ", 1)["brackets"]
+    income = 1_500_000
+    assert _lp_bracket_tax(income, theta[:, n_d - 1], delta[:, n_d - 1]) == pytest.approx(_schedule_tax(income, mfj))
+    for n in range(n_d, 30):
+        assert _lp_bracket_tax(income, theta[:, n], delta[:, n]) == pytest.approx(_schedule_tax(income, single))
