@@ -2591,12 +2591,13 @@ class Plan:
         pension exemption). Unused amounts do not transfer between spouses.
         """
         vm = self.vm
+        # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
+        ss_excl_n = 0.0 if self.st_tax_ss else self.Psi_n * np.sum(self.zetaBar_in, axis=0)
+        # Pension exemption (parameter): each person's pension up to their own cap.
+        pe_adj_n = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
+        rhs_n = -ss_excl_n - pe_adj_n
         for n in range(self.N_n):
-            # SS adjustment: federal G_n contains Psi_n * zetaBar; remove if state excludes SS.
-            ss_excl = 0.0 if self.st_tax_ss else self.Psi_n[n] * float(np.sum(self.zetaBar_in[:, n]))
-            # Pension exemption (parameter): each person's pension up to their own cap.
-            pe_adj = float(np.sum(np.minimum(self.piBar_in[:, n], self.st_pe_cap_in[:, n])))
-            rhs = -ss_excl - pe_adj
+            rhs = rhs_n[n]
 
             row = self.A.newRow()
             for t in range(self.N_st):
@@ -2655,6 +2656,7 @@ class Plan:
         # Assume 10% per year for contributions and conversions for past 5 years.
         # Future years will use the assumed returns.
         oldTau1 = 1.10
+        Tau1_in = 1 + np.sum(self.alpha_ijkn[:, 2, :, : self.N_n] * self.tau_kn, axis=1)
         for i in range(self.N_i):
             h = self.horizons[i]
             for n in range(h):
@@ -2667,9 +2669,8 @@ class Plan:
                 for dn in range(1, 6):
                     nn = n - dn
                     if nn >= 0:  # Past of future is now or in the future: use variables or parameters.
-                        Tau1 = 1 + np.sum(self.alpha_ijkn[i, 2, :, nn] * self.tau_kn[:, nn], axis=0)
                         # Ignore market downs.
-                        cgains *= max(1, Tau1)
+                        cgains *= max(1, Tau1_in[i, nn])
                         row.addElem(self.vm["x"].idx(i, nn), -cgains)
                         # If a contribution, it has only penalty on gains, not on deposited amount.
                         rhs += (cgains - 1) * self.kappa_ijn[i, 2, nn]
@@ -2993,11 +2994,7 @@ class Plan:
             self.B.setRange(self.vm["s"].idx(self.N_n - 1), 0, 0)
 
     def _add_account_balance_carryover(self):
-        tau_ijn = np.zeros((self.N_i, self.N_j, self.N_n))
-        for i in range(self.N_i):
-            for j in range(self.N_j):
-                for n in range(self.N_n):
-                    tau_ijn[i, j, n] = np.sum(self.alpha_ijkn[i, j, :, n] * self.tau_kn[:, n], axis=0)
+        tau_ijn = np.sum(self.alpha_ijkn[:, :, :, : self.N_n] * self.tau_kn, axis=2)
 
         # Weights are normalized on k: sum_k[alpha*(1 + tau)] = 1 + sum_k[alpha*tau]
         Tau1_ijn = 1 + tau_ijn
@@ -3117,6 +3114,8 @@ class Plan:
 
     def _add_taxable_income(self, options=None):
         ss_lp = options is not None and options.get("withSSTaxability", "loop") == "optimize"
+        # Only positive returns are taxable (interest/dividends); losses don't reduce income.
+        fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
         for n in range(self.N_n):
             # Add fixed assets ordinary income
             rhs = self.fixed_assets_ordinary_income_n[n]
@@ -3143,10 +3142,7 @@ class Plan:
                     )
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
-                # Only positive returns are taxable (interest/dividends); losses don't reduce income.
-                fak = np.sum(
-                    np.maximum(0, self.tau_kn[1 : self.N_k, n]) * self.alpha_ijkn[i, 0, 1 : self.N_k, n], axis=0
-                )
+                fak = fak_in[i, n]
                 rhs += 0.5 * fak * self.kappa_ijn[i, 0, n]
                 row.addElem(self.vm["b"].idx(i, 0, n), -fak)
                 row.addElem(self.vm["w"].idx(i, 0, n), fak)
