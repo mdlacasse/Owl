@@ -1,0 +1,82 @@
+# Phase 0 baseline case — NY-metro couple (born 1964, FRA 67).
+# TEMPLATE: placeholders only. Copy to otherFiles/Case_us.toml (gitignored) and fill in the
+# TODOs there; never commit the filled-in copy. Balances in $k. Save as UTF-8.
+# Reproducibility: rates_selection.method = "user" pins the rate sequence;
+# alternatively use "historical" with from/to for a fixed window.
+
+case_name = "us"
+description = """
+NY-metro couple, both born 1964 (FRA 67), currently renting. No pensions or
+457(b). Goal: spend down to $0 by age 92. Exploring retirement timing (end of
+2026 vs later), SS claiming, part-time work, residency (Yonkers / NYC /
+Westchester / NJ), and rent vs buy. Healthcare cost growth is the main worry.
+"""
+
+[basic_info]
+status = "married"
+names = [ "SpouseA", "SpouseB", ]        # TODO: real names
+sexes = [ "M", "F", ]                    # TODO: adjust
+date_of_birth = [ "1964-01-01", "1964-12-01", ]  # TODO: exact dates (A: early 1964, B: Dec 1964)
+life_expectancy = [ 92, 92, ]
+start_date = "2026-01-01"               # TODO: balances must be as of this date; with "today"
+                                         # use today's balances and only the rest of 2026's wages
+state = "NY"                             # scenarios vary it; Westchester outside Yonkers = plain NY
+locality = ""                            # "" | "Yonkers" | "NYC" (see data/taxes_local.toml)
+# moves = [ { year = 2032, state = "FL" }, ]   # optional later change of residence
+
+[savings_assets]
+taxable_savings_balances = [ 0.0, 0.0, ]       # TODO: $k
+tax_deferred_savings_balances = [ 0.0, 0.0, ]  # TODO: $k (401k/IRA)
+tax_free_savings_balances = [ 0.0, 0.0, ]      # TODO: $k (Roth)
+hsa_savings_balances = [ 0.0, 0.0, ]           # TODO: $k
+taxable_cost_basis = [ 0.0, 0.0, ]             # TODO: $k cost basis of taxable
+beneficiary_fractions = [ 1.0, 1.0, 1.0, ]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "HFP_us.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0.0, 0.0, ]   # no pensions
+pension_ages = [ 65.0, 65.0, ]
+pension_indexed = [ false, false, ]       # required for a couple until the fork's fix is upstream
+social_security_pia_amounts = [ 0, 0, ]   # TODO: monthly PIA at FRA ($)
+social_security_ages = [ 67.0, 67.0, ]    # default: claim at FRA; scenarios vary
+
+[aca_settings]
+# Pre-65 marketplace premiums. withACA does nothing while slcsp_annual is 0.
+slcsp_annual = 0.0                       # TODO: county benchmark Silver premium, household, $k/yr
+aca_start_year = 2027                    # first year without employer coverage
+
+[rates_selection]
+# Reproducibility: use "user" with explicit rates, or "historical" with a
+# fixed window. Record the choice in every scenario output.
+method = "conservative"
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 2.0
+
+[asset_allocation]
+interpolation_method = "linear"
+interpolation_center = 15.0
+interpolation_width = 5.0
+type = "individual"
+generic = [ [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],], [ [ 60, 40, 0, 0,], [ 60, 40, 0, 0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+bequest = 0                             # spend down to $0 at 92
+
+[solver_options]
+withSSAges = "optimize"                 # co-optimize claiming ages
+withMedicare = "optimize"               # IRMAA as endogenous cost
+withACA = "loop"                        # pre-65 marketplace (2027 until each turns 65)
+solver = "default"
+spendingSlack = 0
+maxRothConversion = 200
+noRothConversions = "none"
+startRothConversions = 2026
+
+[results]
+default_plots = "today"

@@ -38,19 +38,25 @@ Recapture optimize mode needs a big-M. `_ceiling_n` survives and is what NIIT/Me
 
 Upstream re-checked 2026-09-29 13:30 UTC: `main` and `dev` are both still `fb539f4`; the only newer ref is a dependabot PR (#148, `astral-sh/setup-uv` bump). Nothing to merge.
 
+Later the same day `dev` moved to `0aabf00` and is merged into this branch: our NJ padding fix taken upstream as #149 (our duplicate dropped), and loop-invariant constraint caching (#151: builders marked `@_fixedAcrossIterations` are built once per solve and replayed). None of our state, recapture or local-tax builders are in the replayed set; `test_replayed_rows_match_a_fresh_build_with_recapture_local_tax_and_a_move` guards that. CONTRIBUTING now says to branch from and target `dev`, so PRs from here go against `dev`.
+
+Found while checking the Phase 0 files: a married case without `pension_indexed` crashes on stock `dev` (fixed here in `3062ae5`; issue drafted in `fork-notes/issue-pension-indexed.md`).
+
+Phase 0 templates: `fork-notes/phase0/` (placeholders only); filled-in copies go in the gitignored `otherFiles/`.
+
 | # | Piece | Commit | State |
 |---|---|---|---|
 | 1 | State base | upstream `81bc8d6`, `d4cbac4` | Ours dropped. |
 | 2 | Typed params + `indexed` (NY non-indexed) | `ad4452d` | Done. |
 | 3 | SC registry | `58fd9a8` | Done. |
-| – | Padding fix for unequal Single/MFJ bracket counts (NJ top bracket taxed at 0%) | `983fcb2` | Done. Upstream bug; a good first PR to send. |
+| – | Padding fix for unequal Single/MFJ bracket counts (NJ top bracket taxed at 0%) | upstream `0aabf00` | Taken upstream as #149; ours dropped in the merge. |
 | 4 | Residency schedule (`basic_info.moves`) | `8849a3d` | Done. |
 | 5 | Local layer (`taxes_local.toml`; `basic_info.locality`) | `14d0b57` | Done. NYC schedule and Yonkers 16.75% checked against the 2025 IT-201-I. |
 | 6 | NY benefit recapture, loop mode | `fe7fba3` | Done. Tier amounts reproduce every constant on the 2025 worksheets. |
 | – | Summary/Taxes-sheet breakdown of recapture and local tax | this commit | Done (shown only where nonzero). |
 | 7 | Recapture, optimize mode | – | Not started. Needs a gate binary per tier because of the notch (below). Waiting on upstream: ask whether the MIP bounds have settled. |
 
-Still open outside Phase 1 proper: the Phase 0 baseline case for the household (TOML + HFP), and a generic NY example case under `examples/` for the tests the original plan called for.
+Still open outside Phase 1 proper: filling in the Phase 0 case (templates in `fork-notes/phase0/`), and a generic NY example case under `examples/` for the tests the original plan called for.
 
 ## Recapture: sources and behaviour
 
