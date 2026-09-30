@@ -12,6 +12,7 @@ Martin-D. Lacasse (mdlacasse)
  @khoguer10 for reporting bug in logic for saving HFP file,
  Benjamin Quinn (@blquinn) for improvements and bug fixes,
  @pcm2a for suggesting improved Roth conversion scheme,
+ @SamMadDev for finding bugs in Roth and Part D and proposing fixes,
  Dale Seng (@sengsational) for great insights, testing, bug fixes, and suggestions,
  Eric Stratten (@mechovision) for expanded IRS joint table,
  Josh Williams (@noimjosh) for Docker image code,

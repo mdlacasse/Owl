@@ -13,6 +13,14 @@ A couple's case without these keys in `[fixed_income]` failed every solve with a
 They now default for each person (indexed, age 65), and a list of the wrong length is reported as
 a clear error. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#155).
 
+#### Fixed: the UI's *Stop Roth conversions mid-plan* and *Include Part D premiums* take effect
+
+In the web UI, the year set to stop Roth conversions was ignored, so conversions continued past
+it, and turning Part D premiums off still charged them. Both settings now apply to the run and are
+kept in the case file saved from it. Passing `includeMedicarePartD` or `medicarePartDBasePremium`
+to `solve()` also works now; before, they were honored only on the first solve of a case loaded
+from a file. Thanks to @SamMadDev for reporting it and supplying the fix (#156).
+
 #### Changed: faster solves and Monte Carlo runs
 
 Each iteration of the self-consistent loop builds its LP faster. Stochastic runs with historical
