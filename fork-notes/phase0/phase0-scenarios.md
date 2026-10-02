@@ -76,6 +76,46 @@ difference (see `fork-notes/phase1-revised.md`). Keep the solver options identic
 Use one HFP workbook per scenario, with wages in the working years. The Social Security earnings
 test is not modeled yet, so claiming before FRA while working overstates benefits.
 
+## 4b. One stops and may claim SS; the other keeps working
+
+Example: SpouseA stops at the end of 2026; SpouseB works through 2028 (full or part time) and the
+employer plan covers both until then. Make a workbook with B's wages only:
+
+```bash
+uv run python fork-notes/phase0/gen_hfp_us.py otherFiles/HFP_us_oneworks.xlsx
+# fill in: SpouseA wages for 2026 only; SpouseB wages 2026-2028 (part-time amounts if part time)
+```
+
+Then compare against the baseline:
+
+```bash
+owlcli compare otherFiles/Case_us.toml \
+  --set household_financial_profile.HFP_file_name=HFP_us_oneworks.xlsx \
+  --set aca_settings.aca_start_year=2029 \
+  --set 'solver_options.withSSAges=["SpouseA"]' \
+  --set "fixed_income.social_security_ages=[62.0, 67.0]"
+```
+
+What each setting does:
+
+- `aca_start_year=2029`: family coverage through B's job ends with B's last year, so marketplace
+  premiums start the year after. Owl keeps one start year for the household, which matches family
+  coverage.
+- `withSSAges=["SpouseA"]`: the optimizer chooses A's claiming age (62.0 is only the starting point)
+  and keeps B's fixed. Owl does not model the earnings test yet (Phase 5), so letting it optimize B
+  while B earns above the limit ($24,480 in 2026) could pick an early claim that SSA would partly
+  withhold. Keep B at 67 (FRA) or later while working, or under the limit.
+- Spousal benefits on B's record start only once both have claimed, as SSA requires. So A's spousal
+  top-up, if any, waits for B's claim.
+
+Two inputs to set per scenario by hand:
+
+- **PIA.** `social_security_pia_amounts` is fixed; extra working years do not raise it in Owl. Use the
+  PIA that matches the scenario. SSA statement estimates may assume continued work until claiming,
+  so check what yours assumes, especially for the spouse who stops now.
+- **Medicare past 65.** Owl charges each spouse Medicare from 65. If B worked past 65 with employer
+  coverage and delayed Part B, Owl would overstate those premiums. Not an issue if B stops before 65.
+
 ## 5. Rent vs buy (Phase 2; placeholder now)
 
 Housing costs go in as negative `big-ticket items`, one HFP workbook per housing scenario.
