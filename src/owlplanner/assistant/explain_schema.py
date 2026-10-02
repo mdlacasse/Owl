@@ -66,7 +66,14 @@ class Year0StateTax(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     state: str = Field(description="Two-letter state code.")
-    state_tax: float = Field(description="State income tax for the year (today's $).")
+    locality: Optional[str] = Field(default=None, description="City whose income tax applies, if any.")
+    state_tax: float = Field(description="State income tax for the year, recapture and local tax included (today's $).")
+    recapture: Optional[float] = Field(
+        default=None, description="Benefit recapture included in the state tax (today's $); absent when none."
+    )
+    local_tax: Optional[float] = Field(
+        default=None, description="Local (city) income tax included in the state tax (today's $); absent when none."
+    )
     top_bracket_rate_pct: Optional[float] = Field(
         default=None, description="State marginal rate of the highest bracket reached (%); absent with no state tax."
     )
@@ -165,7 +172,17 @@ class StateBracketYear(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     year: int = Field(description="Calendar year.")
-    state_tax_today: float = Field(description="State income tax for the year (today's $).")
+    state: Optional[str] = Field(default=None, description="State in force that year; present when the plan moves.")
+    locality: Optional[str] = Field(default=None, description="City in force that year, if any; with moves.")
+    state_tax_today: float = Field(
+        description="State income tax for the year, recapture and local tax included (today's $)."
+    )
+    recapture_today: Optional[float] = Field(
+        default=None, description="Benefit recapture included in the state tax (today's $); absent when none."
+    )
+    local_tax_today: Optional[float] = Field(
+        default=None, description="Local (city) income tax included in the state tax (today's $); absent when none."
+    )
     top_bracket_rate_pct: float = Field(description="State marginal rate of the highest bracket reached (%).")
     headroom_in_bracket_today: Optional[float] = Field(
         default=None, description="Room left in that bracket (today's $); absent in the open-ended top bracket."
@@ -178,7 +195,11 @@ class StateTaxBrackets(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    state: str = Field(description="Two-letter state code.")
+    state: str = Field(description="Two-letter state code in the first plan year.")
+    locality: Optional[str] = Field(default=None, description="City in the first plan year, if any.")
+    moves: Optional[List[Dict[str, Any]]] = Field(
+        default=None, description="Later changes of residence: year, state, locality."
+    )
     total_state_tax_today: float = Field(description="State income tax over the plan (today's $).")
     by_year: List[StateBracketYear] = Field(description="State tax, bracket reached and headroom, per year.")
     note: str = Field(description="Interpretation guidance.")

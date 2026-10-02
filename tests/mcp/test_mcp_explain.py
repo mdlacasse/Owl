@@ -276,3 +276,61 @@ def test_build_explanation_omits_state_tax_without_income_tax():
     ex = build_explanation(_solved_plan(state="TX"))
     assert "state_tax" not in ex["this_year"]
     assert "state_tax_brackets" not in ex
+
+
+def _ny_plan(moves=(), locality="Yonkers"):
+    plan = _build_plan_from_params(
+        names=["Pat"],
+        birth_dates=["1960-07-01"],
+        life_expectancy=[88],
+        state="NY",
+        taxable=[200_000],
+        tax_deferred=[2_500_000],
+        roth=[100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500],
+        ss_ages=[67],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+    )
+    plan.setStateTax("NY", moves, locality)
+    plan.solve("maxSpending", options={"units": "1", "withDuals": True, "bequest": 400_000})
+    assert plan.caseStatus == "solved"
+    return plan
+
+
+@pytest.mark.toml
+def test_build_explanation_reports_locality_and_recapture():
+    """The recapture and local tax inside st_T_n are shown with the year's state tax."""
+    plan = _ny_plan()
+    ex = build_explanation(plan)
+    PlanExplanation.model_validate(ex)
+    g = plan.gamma_n[: plan.N_n]
+    year0 = ex["this_year"]["state_tax"]
+    assert year0["locality"] == "Yonkers" and year0["local_tax"] > 0
+    st = ex["state_tax_brackets"]
+    assert st["locality"] == "Yonkers" and "moves" not in st
+    rows = {r["year"]: r for r in st["by_year"]}
+    assert all("state" not in r for r in rows.values())  # one state throughout: not repeated per year
+    recap = [n for n in range(plan.N_n) if plan.st_recap_n[n] > 1 and int(plan.year_n[n]) in rows]
+    assert recap, "test needs a year with NY recapture"
+    for n in recap:
+        assert rows[int(plan.year_n[n])]["recapture_today"] == pytest.approx(plan.st_recap_n[n] / g[n], abs=0.01)
+
+
+@pytest.mark.toml
+def test_build_explanation_labels_each_year_with_its_state_after_a_move():
+    from datetime import date
+
+    move = date.today().year + 6
+    plan = _ny_plan(moves=[(move, "FL")])
+    ex = build_explanation(plan)
+    PlanExplanation.model_validate(ex)
+    st = ex["state_tax_brackets"]
+    assert st["moves"] == [{"year": move, "state": "FL", "locality": None}]
+    rows = {r["year"]: r for r in st["by_year"]}
+    assert all(r["state"] == "NY" and r["locality"] == "Yonkers" for y, r in rows.items() if y < move)
+    assert any(y < move for y in rows) and any(y >= move for y in rows)
+    assert all(r["state"] == "FL" and "locality" not in r for y, r in rows.items() if y >= move)

@@ -358,9 +358,29 @@ def _state_bracket(plan, n):
     }
 
 
+def _state_tax_parts(plan, n):
+    """Recapture and local tax inside st_T_n for year n (today's $), only where present."""
+    out = {}
+    for key, attr in (("recapture", "st_recap_n"), ("local_tax", "lt_T_n")):
+        arr = getattr(plan, attr, None)
+        if arr is not None and arr[n] > 0:
+            out[key] = _round(float(arr[n]) / plan.gamma_n[n])
+    return out
+
+
+def _residence(plan, n):
+    """(state, locality) in force in year n."""
+    by_year = getattr(plan, "_residence_by_year", None)
+    return by_year()[n] if by_year else (plan.state, "")
+
+
 def _year0_state_tax(plan):
     """This year's state income tax and state bracket position."""
-    out = {"state": plan.state, "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
+    state, locality = _residence(plan, 0)
+    out = {"state": state, "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
+    if locality:
+        out["locality"] = locality
+    out.update(_state_tax_parts(plan, 0))
     bracket = _state_bracket(plan, 0)
     if bracket:
         out["top_bracket_rate_pct"] = bracket["top_bracket_rate_pct"]
@@ -758,21 +778,28 @@ def _state_bracket_analysis(plan):
     if not _has_state_tax(plan):
         return None
     gamma = plan.gamma_n
+    moves = list(getattr(plan, "state_moves", ()))
     rows = []
     for n in range(plan.N_n):
         bracket = _state_bracket(plan, n)
         if not bracket:
             continue
-        rows.append(
+        row = {"year": int(plan.year_n[n])}
+        if moves:
+            row["state"], locality = _residence(plan, n)
+            if locality:
+                row["locality"] = locality
+        row.update(
             {
-                "year": int(plan.year_n[n]),
                 "state_tax_today": _round(float(plan.st_T_n[n]) / gamma[n]),
                 "top_bracket_rate_pct": bracket["top_bracket_rate_pct"],
                 "headroom_in_bracket_today": bracket["headroom"],
                 "filled_to_boundary": bracket["filled_to_boundary"],
             }
         )
-    return {
+        row.update({f"{k}_today": v for k, v in _state_tax_parts(plan, n).items()})
+        rows.append(row)
+    out = {
         "state": plan.state,
         "total_state_tax_today": _round(float(np.sum(plan.st_T_n / gamma[: plan.N_n]))),
         "by_year": rows,
@@ -782,8 +809,14 @@ def _state_bracket_analysis(plan):
         "deduction and exemptions (Social Security, pensions, retirement income, where the state "
         "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
         "boundary, the next dollar of income, such as a Roth conversion, is taxed at a higher "
-        "state rate.",
+        "state rate. state_tax includes any benefit recapture and local (city) tax, also shown "
+        "separately; inside a recapture phase-in the marginal state rate is above the bracket rate.",
     }
+    if getattr(plan, "locality", ""):
+        out["locality"] = plan.locality
+    if moves:
+        out["moves"] = [{"year": m.year, "state": m.state or None, "locality": m.locality or None} for m in moves]
+    return out
 
 
 def _depletion(plan):

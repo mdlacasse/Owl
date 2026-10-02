@@ -187,4 +187,3 @@ def test_compute_piBar_in_rate_sensitivity():
     assert piBar_flat[1, 5] == pytest.approx(6000)
     assert piBar_2x[1, 5] == pytest.approx(6000 * gamma_2x[5], rel=0.01)
     assert piBar_2x[1, 9] == pytest.approx(6000 * gamma_2x[9], rel=0.01)
-
