@@ -60,6 +60,25 @@ class Year0Bracket(BaseModel):
     )
 
 
+class Year0StateTax(BaseModel):
+    """State income tax in the first plan year, for plans in a state with an income tax."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: str = Field(description="Two-letter state code.")
+    state_tax: float = Field(description="State income tax for the year (today's $).")
+    top_bracket_rate_pct: Optional[float] = Field(
+        default=None, description="State marginal rate of the highest bracket reached (%); absent with no state tax."
+    )
+    headroom_in_bracket: Optional[float] = Field(
+        default=None,
+        description="Room left below that bracket's upper edge (today's $); absent in the open-ended top bracket.",
+    )
+    filled_to_boundary: Optional[bool] = Field(
+        default=None, description="True when the optimizer fills the state bracket to its edge."
+    )
+
+
 class ThisYear(BaseModel):
     """First plan year: the only decisions that are executed. Lead the narration here."""
 
@@ -69,6 +88,9 @@ class ThisYear(BaseModel):
     actions: ThisYearActions = Field(description="Decisions to execute now.")
     tax_bracket: Optional[Year0Bracket] = Field(
         default=None, description="Ordinary-income bracket position this year."
+    )
+    state_tax: Optional[Year0StateTax] = Field(
+        default=None, description="State income tax and state bracket position this year (income-tax states only)."
     )
     threshold_proximity: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -137,6 +159,31 @@ class TaxBrackets(BaseModel):
     note: str = Field(description="Interpretation guidance.")
 
 
+class StateBracketYear(BaseModel):
+    """One year's state income tax and state bracket fill."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(description="Calendar year.")
+    state_tax_today: float = Field(description="State income tax for the year (today's $).")
+    top_bracket_rate_pct: float = Field(description="State marginal rate of the highest bracket reached (%).")
+    headroom_in_bracket_today: Optional[float] = Field(
+        default=None, description="Room left in that bracket (today's $); absent in the open-ended top bracket."
+    )
+    filled_to_boundary: bool = Field(description="True when the state bracket is filled to its edge.")
+
+
+class StateTaxBrackets(BaseModel):
+    """Per-year state income tax and bracket fill, for plans in a state with an income tax."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: str = Field(description="Two-letter state code.")
+    total_state_tax_today: float = Field(description="State income tax over the plan (today's $).")
+    by_year: List[StateBracketYear] = Field(description="State tax, bracket reached and headroom, per year.")
+    note: str = Field(description="Interpretation guidance.")
+
+
 class DepletionEvent(BaseModel):
     """First year an initially-funded account reaches zero."""
 
@@ -201,6 +248,9 @@ class PlanExplanation(BaseModel):
     binding_constraints: List[BindingConstraint] = Field(description="Active policy constraints.")
     roth_conversions: RothConversions = Field(description="Conversion schedule and cap analysis.")
     tax_brackets: TaxBrackets = Field(description="Per-year bracket fill.")
+    state_tax_brackets: Optional[StateTaxBrackets] = Field(
+        default=None, description="Per-year state tax and bracket fill (income-tax states only)."
+    )
     account_depletion: AccountDepletion = Field(description="Withdrawal sequencing.")
     caveats: List[str] = Field(description="Scope-of-validity notes the narration must respect.")
 

@@ -173,6 +173,7 @@ def build_explanation(plan) -> dict:
         "binding_constraints": _binding_constraints(plan, dd),
         "roth_conversions": _roth_analysis(plan, cols),
         "tax_brackets": _bracket_analysis(plan),
+        "state_tax_brackets": _state_bracket_analysis(plan),
         "account_depletion": _depletion(plan),
         "caveats": [
             "Only the first year's decisions are executed. Later years are projections under "
@@ -334,6 +335,40 @@ def _year0_bracket(plan):
     }
 
 
+def _has_state_tax(plan):
+    """True when the plan's state levies an income tax (the state LP was built and solved)."""
+    return bool(getattr(plan, "_st_lp", False)) and getattr(plan, "st_f_tn", None) is not None
+
+
+def _state_bracket(plan, n):
+    """Top state bracket reached in year n: rate, headroom (None when open-ended), fill flag."""
+    f = plan.st_f_tn
+    filled = [t for t in range(f.shape[0]) if f[t, n] > 1.0]
+    if not filled:
+        return None
+    t_top = max(filled)
+    width = plan.st_DeltaBar_tn[:, n]
+    # Padding brackets have zero width, so the top real bracket is the last one with any.
+    open_ended = not np.any(width[t_top + 1 :] > 0)
+    headroom = None if open_ended else max((width[t_top] - f[t_top, n]) / plan.gamma_n[n], 0.0)
+    return {
+        "top_bracket_rate_pct": _round(plan.st_theta_tn[t_top, n] * 100, 3),
+        "headroom": None if headroom is None else _round(headroom),
+        "filled_to_boundary": headroom is not None and headroom < 1.0,
+    }
+
+
+def _year0_state_tax(plan):
+    """This year's state income tax and state bracket position."""
+    out = {"state": plan.state, "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
+    bracket = _state_bracket(plan, 0)
+    if bracket:
+        out["top_bracket_rate_pct"] = bracket["top_bracket_rate_pct"]
+        out["headroom_in_bracket"] = bracket["headroom"]
+        out["filled_to_boundary"] = bracket["filled_to_boundary"]
+    return out
+
+
 def _year0_thresholds(plan):
     """Proximity to the tax cliffs this year's income can trigger (primal headroom,
     not duals: marginal prices are the wrong tool for discrete threshold effects)."""
@@ -422,6 +457,9 @@ def _this_year(plan, dd, cols):
     bracket = _year0_bracket(plan)
     if bracket:
         out["tax_bracket"] = bracket
+
+    if _has_state_tax(plan):
+        out["state_tax"] = _year0_state_tax(plan)
 
     thresholds = _year0_thresholds(plan)
     if thresholds:
@@ -712,6 +750,39 @@ def _bracket_analysis(plan):
         "note": "Top federal ordinary-income bracket reached each year and the room left in it "
         "(today's $). filled_to_boundary years are where the optimizer deliberately fills "
         "the bracket — typically with Roth conversions — and stops at the edge.",
+    }
+
+
+def _state_bracket_analysis(plan):
+    """Per-year state income tax and state bracket fill, or None without a state income tax."""
+    if not _has_state_tax(plan):
+        return None
+    gamma = plan.gamma_n
+    rows = []
+    for n in range(plan.N_n):
+        bracket = _state_bracket(plan, n)
+        if not bracket:
+            continue
+        rows.append(
+            {
+                "year": int(plan.year_n[n]),
+                "state_tax_today": _round(float(plan.st_T_n[n]) / gamma[n]),
+                "top_bracket_rate_pct": bracket["top_bracket_rate_pct"],
+                "headroom_in_bracket_today": bracket["headroom"],
+                "filled_to_boundary": bracket["filled_to_boundary"],
+            }
+        )
+    return {
+        "state": plan.state,
+        "total_state_tax_today": _round(float(np.sum(plan.st_T_n / gamma[: plan.N_n]))),
+        "by_year": rows,
+        "note": f"Top {plan.state} income-tax bracket reached each year, the state tax paid and the room "
+        "left in that bracket (today's $). State taxable income is not federal taxable income: it "
+        "starts from gross income, includes capital gains, and takes the state's own standard "
+        "deduction and exemptions (Social Security, pensions, retirement income, where the state "
+        "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
+        "boundary, the next dollar of income, such as a Roth conversion, is taxed at a higher "
+        "state rate.",
     }
 
 

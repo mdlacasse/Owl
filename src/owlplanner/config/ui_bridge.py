@@ -62,6 +62,8 @@ ACC_CONF = ACCOUNT_TYPES
 #   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 #   stopRothConversions -> stopRothConversionsEnabled / stopRothConversions (absent = no end)
+#   includeMedicarePartD -> includeMedicarePartD (always written; absent in the UI = True)
+# ui/sskeys.getSolveParameters() must translate each of these the same way ui_to_config() does.
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "bequest",

@@ -527,3 +527,32 @@ class TestSpendingUnits:
         assert s["xi_0"] == pytest.approx(1.0)
         for row in s["frontier"]:
             assert row["spending_year1_today_dollars"] == pytest.approx(row["spending_today_dollars"], abs=0.02)
+
+
+class _RecordingProgress:
+    def __init__(self):
+        self.calls = []
+
+    def start(self):
+        pass
+
+    def show(self, n, N):
+        self.calls.append((n, N))
+
+    def finish(self):
+        pass
+
+
+@pytest.mark.toml
+def test_progress_counts_every_scenario_of_every_level(case, opts):
+    """The bar advances per scenario across all levels, not once per bequest level."""
+    bar = _RecordingProgress()
+    levels, ystart, yend = [0, 1000], 1970, 1972
+    run_spending_bequest_frontier(
+        case, opts, levels, scenario_method="historical", ystart=ystart, yend=yend, with_duals=False, progcall=bar
+    )
+    total = len(levels) * (yend - ystart + 1)
+    assert {N for _, N in bar.calls} == {total}
+    done = [n for n, _ in bar.calls]
+    assert done == sorted(done) and done[-1] == total
+    assert len(set(done)) == total  # every scenario of every level moved the bar

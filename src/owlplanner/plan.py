@@ -4393,6 +4393,8 @@ class Plan:
             "stopRothConversions",
             "swapRothConverters",
             "maxTime",
+            "includeMedicarePartD",  # False drops Part D (and its IRMAA surcharge) from Medicare costs
+            "medicarePartDBasePremium",  # Part D base premium, $/month per person (default 0)
             "numThreads",  # cap MOSEK threads/solve (0=all cores) for matched parallelism
             "units",
             "verbose",
@@ -4524,6 +4526,10 @@ class Plan:
             self.st_senior_bonus = sp.senior_bonus
             self.st_recap = (sp.recap_start_n, sp.recap_width_n, sp.recap_until_n)
             self._str_active = bool(np.any(np.isfinite(sp.recap_start_n)))
+
+        # _adjustParameters reads the Part D options from solverOptions: give it this solve's
+        # options, not the previous solve's (or those loaded with the case).
+        self.solverOptions = myoptions
 
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)

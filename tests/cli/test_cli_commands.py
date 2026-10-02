@@ -431,3 +431,8 @@ def test_mcp_compare_cases_delta():
     assert "variant" in data
     assert "delta" in data
     assert "spending_basis" in data["base"]
+    # Each side reports how its self-consistent loop ended, and the engine is recorded.
+    for side in ("base", "variant"):
+        assert data["convergence"][side]["convergence"]
+        assert isinstance(data["convergence"][side]["fixed_point_residual_today_dollars"], dict)
+    assert data["engine"]["version"]

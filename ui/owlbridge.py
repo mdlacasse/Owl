@@ -46,6 +46,7 @@ from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import booleanTimeHorizonItems, conditionDebtsAndFixedAssetsDF
 from owlplanner.mylogging import Logger
 from owlplanner.plotting.regret_common import _regret_units
+from owlplanner.stresstests import frontier_reach_sentence
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     HISTORICAL_RANGE_METHODS,
@@ -830,19 +831,9 @@ def _render_frontier(result, plotter):
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
-    n_failed = summary["n_levels_failed"]
-    if lo is None:
-        notes.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
-    elif hi is None and not n_failed:
-        notes.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
-    elif hi is None:
-        # Nothing failed above the best success, but something below it did, so the
-        # levels are not simply reachable up to a ceiling.
-        notes.append(
-            f"The most {what} can leave is above ${lo:,.0f}, though {n_failed} lower level(s) did not solve."
-        )
-    else:
-        notes.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+    reach = frontier_reach_sentence(lo, hi, summary["n_levels_failed"], what)
+    if reach:
+        notes.append(reach)
     # Fold each note to the table's width under a bullet, with a hanging indent so every
     # continuation line sits under the text rather than the bullet; otherwise consecutive
     # notes run together into one block. A note given a leading indent is a sub-note and
@@ -1866,6 +1857,10 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveContributions(plan):
+    # The Financial Profile editors update the session's tables, not the plan's, which are
+    # otherwise refreshed only when the case runs. Sync first, or the download writes the
+    # tables as they were at the last upload or run, dropping every edit made since.
+    _setContributions(plan, "set")
     wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
@@ -2228,6 +2223,14 @@ def renderPlot(fig, col=None):
 
 def version():
     return owl.__version__
+
+
+def engine_label():
+    """The version, with the git commit when running from a checkout, for diagnostic displays."""
+    from owlplanner.version import engine_commit
+
+    commit = engine_commit()
+    return f"{owl.__version__} (commit {commit})" if commit else owl.__version__
 
 
 @_checkPlan

@@ -671,6 +671,14 @@ def getSolveParameters():
         swapYear,
     )
 
+    # Stop Roth conversions mid-plan: the toggle and year become stopRothConversions (absent = no end).
+    if getCaseKey("stopRothConversionsEnabled"):
+        options["stopRothConversions"] = int(getCaseKey("stopRothConversions") or date.today().year)
+
+    # Part D premiums are included unless the Run Options toggle turns them off.
+    part_d = getCaseKey("includeMedicarePartD")
+    options["includeMedicarePartD"] = True if part_d is None else bool(part_d)
+
     # Build minTaxableBalance list from per-spouse UI values (today's $k)
     ni = 2 if getCaseKey("status") == "married" else 1
     min_taxable = [

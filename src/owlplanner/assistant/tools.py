@@ -63,7 +63,8 @@ from owlplanner.rate_models.constants import CONSTRAIN_MEAN_METHODS
 from owlplanner.assistant.explain import build_explanation
 from owlplanner.cli.cmd_explain import _plan_to_explain
 from owlplanner.cli.cmd_run import _parse_solver_opts
-from owlplanner.cli.formatters import plan_to_dict, _NumpyEncoder, _diff, _pct, KEY_METRICS
+from owlplanner.cli.formatters import plan_to_dict, plan_convergence, _NumpyEncoder, _diff, _pct, KEY_METRICS
+from owlplanner.version import engine_provenance
 from owlplanner.cli.set_override import apply_overrides
 
 
@@ -681,7 +682,12 @@ async def run_case(
 
     if plan.caseStatus != "solved":
         return json.dumps(
-            {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
+            {
+                "engine": engine_provenance(),
+                "status": plan.caseStatus,
+                "case_name": plan._name,
+                "error": plan.solverMessage,
+            }
         )
 
     result = plan_to_dict(plan)
@@ -754,6 +760,7 @@ async def compare_cases(
     if plan_base.caseStatus != "solved" or plan_variant.caseStatus != "solved":
         return json.dumps(
             {
+                "engine": engine_provenance(),
                 "error": "One or both cases did not solve.",
                 "base_status": plan_base.caseStatus,
                 "variant_status": plan_variant.caseStatus,
@@ -767,12 +774,15 @@ async def compare_cases(
     pct_change = {k: _pct(delta[k], m_base[k]) for k in KEY_METRICS if k in delta and delta[k] is not None}
 
     result = {
+        "engine": engine_provenance(),
         "filename": filename,
         "overrides": list(overrides),
         "base": {k: round(v, 4) if isinstance(v, float) else v for k, v in m_base.items()},
         "variant": {k: round(v, 4) if isinstance(v, float) else v for k, v in m_variant.items()},
         "delta": {k: round(v, 4) if isinstance(v, float) else v for k, v in delta.items() if v is not None},
         "pct_change": pct_change,
+        # A delta between two plans means little if either stopped short of self-consistency.
+        "convergence": {"base": plan_convergence(plan_base), "variant": plan_convergence(plan_variant)},
     }
     return json.dumps(result, indent=2, cls=_NumpyEncoder)
 
@@ -1779,7 +1789,12 @@ async def run_from_params(
         return json.dumps({"error": f"Plan build/solve error: {e}"})
 
     if plan.caseStatus != "solved":
-        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
+        failed = {
+            "engine": engine_provenance(),
+            "status": plan.caseStatus,
+            "case_name": plan._name,
+            "error": plan.solverMessage,
+        }
         if assumed:
             failed["assumed_defaults"] = assumed
         return json.dumps(failed)
@@ -2103,6 +2118,7 @@ def _baseline_report(plan_opt, plan_base, policies, seed_used, assumed):
         return {k: round(v, 4) if isinstance(v, float) else v for k, v in d.items()}
 
     result = {
+        "engine": engine_provenance(),
         "objective": plan_opt.objective,
         "baseline_policies": list(policies),
         "baseline_definition": "Same household, market, and goals, but with "
@@ -2118,6 +2134,8 @@ def _baseline_report(plan_opt, plan_base, policies, seed_used, assumed):
         "baseline": _round(m_base),
         "advantage": {k: round(v, 4) if isinstance(v, float) else v for k, v in advantage.items() if v is not None},
         "advantage_pct": pct,
+        # An advantage between two plans means little if either stopped short of self-consistency.
+        "convergence": {"optimized": plan_convergence(plan_opt), "baseline": plan_convergence(plan_base)},
         "note": "The baseline is a restriction of the optimized problem, so the optimized objective is "
         "mathematically >= the baseline objective (up to the solver's MIP gap). 'advantage' is "
         "optimized minus baseline; positive extra_taxes_and_premiums_today means the optimized plan "
@@ -2380,6 +2398,7 @@ async def compare_to_baseline(
 
     if plan_opt.caseStatus != "solved" or plan_base.caseStatus != "solved":
         failed = {
+            "engine": engine_provenance(),
             "error": "One or both plans did not solve to optimality.",
             "optimized_status": plan_opt.caseStatus,
             "baseline_status": plan_base.caseStatus,
@@ -2485,7 +2504,8 @@ async def explain_results(
       - this_year: the first plan year's decisions — the only ones that are executed.
         Per-person Roth conversion, withdrawals by account, and RMD due; the bracket
         the optimizer fills and the headroom left in it; proximity to tax thresholds
-        (NIIT, IRMAA with its two-year lookback, ACA, SS taxability); and the marginal
+        (NIIT, IRMAA with its two-year lookback, ACA, SS taxability); in a state with an
+        income tax, the state tax and state bracket position (state_tax); and the marginal
         value of a dollar now. Lead the narration with this section — later years are
         projections under current law and assumed returns, re-optimized every year.
       - shadow_prices: what each active goal or rule is worth at the margin — the
@@ -2500,6 +2520,8 @@ async def explain_results(
         where the conversion cap is binding and what one more dollar of cap is worth.
       - tax_brackets: the top federal bracket reached each year, the headroom left in
         it, and the years the optimizer deliberately fills the bracket to the boundary.
+      - state_tax_brackets: in a state with an income tax, the same per year for the state
+        brackets, with the state tax paid. Absent for no-income-tax states.
       - account_depletion: the order and timing in which accounts are drawn to zero.
       - binding_constraints: which named constraints are active.
 
@@ -2647,7 +2669,12 @@ async def explain_results(
             return json.dumps({"error": f"Plan build/solve error: {e}"})
 
     if plan.caseStatus != "solved":
-        failed = {"status": plan.caseStatus, "case_name": plan._name, "error": plan.solverMessage}
+        failed = {
+            "engine": engine_provenance(),
+            "status": plan.caseStatus,
+            "case_name": plan._name,
+            "error": plan.solverMessage,
+        }
         if assumed:
             failed["assumed_defaults"] = assumed
         return json.dumps(failed)
@@ -2772,6 +2799,7 @@ def _build_stochastic_json(plan, result, target_success_rate_pct, scenario_metho
     ]
 
     return {
+        "engine": result.get("engine"),  # the engine that produced the run
         "status": "completed",
         "case_name": plan._name,
         "scenario_method": scenario_method,
@@ -3335,6 +3363,7 @@ def _frontier_blocking(
 def _build_frontier_json(plan, result, summary):
     """Shape a trade-off result for the assistant. All dollars are today's dollars."""
     out = {
+        "engine": summary.get("engine"),  # the engine that produced the frontier
         "status": "ok",
         "case_name": plan._name,
         "scenario_method": summary["scenario_method"],
@@ -3756,6 +3785,7 @@ def _build_year1_json(plan, result, base_year1, scenario_method):
         "top_bracket_pct": base_year1["top_bracket_pct"],
     }
     return {
+        "engine": result.get("engine"),  # the engine that produced the run
         "status": "completed",
         "case_name": plan._name,
         "scenario_method": scenario_method,

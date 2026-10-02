@@ -755,3 +755,11 @@ def test_save_workbook_preserves_zero_columns_when_hide_enabled(joe_plan):
     ws = wb[joe_plan.inames[0] + "'s Accounts"]
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
     assert any("HSA" in str(h) for h in headers)
+
+
+def test_build_summary_dic_records_owl_version(alex_jamie_plan):
+    """The summary, and so the saved Summary sheet, names the Owl that produced it."""
+    from owlplanner.version import __version__
+
+    dic = build_summary_dic(alex_jamie_plan)
+    assert dic["Owl version"].startswith(f"{__version__} (")

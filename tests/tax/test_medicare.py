@@ -207,3 +207,27 @@ def test_medicare_n_carries_the_total_in_both_modes():
     assert np.all(p.m_n == 0), "loop mode should leave the LP variable m_n at zero"
     p.solve("maxSpending", options={"withMedicare": "optimize", "bequest": 0})
     assert np.all(p.M_n == 0), "optimize mode should leave the loop array M_n at zero"
+
+
+@pytest.mark.toml
+def test_part_d_options_passed_to_solve_take_effect():
+    """includeMedicarePartD and medicarePartDBasePremium given to solve() apply to that solve and the next (#156)."""
+    import owlplanner as owl
+
+    plan = owl.readConfig("examples/Case_john+sally.toml", verbose=False)
+    plan.mylog.setVerbose(False)
+    base = {**plan.solverOptions, "solver": "HiGHS", "medicarePartDBasePremium": 40}
+
+    plan.solve("maxSpending", base)
+    with_d = float(plan.M_n.sum())
+    assert plan._include_medicare_part_d is True
+
+    plan.solve("maxSpending", {**base, "includeMedicarePartD": False})
+    without_d = float(plan.M_n.sum())
+    assert plan._include_medicare_part_d is False
+    assert without_d < with_d
+    assert plan.solverOptions["includeMedicarePartD"] is False  # kept for saving with the case
+
+    plan.solve("maxSpending", {**plan.solverOptions})  # re-solve with the stored options
+    assert plan._include_medicare_part_d is False
+    assert float(plan.M_n.sum()) == pytest.approx(without_d)
