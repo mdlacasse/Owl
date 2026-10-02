@@ -111,9 +111,9 @@ Evidence that the NY amounts are statutory dollars: the 2025 IT-201-I rate sched
 
 **Revised priorities**
 
-1. File upstream: *NY amounts are inflated though NY does not index them* (bug; patch = `indexed` flag, `ad4452d`). Largest correctness effect found so far for NY users.
-2. File upstream: *NY benefit recapture missing* (rule verified against every 2025 worksheet constant; patch = `fe7fba3`). Small in dollars, but a correctness gap at NY AGI above $107,650.
-3. Offer upstream as one design issue: residency moves and the local layer (the maintainer raised moves himself).
+1. Filed as #157: *NY amounts are inflated though NY does not index them* (patch = `indexed` flag, `ad4452d`). Largest correctness effect found so far for NY users.
+2. Filed as #158: *NY benefit recapture missing* (rule verified against every 2025 worksheet constant; reference implementation `fe7fba3`).
+3. Filed as #159: design proposal for residency moves and the local layer, with six questions for the maintainer.
 4. Next fork work, for the household's decision: **NJ retirement-income exclusion** (pulled forward from Phase 7). Without it Owl overstates NJ tax for retirees below its income cliffs, which biases exactly the NY-vs-NJ comparison Phase 0 runs; the stakes look like thousands per year, against recapture's hundreds (estimate, to be checked against the NJ-1040 instructions, which needs `www.nj.gov`/`www.state.nj.us` on the allow list). Same structure as recapture: an AGI-gated amount computed in the loop.
 5. Then Phase 2 (property tax and housing ledger), which the original analysis already expected to outweigh every income-tax difference.
 
