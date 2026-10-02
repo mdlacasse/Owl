@@ -1,3 +1,21 @@
+### Version 2026.10.1
+
+#### Fixed: *Download HFP workbook* saves the edits made on the page
+
+Edits to the *Financial Profile* tables, such as ticking *Roth conv fixed*, were left out of the
+downloaded workbook until the case had been run. The download now always reflects the tables as
+shown.
+
+#### Changed: *Spending vs Bequest* progress counts every scenario
+
+The progress bar advances per scenario instead of per bequest level, and the note on the largest
+reachable bequest is reworded.
+
+#### Changed: dependencies updated
+
+charset-normalizer 3.5.2 and cryptography 50.0.2. The optional `assistant` extra moves to
+anthropic 1.11.0, and the development tools to pyflakes 4.0.1.
+
 ### Version 2026.9.30
 
 #### Fixed: NJ income above $1M is taxed at the top rate
@@ -20,17 +38,6 @@ it, and turning Part D premiums off still charged them. Both settings now apply 
 kept in the case file saved from it. Passing `includeMedicarePartD` or `medicarePartDBasePremium`
 to `solve()` also works now; before, they were honored only on the first solve of a case loaded
 from a file. Thanks to @SamMadDev for reporting it and supplying the fix (#156).
-
-#### Fixed: *Download HFP workbook* saves the edits made on the page
-
-Edits to the *Financial Profile* tables, such as ticking *Roth conv fixed*, were left out of the
-downloaded workbook until the case had been run. The download now always reflects the tables as
-shown.
-
-#### Changed: *Spending vs Bequest* progress counts every scenario
-
-The progress bar advances per scenario instead of per bequest level, and the note on the largest
-reachable bequest is reworded.
 
 #### Changed: faster solves and Monte Carlo runs
 
