@@ -2220,6 +2220,14 @@ def version():
     return owl.__version__
 
 
+def engine_label():
+    """The version, with the git commit when running from a checkout, for diagnostic displays."""
+    from owlplanner.version import engine_commit
+
+    commit = engine_commit()
+    return f"{owl.__version__} (commit {commit})" if commit else owl.__version__
+
+
 @_checkPlan
 def getFixedAssetsBequestValue(plan, in_todays_dollars=False):
     """
