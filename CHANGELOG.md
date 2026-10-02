@@ -21,6 +21,12 @@ kept in the case file saved from it. Passing `includeMedicarePartD` or `medicare
 to `solve()` also works now; before, they were honored only on the first solve of a case loaded
 from a file. Thanks to @SamMadDev for reporting it and supplying the fix (#156).
 
+#### Fixed: *Download HFP workbook* saves the edits made on the page
+
+Edits to the *Financial Profile* tables, such as ticking *Roth conv fixed*, were left out of the
+downloaded workbook until the case had been run. The download now always reflects the tables as
+shown.
+
 #### Changed: *Spending vs Bequest* progress counts every scenario
 
 The progress bar advances per scenario instead of per bequest level, and the note on the largest

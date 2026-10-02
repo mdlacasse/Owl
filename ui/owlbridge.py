@@ -1857,6 +1857,10 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveContributions(plan):
+    # The Financial Profile editors update the session's tables, not the plan's, which are
+    # otherwise refreshed only when the case runs. Sync first, or the download writes the
+    # tables as they were at the last upload or run, dropping every edit made since.
+    _setContributions(plan, "set")
     wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
