@@ -21,6 +21,11 @@ kept in the case file saved from it. Passing `includeMedicarePartD` or `medicare
 to `solve()` also works now; before, they were honored only on the first solve of a case loaded
 from a file. Thanks to @SamMadDev for reporting it and supplying the fix (#156).
 
+#### Changed: *Spending vs Bequest* progress counts every scenario
+
+The progress bar advances per scenario instead of per bequest level, and the note on the largest
+reachable bequest is reworded.
+
 #### Changed: faster solves and Monte Carlo runs
 
 Each iteration of the self-consistent loop builds its LP faster. Stochastic runs with historical
