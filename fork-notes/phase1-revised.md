@@ -91,3 +91,34 @@ Question: on upstream code alone, does a change that can only help ever lower th
 3. The synthetic NY couple from the residency check, NY vs FL at taxable balances $100k-$1M (19 points, default loop and `withMedicare="loop"`): FL never below NY.
 
 Verdict: not worth an issue. The drops are the loop noise upstream already documents (chris+pat is the case their `epsilon` changelog entry names) and sit well under the 0.1-0.25% they state. The 0.6% NY→FL-at-year-5 gap from our residency check did not reproduce with anything stock can express. Mention it in the residency PR description instead. Scripts were one-off (scratchpad), not committed.
+
+## Reassessment, 2026-10-02 (after merging upstream 2026.10.1)
+
+Merged `upstream/dev` at `a85ff76`: #155 (`pension_indexed`/`pension_ages` defaults; our identical fix and tests dropped) and a new MCP state-tax explanation, adapted here (`d0d171e`) for moves, locality, recapture and local tax. Suite: 2674 passed, 1 skipped.
+
+**How upstream takes contributions.** Both of our reports (#149, #155) were implemented by the maintainer from the issue, with credit, rather than merged as PRs. So: one issue per finding, with a repro and a minimal patch; larger features as a design issue that points at this branch. Not a stack of PRs.
+
+**Stakes, measured** (synthetic NY couple, born 1964, SS at 70, $300k taxable, $150k Roth, `maxSpending`, Medicare off and SS taxability pinned at 0.85 so the LP is exact; lifetime, today's dollars):
+
+| Tax-deferred | NY tax, statutory (non-indexed) | NY tax, as upstream (indexed) | Difference | Spending | Recapture (loop) |
+|---|---:|---:|---:|---:|---:|
+| $1.5M | 30,671 | 13,345 | +17,326 | -420/yr | 81 |
+| $2.5M | 96,335 | 69,499 | +26,836 | -763/yr | 6,372 |
+
+Evidence that the NY amounts are statutory dollars: the 2025 IT-201-I rate schedule and the 2026 withholding tables use the same thresholds (MFJ 17,150 / 23,600 / 27,900 / 161,550 / 323,200; recapture start 107,650); only the rates changed.
+
+**Recapture optimize mode: dropped from Phase 1.** On the same couples, plus Yonkers, a grid of Roth-conversion caps (0-300k/yr) never beat the uncapped loop-mode plan: regret 0 in all four. The recapture the optimizer ends up paying is $81-$6.4k over the whole plan, so even a perfect MILP could recover only part of that, at the price of a gate binary per tier per year in code upstream is still changing. A caveat on the evidence: one lever (the conversion cap) was searched, not every year-by-year schedule.
+
+**Revised priorities**
+
+1. File upstream: *NY amounts are inflated though NY does not index them* (bug; patch = `indexed` flag, `ad4452d`). Largest correctness effect found so far for NY users.
+2. File upstream: *NY benefit recapture missing* (rule verified against every 2025 worksheet constant; patch = `fe7fba3`). Small in dollars, but a correctness gap at NY AGI above $107,650.
+3. Offer upstream as one design issue: residency moves and the local layer (the maintainer raised moves himself).
+4. Next fork work, for the household's decision: **NJ retirement-income exclusion** (pulled forward from Phase 7). Without it Owl overstates NJ tax for retirees below its income cliffs, which biases exactly the NY-vs-NJ comparison Phase 0 runs; the stakes look like thousands per year, against recapture's hundreds (estimate, to be checked against the NJ-1040 instructions, which needs `www.nj.gov`/`www.state.nj.us` on the allow list). Same structure as recapture: an AGI-gated amount computed in the loop.
+5. Then Phase 2 (property tax and housing ledger), which the original analysis already expected to outweigh every income-tax difference.
+
+**Design consequences**
+
+- Keep `_SC_PARAMS`, the residency schedule and the local layer as they are.
+- Generalise the recapture plumbing into "AGI-gated state amounts" when the NJ exclusion lands (one loop quantity per state rule, both computed from `st_agi_n`/`st_ti_n`), rather than adding NJ-specific code paths.
+- Residency and locality comparisons: decide on differences above ~1%, or rerun with Medicare and SS taxability exact, as the loop-noise section says.
