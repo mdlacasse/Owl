@@ -127,13 +127,13 @@ def test_nothing_is_excluded_before_62():
     assert np.all(p.st_rx_n[:first] == 0) and p.st_rx_n[first] > 0
 
 
-def _couple(tiers=True, monkeypatch=None, **opts):
+def _couple(tiers=True, monkeypatch=None, tax_deferred=(900, 600), **opts):
     """A couple with tax-deferred savings to convert or draw, so income in each year is a choice."""
     if not tiers:
         monkeypatch.setattr(tax_state, "_read_exclusion_tiers", lambda entry: [])
     p = owl.Plan(["Joe", "Jane"], ["1964-03-15", "1965-09-15"], [89, 92], "NJ couple", verbose=False)
     p.setSpendingProfile("flat")
-    p.setAccountBalances(taxable=[150, 150], taxDeferred=[900, 600], taxFree=[75, 75])
+    p.setAccountBalances(taxable=[150, 150], taxDeferred=list(tax_deferred), taxFree=[75, 75])
     p.setAllocationRatios("individual", generic=np.array([[[60, 40, 0, 0], [60, 40, 0, 0]]] * 2))
     p.setRates("conservative")
     p.setSocialSecurity([3000, 2400], [70, 70])
@@ -171,3 +171,31 @@ def test_explanation_reports_the_exclusion():
     assert any(r.get("retirement_exclusion_today", 0) > 0 for r in rows)
     held = [r for r in rows if "exclusion_ceiling_today" in r]
     assert held and all(r["exclusion_ceiling_today"] > 0 for r in held)
+
+
+def test_years_far_above_the_ceilings_are_left_out_and_claim_nothing():
+    """Pensions of $324,000: every year is above RX_WINDOW times the top ceiling, so no tier binaries are
+    freed; the statute excludes nothing there either."""
+    from owlplanner.plan import RX_WINDOW
+
+    p = _pension_plan([25000, 2000])
+    assert np.all(p.st_agi_n[:5] > RX_WINDOW * 150_000)
+    assert not np.any(p.RXF_n[:5] >= 0.5) and np.all(p.st_rx_n == 0)
+    for n in range(5):
+        assert p.st_T_n[n] == pytest.approx(_statutory_tax(p, n), abs=1.0)
+
+
+def test_free_set_only_grows_and_holds_the_years_near_the_ceilings():
+    p = _couple()
+    near = p.st_rx_elig_in.any(axis=0) & (p.st_agi_n <= 225_000)
+    assert np.all(p.RXF_n[near] >= 0.5), "every eligible year near the ceilings has free tier binaries"
+
+
+def test_time_limit_keeps_the_tiers_and_reports_the_gap():
+    """A $2.5M couple does not prove optimal quickly. With a short maxTime the first MILP stops on the
+    limit, later iterations keep its tiers, the plan's gap is that MILP's, and the tax stays statutory."""
+    p = _couple(tax_deferred=(1500, 1000), maxTime=2)
+    assert p._rx_fixed is not None
+    assert p.solverGap >= p._rx_fixed[2] > 1e-4
+    for n in range(p.N_n):
+        assert p.st_T_n[n] == pytest.approx(_statutory_tax(p, n), abs=1.0)

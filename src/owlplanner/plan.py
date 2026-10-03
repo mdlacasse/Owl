@@ -128,6 +128,12 @@ REL_TOL = 5e-5
 # same on all seventeen, so this sits in the middle of a flat region rather than on an edge.
 RESIDUAL_TOL = 50.0
 TIME_LIMIT = 900
+# The NJ exclusion's tier binaries are free only in years whose state income, in the previous
+# iterate, was at most this multiple of the top tier ceiling; elsewhere the exclusion is off.
+RX_WINDOW = 1.5
+# Default time cap (s) on a MILP that carries exclusion tier binaries, when maxTime is not given:
+# large-balance cases can take far longer to prove optimal, so the plan is returned with its gap.
+RX_TIME_LIMIT = 60
 # Lexicographic weight on Roth conversions, and the loop's main conditioning term. At 1e-8 it
 # breaks ties only nominally: the conversion schedule stays free to migrate between near-equivalent
 # years, and since a conversion moves provisional income directly, each move can flip a Social
@@ -292,7 +298,7 @@ class Plan:
     # SC-loop parameters: the NL quantities the loop feeds back into each LP solve.
     # Adding a new loop-fed cost means adding its attribute name here;
     # snapshot/restore/blend and the iteration trace pick it up automatically.
-    _SC_PARAMS = ("M_n", "ACA_n", "J_n", "Psi_n", "STR_n")
+    _SC_PARAMS = ("M_n", "ACA_n", "J_n", "Psi_n", "STR_n", "RXF_n")
 
     def _snapshot_sc(self):
         "Copy the current SC-loop parameters into a dict."
@@ -452,6 +458,7 @@ class Plan:
         self.st_recap_n = np.zeros(self.N_n)  # Recapture charged in the solved plan (part of st_T_n)
         self._str_active = False  # True when the state recaptures the benefit of its lower brackets
         self.st_rx_n = np.zeros(self.N_n)  # Income-tiered retirement exclusion claimed (NJ line 28c)
+        self.RXF_n = np.zeros(self.N_n)  # 1 where the exclusion's tier binaries are free (SC-loop parameter)
         self._rx_active = False  # True when a state in the plan has an income-tiered retirement exclusion
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
@@ -2688,14 +2695,20 @@ class Plan:
                     cap = self.st_re_cap_in[i, n]
                     self.B.setRange(vm["st_re"].idx(i, n), 0, cap if np.isfinite(cap) else 1e9)
         if "st_rx" in vm:
-            # Years without an eligible filer keep every tier variable at zero; their rows are skipped.
+            # Years without an eligible filer, or outside the free set (RXF_n), keep every tier variable
+            # at zero and claim nothing; their rows are skipped, so income there is unconstrained.
             N_rx = self.st_rx_limit_kn.shape[0] + 1
             for n in range(self.N_n):
-                claimable = bool(self.st_rx_elig_in[:, n].any())
+                claimable = bool(self.st_rx_elig_in[:, n].any()) and self.RXF_n[n] >= 0.5
                 self.B.setRange(vm["st_rx"].idx(n), 0, self.st_rx_cap_n[n] if claimable else 0)
+                fixed = self._rx_fixed is not None and self._rx_fixed[1][n]
                 for k in range(N_rx):
                     live = claimable and (k == N_rx - 1 or np.isfinite(self.st_rx_limit_kn[k, n]))
-                    self.B.setRange(vm["zx"].idx(n, k), 0, 1 if live else 0)
+                    if live and fixed:
+                        z = float(self._rx_fixed[0][n, k])
+                        self.B.setRange(vm["zx"].idx(n, k), z, z)
+                    else:
+                        self.B.setRange(vm["zx"].idx(n, k), 0, 1 if live else 0)
                     self.B.setRange(vm["rxl"].idx(n, k), 0, np.inf if live else 0)
                     self.B.setRange(vm["rxb"].idx(n, k), 0, np.inf if live else 0)
 
@@ -2801,6 +2814,10 @@ class Plan:
         is income above the last ceiling, where nothing is excluded; only it needs a bound from the
         income ceiling. Inside the ceilings the relaxation is the concave envelope of the staircase,
         which a big-M on L would give up.
+
+        The rows exist only in the free years (RXF_n, see _tiered_exclusion_free); elsewhere the
+        exclusion is off. Above the top ceiling the relaxation can still claim nearly the whole cap,
+        which left a $2.5M case unproven after ten minutes, so years far above it are left out.
         """
         vm = self.vm
         K = self.st_rx_limit_kn.shape[0]  # tiers with a ceiling; copy K is above the last one
@@ -2808,7 +2825,7 @@ class Plan:
         for n in range(self.N_n):
             elig = np.flatnonzero(self.st_rx_elig_in[:, n])
             cap = float(self.st_rx_cap_n[n])
-            if elig.size == 0 or cap <= 0:
+            if elig.size == 0 or cap <= 0 or self.RXF_n[n] < 0.5:
                 continue
             limits = self.st_rx_limit_kn[:, n]
             shares = self.st_rx_share_kn[:, n]
@@ -4600,6 +4617,7 @@ class Plan:
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
+        self._rx_fixed = None  # (tiers zx, free set) kept from a MILP that hit its time limit; see _run_highs
         self._fixedRows = {}  # Rows of the loop-invariant builders, built on the first iteration
         self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
@@ -5065,6 +5083,10 @@ class Plan:
             # LTCG bracket room is set from the previous iterate's ordinary income, so the LP's
             # gains tax can disagree with the tax this iterate's own income implies.
             moves.append(np.sum(np.abs(self.U_n - self._ltcg_tax_implied()) / g_today))
+            # Years newly admitted to the exclusion's free set: the next LP can claim up to the cap there.
+            if self._rx_active:
+                added = (self.RXF_n >= 0.5) & (sc_lp["RXF_n"] < 0.5)
+                moves.append(np.sum(self.st_rx_cap_n[added] / g_today[added]))
             scResidual = float(max(moves))
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
@@ -5161,6 +5183,12 @@ class Plan:
             self.mylog.print(f"Self-consistent loop returned after {it + 1} iterations.")
             if solverMsg:
                 self.mylog.print(solverMsg)
+            # The free set the accepted iterate was built with, before anything rebuilds the LP.
+            self.RXF_n = sc_lp["RXF_n"]
+            if self._rx_fixed is not None:
+                # The tiers came from a MILP stopped at its time limit; later solves only kept them, so
+                # that MILP's gap is the one that says how far the plan may be from optimal.
+                self.solverGap = max(self.solverGap, self._rx_fixed[2])
             xx, objfn = self._restoreExclusions(xx, objfn, objective, options, matricesMatchSolution)
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # Psi_n is restored BEFORE aggregation, unlike the three below: MAGI_aca_n is
@@ -5236,6 +5264,18 @@ class Plan:
         wages_n = np.sum(self.omega_in, axis=0)
         all_elig_n = np.all(self.st_rx_elig_in | ~alive_in, axis=0) & self.st_rx_elig_in.any(axis=0)
         self.st_rx_other_n = all_elig_n & (sp.rx_earned_n >= 0) & (wages_n <= sp.rx_earned_n)
+
+    def _tiered_exclusion_free(self):
+        """Free set for the next iterate: the current one plus the eligible years whose state income is
+        at most RX_WINDOW times the top tier ceiling. It only grows, so the previous iterate stays
+        feasible; the loop does not converge while it changes (see _scSolve), so at convergence every
+        year left out has income far above the last ceiling, where the statute excludes nothing.
+        """
+        if not self._rx_active:
+            return self.RXF_n
+        top_n = np.max(np.where(np.isfinite(self.st_rx_limit_kn), self.st_rx_limit_kn, 0.0), axis=0)
+        near = self.st_rx_elig_in.any(axis=0) & (self.st_agi_n <= RX_WINDOW * top_n) & (top_n > 0)
+        return np.where(near, 1.0, np.where(self.RXF_n >= 0.5, 1.0, 0.0))
 
     def _tiered_exclusion_implied(self):
         """Share and amount of the tiered exclusion that the solution's own income implies (a check).
@@ -5512,7 +5552,7 @@ class Plan:
         """
         import highspy
 
-        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        time_limit = self._time_limit(options)
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
 
@@ -5563,11 +5603,20 @@ class Plan:
         # postsolve breakdown, an error, a limit) is the solver giving up on a model that
         # may well be solvable, and must not be reported as an impossible plan.
         self._infeasible = ms == highspy.HighsModelStatus.kInfeasible
+        timed_out = success and ms == highspy.HighsModelStatus.kTimeLimit
+        if timed_out:
+            self._warn_time_limit(time_limit, h.getInfoValue("mip_gap")[1], mygap)
 
         if success:
             sol = h.getSolution()
             xx = np.array(sol.col_value, dtype=np.float64)
             obj_val = float(h.getObjectiveValue())
+            if timed_out and "zx" in self.vm and self._rx_fixed is None:
+                # Later iterations keep these exclusion tiers instead of paying the time limit again: the
+                # loop then re-solves only the continuous part, and the tax stays statutory for the tiers.
+                gap_capped = float(h.getInfoValue("mip_gap")[1])
+                self._rx_fixed = (np.round(self.vm["zx"].extract(xx)), self.RXF_n >= 0.5, gap_capped)
+                self.mylog.vprint("Keeping the exclusion tiers of this MILP for the remaining iterations.")
             # mip_gap is meaningless on a pure LP; -1 is the convention for those solves.
             gap = h.getInfoValue("mip_gap")[1] if integrality.any() else -1.0
         else:
@@ -5888,6 +5937,25 @@ class Plan:
             self._highs_warm_start = result[1].copy()
         return result
 
+    def _time_limit(self, options):
+        """Solver time limit: maxTime when given; otherwise RX_TIME_LIMIT when the MILP carries free
+        tier binaries of the income-tiered exclusion (see RX_TIME_LIMIT), else TIME_LIMIT."""
+        if "maxTime" in options:
+            return u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        if "zx" in self.vm and np.any(self.RXF_n >= 0.5):
+            return RX_TIME_LIMIT
+        return TIME_LIMIT
+
+    def _warn_time_limit(self, time_limit, gap, target):
+        """Say that a MILP stopped on its time limit and how far its plan may be from optimal."""
+        if gap > target:
+            self.mylog.print(
+                f"MILP stopped at its {time_limit:.0f} s time limit with a gap of {100 * gap:.2f}% "
+                f"(target {100 * target:.2g}%): the plan is feasible but may not be optimal. "
+                "Set maxTime to allow more time.",
+                tag="WARNING",
+            )
+
     def _milpSolve(self, objective, options):
         """
         Solve using HiGHS directly via highspy, with MIP warm-start between SC iterations.
@@ -5917,7 +5985,7 @@ class Plan:
         import mosek
 
         self._buildConstraints(objective, options)
-        time_limit = u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+        time_limit = self._time_limit(options)
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
         int_vars = self.B.integralityList()
@@ -6005,6 +6073,7 @@ class Plan:
             self.G_n = np.zeros(self.N_n)
             self.J_n = np.zeros(self.N_n)
             self.STR_n = np.zeros(self.N_n)
+            self.RXF_n = np.zeros(self.N_n)  # the first iterate is solved without the exclusion
             self.M_n = np.zeros(self.N_n)
             self.ACA_n = np.zeros(self.N_n)
             # Seed I_n for first NIIT LP iteration: portfolio part is zero before first solve.
@@ -6015,6 +6084,7 @@ class Plan:
         self._aggregateResults(x, short=True)
         # Uses the Psi_n the LP was built with, so it has to come before _update_Psi_n.
         self.STR_n = self._state_recapture_implied()
+        self.RXF_n = self._tiered_exclusion_free()
         # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
         # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
         # Also skip when fixedPsi is set (numeric withSSTaxability).

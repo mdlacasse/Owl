@@ -1024,6 +1024,10 @@ $\sum_k s_k B_{kn}$ and the cap. Only the copy above the last ceiling needs the
 income ceiling as a bound, so inside the ceilings the relaxation is the concave
 envelope of the staircase. The optimizer can then hold $L_n$ at a ceiling when the
 exclusion is worth more than the income above it.
+The binaries are free only in years whose $L_n$ in the previous iterate was at most
+1.5 times the top ceiling (the first iterate is solved without the exclusion, and the
+set only grows); without a time limit set by the user, a MILP carrying them stops
+after 60 seconds and its tiers are kept for the remaining iterations.
 A city tax can sit on top of the state's (\code{locality}, data in
 \code{data/taxes\_local.toml}): either a set of brackets on the state taxable
 income, which adds bracket variables $f^{\ell}_{tn}$ with

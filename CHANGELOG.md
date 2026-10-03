@@ -14,9 +14,16 @@ The steps are cliffs: one dollar above \$100,000 loses \$50,000 of exclusion. Th
 exactly, with one binary per tier in each year a filer is 62 or older, in the disaggregated form of
 the disjunction (about one second per iteration on a 32-year couple with \$1.5M tax-deferred, against
 4-6 seconds with a big-M on income). The optimizer can see the cliff and hold income at a ceiling,
-which it does when conversions or withdrawals would otherwise cross it. Known problem: with larger
-balances the MILP can fail to close its gap (a \$2.5M couple was still 0.4-0.9% from proven after a
-minute), so set `maxTime` for such cases; the reported gap says how far the plan may be from optimal. A
+which it does when conversions or withdrawals would otherwise cross it.
+
+Two limits keep the solve bounded. First, the tier binaries are free only in years whose state
+income, in the previous iteration, was at most 1.5 times the top ceiling (\$225,000); the first
+iteration is solved without the exclusion, and the set only grows, so at convergence every year left
+out is far above the ceilings, where the statute excludes nothing anyway. Second, without a `maxTime`
+a MILP carrying these binaries stops after 60 seconds: Owl warns with the gap, keeps that MILP's
+tiers for the remaining iterations, and reports its gap as the plan's. A \$2.5M couple, which did not
+prove optimal in ten minutes, now returns in about a minute with a 0.2% gap; give it more `maxTime`
+to narrow that. A
 self-consistent-loop version was tried first and rejected: on the same couple it settled into a
 2-cycle and returned a plan whose own income implied \$13,900 more lifetime New Jersey tax than it
 charged. The data fields (`retirement_exclusion_tiers`, `_cap`, `_age`, `_earned_limit`) are
