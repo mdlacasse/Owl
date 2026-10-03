@@ -2,7 +2,7 @@
 
 **Title:** State tax: New Jersey pension/retirement exclusion (NJ-1040 line 28) is not modeled, so NJ tax is overstated for retirees
 
-Status: draft. File after deciding what to do about the solve-time problem below; the maintainer will ask about it. Reference implementation: fork commit `7fcfadf` (branch `claude/relaxed-turing-xzrv89`).
+Status: draft, ready to file. Reference implementation: fork commits `7fcfadf` (exclusion) and `395be10` (solve limits) (branch `claude/relaxed-turing-xzrv89`).
 
 ---
 
@@ -25,4 +25,4 @@ Line 20a includes pensions, annuities, IRA withdrawals and Roth conversions (the
 
 **Implementation in the fork:** data fields `retirement_exclusion_tiers`, `_cap`, `_age`, `_earned_limit`; one binary per tier per eligible year, in the disaggregated (convex-hull) form, so only the copy of income above the last ceiling needs a big-M. A self-consistent-loop version 2-cycled and returned plans that undercharged their own tax, so the cliff has to be in the MILP.
 
-**Open question for the maintainer — solve time:** about 1 s per MILP for the couple above, but with $2.5M tax-deferred the MILP stays 0.4-0.9% from proven optimal after a minute. Options: accept that and rely on `maxTime`; free the binaries only in years whose income is near a ceiling; or offer the exclusion behind an option (like `withMedicare`), off by default.
+**Solve time, and how the fork bounds it.** About 1 s per MILP for the couple above. With $2.5M tax-deferred the full MILP did not prove optimal in ten minutes (the choice of which high-conversion years to hold at $125k or $150k is combinatorial, and each alternative is worth a few hundred dollars). The fork does two things: (1) tier binaries are free only in years whose income, in the previous loop iteration, was at most 1.5x the top ceiling (the first iteration runs without the exclusion, and the set only grows, so at convergence every excluded year is far above $150k, where nothing is excluded anyway); (2) without `maxTime`, a MILP carrying these binaries stops at 60 s with a warning and its gap, and later iterations keep its tiers. The $2.5M couple then returns in about a minute, 0.19% from proven optimal. Question for the maintainer: would you rather have this always on for NJ, or behind an option like `withMedicare`?

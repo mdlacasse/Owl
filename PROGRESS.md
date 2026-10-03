@@ -48,26 +48,42 @@ Notes: `owlcli compare` applies `--set` to the variant only, so the base case fi
 | MCP explain adapted for moves/locality/recapture | `d0d171e` | Done |
 | Recapture, optimize mode | — | **Dropped**: zero regret on a conversion-cap grid; lifetime recapture $81–6.4k |
 | NJ not indexed; NJ $1,000 exemptions | `20ccb2d` | Done; schedules and exemptions identical in the 2020 and 2025 NJ-1040 instructions |
-| NJ retirement-income exclusion (lines 28a–28c, from Phase 7) | `7fcfadf` | Done, exact MILP (see below) |
+| NJ retirement-income exclusion (lines 28a–28c, from Phase 7) | `7fcfadf` | Done, MILP (see below) |
+| NJ exclusion: free binaries only near the ceilings; 60 s cap that keeps the tiers | `395be10` | Done (user chose: window first, time cap as fallback) |
 
-NJ exclusion, how it is built: one binary per tier per year in which a filer is 62+, in the disaggregated (convex-hull) form; about 1 s per MILP on a 32-year couple whose income sits near the ceilings (but see the performance problem below). Rejected alternatives, measured on that couple: a self-consistent-loop version (2-cycle; the accepted plan undercharged its own NJ tax by $13.9k lifetime), and a big-M-on-income MILP (4–6 s per MILP; with `gap=1e-3` it hit a 30 s limit). The optimizer holds NJ income at exactly $100,000 in many years when it can.
+NJ exclusion, how it is built: one binary per tier per year in which a filer is 62+, in the disaggregated (convex-hull) form. Rejected alternatives, measured on the $1.5M couple: a self-consistent-loop version (2-cycle; the accepted plan undercharged its own NJ tax by $13.9k lifetime), and a big-M-on-income MILP (4–6 s per MILP; with `gap=1e-3` it hit a 30 s limit).
 
-NJ stakes (synthetic couple born 1964, SS at 70, $300k taxable, $150k Roth, `maxSpending`, Medicare off, SS taxability 0.85; lifetime, today's $):
+Solve limits (`plan.py`: `RX_WINDOW`, `RX_TIME_LIMIT`): binaries are free only in years whose income in the previous iterate was at most 1.5× the top ceiling ($225k); iteration 0 runs without the exclusion, and the free set (`RXF_n`, an SC parameter) only grows, so at convergence every left-out year is far above $150k, where nothing is excluded. Without `maxTime`, a MILP carrying the binaries stops at 60 s, warns with its gap, and later iterations keep its tiers; `solverGap` reports that gap. The window alone did not fix the $2.5M case (60 s cap hit on all four iterations, 240 s); keeping the tiers did (61 s).
 
-| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Solve |
-|---|---|---:|---:|---:|
-| $1.5M | FL | 126,372 | 0 | 0.1 s |
-| $1.5M | NY | 125,093 | 31,585 | 0.1 s |
-| $1.5M | NJ, no exclusion (as upstream) | 124,581 | 44,111 | 0.1 s |
-| $1.5M | NJ, exclusion | 126,100 | 0 | 3.4 s (income held at $100k in 14 years) |
-| $2.5M | FL | 161,885 | 0 | 0.1 s |
-| $2.5M | NY | 157,985 | 97,427 | 0.1 s |
-| $2.5M | NJ, no exclusion (as upstream) | 157,601 | 108,561 | 0.1 s |
-| $2.5M | NJ, exclusion | 158,648 | 65,240 | **not proven**: 0.86% gap after a 30 s cap, one iteration |
+NJ stakes (synthetic couple born 1964, SS at 70, $300k taxable, $150k Roth, `maxSpending`; lifetime state tax in today's $). Medicare off, SS taxability 0.85 (exact LP apart from the exclusion):
 
-Ignoring the exclusion ranked NJ below NY on both couples. With it, NJ is above NY by ~$1,000/yr at $1.5M and within $280/yr of FL. With default solver options (Medicare and SS loops on) the $1.5M couple takes 19.6 s against 0.5 s, and the exclusion is worth +$528/yr.
+| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Solve | Gap |
+|---|---|---:|---:|---:|---:|
+| $1.5M | FL | 126,372 | 0 | 0.1 s | LP |
+| $1.5M | NY | 125,093 | 31,585 | 0.1 s | LP |
+| $1.5M | NJ, no exclusion (as upstream) | 124,581 | 44,111 | 0.1 s | LP |
+| $1.5M | NJ, exclusion | 126,100 | 0 | 4.9 s | 0.01% |
+| $2.5M | FL | 161,885 | 0 | 0.1 s | LP |
+| $2.5M | NY | 157,985 | 97,427 | 0.1 s | LP |
+| $2.5M | NJ, no exclusion (as upstream) | 157,601 | 108,561 | 0.1 s | LP |
+| $2.5M | NJ, exclusion | 158,820 | 64,235 | 61.4 s | 0.19% (time cap) |
 
-**Open problem, performance:** at $2.5M the MILP does not close: no first iteration finished in 10 minutes. It stays at 0.4% even with an artificially tight income bound ($400k), so the difficulty is combinatorial: which early high-conversion years to hold at $125k/$150k, each choice worth a few hundred dollars. Not yet decided: a time cap with the gap reported, a heuristic warm start, or restricting the free binaries to years near the ceilings. Until then, set `maxTime` (and maybe `gap`) for large NJ cases.
+With `maxTime=600` the $2.5M NJ plan reaches 158,873 (+$53/yr), still 0.09% from proven: the 60 s cap costs little here.
+
+Default options (Medicare and SS loops on):
+
+| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Solve | Gap |
+|---|---|---:|---:|---:|---:|
+| $1.5M | FL | 123,848 | 0 | 0.6 s | LP |
+| $1.5M | NY | 122,627 | 31,603 | 0.5 s | LP |
+| $1.5M | NJ, no exclusion (as upstream) | 121,907 | 44,121 | 0.4 s | LP |
+| $1.5M | NJ, exclusion | 122,438 | 0 | 12.6 s | 0.01% |
+| $2.5M | FL | 157,864 | 0 | 0.1 s | LP |
+| $2.5M | NY | 153,992 | 97,699 | 0.2 s | LP |
+| $2.5M | NJ, no exclusion (as upstream) | 153,609 | 108,828 | 0.2 s | LP |
+| $2.5M | NJ, exclusion | 154,519 | 64,032 | 65.3 s | 0.18% (time cap) |
+
+Reading: the exclusion moves NJ by +$530 to +$1,520/yr and removes all $44k of lifetime NJ tax at $1.5M (about 40% of it at $2.5M). NJ vs NY at $1.5M flips sign between the two settings (+$1,007/yr exact, −$189/yr with the loops); that difference is under the ~1% loop-noise band, so the exact setting decides. At $2.5M NJ beats NY under both (+$835 and +$527/yr).
 
 Known limits: NYC household/school credits, part-year residency, the 10.9% NY cliff above $25M AGI, NJ Special Exclusion / disability before 62 / 65+ exemption, NJ line 28b when only one spouse is 62+ (only 28a taken), NJ basis in IRAs. Residency comparisons under ~1% may be loop noise.
 
@@ -76,7 +92,7 @@ Known limits: NYC household/school credits, part-year residency, the 10.9% NY cl
 1. #157 NY non-indexed amounts (patch `ad4452d`) — filed; NJ addendum drafted (patch `20ccb2d`)
 2. #158 NY benefit recapture (patch `fe7fba3`) — filed
 3. #159 Design issue: residency moves + local tax layer — filed
-4. NJ retirement-income exclusion (patch `7fcfadf`) — drafted
+4. NJ retirement-income exclusion (patches `7fcfadf`, `395be10`) — drafted, ready to file
 
 When upstream lands #157/#158, merge `dev` and drop our duplicates, as with #149 and #155.
 
@@ -90,4 +106,4 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-Full suite with the NJ exclusion (before the docs-only commits): 2697 passed, 1 skipped; flake8 clean.
+Full suite after the NJ solve limits: 2700 passed, 1 skipped; flake8 clean.

@@ -17,7 +17,7 @@ Read these first, in this order:
   - mid-plan moves (`basic_info.moves`, `residency.py`);
   - local tax (`basic_info.locality`, `tax_local.py`, `data/taxes_local.toml`: NYC, Yonkers);
   - NY benefit recapture, loop mode (`tax_state.state_recapture`);
-  - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as an exact MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), data `retirement_exclusion_*` in `taxes_state.toml`;
+  - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, 60 s default cap; data `retirement_exclusion_*` in `taxes_state.toml`;
   - summary and Taxes-sheet breakdown;
   - MCP explain adapted.
 - Upstream issues filed by the user and open: #157 (NY not indexed), #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer). Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
@@ -49,6 +49,7 @@ uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 
 - **`owlcli compare`:** `--set` applies to the variant only, so the base case file must be complete.
 - **Cliffs belong in the MILP, not the loop:** a loop-fed tier for the NJ exclusion 2-cycled and accepted a plan that undercharged its own tax by $13.9k. A big-M on income made each MILP 4-6 s; the disaggregated form takes about 1 s. Never add the same column twice to one row (`abcapi` does not merge duplicates; HiGHS crashed with "double free").
+- **NJ exclusion solve limits:** tier binaries are free only in years within `RX_WINDOW` (1.5x the top ceiling) of the previous iterate's income (`RXF_n`, an SC parameter; iteration 0 runs without the exclusion). Without `maxTime`, a MILP carrying them stops at `RX_TIME_LIMIT` (60 s), warns with the gap, and later iterations keep its tiers (`_rx_fixed`); `solverGap` reports that MILP's gap. Results that hit the cap depend on CPU speed, so don't time-cap runs you compare across machines; pass a large `maxTime` for decisions.
 - **Loop noise:** under the default self-consistent loop, scenario differences under about 1% can come from the loop settling on different fixed points. For decisions, also run with `withMedicare="None"` and a pinned `withSSTaxability` (e.g. `0.85`) so the LP is exact.
 - **Degenerate tests:** in a fixed-income `maxSpending` test plan, first-year income can cap spending, and later taxes then cost nothing. Use `maxBequest` with `netSpending` instead.
 - **Earnings test:** not modeled. In scenarios where one spouse works, optimize SS ages only for the one who stops (`withSSAges=["Name"]`).
