@@ -451,6 +451,8 @@ class Plan:
         self.STR_n = np.zeros(self.N_n)  # State benefit recapture per year (SC-loop parameter; in st_T_n)
         self.st_recap_n = np.zeros(self.N_n)  # Recapture charged in the solved plan (part of st_T_n)
         self._str_active = False  # True when the state recaptures the benefit of its lower brackets
+        self.st_rx_n = np.zeros(self.N_n)  # Income-tiered retirement exclusion claimed (NJ line 28c)
+        self._rx_active = False  # True when a state in the plan has an income-tiered retirement exclusion
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
@@ -2556,6 +2558,11 @@ class Plan:
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
         vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
+        rx_lp = st_lp and self._rx_active
+        N_rx = self.st_rx_limit_kn.shape[0] + 1 if rx_lp else 0  # tiers plus "above the last ceiling"
+        vm.add_if(rx_lp, "st_rx", self.N_n)  # income-tiered retirement exclusion
+        vm.add_if(rx_lp, "rxl", self.N_n, N_rx)  # state total income, split by tier (zero outside it)
+        vm.add_if(rx_lp, "rxb", self.N_n, N_rx)  # eligible income, split the same way
         lt_lp = st_lp and self.N_lt > 0 and bool(np.any(self.lt_theta_tn > 0))
         vm.add_if(lt_lp, "lt_f", self.N_lt, self.N_n)  # local bracket allocations
         vm.mark_binary_start()
@@ -2566,6 +2573,7 @@ class Plan:
         vm.add_if(niit_lp, "zj", self.N_n)  # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
         vm.add_if(ordering, "zo", 2, self.N_n)  # withdrawal-ordering gates (taxable_first)
+        vm.add_if(rx_lp, "zx", self.N_n, N_rx)  # exclusion tier selectors
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -2679,6 +2687,17 @@ class Plan:
                 for n in range(self.N_n):
                     cap = self.st_re_cap_in[i, n]
                     self.B.setRange(vm["st_re"].idx(i, n), 0, cap if np.isfinite(cap) else 1e9)
+        if "st_rx" in vm:
+            # Years without an eligible filer keep every tier variable at zero; their rows are skipped.
+            N_rx = self.st_rx_limit_kn.shape[0] + 1
+            for n in range(self.N_n):
+                claimable = bool(self.st_rx_elig_in[:, n].any())
+                self.B.setRange(vm["st_rx"].idx(n), 0, self.st_rx_cap_n[n] if claimable else 0)
+                for k in range(N_rx):
+                    live = claimable and (k == N_rx - 1 or np.isfinite(self.st_rx_limit_kn[k, n]))
+                    self.B.setRange(vm["zx"].idx(n, k), 0, 1 if live else 0)
+                    self.B.setRange(vm["rxl"].idx(n, k), 0, np.inf if live else 0)
+                    self.B.setRange(vm["rxb"].idx(n, k), 0, np.inf if live else 0)
 
     def _add_local_taxable_income(self):
         """Local bracket allocations add up to the state taxable income, in years with a local schedule."""
@@ -2737,6 +2756,8 @@ class Plan:
             if "st_re" in vm:
                 for i in range(self.N_i):
                     row.addElem(vm["st_re"].idx(i, n), 1)  # retirement income exemption
+            if "st_rx" in vm:
+                row.addElem(vm["st_rx"].idx(n), 1)  # income-tiered retirement exclusion
             for t in range(self.N_t):
                 row.addElem(vm["f"].idx(t, n), -1)  # subtract G_n (federal taxable ordinary income)
             row.addElem(vm["e"].idx(n), -1)  # add back the federal standard deduction
@@ -2757,6 +2778,96 @@ class Plan:
                         row.addElem(vm["x"].idx(i, n), -1)
                     rhs = self.piBar_in[i, n] if self.st_pe_pooled[n] else 0
                     self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
+
+        if "st_rx" in vm:
+            self._add_state_tiered_exclusion()
+
+    def _add_state_tiered_exclusion(self):
+        """Income-tiered retirement exclusion (NJ-1040 lines 28a-28c), exact, one binary per tier.
+
+        Total income (line 27) is the state taxable income plus its deductions and exclusions, so the
+        rows stay in state terms: L = sum(st_f) + st_e + sum(st_re) + st_rx. The base is what the
+        share applies to:
+
+        - tax-deferred withdrawals + Roth conversions + pensions + annuities of the filers old enough
+          (line 28a); or
+        - L itself, when wages are within the earned-income limit and every filer is old enough: the
+          unused cap then covers other income too (line 28b, Worksheet D).
+
+        The tier is a disjunction, written in its disaggregated (convex-hull) form rather than with a
+        big-M on L: L and the base are split into per-tier copies rxl[k] and rxb[k], each zero unless
+        zx[k] = 1, with lim[k-1] zx[k] <= rxl[k] <= lim[k] zx[k] and rxb[k] <= rxl[k]. Then
+        st_rx <= sum_k share[k] rxb[k], and in the first (100%) tier also st_rx <= cap. The last copy
+        is income above the last ceiling, where nothing is excluded; only it needs a bound from the
+        income ceiling. Inside the ceilings the relaxation is the concave envelope of the staircase,
+        which a big-M on L would give up.
+        """
+        vm = self.vm
+        K = self.st_rx_limit_kn.shape[0]  # tiers with a ceiling; copy K is above the last one
+
+        for n in range(self.N_n):
+            elig = np.flatnonzero(self.st_rx_elig_in[:, n])
+            cap = float(self.st_rx_cap_n[n])
+            if elig.size == 0 or cap <= 0:
+                continue
+            limits = self.st_rx_limit_kn[:, n]
+            shares = self.st_rx_share_kn[:, n]
+            tiers = [k for k in range(K) if np.isfinite(limits[k])]
+            last = float(limits[tiers[-1]])
+            top = max(float(self._ceiling_n[n]), 2 * last)
+            zx, rxl, rxb = vm["zx"], vm["rxl"], vm["rxb"]
+
+            # Exactly one tier.
+            self.A.addNewRow({zx.idx(n, k): 1 for k in tiers + [K]}, 1, 1, tag=("state_exclusion_one", n))
+
+            # L = sum of its copies.
+            row = self.A.newRow()
+            for t in range(self.N_st):
+                row.addElem(vm["st_f"].idx(t, n), 1)
+            row.addElem(vm["st_e"].idx(n), 1)
+            if "st_re" in vm:
+                for i in range(self.N_i):
+                    row.addElem(vm["st_re"].idx(i, n), 1)
+            row.addElem(vm["st_rx"].idx(n), 1)
+            for k in tiers + [K]:
+                row.addElem(rxl.idx(n, k), -1)
+            self.A.addRow(row, 0, 0, tag=("state_exclusion_income", n))
+
+            # Each copy lies in its tier's range when selected, and is zero otherwise.
+            lower = 0.0
+            for k in tiers + [K]:
+                upper = float(limits[k]) if k < K else top
+                self.A.addNewRow({rxl.idx(n, k): 1, zx.idx(n, k): -upper}, -np.inf, 0, tag=("state_excl_hi", n, k))
+                if lower > 0:
+                    self.A.addNewRow({rxl.idx(n, k): 1, zx.idx(n, k): -lower}, 0, np.inf, tag=("state_excl_lo", n, k))
+                lower = upper
+                self.A.addNewRow({rxb.idx(n, k): 1, rxl.idx(n, k): -1}, -np.inf, 0, tag=("state_exclusion_base", n, k))
+
+            # The copies of the base add up to no more than the base (line 20a); with the other-income
+            # extension the base is L, which rxb[k] <= rxl[k] already says. An inequality, so a year
+            # whose eligible income exceeds L (a capital loss) stays feasible: the base is then L.
+            if not self.st_rx_other_n[n]:
+                row = self.A.newRow({rxb.idx(n, k): 1 for k in tiers + [K]})
+                for i in elig:
+                    row.addElem(vm["w"].idx(i, 1, n), -1)
+                    row.addElem(vm["x"].idx(i, n), -1)
+                fixed = float(np.sum(self.piBar_in[elig, n] + self.spiaBar_in[elig, n]))
+                self.A.addRow(row, -np.inf, fixed, tag=("state_exclusion_split", n))
+
+            # st_rx <= sum_k share[k] rxb[k]; in a tier excluding 100%, also no more than the cap.
+            row = self.A.newRow({vm["st_rx"].idx(n): 1})
+            for k in tiers:
+                row.addElem(rxb.idx(n, k), -float(shares[k]))
+            self.A.addRow(row, -np.inf, 0, tag=("state_exclusion_share", n))
+            full = [k for k in tiers if shares[k] >= 1 and cap < limits[k]]
+            if full:
+                row = self.A.newRow({vm["st_rx"].idx(n): 1})
+                for k in tiers:
+                    if k in full:
+                        row.addElem(zx.idx(n, k), -cap)
+                    else:
+                        row.addElem(rxb.idx(n, k), -float(shares[k]))
+                self.A.addRow(row, -np.inf, 0, tag=("state_exclusion_cap", n))
 
     @_fixedAcrossIterations
     def _add_defunct_constraints(self):
@@ -4502,6 +4613,7 @@ class Plan:
         self.st_fed_sd = np.zeros(self.N_n, dtype=bool)
         self.st_recap = None
         self._str_active = False
+        self._rx_active = False
         if self._has_state_tax():
             residence_n = self._residence_by_year()
             sp = tax_state.st_taxParams_schedule(
@@ -4526,6 +4638,7 @@ class Plan:
             self.st_senior_bonus = sp.senior_bonus
             self.st_recap = (sp.recap_start_n, sp.recap_width_n, sp.recap_until_n)
             self._str_active = bool(np.any(np.isfinite(sp.recap_start_n)))
+            self._set_tiered_exclusion(sp)
 
         # _adjustParameters reads the Part D options from solverOptions: give it this solve's
         # options, not the previous solve's (or those loaded with the case).
@@ -5095,6 +5208,7 @@ class Plan:
 
         AGI is federal AGI less the Social Security the state exempts, the pension exemption
         and the retirement exclusion claimed: the same terms the state_taxable_income row uses.
+        The income-tiered exclusion (st_rx) is not subtracted: its tiers are set on this amount.
         """
         if self.N_st == 0:
             return np.zeros(self.N_n), np.zeros(self.N_n)
@@ -5103,6 +5217,50 @@ class Plan:
         pe_adj = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
         agi = self.G_n + self.e_n + self.Q_n - ss_excl - pe_adj - np.sum(self.st_re_in, axis=0)
         return agi, ti
+
+    def _set_tiered_exclusion(self, sp):
+        """Per-year eligibility for the income-tiered retirement exclusion (NJ-1040 line 28).
+
+        A filer's income is eligible from the year they reach the age by December 31, while alive.
+        The other-income extension needs every living filer eligible and wages within the limit;
+        with one spouse too young only line 28a is taken, which understates the exclusion.
+        """
+        Ni, Nn = self.N_i, self.N_n
+        self.st_rx_limit_kn = sp.rx_limit_kn
+        self.st_rx_share_kn = sp.rx_share_kn
+        self.st_rx_cap_n = sp.rx_cap_n
+        self._rx_active = bool(np.any(sp.rx_cap_n > 0))
+        alive_in = np.array([[n < self.horizons[i] for n in range(Nn)] for i in range(Ni)])
+        age_in = self.year_n[np.newaxis, :] - np.asarray(self.yobs)[:, np.newaxis]
+        self.st_rx_elig_in = alive_in & (age_in >= sp.rx_age_n[np.newaxis, :]) & (sp.rx_cap_n > 0)
+        wages_n = np.sum(self.omega_in, axis=0)
+        all_elig_n = np.all(self.st_rx_elig_in | ~alive_in, axis=0) & self.st_rx_elig_in.any(axis=0)
+        self.st_rx_other_n = all_elig_n & (sp.rx_earned_n >= 0) & (wages_n <= sp.rx_earned_n)
+
+    def _tiered_exclusion_implied(self):
+        """Share and amount of the tiered exclusion that the solution's own income implies (a check).
+
+        Returns (share_n, amount_n). The amount is what the return would claim: the share of eligible
+        income (or of total income, with the other-income extension), up to the cap and the income.
+        """
+        Nn = self.N_n
+        share = np.zeros(Nn)
+        amount = np.zeros(Nn)
+        if not self._rx_active:
+            return share, amount
+        total_n = np.round(self.st_agi_n)  # line 27, in the whole dollars of the return
+        for n in range(Nn):
+            if self.st_rx_cap_n[n] <= 0:
+                continue
+            share[n] = tax_state.exclusion_share(total_n[n], self.st_rx_limit_kn[:, n], self.st_rx_share_kn[:, n])
+            elig = self.st_rx_elig_in[:, n]
+            if self.st_rx_other_n[n]:
+                base = total_n[n]
+            else:
+                base = float(np.sum((self.w_ijn[:, 1, n] + self.x_in[:, n] + self.piBar_in[:, n]
+                                     + self.spiaBar_in[:, n])[elig]))
+            amount[n] = min(self.st_rx_cap_n[n], share[n] * base, max(0.0, total_n[n]))
+        return share, amount
 
     def _state_recapture_implied(self):
         "Benefit recapture the current solution's own state AGI and taxable income imply."
@@ -6048,6 +6206,7 @@ class Plan:
         # State taxable income and AGI, which the benefit recapture is a function of.
         self.st_f_tn = vm["st_f"].extract(x) if "st_f" in vm else np.zeros((self.N_st, Nn))
         self.st_re_in = vm["st_re"].extract(x) if "st_re" in vm else np.zeros((Ni, Nn))
+        self.st_rx_n = vm["st_rx"].extract(x) if "st_rx" in vm else np.zeros(Nn)
         self.st_agi_n, self.st_ti_n = self._state_agi_and_ti()
 
         # Stop after building minimum required for self-consistent loop.

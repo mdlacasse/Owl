@@ -49,6 +49,20 @@
 #                               change needs no other edit.
 #   recapture_width           = AGI dollars over which each tier phases in (default 50000)
 #   recapture_until           = highest bracket threshold that starts a tier
+#   retirement_exclusion_tiers = [[income_ceiling, pct], ...] — an exclusion of pensions, annuities,
+#                               IRA withdrawals and Roth conversions that depends on household
+#                               income (NJ-1040 line 28a). In the first tier whose ceiling the
+#                               state income before the exclusion does not exceed, pct percent of
+#                               eligible income is excluded, up to retirement_exclusion_cap; above
+#                               the last ceiling, nothing. The steps are cliffs, as in the statute.
+#                               Only the income of a filer who has reached retirement_exclusion_age
+#                               by December 31 is eligible. Omit for states without it.
+#   retirement_exclusion_cap  = dollar cap on that exclusion
+#   retirement_exclusion_age  = age by December 31 from which a filer's income is eligible
+#   retirement_exclusion_earned_limit = when wages are at or below this amount and every filer
+#                               has reached the age, the unused part of the cap also covers other
+#                               income (NJ line 28b): the exclusion becomes pct percent of total
+#                               income, up to the cap. Omit if the state has no such extension.
 #
 # Exemption caps are per person: each spouse's exemption is limited by that spouse's own
 # age and eligible income (tax-deferred withdrawals, Roth conversions, pensions), and an
@@ -922,7 +936,11 @@ pension_exemption = 0
 roth_conversion_eligible = true
 
 [NJ_Single]
-# NJ: excludes up to $100k pension/IRA if household income <= $100k (complex phaseout)
+# NJ: pension/retirement exclusion (line 28a) and other retirement income exclusion (line 28b,
+# Worksheet D) as printed in the 2025 NJ-1040 instructions; the same amounts are printed for 2021,
+# 2023 and 2024. The Single/HoH/QW chart applies to a Single filer. Not modeled: the Special
+# Exclusion for filers never eligible for Social Security, disability before 62, and income of
+# one spouse who is 62+ when the other is younger (only line 28a is taken then).
 # Brackets and exemptions are the same in the 2020 and 2025 NJ-1040 instructions (rate
 # schedules; lines 6-7), so they are fixed dollars: indexed = false. standard_deduction is the
 # $1,000 regular exemption per filer; the extra $1,000 per filer aged 65+ (line 7) is not modeled.
@@ -935,6 +953,10 @@ exemption_age = 0
 pension_exemption = 0
 roth_conversion_eligible = true
 indexed = false  # same brackets and exemptions in the 2020 and 2025 NJ-1040 instructions
+retirement_exclusion_tiers = [[100000.0, 100.0], [125000.0, 37.5], [150000.0, 18.75]]  # NJ-1040 (2025) line 28a chart
+retirement_exclusion_cap = 75000
+retirement_exclusion_age = 62
+retirement_exclusion_earned_limit = 3000  # Worksheet D, lines 4-8
 
 [NJ_MFJ]
 brackets = [[0.0, 1.4], [20000.0, 1.75], [50000.0, 2.45], [70000.0, 3.5], [80000.0, 5.525], [150000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
@@ -946,6 +968,10 @@ exemption_age = 0
 pension_exemption = 0
 roth_conversion_eligible = true
 indexed = false  # same brackets and exemptions in the 2020 and 2025 NJ-1040 instructions
+retirement_exclusion_tiers = [[100000.0, 100.0], [125000.0, 50.0], [150000.0, 25.0]]  # NJ-1040 (2025) line 28a chart
+retirement_exclusion_cap = 100000
+retirement_exclusion_age = 62
+retirement_exclusion_earned_limit = 3000  # Worksheet D, lines 4-8
 
 [NM_Single]
 # Audit 2026-09: HB 252 (2025) six-bracket schedule, 1.5%-5.9%; Tax Foundation 2026 table.

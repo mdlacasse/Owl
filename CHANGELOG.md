@@ -1,5 +1,30 @@
 ### Unreleased
 
+#### New: New Jersey retirement income exclusion
+
+New Jersey excludes pensions, annuities, IRA withdrawals and Roth conversions from income for filers
+aged 62 or more, in steps of total income (NJ-1040 lines 28a-28c): a married couple with income up
+to \$100,000 excludes all of it up to \$100,000, from \$100,001 half, from \$125,001 a quarter, and
+above \$150,000 nothing (Single: \$75,000 cap, 37.5%, 18.75%). With wages of at most \$3,000 the
+unused part covers other income too (Worksheet D). It was missing, so Owl overstated New Jersey tax
+for retirees below \$150,000. The amounts are the 2025 instructions' (the same in 2021, 2023 and
+2024) and are not indexed.
+
+The steps are cliffs: one dollar above \$100,000 loses \$50,000 of exclusion. They are modeled
+exactly, with one binary per tier in each year a filer is 62 or older, in the disaggregated form of
+the disjunction (about one second per iteration on a 32-year couple with \$1.5M tax-deferred, against
+4-6 seconds with a big-M on income). The optimizer can see the cliff and hold income at a ceiling,
+which it does when conversions or withdrawals would otherwise cross it. Known problem: with larger
+balances the MILP can fail to close its gap (a \$2.5M couple was still 0.4-0.9% from proven after a
+minute), so set `maxTime` for such cases; the reported gap says how far the plan may be from optimal. A
+self-consistent-loop version was tried first and rejected: on the same couple it settled into a
+2-cycle and returned a plan whose own income implied \$13,900 more lifetime New Jersey tax than it
+charged. The data fields (`retirement_exclusion_tiers`, `_cap`, `_age`, `_earned_limit`) are
+documented in `taxes_state.toml`. `Plan.st_rx_n` gives the exclusion by year, and the explanation
+(`explain_results`) reports it with the ceiling a year is held at. Not modeled: the Special
+Exclusion, disability before 62, and the case of one spouse 62+ and the other younger, where only
+line 28a is taken.
+
 #### New: New York benefit recapture
 
 Above \$107,650 of New York AGI, New York takes back the benefit of the lower brackets: the tax is the

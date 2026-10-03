@@ -74,6 +74,12 @@ class Year0StateTax(BaseModel):
     local_tax: Optional[float] = Field(
         default=None, description="Local (city) income tax included in the state tax (today's $); absent when none."
     )
+    retirement_exclusion: Optional[float] = Field(
+        default=None, description="Income-tiered retirement exclusion claimed (today's $); absent when none."
+    )
+    exclusion_ceiling: Optional[float] = Field(
+        default=None, description="Income ceiling of that exclusion's tier at which state income is held (today's $)."
+    )
     top_bracket_rate_pct: Optional[float] = Field(
         default=None, description="State marginal rate of the highest bracket reached (%); absent with no state tax."
     )
@@ -182,6 +188,12 @@ class StateBracketYear(BaseModel):
     )
     local_tax_today: Optional[float] = Field(
         default=None, description="Local (city) income tax included in the state tax (today's $); absent when none."
+    )
+    retirement_exclusion_today: Optional[float] = Field(
+        default=None, description="Income-tiered retirement exclusion claimed (today's $); absent when none."
+    )
+    exclusion_ceiling_today: Optional[float] = Field(
+        default=None, description="Income ceiling of that exclusion's tier at which state income is held (today's $)."
     )
     top_bracket_rate_pct: float = Field(description="State marginal rate of the highest bracket reached (%).")
     headroom_in_bracket_today: Optional[float] = Field(

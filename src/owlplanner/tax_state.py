@@ -70,6 +70,13 @@ class StateTaxParams:
     recap_start_n  -- shape (N_n,) state AGI where benefit recapture begins (np.inf = none)
     recap_width_n  -- shape (N_n,) width of each phase-in, in AGI dollars
     recap_until_n  -- shape (N_n,) highest bracket threshold that starts a recapture tier
+    rx_limit_kn    -- shape (N_rx, N_n) income ceilings of the income-tiered retirement exclusion
+                      (NJ line 28a), lowest first; padding tiers have -inf
+    rx_share_kn    -- shape (N_rx, N_n) share of eligible income excluded in each tier
+    rx_cap_n       -- shape (N_n,) dollar cap on that exclusion (0 = the state has none)
+    rx_age_n       -- shape (N_n,) age by December 31 at which a filer's income becomes eligible
+    rx_earned_n    -- shape (N_n,) earned income at or below which the unused exclusion also covers
+                      other income (NJ line 28b); -1 = no such extension
 
     The flag arrays are per year because the state can change during the plan.
     """
@@ -90,6 +97,11 @@ class StateTaxParams:
     recap_start_n: np.ndarray
     recap_width_n: np.ndarray
     recap_until_n: np.ndarray
+    rx_limit_kn: np.ndarray
+    rx_share_kn: np.ndarray
+    rx_cap_n: np.ndarray
+    rx_age_n: np.ndarray
+    rx_earned_n: np.ndarray
 
 
 @lru_cache(maxsize=1)
@@ -180,6 +192,15 @@ def _read_indexed(entry: dict) -> bool:
     return val
 
 
+def _read_exclusion_tiers(entry: dict) -> list:
+    """Read retirement_exclusion_tiers as [(income ceiling, share as a decimal), ...], lowest first."""
+    tiers = entry.get("retirement_exclusion_tiers", [])
+    out = [(float(lim), float(pct) / 100.0) for lim, pct in tiers]
+    if any(b[0] <= a[0] for a, b in zip(out, out[1:])):
+        raise ValueError(f"retirement_exclusion_tiers must have increasing income ceilings: {tiers}.")
+    return out
+
+
 def st_taxParams(
     state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
 ) -> StateTaxParams:
@@ -231,6 +252,11 @@ def st_taxParams(
     DeltaBar_tn = np.zeros((N_st, N_n))
     sigmaBar_n = np.zeros(N_n)
     recap = np.tile(np.array([[np.inf], [1.0], [0.0]]), (1, N_n))  # start, width, until
+    tiers_s, tiers_m = _read_exclusion_tiers(entry_single), _read_exclusion_tiers(entry_mfj)
+    N_rx = max(len(tiers_s), len(tiers_m), 1)
+    rx_limit_kn = np.full((N_rx, N_n), -np.inf)
+    rx_share_kn = np.zeros((N_rx, N_n))
+    rx = np.tile(np.array([[0.0], [0.0], [-1.0]]), (1, N_n))  # cap, age, earned-income limit
 
     thisyear = date.today().year
     filing_status_n = filing_status_by_year(N_i, n_d, N_n)
@@ -246,6 +272,17 @@ def st_taxParams(
                 entry["recapture_agi_start"] * gn,
                 entry.get("recapture_width", 50000.0) * gn,
                 entry["recapture_until"] * gn,
+            ]
+        tiers = tiers_m if filing_status_n[n] == 1 else tiers_s
+        if tiers:
+            for k, (lim, share) in enumerate(tiers):
+                rx_limit_kn[k, n] = lim * gn
+                rx_share_kn[k, n] = share
+            earned = entry.get("retirement_exclusion_earned_limit", -1)
+            rx[:, n] = [
+                entry["retirement_exclusion_cap"] * gn,
+                entry.get("retirement_exclusion_age", 0),
+                earned * gn if earned >= 0 else -1.0,
             ]
 
     # --- Retirement income exemption cap (per person, inflation-adjusted) ---
@@ -306,6 +343,11 @@ def st_taxParams(
         recap_start_n=recap[0],
         recap_width_n=recap[1],
         recap_until_n=recap[2],
+        rx_limit_kn=rx_limit_kn,
+        rx_share_kn=rx_share_kn,
+        rx_cap_n=rx[0],
+        rx_age_n=rx[1],
+        rx_earned_n=rx[2],
     )
 
 
@@ -333,6 +375,10 @@ def st_taxParams_schedule(
     flags = {name: np.zeros(N_n, dtype=bool) for name in ("conv_ok", "tax_ss", "pe_pooled", "fed_sd", "senior_bonus")}
     flags["indexed"] = np.ones(N_n, dtype=bool)
     recap = np.tile(np.array([[np.inf], [1.0], [0.0]]), (1, N_n))
+    N_rx = max((p.rx_limit_kn.shape[0] for p in per_state.values()), default=1)
+    rx_limit_kn = np.full((N_rx, N_n), -np.inf)
+    rx_share_kn = np.zeros((N_rx, N_n))
+    rx = np.tile(np.array([[0.0], [0.0], [-1.0]]), (1, N_n))
 
     for n, s in enumerate(states_n):
         if not s:
@@ -349,6 +395,10 @@ def st_taxParams_schedule(
         for name, arr in flags.items():
             arr[n] = getattr(p, name)[n]
         recap[:, n] = [p.recap_start_n[n], p.recap_width_n[n], p.recap_until_n[n]]
+        k = p.rx_limit_kn.shape[0]
+        rx_limit_kn[:k, n] = p.rx_limit_kn[:, n]
+        rx_share_kn[:k, n] = p.rx_share_kn[:, n]
+        rx[:, n] = [p.rx_cap_n[n], p.rx_age_n[n], p.rx_earned_n[n]]
 
     return StateTaxParams(
         N_st=N_st,
@@ -361,6 +411,11 @@ def st_taxParams_schedule(
         recap_start_n=recap[0],
         recap_width_n=recap[1],
         recap_until_n=recap[2],
+        rx_limit_kn=rx_limit_kn,
+        rx_share_kn=rx_share_kn,
+        rx_cap_n=rx[0],
+        rx_age_n=rx[1],
+        rx_earned_n=rx[2],
         **flags,
     )
 
@@ -408,6 +463,19 @@ def state_recapture(
     k = reached[-1]
     base = theta[k - 1] * lower[k] - bracket_tax(lower[k], theta, Delta)
     return base + (theta[k] - theta[k - 1]) * lower[k] * phase(agi - lower[k])
+
+
+def exclusion_share(income: float, limits: np.ndarray, shares: np.ndarray) -> float:
+    """Share of eligible income an income-tiered retirement exclusion allows (NJ-1040 line 28a).
+
+    The tier is the first whose ceiling *income* does not exceed; above the last ceiling nothing is
+    excluded. The cliffs are the statute's: NJ's married filers with income of 100,000 exclude all of
+    their eligible income up to the cap, and with 100,001 only half of it.
+    """
+    for lim, share in zip(limits, shares):
+        if income <= lim:
+            return float(share)
+    return 0.0
 
 
 def valid_states() -> list:
