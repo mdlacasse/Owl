@@ -6,22 +6,24 @@ Read these first, in this order:
 
 1. `fork-notes/phase1-revised.md` — what is done, what was decided and why, measured stakes, revised priorities. Its last section ("Reassessment") is the current plan.
 2. `fork-notes/phase0/phase0-scenarios.md` — how the household's scenarios are run (`owlcli run` / `owlcli compare`).
-3. The user may upload `otherFiles/PROGRESS.md` (their running log; it never reaches git). If they do, update it there and send it back; it is gitignored.
+3. `PROGRESS.md` (repo root, fork-only like this file): the running log of what is done, filed and next. Update it at the end of every work session and commit it with the work.
 
-## State (2026-10-02)
+## State (2026-10-03)
 
-- Branch `claude/inspiring-rubin-f0a0p9`, merged with upstream `dev` at `a85ff76` (2026.10.1). A new session usually gets its own branch name: start it from this branch.
+- Branch `claude/relaxed-turing-xzrv89` (continued from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1). A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params and `indexed` (NY not indexed);
   - SC-loop registry `_SC_PARAMS`;
   - mid-plan moves (`basic_info.moves`, `residency.py`);
   - local tax (`basic_info.locality`, `tax_local.py`, `data/taxes_local.toml`: NYC, Yonkers);
   - NY benefit recapture, loop mode (`tax_state.state_recapture`);
+  - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as an exact MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), data `retirement_exclusion_*` in `taxes_state.toml`;
   - summary and Taxes-sheet breakdown;
   - MCP explain adapted.
 - Upstream issues filed by the user and open: #157 (NY not indexed), #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer). Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
-- **Next:** NJ retirement-income exclusion (income cliffs), as a loop quantity like recapture, built from `st_agi_n`. Read the NJ-1040 instructions first: `nj.gov` is on the allow list. After that, Phase 2: housing ledger and property tax.
+- Drafted, for the user to file: NJ addendum to #157 (`fork-notes/issue-nj-not-indexed.md`) and the NJ exclusion issue (`fork-notes/issue-nj-retirement-exclusion.md`).
+- **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
 ## Setup (the container is ephemeral; redo each session)
 
@@ -46,9 +48,12 @@ uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ## Gotchas found the hard way
 
 - **`owlcli compare`:** `--set` applies to the variant only, so the base case file must be complete.
+- **Cliffs belong in the MILP, not the loop:** a loop-fed tier for the NJ exclusion 2-cycled and accepted a plan that undercharged its own tax by $13.9k. A big-M on income made each MILP 4-6 s; the disaggregated form takes about 1 s. Never add the same column twice to one row (`abcapi` does not merge duplicates; HiGHS crashed with "double free").
 - **Loop noise:** under the default self-consistent loop, scenario differences under about 1% can come from the loop settling on different fixed points. For decisions, also run with `withMedicare="None"` and a pinned `withSSTaxability` (e.g. `0.85`) so the LP is exact.
 - **Degenerate tests:** in a fixed-income `maxSpending` test plan, first-year income can cap spending, and later taxes then cost nothing. Use `maxBequest` with `netSpending` instead.
 - **Earnings test:** not modeled. In scenarios where one spouse works, optimize SS ages only for the one who stops (`withSSAges=["Name"]`).
 - **`pkill -f <pattern>`** can kill the shell running it. Kill by PID instead.
+- **TOML arrays must be homogeneous** for the `toml` package: write `[[100000.0, 100.0], [125000.0, 37.5]]`, not mixed ints and floats.
+- **Owl units:** `setAccountBalances` takes thousands of dollars; `setPension`/`setSocialSecurity` take monthly amounts. Test plans with balances entered in dollars (1000x too large) came back "infeasible" with no other hint.
 - **TOML encoding:** files must be UTF-8. A Windows-1252 em dash stops `owlcli` with a `UnicodeDecodeError`.
-- **State parameters are per year:** `st_tax_ss`, `st_conv_ok`, `st_fed_sd` and the other flags are arrays, because the state can change mid-plan. `st_T_n` is state + recapture + local; `st_recap_n` and `lt_T_n` are its parts.
+- **State parameters are per year:** `st_tax_ss`, `st_conv_ok`, `st_fed_sd` and the other flags are arrays, because the state can change mid-plan. `st_T_n` is state + recapture + local; `st_recap_n` and `lt_T_n` are its parts. `st_agi_n` is state income before the NJ exclusion (its tiers are set on it); `st_rx_n` is the exclusion claimed.
