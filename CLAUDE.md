@@ -10,7 +10,7 @@ Read these first, in this order:
 
 ## State (2026-10-03)
 
-- Branch `claude/relaxed-turing-xzrv89` (continued from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1). A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1). A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params and `indexed` (NY not indexed);
   - SC-loop registry `_SC_PARAMS`;
@@ -23,6 +23,7 @@ Read these first, in this order:
 - Upstream issues filed by the user and open: #157 (NY not indexed), #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer). Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
 - Drafted, for the user to file: NJ addendum to #157 (`fork-notes/issue-nj-not-indexed.md`) and the NJ exclusion issue (`fork-notes/issue-nj-retirement-exclusion.md`).
+- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts; not yet triaged into fixes or upstream issues).
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
 ## Setup (the container is ephemeral; redo each session)

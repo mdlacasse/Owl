@@ -2,7 +2,7 @@
 
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
-Fork `fmateoc/Owl`, branch `claude/relaxed-turing-xzrv89` (continued from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1; nothing newer upstream on 2026-10-03).
+Fork `fmateoc/Owl`, branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, itself from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1; nothing newer upstream on 2026-10-03).
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream
@@ -86,6 +86,22 @@ Default options (Medicare and SS loops on):
 Reading: the exclusion moves NJ by +$530 to +$1,520/yr and removes all $44k of lifetime NJ tax at $1.5M (about 40% of it at $2.5M). NJ vs NY at $1.5M flips sign between the two settings (+$1,007/yr exact, −$189/yr with the loops); that difference is under the ~1% loop-noise band, so the exact setting decides. At $2.5M NJ beats NY under both (+$835 and +$527/yr).
 
 Known limits: NYC household/school credits, part-year residency, the 10.9% NY cliff above $25M AGI, NJ Special Exclusion / disability before 62 / 65+ exemption, NJ line 28b when only one spouse is 62+ (only 28a taken), NJ basis in IRAs. Residency comparisons under ~1% may be loop noise.
+
+## Model review (2026-10-03)
+
+Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/model-review/README.md`, with repro scripts and raw output in the same directory. Main findings (all upstream code):
+
+- [ ] Loop mode returns a self-consistent plan, not an optimal one. Optimizing IRMAA or SS taxability raised the objective on 9 of 13 examples by up to +1.3% bequest / +2.3% spending, never lowered it.
+- [ ] A non-converging loop keeps its highest-objective iterate, whatever its residual (cameron: SS off by $29.8k).
+- [ ] Bracket fill goes out of order when late cash has no value: a constructed case reports $1.56M lifetime tax vs $0.91M filled in order. No check exists.
+- [ ] `withACA="optimize"`: top-of-bracket step rates, and `maca <= SLCSP` makes MAGI infeasible where `pct x MAGI > SLCSP` below 400% FPL (reproduced).
+- [ ] SS claiming-age MILP charges every candidate age the same SS tax (taxable SS from the previous iterate).
+- [ ] Cost basis omits reinvested dividends (gain fraction 0.76 vs 0.63 after 11 years in the repro); whole-account gain fraction applied to the equity share only.
+- [ ] Partial first year: balances are back-projected for growth only, while year-0 flows run full-year.
+- [ ] Survivor of a worker who died before claiming gets 82.5% of PIA (rule recalled as 100%; to check in POMS).
+- [ ] Paper vs code drift: Roth cap (Ch. 7), IRMAA MAGI expansion signs, Eq. (PI), AMO binaries, decomposition (retired upstream 2026-09-26), big-M, Ch. 11 survivor claim.
+
+Not yet decided: which of these to fix in the fork and which to draft as upstream issues.
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
