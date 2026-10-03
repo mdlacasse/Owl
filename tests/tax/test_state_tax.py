@@ -574,3 +574,15 @@ def test_nj_survivor_keeps_top_bracket():
     assert _lp_bracket_tax(income, theta[:, n_d - 1], delta[:, n_d - 1]) == pytest.approx(_schedule_tax(income, mfj))
     for n in range(n_d, 30):
         assert _lp_bracket_tax(income, theta[:, n], delta[:, n]) == pytest.approx(_schedule_tax(income, single))
+
+
+def test_nj_not_indexed_and_takes_the_regular_exemptions():
+    """NJ's rate schedules and $1,000 exemptions are the same in the 2020 and 2025 NJ-1040 instructions."""
+    gamma = np.array([1.03**n for n in range(31)])
+    single = tax_state.st_taxParams("NJ", 1, 30, 30, gamma, [1960], mobs=[1])
+    couple = tax_state.st_taxParams("NJ", 2, 30, 30, gamma, [1960, 1962], mobs=[1, 1])
+    assert not single.indexed.any() and not couple.indexed.any()
+    np.testing.assert_array_equal(couple.DeltaBar_tn[:, 20], couple.DeltaBar_tn[:, 0])
+    assert np.all(single.sigmaBar_n == 1000) and np.all(couple.sigmaBar_n == 2000)
+    # MFJ thresholds as printed in Table B: 20k, 50k, 70k, 80k, 150k, 500k, 1M.
+    assert np.cumsum(couple.DeltaBar_tn[:, 0])[:7].tolist() == [20e3, 50e3, 70e3, 80e3, 150e3, 500e3, 1e6]

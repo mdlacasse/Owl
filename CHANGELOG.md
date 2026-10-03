@@ -44,6 +44,10 @@ amounts by inflation, which understated future New York tax: the brackets do not
 inflation pushes income into higher ones. New York is now marked `indexed = false`; the default is
 unchanged.
 
+New Jersey is marked `indexed = false` too: its rate schedules and \$1,000 exemptions are the same in
+the 2020 and 2025 NJ-1040 instructions. Its standard deduction was 0 in the data; it is now the
+\$1,000 regular exemption per filer (the extra \$1,000 per filer aged 65 or older is not modeled).
+
 #### Changed: `st_taxParams` returns a `StateTaxParams` dataclass
 
 The nine-element tuple is replaced by a frozen dataclass with named fields. `Plan` attribute names

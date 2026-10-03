@@ -923,24 +923,29 @@ roth_conversion_eligible = true
 
 [NJ_Single]
 # NJ: excludes up to $100k pension/IRA if household income <= $100k (complex phaseout)
+# Brackets and exemptions are the same in the 2020 and 2025 NJ-1040 instructions (rate
+# schedules; lines 6-7), so they are fixed dollars: indexed = false. standard_deduction is the
+# $1,000 regular exemption per filer; the extra $1,000 per filer aged 65+ (line 7) is not modeled.
 brackets = [[0.0, 1.4], [20000.0, 1.75], [35000.0, 3.5], [40000.0, 5.525], [75000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
-standard_deduction = 0
+standard_deduction = 1000
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # same brackets and exemptions in the 2020 and 2025 NJ-1040 instructions
 
 [NJ_MFJ]
 brackets = [[0.0, 1.4], [20000.0, 1.75], [50000.0, 2.45], [70000.0, 3.5], [80000.0, 5.525], [150000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
-standard_deduction = 0
+standard_deduction = 2000
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
 roth_conversion_eligible = true
+indexed = false  # same brackets and exemptions in the 2020 and 2025 NJ-1040 instructions
 
 [NM_Single]
 # Audit 2026-09: HB 252 (2025) six-bracket schedule, 1.5%-5.9%; Tax Foundation 2026 table.
