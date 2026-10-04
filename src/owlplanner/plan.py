@@ -412,6 +412,7 @@ class Plan:
         self.maca_n = np.zeros(self.N_n)  # ACA LP cost variable extraction result
         self.state = ""  # Two-letter US state for state income tax ("" = none)
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
+        self.st_credit_n = np.zeros(self.N_n)  # State personal credit available per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
@@ -2500,6 +2501,8 @@ class Plan:
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
         vm.add_if(st_lp, "st_e", self.N_n)  # state standard deduction headroom
         vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
+        st_c_lp = st_lp and bool(np.any(self.st_credit_n > 0))
+        vm.add_if(st_c_lp, "st_c", self.N_n)  # state personal credit used (<= credit, <= state tax)
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2615,6 +2618,9 @@ class Plan:
                 self.B.setRange(vm["st_f"].idx(t, n), 0, self.st_DeltaBar_tn[t, n])
         for n in range(self.N_n):
             self.B.setRange(vm["st_e"].idx(n), 0, self.st_sigmaBar_n[n])
+        if "st_c" in vm:
+            for n in range(self.N_n):
+                self.B.setRange(vm["st_c"].idx(n), 0, self.st_credit_n[n])
         if "st_re" in vm:
             for i in range(self.N_i):
                 for n in range(self.N_n):
@@ -2670,6 +2676,14 @@ class Plan:
             if ss_lp and not self.st_tax_ss:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
+
+        # A personal credit only offsets tax: the credit used stays below the year's state tax.
+        if "st_c" in vm:
+            for n in range(self.N_n):
+                row = self.A.newRow({vm["st_c"].idx(n): 1})
+                for t in range(self.N_st):
+                    row.addElem(vm["st_f"].idx(t, n), -self.st_theta_tn[t, n])
+                self.A.addRow(row, -np.inf, 0, tag=("state_credit_cap", n))
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
@@ -3165,6 +3179,8 @@ class Plan:
             if "st_f" in self.vm:
                 for t in range(self.N_st):
                     row.addElem(self.vm["st_f"].idx(t, n), self.st_theta_tn[t, n])
+                if "st_c" in self.vm:
+                    row.addElem(self.vm["st_c"].idx(n), -1)  # personal credit reduces the tax paid
 
             # NIIT: when optimize mode, use LP variable Jn; otherwise already in rhs.
             if getattr(self, "_niit_lp", False):
@@ -4003,6 +4019,14 @@ class Plan:
                     for n in range(self.N_n):
                         c_arr[self.vm["w"].idx(1, j, n)] += epsilon
 
+            # Take the full state deduction and exemptions even where a personal credit already
+            # cancels the year's state tax: nothing else then prices state taxable income, so the
+            # solver could leave the deduction unused and report a larger taxable income.
+            if "st_c" in self.vm:
+                for t in range(self.N_st):
+                    for n in range(self.N_n):
+                        c_arr[self.vm["st_f"].idx(t, n)] += epsilon
+
             # Pin taxable Social Security in the years where it costs nothing. Nothing in
             # the formulation selects between the two z^σ_0 branches when the year owes no
             # tax on the benefit, and the branch that sets z^σ_0 = 1 forces
@@ -4428,9 +4452,12 @@ class Plan:
                 self.st_tax_ss,
                 _st_ss_thresh_n,
             ) = tax_state.st_taxParams(
-                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs
+                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs, i_d=self.i_d
             )
             self.st_fed_sd, self.st_senior_bonus = tax_state.federal_deduction(self.state)
+            self.st_credit_n = tax_state.st_credits(
+                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, yobs=self.yobs, mobs=self.mobs, i_d=self.i_d
+            )
 
         # _adjustParameters reads the Part D options from solverOptions: give it this solve's
         # options, not the previous solve's (or those loaded with the case).
@@ -5928,6 +5955,8 @@ class Plan:
             self.st_f_tn = vm["st_f"].extract(x)
             self.st_T_tn = self.st_f_tn * self.st_theta_tn
             self.st_T_n = np.sum(self.st_T_tn, axis=0)
+            if "st_c" in vm:
+                self.st_T_n = self.st_T_n - vm["st_c"].extract(x)  # net of the personal credit
         else:
             self.st_T_n = np.zeros(Nn)
         # State retirement income exemption claimed by each individual.

@@ -35,6 +35,25 @@
 #   roth_conversion_eligible  = true/false — whether Roth conversion income counts toward
 #                               retirement_income_exemption (default true; false for MD,
 #                               whose pension exclusion does not cover IRAs or conversions)
+#   brackets_indexed          = true/false — whether bracket thresholds grow with inflation
+#   deduction_indexed         = true/false — whether the state's own standard deduction or
+#                               personal exemption grows with inflation (true when it is tied
+#                               to the indexed federal deduction; ignored for "federal")
+#   exemptions_indexed        = true/false — whether retirement_income_exemption,
+#                               pension_exemption and ss_exemption_threshold grow with inflation
+#   All three are required. A false flag keeps those amounts at their statutory nominal value
+#   in every plan year. Bracket and deduction flags follow the Tax Foundation 2026 table's
+#   indexing markers; exemption flags were checked against each state's 2025 instructions
+#   (only MD indexes its cap, to the maximum Social Security benefit).
+#
+# Optional per-filer amounts (inline tables), for each living filer: both spouses until the
+# first death, then the survivor.
+#   personal_exemption = { amount, indexed } — subtracted from state taxable income, any age
+#   senior_exemption   = { amount, age, indexed } — subtracted from state taxable income from
+#                        the year the filer reaches age (on December 31)
+#   personal_credit    = { amount, indexed } — subtracted from the state tax, down to zero
+#   senior_credit      = { amount, age, indexed } — the same, from the year the filer reaches age
+#   Income-based phase-outs of these amounts are not modeled.
 #
 # Exemption caps are per person: each spouse's exemption is limited by that spouse's own
 # age and eligible income (tax-deferred withdrawals, Roth conversions, pensions), and an
@@ -51,6 +70,9 @@
 [AK_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -61,6 +83,9 @@ roth_conversion_eligible = true
 [AK_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -71,6 +96,9 @@ roth_conversion_eligible = true
 [FL_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -81,6 +109,9 @@ roth_conversion_eligible = true
 [FL_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -91,6 +122,9 @@ roth_conversion_eligible = true
 [NV_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -101,6 +135,9 @@ roth_conversion_eligible = true
 [NV_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -112,6 +149,9 @@ roth_conversion_eligible = true
 # Interest & Dividends tax repealed effective Jan 1, 2026
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -122,6 +162,9 @@ roth_conversion_eligible = true
 [NH_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -132,6 +175,9 @@ roth_conversion_eligible = true
 [SD_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -142,6 +188,9 @@ roth_conversion_eligible = true
 [SD_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -152,6 +201,9 @@ roth_conversion_eligible = true
 [TN_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -162,6 +214,9 @@ roth_conversion_eligible = true
 [TN_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -172,6 +227,9 @@ roth_conversion_eligible = true
 [TX_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -182,6 +240,9 @@ roth_conversion_eligible = true
 [TX_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -193,6 +254,9 @@ roth_conversion_eligible = true
 # WA has a capital gains tax on high earners (>$262k, 7%) but no general income tax
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -203,6 +267,9 @@ roth_conversion_eligible = true
 [WA_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -213,6 +280,9 @@ roth_conversion_eligible = true
 [WY_Single]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -223,6 +293,9 @@ roth_conversion_eligible = true
 [WY_MFJ]
 brackets = [[0.0, 0.0]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -237,6 +310,9 @@ roth_conversion_eligible = true
 [AZ_Single]
 brackets = [[0.0, 2.5]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -248,6 +324,9 @@ roth_conversion_eligible = true
 [AZ_MFJ]
 brackets = [[0.0, 2.5]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -260,6 +339,9 @@ roth_conversion_eligible = true
 # CO fully exempts SS for those 65+; retirement income: $24k/person exemption (65+)
 brackets = [[0.0, 4.4]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -271,6 +353,9 @@ roth_conversion_eligible = true
 [CO_MFJ]
 brackets = [[0.0, 4.4]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -286,6 +371,9 @@ roth_conversion_eligible = true
 # Standard deduction increased significantly in 2026 legislative session.
 brackets = [[0.0, 4.99]]
 standard_deduction = 15000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 65000
@@ -296,6 +384,9 @@ roth_conversion_eligible = true
 [GA_MFJ]
 brackets = [[0.0, 4.99]]
 standard_deduction = 30000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 65000
@@ -308,6 +399,9 @@ roth_conversion_eligible = true
 # ID: HB 40 (2025) cut the flat rate to 5.3%, retroactive to Jan 1, 2025.
 brackets = [[0.0, 0.0], [4811.0, 5.3]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -319,6 +413,9 @@ roth_conversion_eligible = true
 [ID_MFJ]
 brackets = [[0.0, 0.0], [9622.0, 5.3]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -332,6 +429,9 @@ roth_conversion_eligible = true
 # IL fully exempts all retirement income (pension, IRA, SS)
 brackets = [[0.0, 4.95]]
 standard_deduction = 2925
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -342,6 +442,9 @@ roth_conversion_eligible = true
 [IL_MFJ]
 brackets = [[0.0, 4.95]]
 standard_deduction = 5850
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -353,6 +456,9 @@ roth_conversion_eligible = true
 # Rate drops to 2.95% in 2026; $1,000 pension deduction (DB pensions)
 brackets = [[0.0, 2.95]]
 standard_deduction = 1000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -363,6 +469,9 @@ roth_conversion_eligible = true
 [IN_MFJ]
 brackets = [[0.0, 2.95]]
 standard_deduction = 2000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -374,6 +483,10 @@ roth_conversion_eligible = true
 # Iowa: all retirement income exempt for those 55+ (effective 2023)
 brackets = [[0.0, 3.8]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_credit = { amount = 40, indexed = false }
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -385,6 +498,10 @@ roth_conversion_eligible = true
 [IA_MFJ]
 brackets = [[0.0, 3.8]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_credit = { amount = 40, indexed = false }
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -399,6 +516,9 @@ roth_conversion_eligible = true
 # and Roth conversion income (Schedule M).
 brackets = [[0.0, 3.5]]
 standard_deduction = 3360
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 31110
@@ -409,6 +529,9 @@ roth_conversion_eligible = true
 [KY_MFJ]
 brackets = [[0.0, 3.5]]
 standard_deduction = 3360
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 31110
@@ -421,6 +544,9 @@ roth_conversion_eligible = true
 # MI: complex tiered pension exemptions by birth year; simplified here
 brackets = [[0.0, 4.25]]
 standard_deduction = 5900
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -431,6 +557,9 @@ roth_conversion_eligible = true
 [MI_MFJ]
 brackets = [[0.0, 4.25]]
 standard_deduction = 11800
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -443,6 +572,9 @@ roth_conversion_eligible = true
 # MS: zero bracket extended to $10k in 2026 (from $5k); flat 4% above. Full retirement exempt.
 brackets = [[0.0, 0.0], [10000.0, 4.0]]
 standard_deduction = 8300
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -453,6 +585,9 @@ roth_conversion_eligible = true
 [MS_MFJ]
 brackets = [[0.0, 0.0], [10000.0, 4.0]]
 standard_deduction = 16600
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -464,6 +599,9 @@ roth_conversion_eligible = true
 # Rate drops to 3.99% in 2026
 brackets = [[0.0, 3.99]]
 standard_deduction = 12750
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -474,6 +612,9 @@ roth_conversion_eligible = true
 [NC_MFJ]
 brackets = [[0.0, 3.99]]
 standard_deduction = 25500
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -485,6 +626,9 @@ roth_conversion_eligible = true
 # PA fully exempts retirement income (IRA, pension, SS) for those 60+
 brackets = [[0.0, 3.07]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -495,6 +639,9 @@ roth_conversion_eligible = true
 [PA_MFJ]
 brackets = [[0.0, 3.07]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
@@ -507,6 +654,10 @@ roth_conversion_eligible = true
 # UT taxes SS; no retirement income exemption (uses credit system, not deduction)
 brackets = [[0.0, 4.45]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
+# UT's taxpayer credit (6% of the federal deduction) phases out from low incomes; not modeled.
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -517,6 +668,10 @@ roth_conversion_eligible = true
 [UT_MFJ]
 brackets = [[0.0, 4.45]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
+# UT's taxpayer credit (6% of the federal deduction) phases out from low incomes; not modeled.
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -533,6 +688,9 @@ roth_conversion_eligible = true
 # AL: some government/military pension exemptions; IRA generally taxable
 brackets = [[0.0, 2.0], [500.0, 4.0], [3000.0, 5.0]]
 standard_deduction = 4000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -543,6 +701,9 @@ roth_conversion_eligible = true
 [AL_MFJ]
 brackets = [[0.0, 2.0], [1000.0, 4.0], [6000.0, 5.0]]
 standard_deduction = 8000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -555,6 +716,10 @@ roth_conversion_eligible = true
 # Five-bracket primary table (income up to ~$94k); same thresholds for both filing statuses.
 brackets = [[0.0, 0.0], [5600.0, 2.0], [11200.0, 3.0], [16000.0, 3.4], [26400.0, 3.7]]
 standard_deduction = 2470
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 29, indexed = true }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -565,6 +730,10 @@ roth_conversion_eligible = true
 [AR_MFJ]
 brackets = [[0.0, 0.0], [5600.0, 2.0], [11200.0, 3.0], [16000.0, 3.4], [26400.0, 3.7]]
 standard_deduction = 4940
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 29, indexed = true }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -580,6 +749,11 @@ brackets = [
     [742953.0, 12.3], [1000000.0, 13.3]
 ]
 standard_deduction = 5540
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 153, indexed = true }  # phases out above $252k AGI (not modeled)
+senior_credit = { amount = 153, age = 65, indexed = true }  # Form 540 line 9, per filer 65+
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -594,6 +768,11 @@ brackets = [
     [1000000.0, 12.3], [1485906.0, 13.3]
 ]
 standard_deduction = 11080
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 153, indexed = true }  # phases out above $252k AGI (not modeled)
+senior_credit = { amount = 153, age = 65, indexed = true }  # Form 540 line 9, per filer 65+
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -605,6 +784,9 @@ roth_conversion_eligible = true
 # CT: 7 brackets, 2%–6.99%. Uses credits not standard deduction. SS is taxed.
 brackets = [[0.0, 2.0], [10000.0, 4.5], [50000.0, 5.5], [100000.0, 6.0], [200000.0, 6.5], [250000.0, 6.9], [500000.0, 6.99]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -615,6 +797,9 @@ roth_conversion_eligible = true
 [CT_MFJ]
 brackets = [[0.0, 2.0], [20000.0, 4.5], [100000.0, 5.5], [200000.0, 6.0], [400000.0, 6.5], [500000.0, 6.9], [1000000.0, 6.99]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -625,6 +810,9 @@ roth_conversion_eligible = true
 [DC_Single]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -636,6 +824,9 @@ roth_conversion_eligible = true
 [DC_MFJ]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -647,6 +838,10 @@ roth_conversion_eligible = true
 [DE_Single]
 brackets = [[0.0, 0.0], [2000.0, 2.2], [5000.0, 3.9], [10000.0, 4.8], [20000.0, 5.2], [25000.0, 5.55], [60000.0, 6.6]]
 standard_deduction = 3250
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_credit = { amount = 110, indexed = false }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 12500
@@ -657,6 +852,10 @@ roth_conversion_eligible = true
 [DE_MFJ]
 brackets = [[0.0, 0.0], [2000.0, 2.2], [5000.0, 3.9], [10000.0, 4.8], [20000.0, 5.2], [25000.0, 5.55], [60000.0, 6.6]]
 standard_deduction = 6500
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_credit = { amount = 110, indexed = false }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 12500
@@ -673,6 +872,9 @@ brackets = [
     [175000.0, 8.25], [225000.0, 9.0], [275000.0, 10.0], [325000.0, 11.0]
 ]
 standard_deduction = 5544
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -687,6 +889,9 @@ brackets = [
     [350000.0, 8.25], [450000.0, 9.0], [550000.0, 10.0], [650000.0, 11.0]
 ]
 standard_deduction = 11088
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -699,6 +904,9 @@ roth_conversion_eligible = true
 # KS: SS exempt if AGI < $75k (typical retiree); modeled here as fully exempt
 brackets = [[0.0, 5.2], [23000.0, 5.58]]
 standard_deduction = 12765
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 75000
 retirement_income_exemption = 0
@@ -709,6 +917,9 @@ roth_conversion_eligible = true
 [KS_MFJ]
 brackets = [[0.0, 5.2], [46000.0, 5.58]]
 standard_deduction = 26560
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 75000
 retirement_income_exemption = 0
@@ -722,6 +933,9 @@ roth_conversion_eligible = true
 # effective Jan 1, 2025. Standard deduction increased from $4,500 to $12,500.
 brackets = [[0.0, 3.0]]
 standard_deduction = 12875
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -732,6 +946,9 @@ roth_conversion_eligible = true
 [LA_MFJ]
 brackets = [[0.0, 3.0]]
 standard_deduction = 25750
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -744,6 +961,9 @@ roth_conversion_eligible = true
 # (SD phases out above $100k/$200k, not modeled); 2% surtax above $1M single / $1.5M MFJ (2026 supplemental budget).
 brackets = [[0.0, 5.8], [27400.0, 6.75], [64850.0, 7.15], [1000000.0, 9.15]]
 standard_deduction = 20600
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -754,6 +974,9 @@ roth_conversion_eligible = true
 [ME_MFJ]
 brackets = [[0.0, 5.8], [54850.0, 6.75], [129750.0, 7.15], [1500000.0, 9.15]]
 standard_deduction = 41200
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -764,13 +987,18 @@ roth_conversion_eligible = true
 [MD_Single]
 # MD: 2025 Budget Act added 6.25% ($500k-$1M) and 6.5% (>$1M) brackets, retroactive to 2025.
 # Standard deduction increased from $2,550 to $3,350.
-# $34,300 pension exclusion for those 65+. Covers employer plans only: IRAs and Roth
+# $41,200 pension exclusion (2025) for those 65+, indexed to the maximum SS benefit. Covers employer plans only: IRAs and Roth
 # conversions do not qualify, but Owl cannot separate 401(k) from IRA withdrawals.
 brackets = [[0.0, 2.0], [1000.0, 3.0], [2000.0, 4.0], [3000.0, 4.75], [100000.0, 5.0], [125000.0, 5.25], [150000.0, 5.5], [250000.0, 5.75], [500000.0, 6.25], [1000000.0, 6.5]]
 standard_deduction = 3350
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = true  # cap follows the maximum annual Social Security benefit
+personal_exemption = { amount = 3200, indexed = false }  # reduced above $100k AGI ($150k joint)
+senior_exemption = { amount = 1000, age = 65, indexed = false }  # additional exemption at 65+
 tax_social_security = false
 ss_exemption_threshold = 0
-retirement_income_exemption = 34300
+retirement_income_exemption = 41200  # Comptroller's 2025 maximum pension exclusion
 exemption_age = 65
 pension_exemption = 0
 roth_conversion_eligible = false
@@ -778,9 +1006,14 @@ roth_conversion_eligible = false
 [MD_MFJ]
 brackets = [[0.0, 2.0], [1000.0, 3.0], [2000.0, 4.0], [3000.0, 4.75], [150000.0, 5.0], [175000.0, 5.25], [225000.0, 5.5], [300000.0, 5.75], [600000.0, 6.25], [1200000.0, 6.5]]
 standard_deduction = 6700
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = true  # cap follows the maximum annual Social Security benefit
+personal_exemption = { amount = 3200, indexed = false }  # reduced above $100k AGI ($150k joint)
+senior_exemption = { amount = 1000, age = 65, indexed = false }  # additional exemption at 65+
 tax_social_security = false
 ss_exemption_threshold = 0
-retirement_income_exemption = 34300
+retirement_income_exemption = 41200  # Comptroller's 2025 maximum pension exclusion
 exemption_age = 65
 pension_exemption = 0
 roth_conversion_eligible = false
@@ -790,6 +1023,9 @@ roth_conversion_eligible = false
 # MA: 5% flat + 4% surtax on high incomes
 brackets = [[0.0, 5.0], [1083150.0, 9.0]]
 standard_deduction = 4400
+brackets_indexed = true
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -800,6 +1036,9 @@ roth_conversion_eligible = true
 [MA_MFJ]
 brackets = [[0.0, 5.0], [1083150.0, 9.0]]
 standard_deduction = 8800
+brackets_indexed = true
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -812,6 +1051,9 @@ roth_conversion_eligible = true
 # Standard deduction is MN's own indexed amount ($15,300 single / $30,600 MFJ for 2026).
 brackets = [[0.0, 5.35], [33310.0, 6.8], [109430.0, 7.85], [203150.0, 9.85]]
 standard_deduction = 15300
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -822,6 +1064,9 @@ roth_conversion_eligible = true
 [MN_MFJ]
 brackets = [[0.0, 5.35], [48700.0, 6.8], [193480.0, 7.85], [337930.0, 9.85]]
 standard_deduction = 30600
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -838,6 +1083,9 @@ brackets = [
     [5392.0, 3.5], [6740.0, 4.0], [8088.0, 4.5], [9436.0, 4.7]
 ]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 100000
@@ -852,6 +1100,9 @@ brackets = [
     [5392.0, 3.5], [6740.0, 4.0], [8088.0, 4.5], [9436.0, 4.7]
 ]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
 ss_exemption_threshold = 100000
@@ -866,6 +1117,9 @@ roth_conversion_eligible = true
 # or $95,000 (MFJ), effective Jan 1, 2026. MT taxes SS; no retirement income exemption.
 brackets = [[0.0, 4.7], [47500.0, 5.65]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
@@ -877,6 +1131,9 @@ roth_conversion_eligible = true
 [MT_MFJ]
 brackets = [[0.0, 4.7], [95000.0, 5.65]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
@@ -890,6 +1147,10 @@ roth_conversion_eligible = true
 # NE: SS fully exempt as of 2025; top rate drops to 4.55% in 2026
 brackets = [[0.0, 2.46], [4130.0, 3.51], [24760.0, 4.55]]
 standard_deduction = 8850
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 176, indexed = true }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -900,6 +1161,10 @@ roth_conversion_eligible = true
 [NE_MFJ]
 brackets = [[0.0, 2.46], [8250.0, 3.51], [49530.0, 4.55]]
 standard_deduction = 17700
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 176, indexed = true }
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -911,6 +1176,11 @@ roth_conversion_eligible = true
 # NJ: excludes up to $100k pension/IRA if household income <= $100k (complex phaseout)
 brackets = [[0.0, 1.4], [20000.0, 1.75], [35000.0, 3.5], [40000.0, 5.525], [75000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_exemption = { amount = 1000, indexed = false }  # NJ-1040 line 6, per filer
+senior_exemption = { amount = 1000, age = 65, indexed = false }  # NJ-1040 line 7, per filer 65+
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -921,6 +1191,11 @@ roth_conversion_eligible = true
 [NJ_MFJ]
 brackets = [[0.0, 1.4], [20000.0, 1.75], [50000.0, 2.45], [70000.0, 3.5], [80000.0, 5.525], [150000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
 standard_deduction = 0
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
+personal_exemption = { amount = 1000, indexed = false }  # NJ-1040 line 6, per filer
+senior_exemption = { amount = 1000, age = 65, indexed = false }  # NJ-1040 line 7, per filer 65+
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -930,16 +1205,20 @@ roth_conversion_eligible = true
 
 [NM_Single]
 # Audit 2026-09: HB 252 (2025) six-bracket schedule, 1.5%-5.9%; Tax Foundation 2026 table.
-# NM taxes SS; $10k retirement income exemption for 65+
+# NM taxes SS. Its 65+ exemption (PIT-ADJ line 13) is up to $8,000 per person but phases
+# out by AGI and is gone above $51,000 MFJ / $28,500 single, so it is modeled as 0.
 brackets = [
     [0.0, 1.5], [5500.0, 3.2], [16500.0, 4.3], [33500.0, 4.7],
     [66500.0, 4.9], [210000.0, 5.9]
 ]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
-retirement_income_exemption = 10000
+retirement_income_exemption = 0
 exemption_age = 65
 pension_exemption = 0
 roth_conversion_eligible = true
@@ -950,10 +1229,13 @@ brackets = [
     [100000.0, 4.9], [315000.0, 5.9]
 ]
 standard_deduction = "federal"
+brackets_indexed = false
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = false
 tax_social_security = true
 ss_exemption_threshold = 0
-retirement_income_exemption = 10000
+retirement_income_exemption = 0
 exemption_age = 65
 pension_exemption = 0
 roth_conversion_eligible = true
@@ -968,6 +1250,9 @@ brackets = [
     [5000000.0, 10.3], [25000000.0, 10.9]
 ]
 standard_deduction = 8000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 20000
@@ -982,6 +1267,9 @@ brackets = [
     [5000000.0, 10.3], [25000000.0, 10.9]
 ]
 standard_deduction = 16050
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 20000
@@ -994,6 +1282,9 @@ roth_conversion_eligible = true
 # from 2025 official values): 0% to $48,475; 1.95% $48,475-$244,825; 2.5% above.
 brackets = [[0.0, 0.0], [48475.0, 1.95], [244825.0, 2.5]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -1005,6 +1296,9 @@ roth_conversion_eligible = true
 [ND_MFJ]
 brackets = [[0.0, 0.0], [80975.0, 1.95], [298075.0, 2.5]]
 standard_deduction = "federal"
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 senior_deduction = true
 tax_social_security = false
 ss_exemption_threshold = 0
@@ -1016,6 +1310,10 @@ roth_conversion_eligible = true
 [OH_Single]
 brackets = [[0.0, 0.0], [26050.0, 2.75]]
 standard_deduction = 0
+brackets_indexed = true
+deduction_indexed = true  # the personal exemption follows the GDP deflator (ORC 5747.025)
+exemptions_indexed = false
+personal_exemption = { amount = 1900, indexed = true }  # 2025, MAGI $80,001-$749,999 (GDP deflator)
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1026,6 +1324,10 @@ roth_conversion_eligible = true
 [OH_MFJ]
 brackets = [[0.0, 0.0], [26050.0, 2.75]]
 standard_deduction = 0
+brackets_indexed = true
+deduction_indexed = true  # the personal exemption follows the GDP deflator (ORC 5747.025)
+exemptions_indexed = false
+personal_exemption = { amount = 1900, indexed = true }  # 2025, MAGI $80,001-$749,999 (GDP deflator)
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1039,6 +1341,9 @@ roth_conversion_eligible = true
 # effective 2026 tax year.
 brackets = [[0.0, 0.0], [3750.0, 2.5], [4900.0, 3.5], [7200.0, 4.5]]
 standard_deduction = 7350
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1049,6 +1354,9 @@ roth_conversion_eligible = true
 [OK_MFJ]
 brackets = [[0.0, 0.0], [7500.0, 2.5], [9800.0, 3.5], [14400.0, 4.5]]
 standard_deduction = 14700
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1060,6 +1368,10 @@ roth_conversion_eligible = true
 # OR: brackets and deduction are inflation-adjusted annually (DOR withholding tables 2026).
 brackets = [[0.0, 4.75], [4550.0, 6.75], [11400.0, 8.75], [125000.0, 9.9]]
 standard_deduction = 2910
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 256, indexed = true }  # not allowed above $100k AGI ($200k joint), not modeled
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1070,6 +1382,10 @@ roth_conversion_eligible = true
 [OR_MFJ]
 brackets = [[0.0, 4.75], [9100.0, 6.75], [22800.0, 8.75], [250000.0, 9.9]]
 standard_deduction = 5820
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
+personal_credit = { amount = 256, indexed = true }  # not allowed above $100k AGI ($200k joint), not modeled
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1082,6 +1398,9 @@ roth_conversion_eligible = true
 # RI taxes SS
 brackets = [[0.0, 3.75], [82050.0, 4.75], [186450.0, 5.99]]
 standard_deduction = 16450
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1092,6 +1411,9 @@ roth_conversion_eligible = true
 [RI_MFJ]
 brackets = [[0.0, 3.75], [82050.0, 4.75], [186450.0, 5.99]]
 standard_deduction = 32900
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1105,6 +1427,9 @@ roth_conversion_eligible = true
 # Retirement income deductions preserved: $15k/person (used as approximation; H.4216 details complex).
 brackets = [[0.0, 1.99], [30000.0, 5.21]]
 standard_deduction = 6000
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 15000
@@ -1115,6 +1440,9 @@ roth_conversion_eligible = true
 [SC_MFJ]
 brackets = [[0.0, 1.99], [30000.0, 5.21]]
 standard_deduction = 12000
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 15000
@@ -1127,6 +1455,9 @@ roth_conversion_eligible = true
 # VT taxes SS; no retirement income exemption
 brackets = [[0.0, 3.35], [49400.0, 6.6], [119700.0, 7.6], [249700.0, 8.75]]
 standard_deduction = 12950
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1137,6 +1468,9 @@ roth_conversion_eligible = true
 [VT_MFJ]
 brackets = [[0.0, 3.35], [82500.0, 6.6], [199450.0, 7.6], [304000.0, 8.75]]
 standard_deduction = 25900
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = true
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1148,6 +1482,9 @@ roth_conversion_eligible = true
 # Audit 2026-09: SD $8,750/$17,500 + personal exemption $930/$1,860; Tax Foundation 2026 table.
 brackets = [[0.0, 2.0], [3000.0, 3.0], [5000.0, 5.0], [17000.0, 5.75]]
 standard_deduction = 9680
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 12000
@@ -1158,6 +1495,9 @@ roth_conversion_eligible = true
 [VA_MFJ]
 brackets = [[0.0, 2.0], [3000.0, 3.0], [5000.0, 5.0], [17000.0, 5.75]]
 standard_deduction = 19360
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 12000
@@ -1175,6 +1515,9 @@ brackets = [
     [60000.0, 4.58]
 ]
 standard_deduction = 2000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1189,6 +1532,9 @@ brackets = [
     [60000.0, 4.58]
 ]
 standard_deduction = 4000
+brackets_indexed = false
+deduction_indexed = false
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1201,6 +1547,9 @@ roth_conversion_eligible = true
 # The SD phases out between ~$20k and ~$136k (single), not modeled, so WI tax is understated; Tax Foundation 2026 table.
 brackets = [[0.0, 3.5], [15110.0, 4.4], [51950.0, 5.3], [332720.0, 7.65]]
 standard_deduction = 14660
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0
@@ -1211,6 +1560,9 @@ roth_conversion_eligible = true
 [WI_MFJ]
 brackets = [[0.0, 3.5], [20150.0, 4.4], [69260.0, 5.3], [443630.0, 7.65]]
 standard_deduction = 27240
+brackets_indexed = true
+deduction_indexed = true
+exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = 0

@@ -5370,12 +5370,12 @@
   },
   "Case_morgan": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-03 from Owl.dev LP after OR's $256 personal credit was modeled: +$255/yr from the credit itself, +$569/yr from the oscillatory loop settling on a better fixed point",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 37920.06,
+    "basis": 38744.42,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,
@@ -5630,12 +5630,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-03 from Owl.dev LP after OR's $256 personal credit was modeled: +$255/yr from the credit itself, +$569/yr from the oscillatory loop settling on a better fixed point",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 37921.91,
+    "basis": 38744.42,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,

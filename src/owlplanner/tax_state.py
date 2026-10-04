@@ -102,8 +102,73 @@ def federal_deduction(state: str, toml_path=None) -> tuple:
     return uses_federal, uses_federal and bool(entry.get("senior_deduction", False))
 
 
+def _per_filer(entry: dict, key: str, state: str, *, with_age: bool = False):
+    """Read a per-filer amount table ({amount, indexed[, age]}) from a TOML entry, or None.
+
+    personal_exemption and senior_exemption are subtracted from state taxable income for each
+    living filer (the senior one only from the year that filer reaches age); personal_credit is
+    subtracted from the state tax itself. Each says whether its amount grows with inflation.
+    """
+    spec = entry.get(key)
+    if spec is None:
+        return None
+    required = ("amount", "indexed", "age") if with_age else ("amount", "indexed")
+    missing = [k for k in required if k not in spec]
+    if missing or not isinstance(spec.get("indexed"), bool):
+        raise ValueError(f"State '{state}': '{key}' needs {', '.join(required)} (indexed a boolean).")
+    return spec
+
+
+def _filers_alive(N_i: int, n_d: int, i_d, n: int) -> list:
+    """Indices of the filers alive in plan year n: both until n_d, then the survivor."""
+    if N_i == 1 or n < n_d:
+        return list(range(N_i))
+    if i_d is None:
+        raise ValueError("i_d is required to tell which spouse survives after n_d.")
+    return [(i_d + 1) % 2]
+
+
+def _year_end_age(yob: int, mob: int, n: int) -> float:
+    return date.today().year + n - yob + (12 - mob) / 12
+
+
+def st_credits(
+    state: str, N_i: int, n_d: int, N_n: int, gamma_n, *, yobs=None, mobs=None, i_d=None, toml_path=None
+) -> np.ndarray:
+    """Per-year state personal and senior credits (nominal $), subtracted from the state tax down to zero.
+
+    personal_credit counts every living filer; senior_credit only those at or above its age by
+    December 31, which needs yobs and mobs.
+    """
+    state = state.upper()
+    entry = get_state_entry(state, 0, toml_path)
+    pcr = _per_filer(entry, "personal_credit", state)
+    scr = _per_filer(entry, "senior_credit", state, with_age=True)
+    credit_n = np.zeros(N_n)
+    if scr is not None and (yobs is None or mobs is None):
+        raise ValueError(f"State '{state}' has a senior_credit: yobs and mobs are required.")
+    for spec, aged in ((pcr, False), (scr, True)):
+        if spec is None:
+            continue
+        g = np.asarray(gamma_n, dtype=float) if spec["indexed"] else np.ones(len(gamma_n))
+        for n in range(N_n):
+            alive = _filers_alive(N_i, n_d, i_d, n)
+            count = sum(1 for i in alive if _year_end_age(yobs[i], mobs[i], n) >= spec["age"]) if aged else len(alive)
+            credit_n[n] += float(spec["amount"]) * count * g[n]
+    return credit_n
+
+
 def st_taxParams(
-    state: str, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, toml_path=None
+    state: str,
+    N_i: int,
+    n_d: int,
+    N_n: int,
+    gamma_n: np.ndarray,
+    yobs: list,
+    *,
+    mobs: list,
+    i_d=None,
+    toml_path=None,
 ) -> tuple:
     """Compute state income tax parameter arrays for the LP.
 
@@ -150,6 +215,19 @@ def st_taxParams(
     entry_single = data[single_key]
     entry_mfj = data[mfj_key] if mfj_key in data else entry_single
 
+    # --- Inflation indexing (issue #157) ---
+    # Each component grows with gamma_n only where the state indexes it; a state that fixes
+    # an amount in statute (NY's brackets, deduction and $20k exclusion) keeps it nominal.
+    def _indexing(key):
+        for entry in (entry_single, entry_mfj):
+            if key not in entry:
+                raise ValueError(f"State '{state}' is missing the required '{key}' field in taxes_state.toml.")
+        return np.asarray(gamma_n, dtype=float) if entry_single[key] else np.ones(len(gamma_n))
+
+    g_brackets = _indexing("brackets_indexed")
+    g_deduction = _indexing("deduction_indexed")
+    g_exemptions = _indexing("exemptions_indexed")
+
     # --- Derive N_st (max brackets across both filing statuses) ---
     n_single = len(entry_single["brackets"])
     n_mfj = len(entry_mfj["brackets"])
@@ -181,17 +259,32 @@ def st_taxParams(
         if n == n_d:
             filing_status = max(0, filing_status - 1)
 
-        gn = gamma_n[n]
         if filing_status == 1:
             st_theta_tn[:, n] = rates_m
-            st_DeltaBar_tn[:, n] = widths_m * gn
-            st_sigmaBar_n[n] = _deduction_amount(entry_mfj) * gn
+            st_DeltaBar_tn[:, n] = widths_m * g_brackets[n]
+            st_sigmaBar_n[n] = _deduction_amount(entry_mfj) * g_deduction[n]
         else:
             st_theta_tn[:, n] = rates_s
-            st_DeltaBar_tn[:, n] = widths_s * gn
-            st_sigmaBar_n[n] = _deduction_amount(entry_single) * gn
+            st_DeltaBar_tn[:, n] = widths_s * g_brackets[n]
+            st_sigmaBar_n[n] = _deduction_amount(entry_single) * g_deduction[n]
 
-    # --- Retirement income exemption cap (per person, inflation-adjusted) ---
+    # --- Per-filer exemptions, added to the state deduction for each living filer ---
+    # personal_exemption applies at any age; senior_exemption from the year a filer reaches its
+    # age (on December 31). Each grows with inflation only if it says so.
+    pex = _per_filer(entry_single, "personal_exemption", state)
+    sex = _per_filer(entry_single, "senior_exemption", state, with_age=True)
+    if pex or sex:
+        g_pex = np.asarray(gamma_n, dtype=float) if pex and pex["indexed"] else np.ones(len(gamma_n))
+        g_sex = np.asarray(gamma_n, dtype=float) if sex and sex["indexed"] else np.ones(len(gamma_n))
+        for n in range(N_n):
+            alive = _filers_alive(N_i, n_d, i_d, n)
+            if pex:
+                st_sigmaBar_n[n] += float(pex["amount"]) * len(alive) * g_pex[n]
+            if sex:
+                seniors = sum(1 for i in alive if _year_end_age(yobs[i], mobs[i], n) >= sex["age"])
+                st_sigmaBar_n[n] += float(sex["amount"]) * seniors * g_sex[n]
+
+    # --- Retirement income exemption cap (per person; indexed only where the state indexes it) ---
     # Use the single-filer entry value (same per-person cap regardless of filing status).
     re_raw = entry_single["retirement_income_exemption"]
     re_base = np.inf if re_raw == -1 else float(re_raw)
@@ -214,8 +307,8 @@ def st_taxParams(
             for n in range(N_n):
                 age = thisyear + n - yobs[i] + (12 - mobs[i]) / 12
                 if exemption_age == 0 or age >= exemption_age:
-                    st_re_cap_in[i, n] = np.inf if re_base == np.inf else re_base * gamma_n[n]
-                    st_pe_cap_in[i, n] = np.inf if pe_base == np.inf else pe_base * gamma_n[n]
+                    st_re_cap_in[i, n] = np.inf if re_base == np.inf else re_base * g_exemptions[n]
+                    st_pe_cap_in[i, n] = np.inf if pe_base == np.inf else pe_base * g_exemptions[n]
 
     # --- SS treatment ---
     # Use MFJ entry when couple; single entry otherwise. Both entries carry the same value
@@ -223,7 +316,7 @@ def st_taxParams(
     ss_entry = entry_mfj if N_i == 2 else entry_single
     st_tax_ss = bool(ss_entry["tax_social_security"])
     ss_thresh_base = float(ss_entry.get("ss_exemption_threshold", 0))
-    st_ss_thresh_n = np.array([ss_thresh_base * gamma_n[n] for n in range(N_n)])
+    st_ss_thresh_n = ss_thresh_base * g_exemptions[:N_n]
 
     return (
         N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,

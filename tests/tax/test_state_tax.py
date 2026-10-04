@@ -482,10 +482,87 @@ def test_nj_single_keeps_top_bracket(income):
 def test_nj_survivor_keeps_top_bracket():
     """After n_d, a couple's survivor files Single and must keep NJ's top bracket (issue #149)."""
     n_d = 10
-    _, theta, delta, *_ = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1])
+    _, theta, delta, *_ = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1], i_d=0)
     single = tax_state.get_state_entry("NJ", 0)["brackets"]
     mfj = tax_state.get_state_entry("NJ", 1)["brackets"]
     income = 1_500_000
     assert _lp_bracket_tax(income, theta[:, n_d - 1], delta[:, n_d - 1]) == pytest.approx(_schedule_tax(income, mfj))
     for n in range(n_d, 30):
         assert _lp_bracket_tax(income, theta[:, n], delta[:, n]) == pytest.approx(_schedule_tax(income, single))
+
+
+_GAMMA = np.array([1.025**n for n in range(31)])
+
+
+def test_ny_amounts_are_not_indexed():
+    """NY fixes its thresholds, standard deduction and $20k exclusion in statute (issue #157)."""
+    _, _, delta, sigma, re_cap, *_ = tax_state.st_taxParams("NY", 2, 30, 30, _GAMMA, [1964, 1964], mobs=[6, 12])
+    np.testing.assert_array_equal(delta[:-1, 20], delta[:-1, 0])
+    assert sigma[20] == sigma[0] == 16050
+    assert re_cap[0, 20] == 20000
+
+
+def test_other_states_stay_indexed():
+    _, _, delta, sigma, *_ = tax_state.st_taxParams("MN", 2, 30, 30, _GAMMA, [1964, 1964], mobs=[6, 12])
+    assert sigma[20] == pytest.approx(sigma[0] * _GAMMA[20])
+    assert delta[0, 20] == pytest.approx(delta[0, 0] * _GAMMA[20])
+
+
+def test_each_indexing_flag_controls_its_own_amounts():
+    """MD indexes its pension cap and deduction but not its brackets; GA indexes neither cap nor brackets."""
+    _, _, delta, sigma, re_cap, *_ = tax_state.st_taxParams("MD", 2, 30, 30, _GAMMA, [1960, 1960], mobs=[6, 12])
+    assert re_cap[0, 20] == pytest.approx(re_cap[0, 0] * _GAMMA[20])  # exemptions_indexed = true
+    # deduction_indexed = true: the $6,700 joint deduction grows; the exemptions stay fixed.
+    assert sigma[20] - sigma[0] == pytest.approx(6700 * (_GAMMA[20] - 1))
+    np.testing.assert_array_equal(delta[:-1, 20], delta[:-1, 0])  # brackets_indexed = false
+    _, _, _, _, re_cap_ga, *_ = tax_state.st_taxParams("GA", 2, 30, 30, _GAMMA, [1955, 1955], mobs=[6, 12])
+    assert re_cap_ga[0, 20] == re_cap_ga[0, 0] == 65000  # exemptions_indexed = false
+
+
+def test_every_state_declares_its_indexing():
+    """No default: each entry states whether its brackets, deduction and exemptions are indexed."""
+    data = tax_state.load_state_data()
+    for key, entry in data.items():
+        for flag in ("brackets_indexed", "deduction_indexed", "exemptions_indexed"):
+            assert isinstance(entry.get(flag), bool), f"{key} lacks a boolean '{flag}'"
+
+
+def test_per_filer_exemptions_follow_living_filers_and_age():
+    """NJ: $1,000 per filer, plus $1,000 per filer aged 65+ by December 31; the survivor alone after n_d."""
+    _, _, _, sigma, *_ = tax_state.st_taxParams("NJ", 2, 10, 30, np.ones(31), [1962, 1966], mobs=[1, 1], i_d=0)
+    thisyear = date.today().year
+    for n in range(30):
+        alive_yobs = [1962, 1966] if n < 10 else [1966]  # person 0 dies at n_d = 10
+        seniors = sum(thisyear + n - yob + 11 / 12 >= 65 for yob in alive_yobs)
+        assert sigma[n] == 1000 * len(alive_yobs) + 1000 * seniors, n
+
+
+def test_personal_credit_counts_living_filers_and_indexes():
+    # Both under 65 throughout the first decade (born 1990): personal credit only.
+    ca = tax_state.st_credits("CA", 2, 10, 30, _GAMMA, yobs=[1990, 1990], mobs=[1, 1], i_d=0)
+    assert ca[0] == pytest.approx(2 * 153)
+    assert ca[9] == pytest.approx(2 * 153 * _GAMMA[9])  # indexed
+    assert ca[10] == pytest.approx(153 * _GAMMA[10])  # survivor only
+
+
+def test_senior_credit_is_added_per_filer_at_65():
+    """CA Form 540 line 9: another $153 for each filer 65 or older by December 31."""
+    thisyear = date.today().year
+    yobs = [thisyear - 64, thisyear - 70]  # person 0 turns 65 next year; person 1 is already 70
+    ca = tax_state.st_credits("CA", 2, 30, 30, np.ones(31), yobs=yobs, mobs=[1, 1])
+    assert ca[0] == 2 * 153 + 1 * 153
+    assert ca[1] == 2 * 153 + 2 * 153
+    with pytest.raises(ValueError, match="senior_credit"):
+        tax_state.st_credits("CA", 1, 30, 30, np.ones(31))
+    assert tax_state.st_credits("DE", 1, 30, 30, _GAMMA)[20] == 110  # not indexed
+    assert not tax_state.st_credits("NY", 1, 30, 30, _GAMMA).any()
+
+
+def test_personal_credit_reduces_state_tax_down_to_zero():
+    """In the LP, the credit used is at most the credit and at most the gross state tax."""
+    p = _make_plan("CA")
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    gross = np.sum(p.st_f_tn * p.st_theta_tn, axis=0)
+    np.testing.assert_allclose(p.st_T_n, np.maximum(0.0, gross - p.st_credit_n), atol=0.05)
+    assert np.any(gross > p.st_credit_n) and np.any(p.st_T_n < gross - 1)

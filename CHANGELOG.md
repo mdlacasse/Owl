@@ -1,3 +1,33 @@
+### Version 2026.10.3
+
+#### Fixed: state amounts fixed in statute no longer grow with inflation
+
+Owl inflated every state's brackets, deduction and exemption caps each year. Each state now says
+which of these it indexes (`brackets_indexed`, `deduction_indexed`, `exemptions_indexed` in the
+state data), so amounts fixed in statute stay nominal, for example New York's brackets, deduction
+and $20,000 pension exclusion, and New Jersey's brackets. Among the retirement exclusions, only
+Maryland's is indexed. Plans in these states now show higher state tax in later years. Thanks to
+Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#157).
+
+#### Fixed: Maryland and New Mexico retirement exemptions
+
+Maryland's pension exclusion is now $41,200, its 2025 maximum (it was $34,300). New Mexico's
+65+ exemption is limited to low incomes, so it is now modeled as 0 instead of $10,000.
+
+#### Fixed: state personal exemptions and credits
+
+New Jersey's $1,000 exemption per filer and its additional $1,000 at age 65 are now applied, as are
+Maryland's $3,200 exemption and $1,000 at 65, and Ohio's $1,900 exemption. The personal credits of
+Arkansas, California, Delaware, Iowa, Nebraska and Oregon now reduce state tax, as does
+California's $153 senior credit at 65. These come from new optional per-filer fields in the state
+data (`personal_exemption`, `senior_exemption`, `personal_credit`, `senior_credit`), each saying
+whether it is indexed; income-based phase-outs are not modeled.
+Thanks to Florin Mateoc (@fmateoc) for pointing out the New Jersey exemption (#157).
+
+#### New: the About page shows the git commit
+
+The version on the *About Owl* page is followed by the git commit when Owl runs from a checkout.
+
 ### Version 2026.10.1
 
 #### Fixed: *Download HFP workbook* saves the edits made on the page

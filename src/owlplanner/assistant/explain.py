@@ -101,6 +101,7 @@ CONSTRAINT_FAMILIES = {
     "cash_flow": {"class": "structural", "label": "yearly net cash-flow balance"},
     "taxable_income": {"class": "structural", "label": "yearly federal taxable-income identity"},
     "state_taxable_income": {"class": "structural", "label": "yearly state taxable-income identity"},
+    "state_credit_cap": {"class": "structural", "label": "state personal credit limited to the state tax"},
     "account_carryover": {"class": "structural", "label": "account balance carryover dynamics"},
     "withdrawal_limit": {"class": "structural", "label": "withdrawals limited to account balance"},
     "surplus_deposit": {"class": "structural", "label": "surplus-to-deposit split between spouses"},
