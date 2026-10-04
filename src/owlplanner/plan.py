@@ -146,6 +146,17 @@ EPSILON = 5e-7
 # tolerance, so a MIP tie-break has to be visible above it while staying far below any real
 # cost in the objective. See the t^sigma_n preference in _buildObjective.
 MIP_TIEBREAK = 1e-4
+# Tie-break on the tax a year's brackets charge, per today's dollar of tax. The bracket variables are
+# a relaxation, tight only while the year's cash has a price: where it has none (late surplus that
+# can only swell a bequest above its floor), any split of income across brackets is optimal and the
+# solver can fill the top one first, reporting tax the plan does not owe. The self-consistent
+# loop switches tax pricing this size on from the first iterate that fills a year out of order (the
+# degenerate fill also stalls convergence, through the LTCG residual), and _repairBracketOrder
+# re-solves an accepted LP that first goes out of order in the final iterate. It stays off otherwise:
+# always on, it moved the fixed point the loop settles on in cases that were never out of order
+# (morgan +1.5% spending, john+sally -4% bequest). EPSILON (5e-7) is too small: the reduced costs it
+# makes sit at HiGHS's dual feasibility tolerance and the fill stays.
+TAX_TIEBREAK = MIP_TIEBREAK
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -531,6 +542,9 @@ class Plan:
         # Per-family distance between the model solved and the model this plan's own income
         # implies, today's dollars; set by _computeFixedPointResidual after a successful solve.
         self.fixedPointResidual = {}
+        self.bracketOrderExcess = 0.0
+        # Whether the objective prices tax (TAX_TIEBREAK); switched on by _scSolve when needed.
+        self._tax_tiebreak_on = False
         # Achieved MIP gap of the accepted solution (0 when solved to optimality,
         # larger when a time limit truncated the search; -1 before any solve)
         self.solverGap = -1.0
@@ -3987,6 +4001,9 @@ class Plan:
         else:
             raise RuntimeError("Internal error in objective function.")
 
+        if self._tax_tiebreak_on:
+            c_arr += TAX_TIEBREAK * self._tax_cost_vector()
+
         # Turn on epsilon by default to reduce churn and frontload Roth conversions.
         default_epsilon = EPSILON
         epsilon = u.get_numeric_option(options, "epsilon", default_epsilon, min_value=0)
@@ -4056,6 +4073,134 @@ class Plan:
         for idx in np.flatnonzero(c_arr):
             c.setElem(idx, c_arr[idx])
         self.c = c
+
+    def _tax_cost_vector(self):
+        """Tax each bracket variable charges per dollar, in today's dollars, as a dense vector.
+
+        Federal ordinary and capital-gains brackets and state brackets: the terms the cash-flow row
+        charges on these columns.
+        """
+        cost = np.zeros(self.nvars)
+        vm = self.vm
+        for n in range(self.N_n):
+            deflate = 1.0 / self.gamma_n[n]
+            for t in range(self.N_t):
+                cost[vm["f"].idx(t, n)] = self.theta_tn[t, n] * deflate
+            cost[vm["q"].idx(1, n)] = 0.15 * deflate
+            cost[vm["q"].idx(2, n)] = 0.20 * deflate
+            if "st_f" in vm:
+                for t in range(self.N_st):
+                    cost[vm["st_f"].idx(t, n)] = self.st_theta_tn[t, n] * deflate
+        return cost
+
+    def _bracket_order_excess(self, x=None):
+        """Tax the solution charges beyond what its own income owes with brackets filled bottom-up.
+
+        Returns (years, excess): the plan years whose federal or state brackets are filled
+        out of order, and the overcharge summed over the horizon in today's dollars. Zero when the
+        relaxation is tight, which it is wherever the year's cash has a price. Reads the solution
+        vector x when given, the aggregated results otherwise.
+        """
+        vm = self.vm
+        if x is None:
+            f_tn = self.f_tn
+            st_f_tn = self.st_f_tn if "st_f" in vm else np.zeros((self.N_st, self.N_n))
+        else:
+            f_tn = vm["f"].extract(x)
+            st_f_tn = vm["st_f"].extract(x) if "st_f" in vm else np.zeros((self.N_st, self.N_n))
+
+        def ordered_tax(total, width, rate):
+            tax = 0.0
+            for t in range(len(width)):
+                part = min(max(total, 0.0), width[t])
+                tax += part * rate[t]
+                total -= part
+            return tax
+
+        years = []
+        excess = 0.0
+        schedules = [(f_tn, self.DeltaBar_tn, self.theta_tn)]
+        if self.N_st > 0 and np.any(st_f_tn):
+            schedules.append((st_f_tn, self.st_DeltaBar_tn, self.st_theta_tn))
+        for n in range(self.N_n):
+            over = 0.0
+            for f, width, rate in schedules:
+                charged = float(np.dot(f[:, n], rate[:, n]))
+                over += charged - ordered_tax(float(np.sum(f[:, n])), width[:, n], rate[:, n])
+            if over > 1.0:
+                years.append(int(self.year_n[n]))
+                excess += over / self.gamma_n[n]
+        return years, excess
+
+    def _repairBracketOrder(self, xx, objfn, objective, options, matricesMatch):
+        """Re-fill out-of-order tax brackets by re-solving the accepted LP with tax priced (TAX_TIEBREAK).
+
+        Spending is pinned (it is the objective, or fixed by netSpending), and so are the binaries;
+        everything else is free, so the tax no longer charged lands where the plan's cash goes,
+        usually a larger bequest. The incumbent stays feasible, so the re-solve cannot fail for want
+        of a solution. Returns the (possibly repaired) vector and its objective value; any failure
+        keeps the solver's own answer, which _check_bracket_order then reports.
+        """
+        years, excess = self._bracket_order_excess(xx)
+        if not years:
+            return xx, objfn
+        if not matricesMatch:
+            self.mylog.vprint(
+                "Leaving the tax brackets as solved: an earlier iterate was accepted, so the "
+                "constraint matrices no longer describe this solution."
+            )
+            return xx, objfn
+
+        c_orig = self.c.arrays()
+        col_lb, col_ub = self.B.arrays()
+        res0 = amorepair.max_row_violation(xx, self.A, col_lb, col_ub)
+        overrides = {}
+        for n in range(self.N_n):
+            j = self.vm["g"].idx(n)
+            overrides[j] = (xx[j], xx[j])
+        for j in range(self.vm.nconts, self.nvars):
+            v = float(np.round(xx[j]))
+            overrides[j] = (v, v)
+        c_tie = np.asarray(c_orig) + TAX_TIEBREAK * self._tax_cost_vector()
+        obj = abc.Objective(self.nvars)
+        for j in np.flatnonzero(c_tie):
+            obj.setElem(int(j), float(c_tie[j]))
+        repair_options = dict(options)
+        repair_options["maxTime"] = min(u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0), 60)
+
+        _, yy, ok, msg, _ = self._run_mip(
+            self.A, self.B, obj, repair_options, col_overrides=overrides, lp_relax=True, update_warm=False
+        )
+        if not ok or yy is None:
+            self.mylog.vprint(f"Bracket-order repair did not solve ({msg}); keeping the original solution.")
+            return xx, objfn
+        yy = np.array(yy)
+        res = amorepair.max_row_violation(yy, self.A, col_lb, col_ub)
+        if res > max(res0, 1.0):
+            self.mylog.print(
+                f"Bracket-order repair rejected: residual {res:.2e} exceeds {max(res0, 1.0):.2e}.", tag="WARNING"
+            )
+            return xx, objfn
+        new_years, new_excess = self._bracket_order_excess(yy)
+        if new_excess >= excess:
+            return xx, objfn
+        self.mylog.vprint(
+            f"Tax brackets re-filled bottom-up in {len(years) - len(new_years)} of {len(years)} year(s); "
+            f"{u.d(excess - new_excess)} of tax the income did not owe removed (today's $)."
+        )
+        return yy, float(np.dot(c_orig, yy))
+
+    def _check_bracket_order(self):
+        """Warn when the solved brackets are filled out of order (see TAX_TIEBREAK)."""
+        years, excess = self._bracket_order_excess()
+        self.bracketOrderExcess = excess
+        if years:
+            self.mylog.print(
+                f"Tax brackets filled out of order in {len(years)} year(s) ({years[0]}-{years[-1]}): "
+                f"reported taxes exceed what this income owes by {u.d(excess)} over the horizon "
+                "(today's $). The objective is unaffected; taxes and bequest are not.",
+                tag="WARNING",
+            )
 
     @_checkConfiguration(requireRates=False)
     @_timer
@@ -4779,6 +4924,7 @@ class Plan:
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
+        self._tax_tiebreak_on = False
         M_n_lp = self.M_n.copy()
         ACA_n_lp = self.ACA_n.copy()
         Psi_n_lp = self.Psi_n.copy()
@@ -4862,6 +5008,13 @@ class Plan:
                 solverMsg = ""
                 self._infeasible = False
                 break
+
+            if self._tax_tiebreak_on:
+                # Report the objective without the tie-break, so iterates compare on the same terms.
+                objfn -= TAX_TIEBREAK * float(np.dot(self._tax_cost_vector(), xx))
+            elif self._bracket_order_excess(xx)[0]:
+                self._tax_tiebreak_on = True
+                self.mylog.vprint(f"Iteration {it} filled tax brackets out of order; pricing tax from now on.")
 
             self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
             self._update_gain_fraction()
@@ -5004,6 +5157,7 @@ class Plan:
             self.mylog.print(f"Self-consistent loop returned after {it + 1} iterations.")
             if solverMsg:
                 self.mylog.print(solverMsg)
+            xx, objfn = self._repairBracketOrder(xx, objfn, objective, options, matricesMatchSolution)
             xx, objfn = self._restoreExclusions(xx, objfn, objective, options, matricesMatchSolution)
             self.mylog.print(f"Objective: {u.d(objfn * objFac)}")
             # Psi_n is restored BEFORE aggregation, unlike the three below: MAGI_aca_n is
@@ -5032,6 +5186,7 @@ class Plan:
             if self.slcsp_annual > 0 and not self._aca_lp:
                 self.ACA_n = ACA_n_lp
             self._check_cashflow_balance()
+            self._check_bracket_order()
             self._computeFixedPointResidual(includeMedicare)
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
@@ -5200,6 +5355,10 @@ class Plan:
         """
         overrides = amorepair.build_polish_overrides(xx, ctx, self.vm.nconts, self.nvars)
         c_polish = amorepair.build_polish_objective(ctx, c_orig, self.gamma_n, self.nvars)
+        # With spending and the terminal balances pinned, a dollar of tax lowers the surplus by a
+        # dollar, so minimizing the surplus alone would pay tax to shed it -- by filling the top
+        # brackets first. Charging tax at twice a surplus dollar rules that trade out.
+        c_polish = c_polish + 2.0 * self._tax_cost_vector()
         polish_options = dict(options)
         polish_options["maxTime"] = min(u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0), 60)
 
