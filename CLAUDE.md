@@ -10,7 +10,7 @@ Read these first, in this order:
 
 ## State (2026-10-04)
 
-- Branch `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4; contains `dev` `c1e5619`). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/project-thread-qx5fy0` (2026-10-04: model-review fixes for ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes) on top of `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4; contains `dev` `c1e5619`). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params (`StateTaxParams`, with upstream's indexing flags and credits as `credit_n`);
   - SC-loop registry `_SC_PARAMS`;
@@ -23,7 +23,7 @@ Read these first, in this order:
 - Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; maintainer keeps state taxes a pure LP, so NJ stays unexcluded upstream and the fork keeps its MILP; our reply is posted, see PROGRESS.md), #161 (ACA optimize infeasible), #163 (SC-loop cycle selection). #162 (bracket order) was fixed upstream in `3fca646` (2026.10.4) with our patch verbatim and merged here; the fork keeps its copy, which also covers local brackets. #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3) and merged here, taking theirs. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
 - Drafts behind filed issues: bracket order #162 (`fork-notes/issue-bracket-order.md`), ACA optimize infeasibility #161 (`fork-notes/issue-aca-optimize-infeasible.md`), SC-loop cycle selection #163 (`fork-notes/issue-cycle-selection.md`), each with a `.patch` verified on stock `dev`; the #160 reply (`fork-notes/issue-nj-retirement-exclusion-reply.md`).
-- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band; other findings not yet triaged.
+- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band, ACA 133-150% band, survivor of a worker who never claimed, cost basis (reinvested income, gain in equities), SS-age MILP taxes. Drafted for upstream, not filed: those four plus partial first year, ACA optimize rates, docs/paper drift (`fork-notes/issue-*.md`).
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
 ## Setup (the container is ephemeral; redo each session)
@@ -34,7 +34,7 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2714 passed / 1 skipped on 2026-10-04.
+- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2724 passed / 1 skipped on 2026-10-04 (with the model-review fixes).
 - Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 

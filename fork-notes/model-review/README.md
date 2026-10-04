@@ -78,7 +78,7 @@ The objective is unaffected, but the reported taxes, bequest and the Taxes sheet
 
 ### 2.4 `withACA="optimize"` is not exact and can make feasible cases infeasible [code, run] — infeasible band fixed 2026-10-04
 
-**Fix (band only):** `tx._aca_capped_limits` clips the bracket thresholds at the first MAGI where `pct_r x MAGI` reaches the SLCSP. Contributions only rise with the bracket, so every higher income pays the full premium, which is the last bracket's cost. Brackets left with zero width get their binary fixed to 0. `aca.py` now solves in optimize mode with the full premium ($5,125), identical to loop mode. Tests: `TestACAOptimize::test_capped_limits_*` and `test_income_where_contribution_exceeds_premium_is_feasible`. Upstream draft: `fork-notes/issue-aca-optimize-infeasible.md`. **Still open:** top-of-bracket step rates; the <138% FPL disagreement with loop mode; 2026 rates used for 2025.
+**Fix (band only):** `tx._aca_capped_limits` clips the bracket thresholds at the first MAGI where `pct_r x MAGI` reaches the SLCSP. Contributions only rise with the bracket, so every higher income pays the full premium, which is the last bracket's cost. Brackets left with zero width get their binary fixed to 0. `aca.py` now solves in optimize mode with the full premium ($5,125), identical to loop mode. Tests: `TestACAOptimize::test_capped_limits_*` and `test_income_where_contribution_exceeds_premium_is_feasible`. Upstream draft: `fork-notes/issue-aca-optimize-infeasible.md`. **Still open:** top-of-bracket step rates; the <138% FPL disagreement with loop mode (drafted: `fork-notes/issue-aca-optimize-rates.md`); 2026 rates used for 2025 (moot now that plans start in 2026). **Also fixed 2026-10-04:** loop mode's 2026 133-150% band started at 2.10% instead of 3.14% (`fork-notes/issue-aca-133-150.md`).
 
 
 - **Step rates.** Each FPL bracket charges a constant applicable percentage, the value at the bracket's top (`_ACA_LP_CONTRIB`, `tax_federal.py:202`), while loop mode interpolates the sliding scale (`_aca_contrib_pct`). Inside a bracket the MILP overcharges, and it creates cliffs at 150/200/250/300% FPL that the statute does not have [recalled: the 2026 table is piecewise linear in FPL ratio except 300-400%].
@@ -94,11 +94,17 @@ The objective is unaffected, but the reported taxes, bequest and the Taxes sheet
   The band needs a low SLCSP relative to income (young or cheap market), so typical pre-65 retirees will rarely hit it. The paper's FIRE ladder discussion is exactly the population that can.
 - **Mode disagreement.** Below 138% FPL, loop mode charges the full SLCSP (Medicaid assumption, `tax_federal.py:558`) while optimize mode charges 2.1%. Optimize mode always uses the 2026 table, including for 2025.
 
-### 2.5 The SS claiming-age MILP chooses on pre-tax benefits [code]
+### 2.5 The SS claiming-age MILP chooses on pre-tax benefits [code] — fixed 2026-10-04
+
+**Fix:** taxable SS, IRMAA/ACA MAGI and the state SS exclusion use the offset plus `ssb` (`_ss_benefit_terms`), at the loop's `Psi_n`. Not covered under `withSSTaxability="optimize"`. Tests: `TestClaimingAgeTaxes`. Draft: `fork-notes/issue-ss-age-taxes.md`.
+
 
 With `withSSAges="optimize"`, the own-benefit variable `ssb` appears only in the cash-flow row. `grep '"ssb"'` finds `plan.py:2558, 3338, 3341, 3641` and nothing else. Taxable SS (`Psi_n * zetaBar` in loop mode, or `tss` bounded by `0.85*zetaBar`), provisional income, IRMAA/ACA MAGI and the state SS exclusion all use the previous iterate's `zetaBar`. Within each MILP, therefore, every candidate claiming age is charged the same tax on SS. The paper (Ch. 11) says only spousal and survivor amounts are carried by the loop. Its limitations list should add this.
 
-### 2.6 Cost-basis tracking overstates gains [code, run]
+### 2.6 Cost-basis tracking overstates gains [code, run] — fixed 2026-10-04
+
+**Fix:** taxed, reinvested dividends and interest go into basis; `gain_fraction_in` holds the equity gain fraction `min(1, (1 - K/b)/alpha0)`. `basis.py` now gives 0.633 in 2037. Examples: joe -0.5%, helen+ruth -0.5%, jack+jill and robin -0.04%/-0.1%. Draft: `fork-notes/issue-cost-basis.md`.
+
 
 `_update_gain_fraction` adds only contributions and surplus deposits to basis (`plan.py:4932`). Dividends and interest are taxed every year (in `Q_n` and `G_n`) and reinvested in the account, since balances grow at total return, so they belong in basis. Leaving them out taxes them again on sale. `basis.py` (100% equity, so the factor below does not interfere; $1M taxable with $500k basis, drawn down):
 
@@ -116,7 +122,10 @@ A second, opposite-signed inconsistency: the whole-account gain fraction `1 - K/
 
 With `start_date` later than Jan 1, `_add_initial_balances` divides each balance by `1 + yearSpent * T` (`plan.py:3244`), which removes market growth only. Year 0 then runs full-year wages, contributions, SS and spending from that back-projected balance. `grep yearFracLeft` finds no other use in the model (one in `export.py:375`, a report line). A balance entered on Oct 1 already reflects nine months of spending and income, and the model applies them again. For a retiree this understates wealth by about 0.75 of a year's net withdrawal (conservative). For a worker it double-counts 0.75 of a year's net saving (optimistic). Either back-project the elapsed net flows as well, or prorate year-0 flows by `yearFracLeft`.
 
-### 2.8 Survivor benefit when the deceased had not yet claimed [code; rule recalled]
+### 2.8 Survivor benefit when the deceased had not yet claimed [code; rule recalled] — fixed 2026-10-04
+
+**Fix:** full PIA, plus DRCs to death after FRA. The rule is still from memory plus secondary summaries of POMS RS 00615.320 (primary sources blocked). Draft: `fork-notes/issue-survivor-never-claimed.md`.
+
 
 `compute_survivor_stream` gives the survivor 0.825 x PIA (the `max` against a deceased benefit set to 0) when the first to die had not started benefits (`socialsecurity.py:563`). As I recall the rule, the 82.5% floor (the widow(er)'s limit) applies only when the deceased had taken **reduced** benefits. A worker who dies before claiming leaves a survivor benefit based on 100% of PIA, plus any delayed credits earned up to death. The paper lists this under limitations ("credited with the 82.5% PIA floor rather than the benefit accrued"), but the gap is 17.5 to 41.5 points of PIA (100-124% vs 82.5%), not a rounding matter. It is reached when a user's fixed claiming age is above the first death age. To check against POMS RS 00615 / 20 CFR 404.338 before acting.
 

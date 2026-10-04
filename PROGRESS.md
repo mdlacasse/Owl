@@ -2,7 +2,7 @@
 
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
-Fork `fmateoc/Owl`, branch `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4, with the #162 fix; contains `dev` `c1e5619`) on 2026-10-04.
+Fork `fmateoc/Owl`, branch `claude/project-thread-qx5fy0` (four model-review fixes, 2026-10-04), continued from `claude/project-thread-v39073` (from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4, with the #162 fix; contains `dev` `c1e5619`) on 2026-10-04.
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream
@@ -99,13 +99,15 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 - [x] Bracket fill goes out of order when late cash has no value (constructed case: $1.56M reported vs $0.91M). **Fixed 2026-10-04**: tax tie-break switched on in the loop when a year goes out of order, a final re-solve, and a post-solve check. The 17 examples are unchanged.
 - [x] `withACA="optimize"` infeasible where `pct x MAGI > SLCSP` below 400% FPL. **Fixed 2026-10-04**: thresholds clipped at that crossing. Step rates are still open.
 - [x] NJ kept tier held income on its floor (`maxTime=2`: a year at exactly $150,000 claimed nothing instead of 25%, $5,402 vs $3,330 statutory; failed on `06468de` too). **Fixed 2026-10-04** (`755377e`): such a year's kept tier moves down to the statute's, downward only. 4 of 4 repeated runs were non-statutory without the fix, 0 of 4 with it; deterministic unit test added.
-- [ ] SS claiming-age MILP charges every candidate age the same SS tax (taxable SS from the previous iterate).
-- [ ] Cost basis omits reinvested dividends (gain fraction 0.76 vs 0.63 after 11 years in the repro); whole-account gain fraction applied to the equity share only.
-- [ ] Partial first year: balances are back-projected for growth only, while year-0 flows run full-year.
-- [ ] Survivor of a worker who died before claiming gets 82.5% of PIA (rule recalled as 100%; to check in POMS).
-- [ ] Paper vs code drift: Roth cap (Ch. 7), IRMAA MAGI expansion signs, Eq. (PI), AMO binaries, decomposition (retired upstream 2026-09-26), big-M, Ch. 11 survivor claim.
+- [x] SS claiming-age MILP charged every candidate age the same SS tax. **Fixed 2026-10-04** (`d92c118`): taxable SS, IRMAA/ACA MAGI and the state SS exclusion use offset + `ssb` with the loop's `Psi_n`. Exact-LP repro: result no longer depends on the starting age and equals a fixed-age solve (start 62 used to report $104,526/yr for an age worth $104,518/yr). Not covered: `withSSTaxability="optimize"` (its min() needs another binary). Draft `fork-notes/issue-ss-age-taxes.md`.
+- [x] Cost basis omitted reinvested dividends; whole-account gain fraction applied to the equity share only. **Fixed 2026-10-04** (`245d200`): taxed dividends/interest added to basis, equity gain fraction `(1 - K/b)/alpha0`. Examples: joe -469, helen+ruth -1,036, jack+jill -42, robin -57 $/yr (references re-recorded; MOSEK helen+ruth reference not re-recorded). Draft `fork-notes/issue-cost-basis.md`.
+- [ ] Partial first year: balances are back-projected for growth only, while year-0 flows run full-year (same $1M on Oct 1 vs Jan 1: -2.1% spending). Design question; drafted, no patch: `fork-notes/issue-partial-first-year.md`. Not fixed in the fork.
+- [x] Survivor of a worker who died before claiming got 82.5% of PIA. **Fixed 2026-10-04** (`adeea31`): full PIA, plus DRCs to death after FRA. Rule from memory and secondary summaries of POMS RS 00615.320 (ssa.gov, ecfr, govinfo blocked); **user to confirm before filing**. Draft `fork-notes/issue-survivor-never-claimed.md`.
+- [x] New: ACA loop mode 133-150% FPL band started at 2.10% instead of 3.14% (Rev. Proc. 2025-25; irs.gov blocked, table from secondary sources). **Fixed 2026-10-04** (`5bd010e`). Draft `fork-notes/issue-aca-133-150.md`.
+- [ ] ACA optimize: step rates (each band charged its final %) and the <138% FPL rule differs from loop mode (repro: optimize ends $1,786/yr higher where income drifts below 138%). Design question; drafted: `fork-notes/issue-aca-optimize-rates.md`.
+- [ ] Paper vs code drift, loop mode as a fixed point, taxable bond returns, plan year: one docs issue drafted, `fork-notes/issue-docs-loop-and-paper.md`.
 
-Not yet decided: which of these to fix in the fork and which to draft as upstream issues.
+Drafts not yet filed (user files): the seven above. Each patch draft has a `.patch` verified on stock `dev` `c1e5619`. Applied in the fork on branch `claude/project-thread-qx5fy0`.
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
@@ -116,6 +118,7 @@ Not yet decided: which of these to fix in the fork and which to draft as upstrea
 5. #161 ACA optimize infeasibility — filed
 6. #162 Bracket order — fixed upstream with our patch (2026.10.4), merged
 7. #163 SC-loop cycle selection — filed
+8. Drafted 2026-10-04, not filed: ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes (each with a patch verified on `dev`); partial first year, ACA optimize rates, docs/paper drift (design, no patch)
 
 When upstream lands #157/#158, merge `dev` and drop our duplicates, as with #149 and #155.
 
@@ -128,6 +131,8 @@ Next: Phase 2, housing ledger and property tax. NJ's property tax deduction (lin
 Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would let `withSSAges` optimize the working spouse too; a per-scenario PIA (or recomputing it from extra work years) would remove the manual PIA step. Medicare past 65 with employer coverage (delayed Part B) only matters if the worker goes past 65.
 
 ## Test status
+
+With the four model-review fixes (2026-10-04, `d92c118`): 2724 passed, 1 skipped; flake8 clean.
 
 Full suite after merging upstream 2026.10.4 (2026-10-04): 2714 passed, 1 skipped; flake8 clean (same count as after 2026.10.3: upstream's #162 test file is identical to ours). After merging 2026.10.3: 2714 passed, 1 skipped. Before the merge: 2711 passed, 1 skipped.
 
