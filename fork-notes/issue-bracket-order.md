@@ -1,5 +1,7 @@
 # Draft upstream issue (mdlacasse/Owl): tax brackets filled top-down where late cash has no value
 
+**Filed as mdlacasse/Owl#162.** Fixed upstream in `3fca646` (2026.10.4) with this patch verbatim; merged into the fork 2026-10-04.
+
 **Title:** Reported taxes and bequest wrong when a year's cash has no value: brackets filled out of order
 
 ---

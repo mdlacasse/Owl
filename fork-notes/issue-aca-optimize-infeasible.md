@@ -1,5 +1,7 @@
 # Draft upstream issue (mdlacasse/Owl): withACA="optimize" infeasible where the contribution exceeds the premium
 
+**Filed as mdlacasse/Owl#161.**
+
 **Title:** `withACA="optimize"`: plans infeasible below 400% FPL when the expected contribution exceeds the SLCSP
 
 ---

@@ -1,8 +1,8 @@
-# Owl fork — progress (as of 2026-10-03)
+# Owl fork — progress (as of 2026-10-04)
 
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
-Fork `fmateoc/Owl`, branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, itself from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `c1e5619` (2026.10.3, with the #157 fix) on 2026-10-04.
+Fork `fmateoc/Owl`, branch `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4, with the #162 fix; contains `dev` `c1e5619`) on 2026-10-04.
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream
@@ -16,10 +16,10 @@ Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/pha
 | #157 addendum: NJ not indexed either; NJ exemptions missing | **Posted** by the user on #157; covered by `3c88ce1` (NJ nominal, $1,000 per filer + $1,000 per filer 65+, which our fork did not model) |
 | #158 NY benefit recapture missing | **Filed**; awaiting upstream (draft in `fork-notes/issue-ny-recapture.md`) |
 | #159 Design proposal: mid-plan moves + local tax | **Filed**; awaiting the maintainer's answers to its six questions (draft in `fork-notes/issue-residency-local-design.md`) |
-| #160 NJ retirement-income exclusion missing | **Answered 2026-10-04**: maintainer confirmed the rule against the 2025 NJ-1040 but keeps the state layer a pure LP (no binaries for state rules); NJ stays `retirement_income_exemption = 0`, limitation to be documented (overstates NJ tax, never understates). Open to a broad strategy later that covers similar rules in other states without (much) longer MILP solves. The fork keeps its MILP exclusion: without it NJ ranks below NY for the stakes couple, with it above (exact: $1.5M -$476 vs +$1,007/yr; $2.5M -$323 vs +$903/yr). The drafted follow-up comment (`issue-nj-retirement-exclusion-comment.md`) is superseded; not posted. Reply drafted in `issue-nj-retirement-exclusion-reply.md`; user to post |
-| Tax brackets filled top-down where late cash has no value | **Drafted** (`fork-notes/issue-bracket-order.md`, patch `.patch`); repro and patch verified on stock `dev` `a85ff76` (patch alone: 2597 passed, 1 skipped; 17 examples unchanged); user to file |
-| `withACA="optimize"` infeasible where pct x MAGI > SLCSP below 400% FPL | **Drafted** (`fork-notes/issue-aca-optimize-infeasible.md`, patch `.patch`); verified on stock `dev` (patch alone: 2596 passed, 1 skipped); user to file |
-| SC loop: flat objective taken for a 2-cycle; real cycles keep the highest objective | **Drafted** (`fork-notes/issue-cycle-selection.md`, patch `.patch`); repro and patch verified on stock `dev` `c1e5619` (2605 passed, 1 skipped; of 17 examples only cameron, residual $29,773 to $1,302 with the same spending, and jack+jill, -$37/yr with SS/LTCG residual $4,951/$2,604 to $4,429/$65, change); user to file. Not yet applied in the fork |
+| #160 NJ retirement-income exclusion missing | **Answered 2026-10-04**: maintainer confirmed the rule against the 2025 NJ-1040 but keeps the state layer a pure LP (no binaries for state rules); NJ stays `retirement_income_exemption = 0`, limitation to be documented (overstates NJ tax, never understates). Open to a broad strategy later that covers similar rules in other states without (much) longer MILP solves. The fork keeps its MILP exclusion: without it NJ ranks below NY for the stakes couple, with it above (exact: $1.5M -$476 vs +$1,007/yr; $2.5M -$323 vs +$903/yr). The drafted follow-up comment (`issue-nj-retirement-exclusion-comment.md`) is superseded; not posted. Reply (`issue-nj-retirement-exclusion-reply.md`) **posted** by the user 2026-10-04; awaiting the maintainer |
+| #162 Tax brackets filled top-down where late cash has no value | **Fixed upstream** (`3fca646`, 2026.10.4, on `main`): its `plan.py` change is our patch line for line, and `tests/plan/test_bracket_order.py` is identical. **Merged** 2026-10-04: the fork keeps its own copy, which extends the same code to local brackets (`lt_f`) and the SC registry; nothing to drop (draft `fork-notes/issue-bracket-order.md`) |
+| `withACA="optimize"` infeasible where pct x MAGI > SLCSP below 400% FPL | **Drafted** (`fork-notes/issue-aca-optimize-infeasible.md`, patch `.patch`); verified on stock `dev` (patch alone: 2596 passed, 1 skipped). **Filed** as #161; open |
+| SC loop: flat objective taken for a 2-cycle; real cycles keep the highest objective | **Drafted** (`fork-notes/issue-cycle-selection.md`, patch `.patch`); repro and patch verified on stock `dev` `c1e5619` (2605 passed, 1 skipped; of 17 examples only cameron, residual $29,773 to $1,302 with the same spending, and jack+jill, -$37/yr with SS/LTCG residual $4,951/$2,604 to $4,429/$65, change). **Filed** as #163 2026-10-04; awaiting the maintainer. Not yet applied in the fork |
 | Loop anomaly (NY→FL at year 5 scored below staying) | Not filed: no repro on stock upstream beyond the known ~0.1% loop noise (search recorded in `phase1-revised.md`) |
 | Upstream workflow | Branch from and target `dev` (CONTRIBUTING) |
 
@@ -112,7 +112,10 @@ Not yet decided: which of these to fix in the fork and which to draft as upstrea
 1. #157 NY non-indexed amounts (patch `ad4452d`) — filed; NJ addendum drafted (patch `20ccb2d`)
 2. #158 NY benefit recapture (patch `fe7fba3`) — filed
 3. #159 Design issue: residency moves + local tax layer — filed
-4. NJ retirement-income exclusion (patches `7fcfadf`, `395be10`) — drafted, ready to file
+4. #160 NJ retirement-income exclusion (patches `7fcfadf`, `395be10`) — filed; maintainer keeps state taxes a pure LP; our reply posted
+5. #161 ACA optimize infeasibility — filed
+6. #162 Bracket order — fixed upstream with our patch (2026.10.4), merged
+7. #163 SC-loop cycle selection — filed
 
 When upstream lands #157/#158, merge `dev` and drop our duplicates, as with #149 and #155.
 

@@ -1,5 +1,7 @@
 # Draft upstream issue (mdlacasse/Owl): self-consistent loop stops on a false cycle, and keeps the wrong member of a real one
 
+**Filed as mdlacasse/Owl#163.**
+
 **Title:** SC loop: a flat objective is taken for a 2-cycle while the loop is still converging; in a real cycle the highest objective is kept rather than the most self-consistent iterate
 
 ---

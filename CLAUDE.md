@@ -8,9 +8,9 @@ Read these first, in this order:
 2. `fork-notes/phase0/phase0-scenarios.md` — how the household's scenarios are run (`owlcli run` / `owlcli compare`).
 3. `PROGRESS.md` (repo root, fork-only like this file): the running log of what is done, filed and next. Update it at the end of every work session and commit it with the work.
 
-## State (2026-10-03)
+## State (2026-10-04)
 
-- Branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `c1e5619` (2026.10.3). A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4; contains `dev` `c1e5619`). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params (`StateTaxParams`, with upstream's indexing flags and credits as `credit_n`);
   - SC-loop registry `_SC_PARAMS`;
@@ -20,9 +20,9 @@ Read these first, in this order:
   - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, 60 s default cap; data `retirement_exclusion_*` in `taxes_state.toml`;
   - summary and Taxes-sheet breakdown;
   - MCP explain adapted.
-- Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; maintainer keeps state taxes a pure LP, so NJ stays unexcluded upstream and the fork keeps its MILP; see PROGRESS.md). #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3) and merged here, taking theirs. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
+- Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; maintainer keeps state taxes a pure LP, so NJ stays unexcluded upstream and the fork keeps its MILP; our reply is posted, see PROGRESS.md), #161 (ACA optimize infeasible), #163 (SC-loop cycle selection). #162 (bracket order) was fixed upstream in `3fca646` (2026.10.4) with our patch verbatim and merged here; the fork keeps its copy, which also covers local brackets. #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3) and merged here, taking theirs. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
-- Drafted, for the user to file: bracket order (`fork-notes/issue-bracket-order.md`), ACA optimize infeasibility (`fork-notes/issue-aca-optimize-infeasible.md`) and SC-loop cycle selection (`fork-notes/issue-cycle-selection.md`), each with a `.patch` verified on stock `dev`; and the #160 reply (`fork-notes/issue-nj-retirement-exclusion-reply.md`).
+- Drafts behind filed issues: bracket order #162 (`fork-notes/issue-bracket-order.md`), ACA optimize infeasibility #161 (`fork-notes/issue-aca-optimize-infeasible.md`), SC-loop cycle selection #163 (`fork-notes/issue-cycle-selection.md`), each with a `.patch` verified on stock `dev`; the #160 reply (`fork-notes/issue-nj-retirement-exclusion-reply.md`).
 - Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band; other findings not yet triaged.
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
