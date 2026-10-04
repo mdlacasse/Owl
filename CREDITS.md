@@ -11,6 +11,7 @@ Martin-D. Lacasse (mdlacasse)
  Florin Mateoc (@fmateoc) for auditing the code, identifying critical bugs, and providing fixes,
  @khoguer10 for reporting bug in logic for saving HFP file,
  Benjamin Quinn (@blquinn) for improvements and bug fixes,
+ Don Poll for suggesting QCD and pointing to a blind spot about inheritance state tax,
  @pcm2a for suggesting improved Roth conversion scheme,
  @SamMadDev for finding bugs in Roth and Part D and proposing fixes,
  Dale Seng (@sengsational) for great insights, testing, bug fixes, and suggestions,
