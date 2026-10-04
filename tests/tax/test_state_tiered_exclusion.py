@@ -199,3 +199,30 @@ def test_time_limit_keeps_the_tiers_and_reports_the_gap():
     assert p.solverGap >= p._rx_fixed[2] > 1e-4
     for n in range(p.N_n):
         assert p.st_T_n[n] == pytest.approx(_statutory_tax(p, n), abs=1.0)
+
+
+@pytest.mark.parametrize(
+    "income,kept,expected",
+    [
+        (150_000.0, 3, 2),  # on the floor of "above the last ceiling": the statute's 25% tier
+        (150_000.4, 3, 2),  # line 27 is in whole dollars
+        (150_001.0, 3, 3),  # above the ceiling: the kept tier is the statute's
+        (100_000.0, 1, 0),  # on the floor of the 50% tier: the 100% tier
+        (125_000.0, 1, 1),  # on the ceiling of the kept tier: already the statute's
+        (90_000.0, 0, 0),
+    ],
+)
+def test_kept_tier_moves_down_to_the_statute_on_its_floor(income, kept, expected):
+    """A tier kept from a time-limited MILP bounds income from below; income held on that floor belongs,
+    by the statute, to the tier below. Only that downward move is made, never one up."""
+    p = _pension_plan([3000, 2000])
+    n = int(np.flatnonzero(p.st_rx_elig_in.any(axis=0))[0])
+    zx = np.zeros((p.N_n, p.st_rx_limit_kn.shape[0] + 1))
+    zx[n, kept] = 1.0
+    p._rx_fixed = (zx, np.ones(p.N_n, dtype=bool), 0.0)
+    p.st_agi_n = p.st_agi_n.copy()
+    p.st_agi_n[n] = income
+    moved = p._refix_boundary_tiers()
+    assert moved[n] == (expected != kept)
+    assert int(np.argmax(p._rx_fixed[0][n])) == expected
+    assert moved.sum() == moved[n]

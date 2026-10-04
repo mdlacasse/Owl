@@ -4773,6 +4773,7 @@ class Plan:
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
         self._rx_fixed = None  # (tiers zx, free set) kept from a MILP that hit its time limit; see _run_highs
+        self._rx_refixed_n = np.zeros(self.N_n, dtype=bool)  # kept tiers moved this iterate
         self._fixedRows = {}  # Rows of the loop-invariant builders, built on the first iteration
         self._dual_data = None  # Shadow prices from binaries-fixed LP re-solve; set when withDuals=True
 
@@ -5250,6 +5251,10 @@ class Plan:
             if self._rx_active:
                 added = (self.RXF_n >= 0.5) & (sc_lp["RXF_n"] < 0.5)
                 moves.append(np.sum(self.st_rx_cap_n[added] / g_today[added]))
+                # Years whose kept tier moved down to the statute's (_refix_boundary_tiers): the next LP
+                # can claim more there, so this iterate is not a fixed point.
+                refixed = self._rx_refixed_n
+                moves.append(np.sum(self.st_rx_cap_n[refixed] / g_today[refixed]))
             scResidual = float(max(moves))
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
@@ -5441,6 +5446,42 @@ class Plan:
         top_n = np.max(np.where(np.isfinite(self.st_rx_limit_kn), self.st_rx_limit_kn, 0.0), axis=0)
         near = self.st_rx_elig_in.any(axis=0) & (self.st_agi_n <= RX_WINDOW * top_n) & (top_n > 0)
         return np.where(near, 1.0, np.where(self.RXF_n >= 0.5, 1.0, 0.0))
+
+    def _refix_boundary_tiers(self):
+        """Move a kept exclusion tier down to the statute's tier when income sits on its floor.
+
+        Tiers kept from a MILP stopped at its time limit (_rx_fixed) pin the tier binaries, and a pinned
+        tier bounds income from below as well as above. A later iterate that wants less income stops on
+        the floor of its tier, which is the ceiling of the tier below, and the statute ("income of the
+        ceiling or less") puts exactly that income in the tier below, with the larger share. Left alone,
+        the plan claims the smaller share there and is held at that income for it.
+
+        Only downward moves at the same income are made: the iterate stays feasible, a larger share can
+        only lower tax, and a tier never moves back up, so this cannot cycle. Returns the years moved.
+        """
+        moved = np.zeros(self.N_n, dtype=bool)
+        if self._rx_fixed is None or not self._rx_active:
+            return moved
+        zx_kept, kept_n = self._rx_fixed[0], self._rx_fixed[1]
+        K = self.st_rx_limit_kn.shape[0]
+        total_n = np.round(self.st_agi_n)  # line 27, in the whole dollars of the return
+        for n in range(self.N_n):
+            if not kept_n[n] or not zx_kept[n].any():
+                continue
+            k_kept = int(np.argmax(zx_kept[n]))
+            k_statute = K
+            for k in range(K):
+                if np.isfinite(self.st_rx_limit_kn[k, n]) and total_n[n] <= self.st_rx_limit_kn[k, n]:
+                    k_statute = k
+                    break
+            if k_statute < k_kept:
+                zx_kept[n, :] = 0.0
+                zx_kept[n, k_statute] = 1.0
+                moved[n] = True
+        if moved.any():
+            years = ", ".join(str(int(y)) for y in self.year_n[moved])
+            self.mylog.vprint(f"Kept exclusion tier moved down to the statute's for income on its floor: {years}.")
+        return moved
 
     def _tiered_exclusion_implied(self):
         """Share and amount of the tiered exclusion that the solution's own income implies (a check).
@@ -6254,6 +6295,7 @@ class Plan:
         # Uses the Psi_n the LP was built with, so it has to come before _update_Psi_n.
         self.STR_n = self._state_recapture_implied()
         self.RXF_n = self._tiered_exclusion_free()
+        self._rx_refixed_n = self._refix_boundary_tiers()
         # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
         # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
         # Also skip when fixedPsi is set (numeric withSSTaxability).
