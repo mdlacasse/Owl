@@ -18,7 +18,7 @@ This is a separable resource-allocation problem with one scalar state, solved ex
 
 On the shipped examples, inside the envelope world (same inputs fed to both models), the EM lands within 0.0 to +0.74% of the full model at r = 0 in 12 of 16 comparable cases, and within 0.0 to +2.7% at a common real return in 12 of 16 [run]. The other four are explained in §4. Where it is higher, the gap splits into two parts. One is things it leaves out on purpose, mainly taxable-account drag. The other is plans that are genuinely better than Owl's loop fixed point, which I confirmed against Owl's own exact MILP modes on five cases (§4).
 
-It is **not** faster than Owl's default loop mode: both take about a second (EM median 1.3–1.5 s in Python, full model median 0.1–0.3 s, max 3.7 s) [run]. Its speed advantage is against Owl's exact modes, which it matches (§4) and which take seconds to tens of minutes.
+*(Superseded by §7: the EM now keeps inflation, the OBBBA expiry and each case's own rate sequence, and a banded DP solves in 0.005–0.18 s.)* As first measured, it was **not** faster than Owl's default loop mode: both take about a second (EM median 1.3–1.5 s in Python, full model median 0.1–0.3 s, max 3.7 s) [run]. Its speed advantage is against Owl's exact modes, which it matches (§4) and which take seconds to tens of minutes.
 
 ## 2. Why it collapses [derived]
 
