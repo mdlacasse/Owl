@@ -133,6 +133,7 @@ On five of the six cases the EM agrees with Owl's exact modes to within 0.07% (m
 - `verify_exact.py` → `verify_*.jsonl`: full model with exact MILP modes.
 - `compare_orig.py` → `orig*_results.jsonl`: EM vs full on the original cases (§7, §8). `EM_PEN=0`/`EM_TAX=0` turn off the penalty and the taxable state, `EM_REF=1` adds the exact DP, `EM_PHI1=1` sets beneficiary fractions to 1.
 - `verify_orig.py` → `verify_orig.jsonl`: full model with exact MILP modes on the original cases (§8).
+- `seed.py` → `seed_results.jsonl`, `seed_phi1.jsonl`: Owl seeded / pinned from the one-state EM (§9).
 
 §3–§7 were produced by `em.py` as of commit 359bdf4; `solve_dp` now defaults to the §8 model (`penalty=True, taxable=True`), so re-running `compare.py` gives §8-style numbers.
 
@@ -251,3 +252,39 @@ Readings:
 
 - The penalty and the conversion caps keep the one-state structure. The penalty is a floor on x_n plus a known cost; the cap is a limit on the Roth share of x_n. Both should have been in the EM from the first version.
 - The taxable account does not collapse. With it as a state, the EM's accounting matches Owl's, and its optimum moves to within 1% of Owl in most cases. But the solver needs alternation, damping and slack to get there, and it ends up slower than Owl. For the household's decisions, the one-state EM (§7) is the fast screen and Owl remains the model of record.
+
+## 9. Follow-up 3 (2026-10-04): seeding Owl's loop from the one-state EM's plan
+
+`seed.py` → `seed_results.jsonl`, `seed_phi1.jsonl`. The one-state EM (`taxable=False`, penalty on) solves first. Two ways of handing its plan to Owl, both on the original cases:
+
+- **Seeded:** Owl's loop starts from the parameters the EM's plan implies, instead of Ψ = 0.85 and zero IRMAA, ACA and NIIT. These are Ψ_n, M_n (`tx.mediCosts`), ACA_n (`tx.acaCosts`) and J_n, all from the EM's MAGI path. Only the starting point changes.
+- **Pinned:** Owl solves with each year's tax-deferred recognition (Σ_i w_i1n + x_in) held within one EM grid step of the EM's schedule. Owl chooses everything else (which account, conversions vs withdrawals, deposits) and does its own accounting. The result is Owl's value of the EM's plan.
+
+| Case | Owl default | Seeded | Pinned | Pinned residual | EM (one-state) |
+|---|---:|---:|---:|---:|---:|
+| alex+jamie | 228,369 | 0.00% | −0.08% | 1,200 | 231,466 |
+| bill | 36,666 | 0.00% | 0.00% | 0 | 36,666 |
+| cameron | 18,996 | 0.00% (residual 29,773 → 149) | 0.00% | 20,644 | 18,996 |
+| chris+pat | 116,916 | 0.00% | +0.22% | 1,409 | 117,616 |
+| dana | 81,228 | +0.01% | +0.01% | 1,218 | 81,416 |
+| devon | 248,306 | 0.00% | −0.03% | 0 | 249,748 |
+| helen+ruth | 194,069 | 0.00% | +0.19% | 768 | 197,867 |
+| jack+jill | 102,545 | 0.00% | +0.35% | 1,101 | 103,667 |
+| joe | 92,575 | +0.01% | −0.22% | 1,528 | 95,662 |
+| john+sally | 16,803 | +2.99% | (invalid: unsolvable iterate) | 190,213 | 43,474 |
+| jon+jane | 160,677 | 0.00% | −0.55% | 0 | 161,642 |
+| jordan+taylor (φ=1) | 4,220,573 | 0.00% | −0.40% | 0 | 4,411,886 |
+| jordan+taylor-qcd (φ=1) | 3,111,557 | 0.00% | +0.84% | 0 | 3,282,501 |
+| kim+sam-bequest | 1,944,071 | +0.05% | +0.22% | 887 | 2,028,525 |
+| kim+sam-spending | 185,949 | +0.01% | +0.09% | 1,392 | 187,351 |
+| morgan | 38,744 | 0.00% | **+10.40%** | 18,727 | 43,442 |
+| robin | 44,013 | +0.01% | +0.07% | 982 | 42,888 |
+
+Readings [run unless marked]:
+
+- **Seeding does almost nothing.** It moves the result by at most 0.05% in 16 of 17 cases. The exception is john+sally, where it lands on a better fixed point (+3.0%, residual $970). It does not help morgan. The LP treats the seeded costs as constants and drifts back to the same fixed point within a few iterations [mechanism inferred from Owl's loop design]. It does tighten cameron's residual from $29,773 to $149 at the same value.
+- **Pinning makes morgan's gain real in Owl's own accounting.** Owl's value of the EM's schedule is 42,773 (+10.4%). Its residual is in SS taxability. With Ψ fixed at 0.85 in both runs, which overstates the tax in both, the pinned run gives 42,584 against Owl's 38,049 (+11.9%), with zero ACA residual. Owl's exact `withACA="optimize"` at Ψ = 0.85 reaches 43,568 in 11.5 s. So the pinned EM plan gets within 2.3% of the exact optimum, at the cost of the EM (0.5 s) plus one ordinary loop (0.1 s).
+- **Elsewhere pinning is −0.55% to +0.84%.** It gains in 9 cases and loses in 6. The losses are joe, jon+jane, jordan+taylor (φ=1), alex+jamie, devon and jordan+taylor (φ=0.28, not in the table: −0.41%), mostly the cases where the one-state EM ignores taxable drag and conversion caps that the §8 model showed matter.
+- **john+sally pinned is not a result.** The loop ended on an unsolvable iterate with a residual of $190k.
+
+**Practical form** [inferred]: run Owl's default loop and the pinned loop and keep the better plan. That costs the one-state EM plus a second loop, 0.1–2 s in total on these cases. It catches morgan-type failures of the loop (+10%) and never loses anything, since the default plan is kept when pinning loses.
