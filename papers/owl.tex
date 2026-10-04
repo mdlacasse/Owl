@@ -5370,7 +5370,15 @@ The spousal/survivor offset is then updated as
 so that the difference between the total benefit and the own benefit
 at the chosen age is passed to the next LP iteration as a fixed income term.
 The variable $\bar{\zeta}_{in}$ in the plan is simultaneously updated to
-$\bar{\zeta}_{in}^{\mathrm{new}}$ for use in taxability and MAGI computations.
+$\bar{\zeta}_{in}^{\mathrm{new}}$ for reporting and for the SC-loop quantities
+computed after each solve.
+Within each LP, every row that charges tax or premiums on benefits uses the
+benefit variable rather than $\bar{\zeta}_{in}$: taxable income carries
+$\Psi_n(\delta^\mathrm{sp}_{in} + b^\mathrm{ss}_{in})$, and so do the
+IRMAA MAGI rows and the state SS exclusion, while the ACA MAGI rows carry the full
+$\delta^\mathrm{sp}_{in} + b^\mathrm{ss}_{in}$.
+Each candidate claiming age is therefore charged the tax on its own benefits,
+at the taxable share $\Psi_n$ of the previous iterate.
 
 \paragraph*{Convergence and oscillation.}
 \label{sec:ss-scloop}
@@ -5405,6 +5413,11 @@ streams as in the base mode.
           They are approximated through the SC loop, which may require several
           iterations for couple cases and can oscillate when the two partners'
           optimal ages are mutually dependent.
+    \item With \code{withSSTaxability="optimize"}, the provisional-income and
+          taxable-SS rows still use the previous iterate's benefits
+          $\bar{\zeta}_{in}$, because the taxable-SS formula takes the minimum
+          of the benefit and the provisional-income excess, which would need
+          another binary per year once the benefit is a variable.
     \item The survivor benefit is assumed to be claimed in the year of the
           spouse's death; the strategy of deferring the survivor benefit to a
           later age is not optimized.
