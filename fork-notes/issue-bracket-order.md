@@ -79,7 +79,7 @@ Spending is unchanged, $647k of tax that wasn't owed is gone, and the bequest is
 - **Size.** `EPSILON` (5e-7) is too small: the reduced-cost differences it creates (about 1e-7) sit at HiGHS's dual feasibility tolerance, and the fill stays top-down. 1e-4 (`MIP_TIEBREAK`) works.
 - **Surplus polish.** `_polishSurplus` minimizes the surplus with spending and terminal balances pinned. With those pins, a dollar of extra tax lowers the surplus by a dollar, so the polish could shed surplus by filling the top brackets. The patch charges tax at twice a surplus dollar there.
 
-Verified against `dev` (`a85ff76`): the 17 example cases give the same spending and bequest; with this patch alone the full suite gives 2597 passed, 1 skipped; flake8 is clean. Tests added: `tests/plan/test_bracket_order.py`. Two of its three tests fail on `dev`. The third checks that spending is unchanged, so it passes on both.
+Re-checked on `dev` `3c88ce1` (after the #157 fix): the patch applies cleanly, the repro output is identical before and after, and the full suite gives 2605 passed, 1 skipped. First verified against `dev` (`a85ff76`): the 17 example cases give the same spending and bequest; with this patch alone the full suite gives 2597 passed, 1 skipped; flake8 is clean. Tests added: `tests/plan/test_bracket_order.py`. Two of its three tests fail on `dev`. The third checks that spending is unchanged, so it passes on both.
 
 <details><summary>Patch (source and tests, applies to <code>a85ff76</code>)</summary>
 

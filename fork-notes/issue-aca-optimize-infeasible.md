@@ -57,7 +57,7 @@ Two related gaps between optimize and loop mode are left alone here. I can file 
 - Optimize mode charges each bracket's top rate across the whole bracket (`_ACA_LP_CONTRIB`), while loop mode interpolates the sliding scale. Inside a bracket the MILP overcharges, and it adds cliffs at 150/200/250/300% FPL.
 - Below 138% FPL, loop mode charges the full SLCSP (Medicaid assumption), while optimize mode charges 2.1%.
 
-Verified against `dev` (`a85ff76`): with this patch alone the full suite gives 2596 passed, 1 skipped; flake8 is clean. Tests added in `tests/tax/test_aca.py::TestACAOptimize`: a unit test of the clipping and the repro above as a plan test. Both fail on `dev`.
+Re-checked on `dev` `3c88ce1` (after the #157 fix): the patch applies cleanly, the repro output is identical before and after, and the full suite gives 2604 passed, 1 skipped. First verified against `dev` (`a85ff76`): with this patch alone the full suite gives 2596 passed, 1 skipped; flake8 is clean. Tests added in `tests/tax/test_aca.py::TestACAOptimize`: a unit test of the clipping and the repro above as a plan test. Both fail on `dev`.
 
 <details><summary>Patch (source and tests, applies to <code>a85ff76</code>)</summary>
 
