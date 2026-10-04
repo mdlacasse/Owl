@@ -1,7 +1,5 @@
 # Draft upstream issue (mdlacasse/Owl): survivor of a worker who died before claiming gets 82.5% of PIA
 
-**Not ready to file: waits on verification against the primary source,** POMS RS 00615.320 / 20 CFR 404.338 / SSA Act 202(e)(2)(D) (ssa.gov, ecfr.gov, govinfo.gov), for the survivor rule when the worker never claimed. Those hosts were blocked from this environment on 2026-10-04. Re-check the rule and the repro numbers once they're reachable, then remove this line.
-
 **Title:** Survivor benefit: a worker who dies before claiming should leave 100% of PIA (plus DRCs earned up to death), not the 82.5% floor
 
 ---
@@ -15,7 +13,14 @@
     monthly = max(deceased_monthly, 0.825 * pias[deceased_idx]) * _survivor_factor(survivor_fra, claim_age)
 ```
 
-The 82.5% figure is the widow(er)'s limit (RIB-LIM). It caps a survivor benefit when the deceased had **reduced** their own benefit by claiming early: the survivor gets the larger of the deceased's reduced benefit and 82.5% of PIA (POMS RS 00615.320; Social Security Act 202(e)(2)(D)). A worker who was never entitled had no reduced benefit, so the limit doesn't apply. The survivor's base is 100% of PIA. If death came after FRA, it also includes the delayed retirement credits earned up to death. The paper lists the current behavior as a limitation ("credited with the 82.5% PIA floor rather than the benefit accrued to the date of death"). The gap is 17.5 to 49.5 points of PIA: 100% to 132% against 82.5%. It applies whenever the user's fixed claiming age is later than the first death. For example, a spouse planning to claim at 70 whose life expectancy is 68.
+The 82.5% figure is the widow(er)'s limit (RIB-LIM). It caps a survivor benefit when the deceased had **reduced** their own benefit by claiming early: the survivor gets the larger of the deceased's reduced benefit and 82.5% of PIA. A worker who was never entitled had no reduced benefit, so the limit doesn't apply. The survivor's base is 100% of PIA. If death came after FRA, it also includes the delayed retirement credits earned up to death. The sources:
+
+- Social Security Act 202(e)(2)(D) ([42 U.S.C. 402(e)(2)(D)](https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap7-subchapII-sec402.htm)) applies the limit only "if the deceased individual ... was, at any time, entitled to an old-age insurance benefit which was reduced by reason of the application of subsection (q)".
+- [20 CFR 404.338](https://www.ecfr.gov/current/title-20/section-404.338): "(a) Your monthly benefit is equal to the insured person's primary insurance amount. ... (b) We may increase your monthly benefit amount if the insured person delays filing for benefits ... and thereby earns delayed retirement credit (see § 404.313) ... (c) Your monthly benefit will be reduced if the insured person chooses to receive old-age benefits before reaching full retirement age. If so, your benefit will be reduced to the amount the insured person would be receiving if alive, or 82 1/2 percent of his or her primary insurance amount, whichever is larger."
+- [20 CFR 404.313(e)(1)](https://www.ecfr.gov/current/title-20/section-404.313#p-404.313(e)(1)): "All delayed retirement credits, including any earned during the year of death, can be used in computing the benefit amount for your surviving spouse ... beginning with the month of your death. We compute delayed retirement credits up to but not including the month of death." Credits run from the month of FRA to the month of age 70 (404.313(a)).
+- [POMS RS 00615.320](https://secure.ssa.gov/poms.nsf/lnx/0300615320) A.1: "Consider the RIB LIM ... if the deceased NH was ever entitled to a reduced RIB or reduced DIB."
+
+The paper lists the current behavior as a limitation ("credited with the 82.5% PIA floor rather than the benefit accrued to the date of death"). The gap is 17.5 to 49.5 points of PIA: 100% to 132% against 82.5%. It applies whenever the user's fixed claiming age is later than the first death. For example, a spouse planning to claim at 70 whose life expectancy is 68.
 
 
 **Repro** (on `dev`, `c1e5619`), from the repository root:

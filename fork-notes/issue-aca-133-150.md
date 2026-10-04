@@ -1,12 +1,10 @@
 # Draft upstream issue (mdlacasse/Owl): ACA 2026 contribution between 133% and 150% FPL starts at 2.10% instead of 3.14%
 
-**Not ready to file: waits on verification against the primary source,** Rev. Proc. 2025-25 (irs.gov), for the 2026 applicable percentage table. Those hosts were blocked from this environment on 2026-10-04. Re-check the rule and the repro numbers once they're reachable, then remove this line.
-
 **Title:** ACA (loop mode): the 2026 applicable percentage from 133% to 150% FPL should run from 3.14% to 4.19%, not from 2.10%
 
 ---
 
-Rev. Proc. 2025-25 sets the 2026 applicable percentage table as:
+[Rev. Proc. 2025-25](https://www.irs.gov/pub/irs-drop/rp-25-25.pdf), section 3.01, sets the 2026 applicable percentage table as:
 
 | Household income (% FPL) | Initial | Final |
 |---|---:|---:|
@@ -17,7 +15,7 @@ Rev. Proc. 2025-25 sets the 2026 applicable percentage table as:
 | 250% to 300% | 8.44% | 9.96% |
 | 300% to 400% | 9.96% | 9.96% |
 
-The table jumps at 133%. `_ACA_CONTRIB_PCT_2026` stores one value per breakpoint, `[0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996]`, and `_aca_contrib_pct` interpolates between consecutive values, so in the 133-150% band `acaCosts` runs from 2.10% (the rate below 133%) to 4.19%. Every other band starts where the previous one ends, so this is the only band affected. Because loop mode charges the full premium below 138% (Medicaid), the affected incomes are 138-150% FPL. There the expected contribution is understated by up to 0.73 points of MAGI, at 138%.
+Within each band the percentage "increases on a sliding scale in a linear manner" from the initial to the final percentage ([26 CFR 1.36B-3(g)(1)](https://www.ecfr.gov/current/title-26/section-1.36B-3#p-1.36B-3(g)(1))). The table jumps at 133%. `_ACA_CONTRIB_PCT_2026` stores one value per breakpoint, `[0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996]`, and `_aca_contrib_pct` interpolates between consecutive values, so in the 133-150% band `acaCosts` runs from 2.10% (the rate below 133%) to 4.19%. Every other band starts where the previous one ends, so this is the only band affected. Because loop mode charges the full premium below 138% (Medicaid), the affected incomes are 138-150% FPL. There the expected contribution is understated by up to 0.73 points of MAGI, at 138%.
 
 
 **Repro** (on `dev`, `c1e5619`), from the repository root:
