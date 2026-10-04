@@ -376,6 +376,44 @@ class TestACAOptimize:
                 )
         assert hit_bracket_6, "Expected at least one ACA year with MAGI >= 400% FPL and maca > 0"
 
+    def test_capped_limits_move_full_premium_incomes_to_last_bracket(self):
+        """Thresholds are clipped where the bracket's charge pct_r * MAGI reaches the SLCSP."""
+        fpl = 15_960.0
+        limits = tx._ACA_LP_BREAKPOINTS * fpl
+        # 5,000 / 9.96% = 50,201 lies in the 300-400% bracket [47,880, 63,840].
+        capped = tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 5_000.0)
+        assert np.allclose(capped, np.minimum(limits, 5_000.0 / 0.0996))
+        # A premium above every bracket's charge leaves the thresholds alone.
+        assert np.allclose(tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 20_000.0), limits)
+        # No premium (before coverage starts): every income is in the last bracket, at no cost.
+        assert np.allclose(tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 0.0), 0.0)
+
+    def test_income_where_contribution_exceeds_premium_is_feasible(self):
+        """Below 400% FPL with 9.96% x MAGI above the SLCSP: full premium, not infeasibility.
+
+        No tax-deferred account, so MAGI (a $55k pension plus investment income, about 370% FPL)
+        cannot be moved out of the band. The bound maca <= SLCSP used to make this infeasible.
+        """
+        def solve(mode):
+            p = Plan(["Cy"], ["1976-06-15"], [85], "aca band", verbose=False)
+            p.setSpendingProfile("flat")
+            p.setAccountBalances(taxable=[100], taxDeferred=[0], taxFree=[50], startDate="01-01")
+            p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+            p.setRates("user", values=[6, 4, 3, 2.5])
+            p.setPension([4600], [45], indexed=[True])
+            p.setACA(5.0)
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85,
+                                    "withACA": mode})
+            return p
+
+        p_opt, p_loop = solve("optimize"), solve("loop")
+        assert p_opt.caseStatus == "solved"
+        for n in range(1, 4):
+            ratio = p_opt.MAGI_aca_n[n] / (tx._ACA_FPL[2026][0] * p_opt.gamma_n[n])
+            assert 3.0 < ratio < 4.0
+            assert p_opt.maca_n[n] == pytest.approx(5_000 * p_opt.gamma_n[n], rel=1e-6)
+        assert p_opt.basis == pytest.approx(p_loop.basis, rel=1e-4)
+
 
 # ---------------------------------------------------------------------------
 # Config round-trip test

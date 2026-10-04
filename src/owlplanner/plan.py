@@ -3950,8 +3950,13 @@ class Plan:
 
                 if r < tx.N_ACA_R - 1:
                     upper = self.Lbar_aca_nr[nn, r]
+                    if upper <= lower:
+                        # Above the MAGI where the contribution reaches the SLCSP (see
+                        # tx._aca_capped_limits): such incomes belong to the full-premium bracket.
+                        self.B.setRange(za_idx, 0, 0)
                 else:
-                    # Last bracket (above 400% FPL): use BigM as upper bound so haca = 0 when za = 0.
+                    # Last bracket (full SLCSP, from 400% FPL or the cap crossing): BigM upper bound
+                    # so haca = 0 when za = 0.
                     upper = self._ceiling_n[nn]  # the year's MAGI ceiling
                 self.A.addNewRow({haca_idx: 1, za_idx: -upper}, -np.inf, 0, tag=("aca_bracket_ub", nn, r))
 

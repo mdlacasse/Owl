@@ -10,6 +10,14 @@ the solve could end without settling. Brackets are now filled from the bottom, a
 flags any plan whose brackets still end up out of order. Thanks to Florin Mateoc (@fmateoc) for
 reporting it and supplying the fix (#162).
 
+#### Fixed: ACA *optimize* mode no longer reports feasible plans as infeasible
+
+With `withACA = "optimize"`, an income below 400% of the poverty line whose expected
+contribution exceeded the benchmark (SLCSP) premium was treated as impossible instead of paying
+the full premium, so a household that could not move its income out of that range was reported
+infeasible. It now pays the full premium, as in loop mode. Thanks to Florin Mateoc (@fmateoc) for
+reporting it and supplying the fix (#161).
+
 ### Version 2026.10.3
 
 #### Fixed: state amounts fixed in statute no longer grow with inflation
