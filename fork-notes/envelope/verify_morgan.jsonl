@@ -1,0 +1,2 @@
+{"case": "Case_morgan.toml", "r": 0.0, "families": ["withACA", "withMedicare", "withSSTaxability"], "value": 29091, "t": 3.9, "conv": "monotonic"}
+{"case": "Case_morgan.toml", "r": 0.0, "families": ["withACA"], "value": 29091, "t": 10.2, "conv": "oscillatory (cycle length 2)"}
