@@ -12,11 +12,11 @@ Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/pha
 | #147 State tax base included the federal deduction | Fixed upstream (`81bc8d6`, `d4cbac4`); our PR 1 dropped |
 | #149 NJ top bracket taxed at 0% (Single, survivors) | Fixed upstream in `dev` (`0aabf00`) with our proposed patch; our copy dropped in the merge |
 | #155 Married case without `pension_indexed` crashes | Fixed upstream (`8971005`); our copy dropped in the merge |
-| #157 NY amounts inflated though NY does not index them | **Filed**; awaiting upstream (+$17k–25k lifetime NY tax on stock `dev` test couples; draft in `fork-notes/issue-ny-not-indexed.md`) |
-| #157 addendum: NJ not indexed either; NJ exemptions missing | **Drafted** as a comment on #157 (`fork-notes/issue-nj-not-indexed.md`; repro run on stock `dev`); user to post |
+| #157 NY amounts inflated though NY does not index them | **Fixed upstream** (`3c88ce1`, 2026.10.3: `brackets_/deduction_/exemptions_indexed` flags, per-filer exemptions and credits). Not merged yet: next merge takes theirs and drops our `indexed` flag and NJ exemption data |
+| #157 addendum: NJ not indexed either; NJ exemptions missing | **Posted** by the user on #157; covered by `3c88ce1` (NJ nominal, $1,000 per filer + $1,000 per filer 65+, which our fork did not model) |
 | #158 NY benefit recapture missing | **Filed**; awaiting upstream (draft in `fork-notes/issue-ny-recapture.md`) |
 | #159 Design proposal: mid-plan moves + local tax | **Filed**; awaiting the maintainer's answers to its six questions (draft in `fork-notes/issue-residency-local-design.md`) |
-| NJ retirement-income exclusion missing | **Drafted** (`fork-notes/issue-nj-retirement-exclusion.md`; now mentions the kept-tier downward move); user to file |
+| #160 NJ retirement-income exclusion missing | **Filed** from the `9e3b658` draft (solve time as an open question). Follow-up comment on the fork's solve limits, including the kept-tier downward move, drafted in `fork-notes/issue-nj-retirement-exclusion-comment.md`; user to post |
 | Tax brackets filled top-down where late cash has no value | **Drafted** (`fork-notes/issue-bracket-order.md`, patch `.patch`); repro and patch verified on stock `dev` `a85ff76` (patch alone: 2597 passed, 1 skipped; 17 examples unchanged); user to file |
 | `withACA="optimize"` infeasible where pct x MAGI > SLCSP below 400% FPL | **Drafted** (`fork-notes/issue-aca-optimize-infeasible.md`, patch `.patch`); verified on stock `dev` (patch alone: 2596 passed, 1 skipped); user to file |
 | Loop anomaly (NY→FL at year 5 scored below staying) | Not filed: no repro on stock upstream beyond the known ~0.1% loop noise (search recorded in `phase1-revised.md`) |
