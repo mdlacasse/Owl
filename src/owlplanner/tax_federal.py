@@ -191,6 +191,10 @@ _ACA_CONTRIB_CAP_2025 = 0.085  # ARP/IRA cap above 400% FPL
 # If an extension is enacted, update to IRA-style rules (0% below 150%, 8.5% cap).
 _ACA_BREAKPOINTS_2026 = np.array([1.33, 1.50, 2.00, 2.50, 3.00, 4.00])
 _ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
+# Initial percentage of each band that starts at a breakpoint (133-150%, ..., 300-400%). The table
+# jumps at 133%: below it 2.10%, from it 3.14% rising to 4.19% at 150%. The other bands start where
+# the previous one ends.
+_ACA_CONTRIB_INITIAL_2026 = np.array([0.0314, 0.0419, 0.066, 0.0844, 0.0996])
 # No cap above 400%: full SLCSP (no PTC)
 
 # ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
@@ -461,13 +465,18 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     return costs
 
 
-def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
-    """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range."""
+def _aca_contrib_pct(ratio, breakpoints, contrib_pct, initial_pct=None):
+    """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range.
+
+    The band from breakpoints[k] to breakpoints[k+1] runs from initial_pct[k] to contrib_pct[k+1].
+    Without initial_pct each band starts where the previous one ends (initial_pct[k] = contrib_pct[k]).
+    """
     idx = int(np.searchsorted(breakpoints, ratio, side="right")) - 1
     idx = max(0, min(idx, len(breakpoints) - 2))
     lo, hi = breakpoints[idx], breakpoints[idx + 1]
     t = (ratio - lo) / (hi - lo)
-    return contrib_pct[idx] + t * (contrib_pct[idx + 1] - contrib_pct[idx])
+    start = contrib_pct[idx] if initial_pct is None else initial_pct[idx]
+    return start + t * (contrib_pct[idx + 1] - start)
 
 
 def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0):
@@ -576,7 +585,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
             if ratio < _ACA_BREAKPOINTS_2026[0]:
                 cap_pct = _ACA_CONTRIB_PCT_2026[0]
             else:
-                cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026)
+                cap_pct = _aca_contrib_pct(
+                    ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026
+                )
 
         costs[n] = min(slcsp, cap_pct * magi)
 
