@@ -129,6 +129,6 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-Full suite after merging upstream 2026.10.3 (2026-10-04): 2714 passed, 1 skipped; flake8 clean. Before the merge: 2711 passed, 1 skipped.
+Full suite after merging upstream 2026.10.4 (2026-10-04): 2714 passed, 1 skipped; flake8 clean (same count as after 2026.10.3: upstream's #162 test file is identical to ours). After merging 2026.10.3: 2714 passed, 1 skipped. Before the merge: 2711 passed, 1 skipped.
 
 Merge notes: NJ now also takes the $1,000 exemption per filer aged 65+ (upstream), so NJ figures recorded before this merge (stakes tables above, the #160 issue numbers) are slightly high for couples 65+. Fork-only amounts follow upstream's flags (NY recapture thresholds with `brackets_indexed`, NJ exclusion ceilings/cap with `exemptions_indexed`); upstream's personal credits are wired through the moves schedule (`StateTaxParams.credit_n`), offset recapture too, and come before a local surcharge.
