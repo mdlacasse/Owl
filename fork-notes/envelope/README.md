@@ -16,7 +16,7 @@ Yes, with one change to the assumptions: keep a **common real return r** instead
 
 This is a separable resource-allocation problem with one scalar state, solved exactly up to a grid by dynamic programming (`em.py`, `solve_dp`).
 
-On the shipped examples, inside the envelope world (same inputs fed to both models), the EM lands within 0.0 to +0.74% of the full model at r = 0 in 12 of 16 comparable cases, and within 0.0 to +2.7% at a common real return in 12 of 16 [run]. The other four are explained in §4. Where it is higher, the gap splits into two parts. One is things it leaves out on purpose, mainly taxable-account drag. The other is plans that are genuinely better than Owl's loop fixed point, which I confirmed against Owl's own exact MILP modes on two cases (§4).
+On the shipped examples, inside the envelope world (same inputs fed to both models), the EM lands within 0.0 to +0.74% of the full model at r = 0 in 12 of 16 comparable cases, and within 0.0 to +2.7% at a common real return in 12 of 16 [run]. The other four are explained in §4. Where it is higher, the gap splits into two parts. One is things it leaves out on purpose, mainly taxable-account drag. The other is plans that are genuinely better than Owl's loop fixed point, which I confirmed against Owl's own exact MILP modes on five cases (§4).
 
 It is **not** faster than Owl's default loop mode: both take about a second (EM median 1.3–1.5 s in Python, full model median 0.1–0.3 s, max 3.7 s) [run]. Its speed advantage is against Owl's exact modes, which it matches (§4) and which take seconds to tens of minutes.
 
@@ -109,15 +109,18 @@ Readings:
 |---|---:|---:|---:|
 | morgan | 27,498 | 29,091 (`withACA=optimize`, also with Medicare+SS optimize) | 29,112 |
 | jordan+taylor (φ=1) | 1,145,407 | 1,185,882 (`withMedicare=optimize`) | 1,185,974 |
-| kim+sam-bequest | 538,661 | 539,300 (`withMedicare=optimize`); SS-optimize: PENDING | 569,032 |
+| kim+sam-bequest | 538,661 | 539,300 (`withMedicare=optimize`); 569,071 (Medicare + `withSSTaxability=optimize`, 480 s) | 569,032 |
+| dana | 48,471 | 48,689 (Medicare + SS optimize, 180 s) | 48,690 |
+| kim+sam-spending | 162,370 | 163,357 (Medicare + SS optimize, 240 s, loop oscillatory) | 163,356 |
+| devon | 122,979 | 120,748 (Medicare + SS optimize, 240 s, loop oscillatory) | 123,503 |
 
-PENDING lines are filled in below when the runs finish. On the two finished cases the EM agrees with Owl's exact mode to 0.07% and 0.008%. The remaining +0.4 to +0.7% EM gains at r = 0 (alex+jamie, chris+pat, dana, devon, jack+jill, joe, kim+sam-spending) are consistent with the loop's blindness to marginal SS/IRMAA cost (model review §2.1) but are not individually verified [inferred].
+On five of the six cases the EM agrees with Owl's exact modes to within 0.07% (morgan), and within $1 to $92 on the other four. For kim+sam-bequest the gain comes from SS taxability, not IRMAA: Medicare-optimize alone recovers only $639 of the $30k. Devon is inconclusive: the exact-mode run ended below loop mode, on an oscillating loop with each MILP capped at 60 s (`maxTime=60`). It neither confirms nor refutes the EM's +0.43%. The remaining +0.4 to +0.7% EM gains at r = 0 (alex+jamie, chris+pat, jack+jill, joe) are consistent with the loop's blindness to marginal SS/IRMAA cost (model review §2.1) but are not individually verified [inferred].
 
 **EM vs the real plan (L0).** The EM at r_c is the full model's L5 plus the gaps above. So the total error against the original case is the §3 ladder plus a few percent. It is dominated by the assumption ladder (sequence risk, OBBBA expiry), not by the formulation.
 
 ## 5. What this is good for, and what it is not
 
-- **Good:** a transparent sanity check on any full-model run, in Florin's sense. Its value is close to an upper bound for the envelope world: it omits frictions (caps, drag, penalties) and optimizes the nonconvex terms exactly. Where the full loop lands well below it at r = 0 with the accounting agreeing, the loop is leaving value on the table, and an exact mode is worth running (morgan, jordan+taylor, likely kim+sam-bequest).
+- **Good:** a transparent sanity check on any full-model run, in Florin's sense. Its value is close to an upper bound for the envelope world: it omits frictions (caps, drag, penalties) and optimizes the nonconvex terms exactly. Where the full loop lands well below it at r = 0 with the accounting agreeing, the loop is leaving value on the table, and an exact mode is worth running (morgan, jordan+taylor, kim+sam-bequest).
 - **Good:** an exact treatment of SS taxability, IRMAA and ACA cliffs at seconds per case. Owl's MILP modes for the same thing take seconds to tens of minutes (model review §2.1). It could serve as a warm start or a check for those modes [inferred].
 - **Not:** a replacement for the full model. It cannot see sequence risk (historical or stochastic rates), taxable-account drag, conversion caps, partial beneficiary fractions or the early-withdrawal penalty, and it is not faster than default loop mode.
 - **Speed headroom:** the DP is a pure-Python loop over states (B ≈ 1,500–1,900 PV steps per case). A vectorized min-plus convolution would likely cut it by 10× or more [inferred, not measured]. That would only matter for batch uses (Monte Carlo over r, sweeps of claiming ages).

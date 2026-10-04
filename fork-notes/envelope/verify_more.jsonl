@@ -1,0 +1,3 @@
+{"case": "Case_devon.toml", "r": 0.0, "families": ["withMedicare", "withSSTaxability"], "value": 120748, "t": 240.1, "conv": "oscillatory"}
+{"case": "Case_dana.toml", "r": 0.0, "families": ["withMedicare", "withSSTaxability"], "value": 48689, "t": 180.1, "conv": "monotonic"}
+{"case": "Case_kim+sam-spending.toml", "r": 0.0, "families": ["withMedicare", "withSSTaxability"], "value": 163357, "t": 240.1, "conv": "oscillatory"}
