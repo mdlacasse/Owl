@@ -1,3 +1,15 @@
+### Version 2026.10.4
+
+#### Fixed: reported taxes and bequests in years where extra cash has no value
+
+When a plan had years whose extra cash could not raise the objective, for example a late surplus
+under *maximize spending*, or surplus deposited to a spouse whose accounts pass to other heirs
+under *maximize bequest*, taxes could be reported as if all income fell in the top bracket. The
+spending objective was right, but the reported taxes, bequests and *Taxes* sheet were not, and
+the solve could end without settling. Brackets are now filled from the bottom, and a warning
+flags any plan whose brackets still end up out of order. Thanks to Florin Mateoc (@fmateoc) for
+reporting it and supplying the fix (#162).
+
 ### Version 2026.10.3
 
 #### Fixed: state amounts fixed in statute no longer grow with inflation
