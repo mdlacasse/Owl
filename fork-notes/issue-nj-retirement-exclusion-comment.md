@@ -10,7 +10,9 @@ An update on the solve-time question in the last paragraph. In the fork I ended 
 2. **A time cap that keeps the tiers.** Without a user `maxTime`, a MILP carrying these binaries stops at 60 s with a warning and its gap. Later loop iterations keep its tiers, so they re-solve only the continuous part, and the plan reports that MILP's gap.
 3. **Moving a kept tier down when income sits on its floor.** A kept tier bounds income from below as well as above. A later iteration that wants less income can stop exactly on the tier's floor, which is the ceiling of the tier below, and the statute ("$150,000 or less") puts that income in the tier below. With a 2 s cap, one year of a $2.5M couple sat at exactly $150,000 claiming nothing instead of 25%: NJ tax $5,402 instead of $3,330. Such a year's kept tier is now moved down to the statute's tier at the same income, downward only, so it can't cycle.
 
-For the $2.5M couple in the issue, the default settings return in about a minute, 0.17% from proven optimal. Measured on one machine; the gap at the cap depends on CPU speed. That run does hit the 60 s cap, but no tier needed moving down, so point 3 changes nothing there.
+For the issue's couple with $2.5M tax-deferred (Medicare off, SS taxability 0.85), a solve returns in about a minute, 0.19% from proven optimal. That's on one machine; the gap at the cap depends on CPU speed. The run hits the 60 s cap, but no tier needed moving down, so point 3 changes nothing there.
+
+Updated figures now that `dev` has NJ's $1,000 senior exemption (#157), run on the fork after merging 2026.10.3. For the $1.5M couple in the issue, lifetime NJ tax without the exclusion is $42,619 (the issue says $44,111), and the exclusion is worth +$1,483/yr of spending (the issue says +$1,519). With the exclusion, NJ tax is still $0.
 
 Reference implementation: fork `fmateoc/Owl`, branch `claude/optimistic-darwin-n5xykl`, commits `7fcfadf` (exclusion), `395be10` (window and cap) and `755377e` (moving a kept tier down).
 

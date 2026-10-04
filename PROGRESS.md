@@ -57,37 +57,37 @@ NJ exclusion, how it is built: one binary per tier per year in which a filer is 
 
 Solve limits (`plan.py`: `RX_WINDOW`, `RX_TIME_LIMIT`): binaries are free only in years whose income in the previous iterate was at most 1.5× the top ceiling ($225k); iteration 0 runs without the exclusion, and the free set (`RXF_n`, an SC parameter) only grows, so at convergence every left-out year is far above $150k, where nothing is excluded. Without `maxTime`, a MILP carrying the binaries stops at 60 s, warns with its gap, and later iterations keep its tiers; `solverGap` reports that gap. The window alone did not fix the $2.5M case (60 s cap hit on all four iterations, 240 s); keeping the tiers did (61 s).
 
-NJ stakes (synthetic couple born 1964, SS at 70, $300k taxable, $150k Roth, `maxSpending`; lifetime state tax in today's $). Medicare off, SS taxability 0.85 (exact LP apart from the exclusion):
+NJ stakes, rerun 2026-10-04 after merging upstream 2026.10.3, which adds NJ's $1,000 exemption per filer aged 65+. Synthetic couple born 1964-03-15 and 1964-09-15, life expectancies 89 and 92, SS $3,000 and $2,400/month at 70, $300k taxable, $150k Roth, conservative rates, 60/40, `maxSpending`, no bequest; lifetime state tax in today's $. Script: `fork-notes/model-review/nj_stakes.py` (on the pre-merge code it reproduces the tables recorded on 2026-10-03 within $5-14; plans start "today", so balances back-project by a day's growth). Change = merged minus pre-merge (`7394ecc`), same day, runs one at a time.
 
-| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Solve | Gap |
-|---|---|---:|---:|---:|---:|
-| $1.5M | FL | 126,372 | 0 | 0.1 s | LP |
-| $1.5M | NY | 125,093 | 31,585 | 0.1 s | LP |
-| $1.5M | NJ, no exclusion (as upstream) | 124,581 | 44,111 | 0.1 s | LP |
-| $1.5M | NJ, exclusion | 126,100 | 0 | 4.9 s | 0.01% |
-| $2.5M | FL | 161,885 | 0 | 0.1 s | LP |
-| $2.5M | NY | 157,985 | 97,427 | 0.1 s | LP |
-| $2.5M | NJ, no exclusion (as upstream) | 157,601 | 108,561 | 0.1 s | LP |
-| $2.5M | NJ, exclusion | 158,820 | 64,235 | 61.4 s | 0.19% (time cap) |
+Exact LP (Medicare off, SS taxability 0.85):
 
-With `maxTime=600` the $2.5M NJ plan reaches 158,873 (+$53/yr), still 0.09% from proven: the 60 s cap costs little here.
+| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Change in spending / tax | Solve | Gap |
+|---|---|---:|---:|---:|---:|---:|
+| $1.5M | FL | 126,361 | 0 | 0 / 0 | 0.1 s | LP |
+| $1.5M | NY | 125,083 | 31,582 | 0 / 0 | 0.1 s | LP |
+| $1.5M | NJ, no exclusion | 124,607 | 42,619 | +36 / -1,480 | 0.1 s | LP |
+| $1.5M | NJ, exclusion | 126,090 | 0 | 0 / 0 | 6.1 s | 0.01% |
+| $2.5M | FL | 161,872 | 0 | 0 / 0 | 0.1 s | LP |
+| $2.5M | NY | 157,971 | 97,408 | 0 / 0 | 0.1 s | LP |
+| $2.5M | NJ, no exclusion | 157,648 | 106,751 | +61 / -1,796 | 0.1 s | LP |
+| $2.5M | NJ, exclusion | 158,874 | 63,255 | +58 / -982 | 61.4 s | 0.19% (time cap) |
 
 Default options (Medicare and SS loops on):
 
-| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Solve | Gap |
-|---|---|---:|---:|---:|---:|
-| $1.5M | FL | 123,848 | 0 | 0.6 s | LP |
-| $1.5M | NY | 122,627 | 31,603 | 0.5 s | LP |
-| $1.5M | NJ, no exclusion (as upstream) | 121,907 | 44,121 | 0.4 s | LP |
-| $1.5M | NJ, exclusion | 122,438 | 0 | 12.6 s | 0.01% |
-| $2.5M | FL | 157,864 | 0 | 0.1 s | LP |
-| $2.5M | NY | 153,992 | 97,699 | 0.2 s | LP |
-| $2.5M | NJ, no exclusion (as upstream) | 153,609 | 108,828 | 0.2 s | LP |
-| $2.5M | NJ, exclusion | 154,519 | 64,032 | 65.3 s | 0.18% (time cap) |
+| Tax-deferred | Case | Spending ($/yr) | Lifetime state tax | Change in spending / tax | Solve | Gap |
+|---|---|---:|---:|---:|---:|---:|
+| $1.5M | FL | 123,839 | 0 | 0 / 0 | 0.6 s | LP |
+| $1.5M | NY | 122,621 | 31,593 | 0 / 0 | 0.5 s | LP |
+| $1.5M | NJ, no exclusion | 121,837 | 42,550 | -60 / -1,559 | 0.5 s | LP |
+| $1.5M | NJ, exclusion | 122,427 | 0 | -1 / 0 | 15.0 s | 0.01% |
+| $2.5M | FL | 157,850 | 0 | 0 / 0 | 0.2 s | LP |
+| $2.5M | NY | 153,979 | 97,678 | 0 / 0 | 0.2 s | LP |
+| $2.5M | NJ, no exclusion | 153,659 | 106,918 | +64 / -1,887 | 0.2 s | LP |
+| $2.5M | NJ, exclusion | 154,460 | 63,687 | -32 / -404 | 65.8 s | 0.21% (time cap) |
 
-Reading: the exclusion moves NJ by +$530 to +$1,520/yr and removes all $44k of lifetime NJ tax at $1.5M (about 40% of it at $2.5M). NJ vs NY at $1.5M flips sign between the two settings (+$1,007/yr exact, −$189/yr with the loops); that difference is under the ~1% loop-noise band, so the exact setting decides. At $2.5M NJ beats NY under both (+$835 and +$527/yr).
+Reading: the senior exemption ($1,000 per filer from 65, nominal, at NJ's marginal rates) is worth about $1.5k-1.9k of lifetime NJ tax without the exclusion, which is +$36 to +$64/yr of spending in the exact runs. With the exclusion at $1.5M there is no NJ tax left to reduce. The two negative spending changes under the loops (-$60, -$32) come with lower tax, so they are loop noise and, at $2.5M, the 60 s cap (gap 0.21%, about $320/yr), not an effect of the exemption. Comparisons, exact: NJ (exclusion) beats NY by +$1,007/yr at $1.5M (unchanged) and +$903/yr at $2.5M (was +$845). With the loops: -$194/yr at $1.5M (was -$193), inside the ~1% loop-noise band, and +$481/yr at $2.5M (was +$513). The exclusion is now worth +$1,483/yr at $1.5M exact (was +$1,519 against the no-exclusion plan without the senior exemption). With `maxTime=600` the $2.5M NJ plan was $53/yr better than at the 60 s cap on 2026-10-03; not rerun.
 
-Known limits: NYC household/school credits, part-year residency, the 10.9% NY cliff above $25M AGI, NJ Special Exclusion / disability before 62 / 65+ exemption, NJ line 28b when only one spouse is 62+ (only 28a taken), NJ basis in IRAs. Residency comparisons under ~1% may be loop noise.
+Known limits: NYC household/school credits, part-year residency, the 10.9% NY cliff above $25M AGI, NJ Special Exclusion / disability before 62, NJ line 28b when only one spouse is 62+ (only 28a taken), NJ basis in IRAs. Residency comparisons under ~1% may be loop noise.
 
 ## Model review (2026-10-03)
 
