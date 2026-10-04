@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): tracked cost basis leaves out reinvested dividends, and applies the account's gain fraction to the equity share only
 
-**Not filed yet.**
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet).
 
 **Title:** Cost basis: taxed, reinvested dividends and interest are not added to basis, and the whole-account gain fraction multiplies only the equity share of a withdrawal
 

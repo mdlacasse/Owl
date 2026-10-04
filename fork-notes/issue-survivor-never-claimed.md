@@ -1,5 +1,7 @@
 # Draft upstream issue (mdlacasse/Owl): survivor of a worker who died before claiming gets 82.5% of PIA
 
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet).
+
 **Title:** Survivor benefit: a worker who dies before claiming should leave 100% of PIA (plus DRCs earned up to death), not the 82.5% floor
 
 ---

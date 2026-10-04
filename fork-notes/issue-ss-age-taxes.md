@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): the claiming-age MILP charges every candidate age the same tax on SS
 
-**Not filed yet.**
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet).
 
 **Title:** `withSSAges="optimize"`: taxable SS, IRMAA/ACA MAGI and the state SS exclusion use the previous iterate's benefits, so the MILP compares claiming ages on pre-tax benefits
 

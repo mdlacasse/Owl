@@ -1,5 +1,7 @@
 # Draft upstream issue (mdlacasse/Owl): ACA 2026 contribution between 133% and 150% FPL starts at 2.10% instead of 3.14%
 
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet).
+
 **Title:** ACA (loop mode): the 2026 applicable percentage from 133% to 150% FPL should run from 3.14% to 4.19%, not from 2.10%
 
 ---

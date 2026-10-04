@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): a mid-year start date applies a full year of flows to balances already net of them
 
-**Not filed yet.** A design question, so no patch.
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet). A design question, so no patch.
 
 **Title:** Partial first year: balances entered after Jan 1 are back-projected for growth only, then charged a full year of spending, income and contributions
 

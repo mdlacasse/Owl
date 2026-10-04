@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): withACA="optimize" charges each band its top rate, and disagrees with loop mode below 138% FPL
 
-**Not filed yet.** A design question, so no patch. Follows #161 (the infeasible band).
+**Filed upstream by the user on 2026-10-04** (issue number not recorded yet). A design question, so no patch. Follows #161 (the infeasible band).
 
 **Title:** `withACA="optimize"`: step contribution rates (each FPL band charged its final percentage) and a different rule than loop mode below 138% FPL
 

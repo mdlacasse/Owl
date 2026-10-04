@@ -107,7 +107,7 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 - [ ] ACA optimize: step rates (each band charged its final %) and the <138% FPL rule differs from loop mode (repro: optimize ends $1,786/yr higher where income drifts below 138%). Design question; drafted: `fork-notes/issue-aca-optimize-rates.md`.
 - [ ] Paper vs code drift, loop mode as a fixed point, taxable bond returns, plan year: one docs issue drafted, `fork-notes/issue-docs-loop-and-paper.md`.
 
-Drafts not yet filed (user files): the seven above. **Ready to file (all seven):** cost basis, SS-age taxes, partial first year, ACA optimize rates, docs/paper drift, ACA 133-150% band, survivor never claimed. The last two were verified on 2026-10-04 against the primary text: Rev. Proc. 2025-25 section 3.01 (irs.gov) and 26 CFR 1.36B-3(g)(1) for the ACA band; 42 U.S.C. 402(e)(2)(D) (govinfo.gov), 20 CFR 404.338 and 404.313(e)(1) (ecfr.gov) and POMS RS 00615.320 (secure.ssa.gov) for the survivor rule. Repro numbers re-run on this branch match the drafts. Note: www.ssa.gov itself answers 403 to curl (the site, not the proxy); POMS is on secure.ssa.gov. Rule from the user: never file a draft that asks the maintainer to check a source we didn't check; mark it not ready instead. Each patch draft has a `.patch` verified on stock `dev` `c1e5619` (full suite with each patch alone: 2604-2606 passed, 1 skipped; flake8 clean). Applied in the fork on branch `claude/project-thread-qx5fy0`.
+**Filed by the user on 2026-10-04** (issue numbers not recorded yet): ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes, partial first year, ACA optimize rates. **Not filed:** docs/paper drift (`issue-docs-loop-and-paper.md`). The last two were verified on 2026-10-04 against the primary text: Rev. Proc. 2025-25 section 3.01 (irs.gov) and 26 CFR 1.36B-3(g)(1) for the ACA band; 42 U.S.C. 402(e)(2)(D) (govinfo.gov), 20 CFR 404.338 and 404.313(e)(1) (ecfr.gov) and POMS RS 00615.320 (secure.ssa.gov) for the survivor rule. Repro numbers re-run on this branch match the drafts. Note: www.ssa.gov itself answers 403 to curl (the site, not the proxy); POMS is on secure.ssa.gov. Rule from the user: never file a draft that asks the maintainer to check a source we didn't check; mark it not ready instead. Each patch draft has a `.patch` verified on stock `dev` `c1e5619` (full suite with each patch alone: 2604-2606 passed, 1 skipped; flake8 clean). Applied in the fork on branch `claude/project-thread-qx5fy0`.
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
@@ -118,7 +118,7 @@ Drafts not yet filed (user files): the seven above. **Ready to file (all seven):
 5. #161 ACA optimize infeasibility — filed
 6. #162 Bracket order — fixed upstream with our patch (2026.10.4), merged
 7. #163 SC-loop cycle selection — filed
-8. Drafted 2026-10-04, not filed: ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes (each with a patch verified on `dev`); partial first year, ACA optimize rates, docs/paper drift (design, no patch)
+8. Filed 2026-10-04 by the user (numbers not recorded yet): ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes (each with a patch verified on `dev`); partial first year, ACA optimize rates (design, no patch). Not filed: docs/paper drift
 
 When upstream lands #157/#158, merge `dev` and drop our duplicates, as with #149 and #155.
 
