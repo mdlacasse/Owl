@@ -995,10 +995,14 @@ Bracket rates and widths, standard deductions, Social Security treatment, and
 retirement-income and pension exemption caps for all 50 states and the District
 of Columbia are read from a data table (\code{data/taxes_state.toml}) with
 separate entries for Single and Married Filing Jointly filers; the filing
-status switches to Single at the passing of a spouse, and bracket widths and
-deductions are indexed to inflation through $\gamma_n$, except for states whose
-statute fixes them in nominal dollars (New York, New Jersey), which the data
-table marks \code{indexed = false}.
+status switches to Single at the passing of a spouse. Each state says whether its
+bracket widths, its deduction and its exemption caps grow with inflation through
+$\gamma_n$ (\code{brackets_indexed}, \code{deduction_indexed},
+\code{exemptions_indexed}); amounts its statute fixes in nominal dollars (New
+York, New Jersey, \ldots) stay nominal. Per-filer personal and 65+ exemptions
+add to the state deduction for each living filer, and personal credits reduce
+the state tax, down to zero, through a credit variable bounded by the year's
+state tax.
 State taxable income is derived from quantities already present in the model:
 federal AGI (federal ordinary taxable income plus the federal standard
 deduction, plus capital gains, which most states tax as ordinary income), minus

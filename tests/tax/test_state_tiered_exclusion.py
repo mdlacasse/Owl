@@ -39,7 +39,7 @@ def test_share_steps_at_each_ceiling(income, share):
 
 def test_params_are_nominal_and_switch_to_the_single_chart_after_a_death():
     gamma = np.array([1.03**n for n in range(31)])
-    p = tax_state.st_taxParams("NJ", 2, 10, 30, gamma, [1962, 1963], mobs=[6, 12])
+    p = tax_state.st_taxParams("NJ", 2, 10, 30, gamma, [1962, 1963], mobs=[6, 12], i_d=0)
     assert np.all(p.rx_limit_kn[:, :10].T == [100_000, 125_000, 150_000])
     assert np.all(p.rx_limit_kn[:, 10:].T == [100_000, 125_000, 150_000])
     assert np.all(p.rx_share_kn[:, :10].T == [1.0, 0.5, 0.25])

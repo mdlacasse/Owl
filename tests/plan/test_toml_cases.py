@@ -133,12 +133,12 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 185_390,
+        "net_spending_basis": 185_952,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145_000,
-        "bequest": 1_917_689,
+        "bequest": 1_944_071,
     },
     "Case_robin": {
         "net_spending_basis": 44_069,
@@ -172,6 +172,12 @@ def test_reproducibility():
     #   deducting the federal standard deduction. The solvers now land at 185_390 (HiGHS) and
     #   185_400 (MOSEK). That change re-pinned john+sally, kim+sam-* and robin (MN, CA, NY);
     #   jack+jill and joe live in no-income-tax states and did not move.
+    # - kim+sam-* re-pinned 2026-10-03 when CA's $153 personal credit per filer, and its $153 senior
+    #   credit per filer 65+, were modeled. kim+sam-spending 185_390 -> 185_952 (HiGHS 185_948.93,
+    #   MOSEK 185_955.12): +$302/yr from the personal credit, then +$257/yr from the senior one,
+    #   which the couple (born 1964/1965) only reaches after three years. kim+sam-bequest
+    #   1_917_689 -> 1_944_071 (both solvers 1_944_071.20): the same credits compounding into the
+    #   estate (1_917_623.62 with them switched off).
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version

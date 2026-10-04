@@ -120,11 +120,14 @@ def test_dana_1966_maxspending_reference(dana):
         dana, "maxSpending", opts, [0, 60_000, 120_000], 1966, 1966, include_never_convert=False
     )
     assert res["start_years"].tolist() == [1966]
-    assert _rel(res["v_star"][0], 57_848.20) < RTOL
+    # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each; Dana is over 65) were
+    # modeled: v_star and the first two pinned solves rose by exactly the $306/yr credit; x_star
+    # did not move.
+    assert _rel(res["v_star"][0], 58_154.20) < RTOL
     assert _rel(res["x_star"][0], 59_924.62) < RTOL
-    assert _rel(res["v_at"][0, 0], 57_834.84) < RTOL
-    assert _rel(res["v_at"][0, 1], 57_848.15) < RTOL
-    assert _rel(res["v_at"][0, 2], 57_569.93) < RTOL
+    assert _rel(res["v_at"][0, 0], 58_140.84) < RTOL
+    assert _rel(res["v_at"][0, 1], 58_154.15) < RTOL
+    assert _rel(res["v_at"][0, 2], 57_802.33) < RTOL
     # Pinned solves can beat the SC-loop baseline only within the noise floor.
     regret = res["v_star"][0] - res["v_at"][0, :]
     assert (regret > -NOISE).all()
@@ -142,11 +145,14 @@ def test_dana_1966_maxbequest_reference(dana):
     # penalty cost anything: at 1e-8 HiGHS settled on a fixed point 3% below MOSEK's on this
     # window, and the stronger tie-break brings it up to 431,374.54 against MOSEK's 431,377 --
     # agreement to 0.0006% where there had been a 3% solver split.
-    assert _rel(res["v_star"][0], 389_539.57) < RTOL
-    assert _rel(res["x_star"][0], 59_920.91) < RTOL
-    assert _rel(res["v_at"][0, 0], 388_590.35) < RTOL
-    assert _rel(res["v_at"][0, 1], 389_334.77) < RTOL
-    assert _rel(res["v_noconv"][0], 362_189.09) < RTOL
+    # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each) were modeled: every
+    # bequest rose by about $10.9k per credit (389_539.57 -> 411_381.28 for v_star) and x_star did
+    # not move (59_920.91 -> 59_928.39), as a fixed yearly credit compounding into the estate would do.
+    assert _rel(res["v_star"][0], 411_381.28) < RTOL
+    assert _rel(res["x_star"][0], 59_928.39) < RTOL
+    assert _rel(res["v_at"][0, 0], 410_423.07) < RTOL
+    assert _rel(res["v_at"][0, 1], 411_176.90) < RTOL
+    assert _rel(res["v_noconv"][0], 381_832.42) < RTOL
     # Orderings that carry the paper's story:
     # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
     # The last link leans on NOISE: a pinned solve can come back above the SC-loop

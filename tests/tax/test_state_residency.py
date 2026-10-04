@@ -97,7 +97,7 @@ def test_columns_follow_the_state_in_force():
     np.testing.assert_array_equal(sched.re_cap_in[:, 10:], fl.re_cap_in[:, 10:])
     np.testing.assert_array_equal(sched.re_cap_in[:, :10], ny.re_cap_in[:, :10])
     assert sched.sigmaBar_n[9] == ny.sigmaBar_n[9] and sched.sigmaBar_n[10] == fl.sigmaBar_n[10]
-    assert sched.indexed[:10].sum() == 0 and sched.indexed[10:].all()  # NY is fixed, FL follows inflation
+    assert np.all(sched.sigmaBar_n[:10] == ny.sigmaBar_n[0])  # NY's deduction is fixed in statute
 
 
 def test_state_free_years_take_no_tax():

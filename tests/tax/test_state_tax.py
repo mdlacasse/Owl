@@ -61,7 +61,6 @@ def test_toml_all_states_load(state):
             assert 0 <= rate <= 15, f"{state}: rate {rate}% out of expected range [0, 15]"
         assert entry["standard_deduction"] == "federal" or entry["standard_deduction"] >= 0
         assert isinstance(entry["tax_social_security"], bool)
-        assert isinstance(entry.get("indexed", True), bool), f"{state}: indexed must be a bool"
 
 
 # ---------------------------------------------------------------------------
@@ -442,7 +441,7 @@ def test_ks_two_rate_structure():
 
 
 # ---------------------------------------------------------------------------
-# PR 2: typed state params and non-indexed flag
+# PR 2: typed state params
 # ---------------------------------------------------------------------------
 
 
@@ -451,88 +450,9 @@ def test_state_taxparams_returns_dataclass():
     sp = tax_state.st_taxParams("MN", 1, 30, 30, np.ones(31), [1960], mobs=[1])
     assert isinstance(sp, tax_state.StateTaxParams)
     assert sp.N_st >= 4
-    assert sp.indexed.all()
+    assert sp.credit_n.shape == (30,)
     assert sp.conv_ok.shape == sp.tax_ss.shape == (30,)
     assert sp.conv_ok.dtype == sp.tax_ss.dtype == bool
-
-
-def test_ny_not_indexed():
-    """NY brackets and deduction use nominal statutory dollars (no gamma_n)."""
-    gamma_flat = np.ones(31)
-    gamma_inflated = np.array([1.02**n for n in range(31)])
-    sp_flat = tax_state.st_taxParams("NY", 1, 30, 30, gamma_flat, [1960], mobs=[1])
-    sp_inf = tax_state.st_taxParams("NY", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
-    assert not sp_flat.indexed.any()
-    assert not sp_inf.indexed.any()
-    # Non-indexed: year 10 must equal year 0 regardless of gamma_n
-    np.testing.assert_array_equal(sp_inf.DeltaBar_tn[:, 10], sp_inf.DeltaBar_tn[:, 0])
-    assert sp_inf.sigmaBar_n[10] == pytest.approx(sp_inf.sigmaBar_n[0])
-    # And flat vs inflated should give identical arrays
-    np.testing.assert_array_equal(sp_inf.DeltaBar_tn, sp_flat.DeltaBar_tn)
-    np.testing.assert_array_equal(sp_inf.sigmaBar_n, sp_flat.sigmaBar_n)
-
-
-def test_mn_still_indexed():
-    """MN (default indexed=true) still scales with gamma_n."""
-    gamma_flat = np.ones(31)
-    gamma_inflated = np.array([1.02**n for n in range(31)])
-    sp_flat = tax_state.st_taxParams("MN", 1, 30, 30, gamma_flat, [1960], mobs=[1])
-    sp_inf = tax_state.st_taxParams("MN", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
-    assert sp_flat.indexed.all()
-    assert sp_inf.indexed.all()
-    assert sp_inf.DeltaBar_tn[0, 10] > sp_flat.DeltaBar_tn[0, 10]
-
-
-def test_ny_re_cap_not_inflated():
-    """NY retirement exclusion cap stays nominal when indexed=False."""
-    gamma_inflated = np.array([1.02**n for n in range(31)])
-    sp = tax_state.st_taxParams("NY", 1, 30, 30, gamma_inflated, [1960], mobs=[1])
-    # NY cap is $20k statutory; year 0 and year 10 must both be $20k
-    active = sp.re_cap_in[0, sp.re_cap_in[0, :] > 0]
-    assert active[0] == pytest.approx(20000.0)
-    assert active[-1] == pytest.approx(20000.0)
-
-
-def test_indexed_false_in_toml(tmp_path):
-    """indexed = false is read from TOML."""
-    toml_content = """
-[XX_Single]
-brackets = [[0.0, 5.0], [50000.0, 6.0]]
-standard_deduction = 1000
-tax_social_security = false
-ss_exemption_threshold = 0
-retirement_income_exemption = 0
-exemption_age = 0
-pension_exemption = 0
-roth_conversion_eligible = true
-indexed = false
-"""
-    f = tmp_path / "test_state.toml"
-    f.write_text(toml_content)
-    gamma = np.array([1.02**n for n in range(31)])
-    sp = tax_state.st_taxParams("XX", 1, 30, 30, gamma, [1960], mobs=[1], toml_path=str(f))
-    assert not sp.indexed.any()
-    # Non-indexed: year 10 == year 0
-    np.testing.assert_array_equal(sp.DeltaBar_tn[:, 10], sp.DeltaBar_tn[:, 0])
-
-
-def test_indexed_default_is_true(tmp_path):
-    """indexed defaults to true when the field is absent."""
-    toml_content = """
-[XX_Single]
-brackets = [[0.0, 5.0]]
-standard_deduction = 1000
-tax_social_security = false
-ss_exemption_threshold = 0
-retirement_income_exemption = 0
-exemption_age = 0
-pension_exemption = 0
-roth_conversion_eligible = true
-"""
-    f = tmp_path / "test_state.toml"
-    f.write_text(toml_content)
-    sp = tax_state.st_taxParams("XX", 1, 30, 30, np.ones(31), [1960], mobs=[1], toml_path=str(f))
-    assert sp.indexed.all()
 
 
 def _schedule_tax(income, brackets):
@@ -566,7 +486,7 @@ def test_nj_single_keeps_top_bracket(income):
 def test_nj_survivor_keeps_top_bracket():
     """After n_d, a couple's survivor files Single and must keep NJ's top bracket (issue #149)."""
     n_d = 10
-    sp = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1])
+    sp = tax_state.st_taxParams("NJ", 2, n_d, 30, np.ones(31), [1960, 1962], mobs=[1, 1], i_d=0)
     theta, delta = sp.theta_tn, sp.DeltaBar_tn
     single = tax_state.get_state_entry("NJ", 0)["brackets"]
     mfj = tax_state.get_state_entry("NJ", 1)["brackets"]
@@ -576,13 +496,89 @@ def test_nj_survivor_keeps_top_bracket():
         assert _lp_bracket_tax(income, theta[:, n], delta[:, n]) == pytest.approx(_schedule_tax(income, single))
 
 
-def test_nj_not_indexed_and_takes_the_regular_exemptions():
-    """NJ's rate schedules and $1,000 exemptions are the same in the 2020 and 2025 NJ-1040 instructions."""
+def test_nj_brackets_are_the_printed_nominal_ones():
+    """NJ's rate schedules are the same in the 2020 and 2025 NJ-1040 instructions (Table B for MFJ)."""
     gamma = np.array([1.03**n for n in range(31)])
-    single = tax_state.st_taxParams("NJ", 1, 30, 30, gamma, [1960], mobs=[1])
     couple = tax_state.st_taxParams("NJ", 2, 30, 30, gamma, [1960, 1962], mobs=[1, 1])
-    assert not single.indexed.any() and not couple.indexed.any()
     np.testing.assert_array_equal(couple.DeltaBar_tn[:, 20], couple.DeltaBar_tn[:, 0])
-    assert np.all(single.sigmaBar_n == 1000) and np.all(couple.sigmaBar_n == 2000)
-    # MFJ thresholds as printed in Table B: 20k, 50k, 70k, 80k, 150k, 500k, 1M.
     assert np.cumsum(couple.DeltaBar_tn[:, 0])[:7].tolist() == [20e3, 50e3, 70e3, 80e3, 150e3, 500e3, 1e6]
+
+
+_GAMMA = np.array([1.025**n for n in range(31)])
+
+
+def test_ny_amounts_are_not_indexed():
+    """NY fixes its thresholds, standard deduction and $20k exclusion in statute (issue #157)."""
+    sp = tax_state.st_taxParams("NY", 2, 30, 30, _GAMMA, [1964, 1964], mobs=[6, 12])
+    delta, sigma, re_cap = sp.DeltaBar_tn, sp.sigmaBar_n, sp.re_cap_in
+    np.testing.assert_array_equal(delta[:-1, 20], delta[:-1, 0])
+    assert sigma[20] == sigma[0] == 16050
+    assert re_cap[0, 20] == 20000
+
+
+def test_other_states_stay_indexed():
+    sp = tax_state.st_taxParams("MN", 2, 30, 30, _GAMMA, [1964, 1964], mobs=[6, 12])
+    delta, sigma = sp.DeltaBar_tn, sp.sigmaBar_n
+    assert sigma[20] == pytest.approx(sigma[0] * _GAMMA[20])
+    assert delta[0, 20] == pytest.approx(delta[0, 0] * _GAMMA[20])
+
+
+def test_each_indexing_flag_controls_its_own_amounts():
+    """MD indexes its pension cap and deduction but not its brackets; GA indexes neither cap nor brackets."""
+    sp = tax_state.st_taxParams("MD", 2, 30, 30, _GAMMA, [1960, 1960], mobs=[6, 12])
+    delta, sigma, re_cap = sp.DeltaBar_tn, sp.sigmaBar_n, sp.re_cap_in
+    assert re_cap[0, 20] == pytest.approx(re_cap[0, 0] * _GAMMA[20])  # exemptions_indexed = true
+    # deduction_indexed = true: the $6,700 joint deduction grows; the exemptions stay fixed.
+    assert sigma[20] - sigma[0] == pytest.approx(6700 * (_GAMMA[20] - 1))
+    np.testing.assert_array_equal(delta[:-1, 20], delta[:-1, 0])  # brackets_indexed = false
+    re_cap_ga = tax_state.st_taxParams("GA", 2, 30, 30, _GAMMA, [1955, 1955], mobs=[6, 12]).re_cap_in
+    assert re_cap_ga[0, 20] == re_cap_ga[0, 0] == 65000  # exemptions_indexed = false
+
+
+def test_every_state_declares_its_indexing():
+    """No default: each entry states whether its brackets, deduction and exemptions are indexed."""
+    data = tax_state.load_state_data()
+    for key, entry in data.items():
+        for flag in ("brackets_indexed", "deduction_indexed", "exemptions_indexed"):
+            assert isinstance(entry.get(flag), bool), f"{key} lacks a boolean '{flag}'"
+
+
+def test_per_filer_exemptions_follow_living_filers_and_age():
+    """NJ: $1,000 per filer, plus $1,000 per filer aged 65+ by December 31; the survivor alone after n_d."""
+    sigma = tax_state.st_taxParams("NJ", 2, 10, 30, np.ones(31), [1962, 1966], mobs=[1, 1], i_d=0).sigmaBar_n
+    thisyear = date.today().year
+    for n in range(30):
+        alive_yobs = [1962, 1966] if n < 10 else [1966]  # person 0 dies at n_d = 10
+        seniors = sum(thisyear + n - yob + 11 / 12 >= 65 for yob in alive_yobs)
+        assert sigma[n] == 1000 * len(alive_yobs) + 1000 * seniors, n
+
+
+def test_personal_credit_counts_living_filers_and_indexes():
+    # Both under 65 throughout the first decade (born 1990): personal credit only.
+    ca = tax_state.st_credits("CA", 2, 10, 30, _GAMMA, yobs=[1990, 1990], mobs=[1, 1], i_d=0)
+    assert ca[0] == pytest.approx(2 * 153)
+    assert ca[9] == pytest.approx(2 * 153 * _GAMMA[9])  # indexed
+    assert ca[10] == pytest.approx(153 * _GAMMA[10])  # survivor only
+
+
+def test_senior_credit_is_added_per_filer_at_65():
+    """CA Form 540 line 9: another $153 for each filer 65 or older by December 31."""
+    thisyear = date.today().year
+    yobs = [thisyear - 64, thisyear - 70]  # person 0 turns 65 next year; person 1 is already 70
+    ca = tax_state.st_credits("CA", 2, 30, 30, np.ones(31), yobs=yobs, mobs=[1, 1])
+    assert ca[0] == 2 * 153 + 1 * 153
+    assert ca[1] == 2 * 153 + 2 * 153
+    with pytest.raises(ValueError, match="senior_credit"):
+        tax_state.st_credits("CA", 1, 30, 30, np.ones(31))
+    assert tax_state.st_credits("DE", 1, 30, 30, _GAMMA)[20] == 110  # not indexed
+    assert not tax_state.st_credits("NY", 1, 30, 30, _GAMMA).any()
+
+
+def test_personal_credit_reduces_state_tax_down_to_zero():
+    """In the LP, the credit used is at most the credit and at most the gross state tax."""
+    p = _make_plan("CA")
+    p.solve("maxSpending", {"withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    gross = np.sum(p.st_f_tn * p.st_theta_tn, axis=0)
+    np.testing.assert_allclose(p.st_T_n, np.maximum(0.0, gross - p.st_credit_n), atol=0.05)
+    assert np.any(gross > p.st_credit_n) and np.any(p.st_T_n < gross - 1)

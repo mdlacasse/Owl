@@ -472,6 +472,8 @@ class Plan:
         self.RXF_n = np.zeros(self.N_n)  # 1 where the exclusion's tier binaries are free (SC-loop parameter)
         self._rx_active = False  # True when a state in the plan has an income-tiered retirement exclusion
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
+        self.st_credit_n = np.zeros(self.N_n)  # State personal credit available per year (N_n,)
+        self.st_c_n = np.zeros(self.N_n)  # State personal credit used per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
@@ -2586,6 +2588,8 @@ class Plan:
         vm.add_if(rx_lp, "rxb", self.N_n, N_rx)  # eligible income, split the same way
         lt_lp = st_lp and self.N_lt > 0 and bool(np.any(self.lt_theta_tn > 0))
         vm.add_if(lt_lp, "lt_f", self.N_lt, self.N_n)  # local bracket allocations
+        st_c_lp = st_lp and bool(np.any(self.st_credit_n > 0))
+        vm.add_if(st_c_lp, "st_c", self.N_n)  # state personal credit used (<= credit, <= state tax)
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2703,6 +2707,9 @@ class Plan:
                 self.B.setRange(vm["st_f"].idx(t, n), 0, self.st_DeltaBar_tn[t, n])
         for n in range(self.N_n):
             self.B.setRange(vm["st_e"].idx(n), 0, self.st_sigmaBar_n[n])
+        if "st_c" in vm:
+            for n in range(self.N_n):
+                self.B.setRange(vm["st_c"].idx(n), 0, self.st_credit_n[n])
         if "st_re" in vm:
             for i in range(self.N_i):
                 for n in range(self.N_n):
@@ -2793,6 +2800,15 @@ class Plan:
             if ss_lp and not self.st_tax_ss[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
+
+        # A personal credit only offsets tax: the credit used stays below the year's state tax,
+        # which includes any benefit recapture (STR_n, a loop parameter).
+        if "st_c" in vm:
+            for n in range(self.N_n):
+                row = self.A.newRow({vm["st_c"].idx(n): 1})
+                for t in range(self.N_st):
+                    row.addElem(vm["st_f"].idx(t, n), -self.st_theta_tn[t, n])
+                self.A.addRow(row, -np.inf, float(self.STR_n[n]), tag=("state_credit_cap", n))
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
@@ -3384,6 +3400,9 @@ class Plan:
                 for t in range(self.N_st):
                     # A local surcharge is a share of the state's own tax.
                     row.addElem(self.vm["st_f"].idx(t, n), self.st_theta_tn[t, n] * (1 + self.lt_surcharge_n[n]))
+                if "st_c" in self.vm:
+                    # A personal credit reduces the state tax paid, and with it any surcharge on that tax.
+                    row.addElem(self.vm["st_c"].idx(n), -(1 + self.lt_surcharge_n[n]))
             if "lt_f" in self.vm:
                 for t in range(self.N_lt):
                     row.addElem(self.vm["lt_f"].idx(t, n), self.lt_theta_tn[t, n])
@@ -4233,6 +4252,14 @@ class Plan:
                     for n in range(self.N_n):
                         c_arr[self.vm["w"].idx(1, j, n)] += epsilon
 
+            # Take the full state deduction and exemptions even where a personal credit already
+            # cancels the year's state tax: nothing else then prices state taxable income, so the
+            # solver could leave the deduction unused and report a larger taxable income.
+            if "st_c" in self.vm:
+                for t in range(self.N_st):
+                    for n in range(self.N_n):
+                        c_arr[self.vm["st_f"].idx(t, n)] += epsilon
+
             # Pin taxable Social Security in the years where it costs nothing. Nothing in
             # the formulation selects between the two z^σ_0 branches when the year owes no
             # tax on the benefit, and the branch that sets z^σ_0 = 1 forces
@@ -4785,6 +4812,7 @@ class Plan:
         self.N_lt = 0
         self.lt_surcharge_n = np.zeros(self.N_n)
         self.st_fed_sd = np.zeros(self.N_n, dtype=bool)
+        self.st_credit_n = np.zeros(self.N_n)
         self.st_recap = None
         self._str_active = False
         self._rx_active = False
@@ -4792,7 +4820,7 @@ class Plan:
             residence_n = self._residence_by_year()
             sp = tax_state.st_taxParams_schedule(
                 [state for state, _ in residence_n],
-                self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs,
+                self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs, i_d=self.i_d,
             )
             lp = tax_local.local_taxParams_schedule(residence_n, self.N_i, self.n_d, self.N_n, self.gamma_n)
             self.N_lt = lp.N_lt
@@ -4810,6 +4838,7 @@ class Plan:
             self.st_pe_pooled = sp.pe_pooled
             self.st_fed_sd = sp.fed_sd
             self.st_senior_bonus = sp.senior_bonus
+            self.st_credit_n = sp.credit_n
             self.st_recap = (sp.recap_start_n, sp.recap_width_n, sp.recap_until_n)
             self._str_active = bool(np.any(np.isfinite(sp.recap_start_n)))
             self._set_tiered_exclusion(sp)
@@ -5532,7 +5561,8 @@ class Plan:
         Nn = self.N_n
         if self.N_st > 0:
             self.st_T_tn = self.st_f_tn * self.st_theta_tn
-            state = np.sum(self.st_T_tn, axis=0) + self.STR_n
+            # Personal credits (st_c) come off the state tax, recapture included, down to zero.
+            state = np.sum(self.st_T_tn, axis=0) + self.STR_n - self.st_c_n
         else:
             state = np.zeros(Nn)
         self.st_recap_n = self.STR_n.copy() if self.N_st > 0 else np.zeros(Nn)
@@ -6495,6 +6525,7 @@ class Plan:
             return
 
         self.lt_f_tn = vm["lt_f"].extract(x) if "lt_f" in vm else np.zeros((self.N_lt, Nn))
+        self.st_c_n = vm["st_c"].extract(x) if "st_c" in vm else np.zeros(Nn)
         self._finalize_state_tax()
 
         self.T_tn = self.f_tn * self.theta_tn

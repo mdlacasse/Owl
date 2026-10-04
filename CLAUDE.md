@@ -10,9 +10,9 @@ Read these first, in this order:
 
 ## State (2026-10-03)
 
-- Branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1). A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `c1e5619` (2026.10.3). A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
-  - typed state params and `indexed` (NY not indexed);
+  - typed state params (`StateTaxParams`, with upstream's indexing flags and credits as `credit_n`);
   - SC-loop registry `_SC_PARAMS`;
   - mid-plan moves (`basic_info.moves`, `residency.py`);
   - local tax (`basic_info.locality`, `tax_local.py`, `data/taxes_local.toml`: NYC, Yonkers);
@@ -20,7 +20,7 @@ Read these first, in this order:
   - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, 60 s default cap; data `retirement_exclusion_*` in `taxes_state.toml`;
   - summary and Taxes-sheet breakdown;
   - MCP explain adapted.
-- Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; follow-up comment drafted). #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3), not yet merged here: take theirs and drop our `indexed` flag and NJ exemption data. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
+- Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; follow-up comment drafted). #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3) and merged here, taking theirs. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
 - Drafted, for the user to file: bracket order (`fork-notes/issue-bracket-order.md`) and ACA optimize infeasibility (`fork-notes/issue-aca-optimize-infeasible.md`); the last two have `.patch` files verified on stock `dev`.
 - Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band; other findings not yet triaged.
@@ -34,7 +34,7 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2711 passed / 1 skipped on 2026-10-04.
+- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2714 passed / 1 skipped on 2026-10-04.
 - Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 

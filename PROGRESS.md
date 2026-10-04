@@ -2,7 +2,7 @@
 
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
-Fork `fmateoc/Owl`, branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, itself from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `a85ff76` (2026.10.1; nothing newer upstream on 2026-10-03).
+Fork `fmateoc/Owl`, branch `claude/optimistic-darwin-n5xykl` (continued from `claude/relaxed-turing-xzrv89`, itself from `claude/inspiring-rubin-f0a0p9`), merged with upstream `dev` at `c1e5619` (2026.10.3, with the #157 fix) on 2026-10-04.
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream
@@ -12,7 +12,7 @@ Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/pha
 | #147 State tax base included the federal deduction | Fixed upstream (`81bc8d6`, `d4cbac4`); our PR 1 dropped |
 | #149 NJ top bracket taxed at 0% (Single, survivors) | Fixed upstream in `dev` (`0aabf00`) with our proposed patch; our copy dropped in the merge |
 | #155 Married case without `pension_indexed` crashes | Fixed upstream (`8971005`); our copy dropped in the merge |
-| #157 NY amounts inflated though NY does not index them | **Fixed upstream** (`3c88ce1`, 2026.10.3: `brackets_/deduction_/exemptions_indexed` flags, per-filer exemptions and credits). Not merged yet: next merge takes theirs and drops our `indexed` flag and NJ exemption data |
+| #157 NY amounts inflated though NY does not index them | **Fixed upstream** (`3c88ce1`, 2026.10.3: `brackets_/deduction_/exemptions_indexed` flags, per-filer exemptions and credits). **Merged** 2026-10-04: took theirs; our `indexed` flag, NJ exemption data and duplicate tests dropped |
 | #157 addendum: NJ not indexed either; NJ exemptions missing | **Posted** by the user on #157; covered by `3c88ce1` (NJ nominal, $1,000 per filer + $1,000 per filer 65+, which our fork did not model) |
 | #158 NY benefit recapture missing | **Filed**; awaiting upstream (draft in `fork-notes/issue-ny-recapture.md`) |
 | #159 Design proposal: mid-plan moves + local tax | **Filed**; awaiting the maintainer's answers to its six questions (draft in `fork-notes/issue-residency-local-design.md`) |
@@ -125,4 +125,6 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-Full suite after the bracket-order, ACA and NJ kept-tier fixes (2026-10-04): 2711 passed, 1 skipped; flake8 clean.
+Full suite after merging upstream 2026.10.3 (2026-10-04): 2714 passed, 1 skipped; flake8 clean. Before the merge: 2711 passed, 1 skipped.
+
+Merge notes: NJ now also takes the $1,000 exemption per filer aged 65+ (upstream), so NJ figures recorded before this merge (stakes tables above, the #160 issue numbers) are slightly high for couples 65+. Fork-only amounts follow upstream's flags (NY recapture thresholds with `brackets_indexed`, NJ exclusion ceilings/cap with `exemptions_indexed`); upstream's personal credits are wired through the moves schedule (`StateTaxParams.credit_n`), offset recapture too, and come before a local surcharge.
