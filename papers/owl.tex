@@ -352,7 +352,8 @@ of 25/36 of~1\% per month for claiming before the spousal FRA (which mirrors
 the own FRA schedule) and no bonus for deferral beyond FRA.
 
 The survivor benefit is the greater of the deceased spouse's actual benefit and
-82.5\% of the deceased's PIA, reduced if the survivor claims before their own
+82.5\% of the deceased's PIA; a spouse who died before claiming leaves the full PIA,
+plus the delayed retirement credits earned up to death. It is reduced if the survivor claims before their own
 survivor FRA (minimum 71.5\% at age~60, interpolated linearly in the claiming month).
 Unlike the retirement benefit, it earns no delayed retirement credits past the
 survivor FRA, so deferring beyond that date is never advantageous.
@@ -407,8 +408,7 @@ The SSA earnings test is not modeled; users are assumed to be fully retired
 before their FRA.
 The survivor claiming date is a user setting rather than an optimized decision:
 the model evaluates whichever date is specified, but does not search for the one
-that maximizes the objective. A worker who dies before claiming is credited with
-the 82.5\% PIA floor rather than the benefit accrued to the date of death.
+that maximizes the objective.
 The Windfall Elimination Provision (WEP) and Government Pension Offset (GPO)
 were repealed by the Social Security Fairness Act (signed January~5, 2025) and therefore
 require no modeling.

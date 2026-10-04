@@ -373,6 +373,35 @@ def test_compute_ss_survivor_pia_floor():
     assert zeta_in[1, 15] == pytest.approx(expected_annual, rel=0.01)
 
 
+@pytest.mark.parametrize(
+    "age_now, factor",
+    [
+        (60, 1.0),  # dies at 63, before FRA 67: full PIA, not the 82.5% floor
+        (66, 1.16),  # dies at 69, after FRA 67 without claiming: PIA plus 2 years of DRCs
+    ],
+)
+def test_compute_ss_survivor_deceased_never_claimed(age_now, factor):
+    """A worker who dies before claiming leaves the full PIA, plus DRCs earned up to death."""
+    from datetime import date
+
+    thisyear = date.today().year
+    yobs = np.array([thisyear - age_now, thisyear - 67])
+    pias = np.array([2000, 400])
+    ages = np.array([70.0, 67.0])  # person 0 would have claimed at 70
+    mobs = np.array([1, 1])
+    tobs = np.array([15, 15])
+    horizons = np.array([3, 20])  # person 0 dies at the start of year 3
+    N_i, N_n = 2, 20
+
+    zeta_in, _ = ss.compute_social_security_benefits(
+        pias, ages, yobs, mobs, tobs, horizons, N_i, N_n, thisyear=thisyear
+    )
+    assert np.all(zeta_in[0, :] == 0)  # never claimed
+    expected_annual = factor * pias[0] * 12  # survivor is past their survivor FRA: no reduction
+    assert zeta_in[1, 3] == pytest.approx(expected_annual, rel=1e-6)
+    assert zeta_in[1, 15] == pytest.approx(expected_annual, rel=1e-6)
+
+
 def test_survivor_min_age_60():
     """Survivor under 60 at death: factor clamped to age-60 floor (71.5%)."""
     # Age 55 is below SSA minimum; factor must equal the age-60 value (0.715).

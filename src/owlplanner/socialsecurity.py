@@ -520,8 +520,10 @@ def compute_survivor_stream(
 
     The amount follows CFR § 404.338: the greater of the deceased's actual benefit at
     death and 82.5% of their PIA, reduced by ``_survivor_factor`` when claimed before the
-    survivor FRA. The start date comes from ``survivor_claim_age`` and is never earlier
-    than age 60 or the year of the first death.
+    survivor FRA. A deceased who had not claimed leaves the full PIA, plus the delayed
+    retirement credits earned up to death; the 82.5% limit applies only to reduced benefits.
+    The start date comes from ``survivor_claim_age`` and is never earlier than age 60 or the
+    year of the first death.
 
     This is the same stream ``compute_social_security_benefits`` combines with the
     survivor's own benefit; it is exposed separately so the SS claiming-age MIP can fold
@@ -560,7 +562,14 @@ def compute_survivor_stream(
             fra_deceased, ages[deceased_idx], bool(tobs[deceased_idx] == 1)
         )
     else:
-        deceased_monthly = 0.0  # Died before claiming; only the 82.5% PIA floor applies.
+        # Died before claiming: no reduced benefit, so the widow(er)'s limit (82.5% floor) does not
+        # apply (POMS RS 00615.320). The survivor's base is the full PIA, plus the delayed retirement
+        # credits earned up to death when death came after FRA (capped at 70).
+        age_at_death_dec = (thisyear + death_year_n) - yobs[deceased_idx] - (mobs[deceased_idx] - 1) / 12
+        deceased_monthly = pias[deceased_idx] * max(
+            1.0,
+            getSelfFactor(fra_deceased, min(70.0, max(62.0, age_at_death_dec)), bool(tobs[deceased_idx] == 1)),
+        )
 
     monthly = max(deceased_monthly, 0.825 * pias[deceased_idx]) * _survivor_factor(survivor_fra, claim_age)
 
