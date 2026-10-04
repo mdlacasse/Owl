@@ -111,7 +111,11 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 
 ## Envelope model (2026-10-04, branch `claude/project-thread-u0d9t0`)
 
-Back-of-envelope question: `fork-notes/envelope/README.md`. A one-state DP (`em.py`) reproduces Owl within ±1% on most examples in 0.02–0.2 s; with the early-withdrawal penalty, conversion caps and the taxable account as a second state (§8), the EM's accounting matches Owl's within ±0.11% in 15 of 17 cases and its optimum is within −0.3% to +0.9% in 12 of 17, but it takes 0.7–5 s (slower than Owl's loop). morgan's +12% is Owl's ACA loop (vs `withACA="optimize"`: EM −1.3%). Open: john+sally (+$15k bequest, unexplained), slack-induced draw excess (jon+jane). Seeding Owl's loop from the one-state plan does nothing (≤0.05% except john+sally +3%); pinning Owl's yearly recognition to it gives morgan +10.4% (+11.9% with Ψ=0.85 in both) and −0.55% to +0.84% elsewhere (README §9). "Best of default and pinned" is a possible upstream idea; nothing filed yet.
+Back-of-envelope question: `fork-notes/envelope/README.md`. A one-state DP (`em.py`) reproduces Owl within ±1% on most examples in 0.02–0.2 s; with the early-withdrawal penalty, conversion caps and the taxable account as a second state (§8), the EM's accounting matches Owl's within ±0.11% in 15 of 17 cases and its optimum is within −0.3% to +0.9% in 12 of 17, but it takes 0.7–5 s (slower than Owl's loop). Decision (Florin): the one-state version is the quick screen.
+
+Seeding Owl's loop from the one-state plan does nothing (≤0.05% except john+sally +3%). Pinning Owl's yearly recognition to it, with the loop seeded from it, gives morgan +10.2% on stock `dev` (+11.0% with Ψ fixed, all other residuals 0) and −0.55% to +0.47% elsewhere; john+sally −$5.8k, because the EM's schedule needs an untaxed taxable account (README §10, which also explains the john+sally gap).
+
+Upstream drafts, **not filed**: `fork-notes/issue-envelope-model.md` (the one-state EM as a design proposal) and `fork-notes/issue-pinned-loop.md` (second loop pinned to the EM's schedule, keep it only if better by more than a threshold). All numbers from stock `dev` `c1e5619`, scripts at `8927703`. File the EM one first; the pinned-loop draft refers to it as "the companion issue".
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
@@ -123,6 +127,7 @@ Back-of-envelope question: `fork-notes/envelope/README.md`. A one-state DP (`em.
 6. #162 Bracket order — fixed upstream with our patch (2026.10.4), merged
 7. #163 SC-loop cycle selection — filed
 8. Filed 2026-10-04 by the user (numbers not recorded yet): ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes (each with a patch verified on `dev`); partial first year, ACA optimize rates (design, no patch). Not filed: docs/paper drift
+9. Drafted 2026-10-04, not filed: one-state envelope model (`issue-envelope-model.md`) and pinned loop (`issue-pinned-loop.md`), design proposals
 
 When upstream lands #157/#158, merge `dev` and drop our duplicates, as with #149 and #155.
 

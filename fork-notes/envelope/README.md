@@ -288,3 +288,17 @@ Readings [run unless marked]:
 - **john+sally pinned is not a result.** The loop ended on an unsolvable iterate with a residual of $190k.
 
 **Practical form** [inferred]: run Owl's default loop and the pinned loop and keep the better plan. That costs the one-state EM plus a second loop, 0.1–2 s in total on these cases. It catches morgan-type failures of the loop (+10%) and never loses anything, since the default plan is kept when pinning loses.
+
+## 10. Follow-up 4 (2026-10-04): stock `dev`, seeded pinned loop, upstream drafts
+
+Drafts: `../issue-envelope-model.md` (the one-state EM as a design proposal) and `../issue-pinned-loop.md` (the second loop). Both cite only runs on stock upstream `dev` `c1e5619` (worktree with `PYTHONPATH=<dev>/src EM_EXAMPLES=<dev>/examples`), raw output in `dev/`, scripts at commit 8927703. The §8 two-state model is left out of both: it is slower than Owl and its rounding slack (`draw_excess`) was never charged.
+
+What changed since §9 [run unless marked]:
+
+- **Seeded and pinned together** (`seed.seeded_pinned_solve`, column `seeded_pinned` in `dev/seed_results.jsonl`). Same values as pinned alone, except john+sally: the unseeded pinned loop starts at Ψ = 0.85 with zero IRMAA, ACA and NIIT and ends on an unsolvable iterate; seeded, it converges at 11,023 (residual $1,044) against Owl's 16,803. The drafts use this variant.
+- **john+sally is explained.** The EM recognizes nothing in 2032–2037 (SS 41–47% taxable instead of 85%) and runs the liquid pool down to $1,367. Owl taxes the taxable account and cannot fund the $145k floor on that schedule: pinned with no headroom above the EM's recognition, the LP is infeasible (`band.py` → `dev/band.jsonl`). With one step of headroom it is 11,023. So the §8 "unexplained" gap is assumption (b). The exact `withSSTaxability="optimize"` run started for this question (maxTime 600 per MILP) did not finish in 25 minutes on dev or the fork; the drafts do not use it.
+- **Where the EM's own value goes** (`pin_check.py` → `dev/pin_check*.jsonl`): EM value − Owl's value of the EM schedule = band deviations (EM's valuation of Owl's ±1-step deviations, ≥ 0 by construction) + taxable-account tax on that plan + accounting gap. The taxable-account tax is the largest part in most cases.
+- **morgan, on dev** (`morgan_aca.py`, `morgan_psi.py`): default pays the full $14,000 benchmark in 10 of 11 ACA years ($141,655 in total, today's $); pinned keeps 9 years at 142–169% FPL ($36,604). With Ψ = 0.85 in both runs, seeded pinned 42,250 vs 38,049 (+11.0%), all non-SS residuals 0 except $10 LTCG.
+- **Correction to §9:** `withACA="optimize"` is not a reference for morgan. It uses a different rule from loop mode (each band's top rate, 2.10% below 138% FPL instead of the full premium; `../issue-aca-optimize-rates.md`), and on `dev` it leaves an ACA residual of $88,967. The drafts compare at fixed Ψ instead.
+- **Pin band:** holding recognition at or below the EM's (`EM_BAND=1,0` or `0,0`) gives morgan 42,345 (monotonic, residual $925–1,346) and makes john+sally infeasible; the drafts keep ±1 step.
+- **HSA:** at φ = 1 the jordans' HSA ends at 0 (`hsa_estate.py`), so the HSA cap is not part of their φ = 1 gap. At φ = 0.28 it ends at $185–193k nominal ($28–29k heirs' tax, today's $).
