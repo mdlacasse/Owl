@@ -8,7 +8,7 @@ import sys, glob, os, io, json, time
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-os.chdir(os.path.join(HERE, "..", "..", "examples"))
+os.chdir(os.environ.get("EM_EXAMPLES", os.path.join(HERE, "..", "..", "examples")))
 from owlplanner.config.toml_io import load_toml  # noqa
 from owlplanner.config.plan_bridge import config_to_plan  # noqa
 from owlplanner import utils as u  # noqa

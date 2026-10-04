@@ -1,0 +1,6 @@
+{"case": "Case_john+sally.toml", "band": [1.0, 1.0], "default": 16803, "em": 43474, "pinned": 11023, "status": "solved", "conv": "monotonic", "resid": 1044, "t": 0.23, "em_zero_years": [2032, 2033, 2034, 2035, 2036, 2037], "h_first": 1000}
+{"case": "Case_morgan.toml", "band": [1.0, 1.0], "default": 38744, "em": 43503, "pinned": 42704, "status": "solved", "conv": "oscillatory (cycle length 2)", "resid": 3613, "t": 0.2, "em_zero_years": [], "h_first": 500}
+{"case": "Case_john+sally.toml", "band": [1.0, 0.0], "default": 16803, "em": 43474, "pinned": null, "status": "infeasible", "conv": "undefined", "resid": 0, "t": 0.03, "em_zero_years": [2032, 2033, 2034, 2035, 2036, 2037], "h_first": 1000}
+{"case": "Case_morgan.toml", "band": [1.0, 0.0], "default": 38744, "em": 43503, "pinned": 42345, "status": "solved", "conv": "monotonic", "resid": 925, "t": 0.12, "em_zero_years": [], "h_first": 500}
+{"case": "Case_john+sally.toml", "band": [0.0, 0.0], "default": 16803, "em": 43474, "pinned": null, "status": "infeasible", "conv": "undefined", "resid": 0, "t": 0.04, "em_zero_years": [2032, 2033, 2034, 2035, 2036, 2037], "h_first": 1000}
+{"case": "Case_morgan.toml", "band": [0.0, 0.0], "default": 38744, "em": 43503, "pinned": 42345, "status": "solved", "conv": "monotonic", "resid": 1346, "t": 0.1, "em_zero_years": [], "h_first": 500}

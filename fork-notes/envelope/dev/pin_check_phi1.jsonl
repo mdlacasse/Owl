@@ -1,0 +1,2 @@
+{"case": "jordan+taylor", "phi1": true, "opts": {}, "objective": "maxBequest", "full": 4220573, "em": 4411886, "pinned": 4203652, "status_pinned": "solved", "conv_pinned": "oscillatory", "resid_pinned": 0, "acct0": 4324653, "acct": 4203754}
+{"case": "jordan+taylor-qcd", "phi1": true, "opts": {}, "objective": "maxBequest", "full": 3111557, "em": 3282501, "pinned": 3137776, "status_pinned": "solved", "conv_pinned": "oscillatory", "resid_pinned": 0, "acct0": 3254436, "acct": 3137856}

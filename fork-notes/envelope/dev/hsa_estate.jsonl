@@ -1,0 +1,6 @@
+{"case": "jordan+taylor", "phi1": true, "hsa_start": 50000.0, "hsa_end_nominal": 0, "heirs_tax_today": 0, "objective": 4220573}
+{"case": "jordan+taylor-qcd", "phi1": true, "hsa_start": 50000.0, "hsa_end_nominal": 0, "heirs_tax_today": 0, "objective": 3111557}
+{"case": "jordan+taylor", "phi1": false, "hsa_start": 50000.0, "hsa_end_nominal": 185006, "heirs_tax_today": 28177, "objective": 1530120}
+{"case": "jordan+taylor-qcd", "phi1": false, "hsa_start": 50000.0, "hsa_end_nominal": 192677, "heirs_tax_today": 29345, "objective": 1180200}
+{"case": "john+sally", "phi1": false, "hsa_start": 40000.0, "hsa_end_nominal": 0, "heirs_tax_today": 0, "objective": 16803}
+{"case": "kim+sam-bequest", "phi1": false, "hsa_start": 63000.0, "hsa_end_nominal": 0, "heirs_tax_today": 0, "objective": 1944071}

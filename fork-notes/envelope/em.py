@@ -149,14 +149,14 @@ def inputs(p, opts=None):
         inp["pe_adj"] = np.minimum(p.piBar_in, p.st_pe_cap_in).sum(axis=0)
         cap = np.where(np.isfinite(p.st_re_cap_in), p.st_re_cap_in, 1e9)
         inp["re_cap"] = cap.sum(axis=0)
-        inp["re_pooled"] = np.asarray(p.st_pe_pooled, dtype=bool) & np.ones(N, dtype=bool)
+        inp["re_pooled"] = np.asarray(getattr(p, "st_pe_pooled", False), dtype=bool) & np.ones(N, dtype=bool)
         inp["st_credit"] = p.st_credit_n
-        inp["surch"] = p.lt_surcharge_n
+        inp["surch"] = getattr(p, "lt_surcharge_n", np.zeros(N))  # local tax: fork only
         inp["N_lt"] = getattr(p, "N_lt", 0)
         if inp["N_lt"]:
             inp["lt_theta"], inp["lt_Delta"] = p.lt_theta_tn, p.lt_DeltaBar_tn
-    inp["medicare"] = opts.get("withMedicare", "loop") != "none"
-    inp["aca"] = opts.get("withACA", "loop") != "none" and p.slcsp_annual > 0
+    inp["medicare"] = str(opts.get("withMedicare", "loop")).lower() != "none"
+    inp["aca"] = str(opts.get("withACA", "loop")).lower() != "none" and p.slcsp_annual > 0
     ssv = opts.get("withSSTaxability", "loop")
     inp["fixed_psi"] = float(ssv) if isinstance(ssv, (int, float)) else None
     # Medicare / ACA eligibility, for the vectorized versions of tx.mediCosts / tx.acaCosts
@@ -221,7 +221,8 @@ def _aca_row(inp, n, m):
     scale = tx.couple_to_individual_fraction(THISYEAR + n - yobs[elig[0]]) if (Ni == 2 and hh == 1) else 1.0
     slcsp = inp["slcsp"] * scale * gam[n]
     ratio = m / fpl
-    bp, cp, ip = tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+    bp, cp = tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026
+    ip = getattr(tx, "_ACA_CONTRIB_INITIAL_2026", cp)  # fork: 133-150% band starts at 3.14%
     idx = np.clip(np.searchsorted(bp, ratio, side="right") - 1, 0, len(bp) - 2)
     t = (ratio - bp[idx]) / (bp[idx + 1] - bp[idx])
     pct = ip[idx] + t * (cp[idx + 1] - ip[idx])

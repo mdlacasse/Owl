@@ -1,0 +1,2 @@
+{"plan": "default", "psi": 0.85, "value": 38049, "conv": "oscillatory", "resid_nonSS": {"IRMAA": 0, "ACA": 0, "NIIT": 0, "deduction": 0, "LTCG": 0}, "t": 0.15}
+{"plan": "pinned", "psi": 0.85, "value": 42250, "conv": "monotonic", "resid_nonSS": {"IRMAA": 0, "ACA": 0, "NIIT": 0, "deduction": 0, "LTCG": 10}, "t": 0.11}

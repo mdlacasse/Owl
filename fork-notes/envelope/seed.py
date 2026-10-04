@@ -19,6 +19,8 @@ from owlplanner import tax_federal as tx  # noqa
 import em  # noqa
 
 PHI1 = compare.PHI1
+# pin band around the EM's recognition, in EM grid steps below and above
+BAND = tuple(float(v) for v in os.environ.get("EM_BAND", "1,1").split(","))
 
 
 def em_seed(p, opts):
@@ -85,11 +87,30 @@ def pinned_solve(p, opts, seed):
                 row.addElem(p.vm["w"].idx(i, 1, n), 1)
                 row.addElem(p.vm["x"].idx(i, n), 1)
             xn, hn = float(seed["x"][n]), float(seed["h"][n])
-            p.A.addRow(row, max(0.0, xn - hn), xn + hn, tag=("em_pin", n))
+            p.A.addRow(row, max(0.0, xn - BAND[0] * hn), xn + BAND[1] * hn, tag=("em_pin", n))
     p._add_roth_maturation_constraints = rows
     t = time.time()
     p.solve(p.objective, opts)
     return time.time() - t
+
+
+def seeded_pinned_solve(p, opts, seed):
+    """Pinned as above, with the loop also started from the EM plan's own Psi, IRMAA, ACA and NIIT
+    (seeded_solve): the first LP then charges the costs of the schedule it is pinned to."""
+    orig = p._add_roth_maturation_constraints
+
+    def rows():
+        orig()
+        for n in range(p.N_n):
+            row = p.A.newRow()
+            for i in range(p.N_i):
+                row.addElem(p.vm["w"].idx(i, 1, n), 1)
+                row.addElem(p.vm["x"].idx(i, n), 1)
+            xn, hn = float(seed["x"][n]), float(seed["h"][n])
+            p.A.addRow(row, max(0.0, xn - BAND[0] * hn), xn + BAND[1] * hn, tag=("em_pin", n))
+    p._add_roth_maturation_constraints = rows
+    t, _ = seeded_solve(p, opts, seed)
+    return t
 
 
 def resid(p):
@@ -132,6 +153,15 @@ def one(path):
     out.update(pinned=None if v is None else round(v), status_pinned=r.caseStatus, conv_pinned=r.convergenceType,
                resid_pinned=resid(r), t_pinned=round(tp, 2))
     out["pinned_vs_default_pct"] = None if v is None else round(100 * (v - out["default"]) / abs(out["default"]), 2)
+    r = compare.load(path)
+    if PHI1:
+        r.setBeneficiaryFractions([1, 1, 1, 1])
+    tp = seeded_pinned_solve(r, dict(opts), seed)
+    v = value(r)
+    out.update(seeded_pinned=None if v is None else round(v), status_seeded_pinned=r.caseStatus,
+               conv_seeded_pinned=r.convergenceType, resid_seeded_pinned=resid(r), t_seeded_pinned=round(tp, 2))
+    out["seeded_pinned_vs_default_pct"] = (None if v is None else
+                                           round(100 * (v - out["default"]) / abs(out["default"]), 2))
     return out
 
 
