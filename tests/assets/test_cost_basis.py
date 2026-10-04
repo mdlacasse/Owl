@@ -199,6 +199,56 @@ class TestCostBasisValidation:
         assert owl.Plan._gain_fraction_from_basis(200, 1000) == 0.8
 
 
+class TestCostBasisReinvestedIncome:
+    """Taxed, reinvested dividends and interest add to basis; the gain sits in the equity share."""
+
+    def _solved(self, alloc):
+        thisyear = date.today().year
+        p = owl.Plan(["Bo"], [f"{thisyear - 60}-06-15"], [90], "reinvested", verbose=False)
+        p.setSpendingProfile("flat")
+        p.setAccountBalances(taxable=[1000], taxDeferred=[1000], taxFree=[0], startDate="01-01")
+        p.setCostBasis([500])
+        p.setAllocationRatios("individual", generic=[[alloc, alloc]])
+        p.setRates("user", values=[7, 4, 3, 2.5])
+        p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85})
+        assert p.caseStatus == "solved"
+        return p
+
+    @pytest.mark.parametrize("alloc", [[100, 0, 0, 0], [60, 40, 0, 0]])
+    def test_basis_includes_taxed_income(self, alloc):
+        """Recompute the basis by hand from the plan's own flows and compare the gain fractions."""
+        p = self._solved(alloc)
+        p._update_gain_fraction()
+        b, w, d, k = p.b_ijn[0, 0, :], p.w_ijn[0, 0, :], p.d_in[0, :], p.kappa_ijn[0, 0, :]
+        a0 = p.alpha_ijkn[0, 0, 0, :]
+        fak = np.sum(np.maximum(0, p.tau_kn[1:, :]) * p.alpha_ijkn[0, 0, 1:, : p.N_n], axis=0)
+        basis = 500e3
+        for n in range(p.N_n):
+            whole = min(1.0, max(0.0, 1 - basis / max(1.0, b[n])))
+            # Realized gain per dollar withdrawn is the whole-account gain fraction.
+            assert a0[n] * p.gain_fraction_in[0, n] == pytest.approx(min(a0[n], whole), abs=1e-9)
+            taxed = (p.mu * a0[n] + fak[n]) * (b[n] - w[n] + d[n] + 0.5 * k[n])
+            basis = (basis * (1 - w[n] / b[n]) if b[n] > 0 else 0) + k[n] + d[n] + max(0.0, taxed)
+
+    def test_gain_fraction_grows_slower_than_without_dividends(self):
+        """All equity, drawn down: dividends taxed every year keep the gain fraction lower."""
+        p = self._solved([100, 0, 0, 0])
+        p._update_gain_fraction()
+        b, w, d, k = p.b_ijn[0, 0, :], p.w_ijn[0, 0, :], p.d_in[0, :], p.kappa_ijn[0, 0, :]
+        basis_no_div = 500e3
+        n_last = int(np.max(np.nonzero(b[: p.N_n] > 1000)))
+        for n in range(n_last):
+            basis_no_div = basis_no_div * (1 - w[n] / b[n]) + k[n] + d[n]
+        gf_no_div = 1 - basis_no_div / b[n_last]
+        assert p.gain_fraction_in[0, n_last] < gf_no_div - 0.05
+
+    def test_equity_gain_fraction(self):
+        assert owl.Plan._equity_gain_fraction(500, 1000, 1.0) == pytest.approx(0.5)
+        assert owl.Plan._equity_gain_fraction(500, 1000, 0.6) == pytest.approx(0.5 / 0.6)
+        assert owl.Plan._equity_gain_fraction(100, 1000, 0.5) == 1.0  # capped
+        assert owl.Plan._equity_gain_fraction(100, 1000, 0.0) == 0.0  # no equity, no gain realized
+
+
 class TestCostBasisConfig:
     def test_plan_to_config_roundtrip(self):
         p = _make_plan("rt", taxable_k=500, tax_deferred_k=200, tax_free_k=50)

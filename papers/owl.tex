@@ -1661,7 +1661,7 @@ Parameter values are either set by the user, historical data, or by the tax code
 	in year $n$.  It is computed by the self-consistent loop and enters the LP as a
 	fixed parameter each iteration.
 	When a cost basis is provided via \code{setCostBasis()},
-	$\psi_{in} = 1 - K_{in}/b_{i0n}$ (see Eq.~(\ref{Eq:GainFrac})).
+	$\psi_{in} = (1 - K_{in}/b_{i0n})/\alpha_{i00n}$, capped at 1 (see Eq.~(\ref{Eq:GainFrac})).
 	Otherwise, $\psi_{in} = \max(0,\tau_{0(n-1)}-\mu)$, i.e., only the most
 	recent year's price appreciation is treated as a gain (Eq.~(\ref{Eq:Qx2})).
 \item [$\sigma_n$]
@@ -2046,20 +2046,29 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	where
 	\begin{equation}
 		\label{Eq:GainFrac}
-		\psi_{in} = \max\!\left(0,\;1 - \frac{K_{in}}{b_{i0n}}\right)
+		\psi_{in} = \min\!\left(1,\;\frac{1}{\alpha_{i00n}}\max\!\left(0,\;1 - \frac{K_{in}}{b_{i0n}}\right)\right)
 	\end{equation}
-	is the fraction of the taxable account balance that represents unrealized gain.
+	is the fraction of the equity holdings that represents unrealized gain.
+	Bond and cash returns are taxed every year, so those holdings sit at their basis and
+	the account's whole unrealized gain $b_{i0n} - K_{in}$ is carried by the equity share
+	$\alpha_{i00n} b_{i0n}$; the realized gain $\alpha_{i00n}\psi_{in} w_{i0n}$ is then
+	$(1 - K_{in}/b_{i0n})\,w_{i0n}$.
 	Equation~(\ref{Eq:Qx2}) is recovered when $\psi_{in} = \max(0,\tau_{0(n-1)}-\mu)$,
 	the fallback used in the absence of a known basis.
 	The basis evolves between self-consistent iterations via the pro-rata (average-cost) rule
 	\begin{equation}
 		\label{Eq:BasisUpdate}
-		K_{i,n+1} = K_{in}\!\left(1 - \frac{w_{i0n}}{b_{i0n}}\right) + \kappa_{i0n} + d_{in},
+		K_{i,n+1} = K_{in}\!\left(1 - \frac{w_{i0n}}{b_{i0n}}\right) + \kappa_{i0n} + d_{in}
+		+ \Big(\alpha_{i00n}\mu + \sum_{k\ge1}\alpha_{i0kn}\max(0, \tau_{kn})\Big)
+		  \big(b_{i0n} - w_{i0n} + d_{in} + \tfrac{1}{2}\kappa_{i0n}\big),
 	\end{equation}
 	initialized at $K_{i0}$ from \code{setCostBasis()}.
 	Each withdrawal reduces the total basis in proportion to the account fraction
 	liquidated; fixed contributions $\kappa_{i0n}$ and surplus deposits $d_{in}$ are
 	new purchases added at full cost (zero embedded gain).
+	The last term is the year's dividends and interest: they are taxed as they are earned
+	and stay in the account, so they are reinvested at full cost too; leaving them out
+	would tax them a second time on sale.
 
 \item [$\mathbb{G}_n$]
 	Modified adjusted gross income (MAGI) for year $n$, on the adjusted-gross-income

@@ -2002,12 +2002,12 @@
   },
   "Case_helen+ruth": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-04 after taxable cost basis started counting reinvested dividends and putting the gain in equities (was 195243.52)",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 195243.52,
+    "basis": 194069.03,
     "bequest": 200000.0,
     "conversions_n": [
      150000.0,

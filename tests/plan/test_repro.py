@@ -40,21 +40,24 @@ import owlplanner as owl
 # solving it under different constraint subsets gave 939_900 / 978_246 / 960_684, an ordering
 # no relaxation can produce. Most of the move is which fixed point the loop lands on, not a
 # change in what is achievable, so these are reproducibility anchors and not optimality claims.
+# Updated when taxable cost basis started counting taxed, reinvested dividends and interest and
+# putting the account's unrealized gain in its equity share: SPENDING1 89_532 -> 89_154,
+# BEQUEST1 960_684 -> 959_220 (recorded with HiGHS on linux; the other platforms take the same).
 if platform == "darwin":
-    SPENDING1 = 89_532
-    BEQUEST1 = 960_684
+    SPENDING1 = 89_154
+    BEQUEST1 = 959_220
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
-    SPENDING1 = 89_532
-    BEQUEST1 = 960_684
+    SPENDING1 = 89_154
+    BEQUEST1 = 959_220
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
-    SPENDING1 = 89_532
-    BEQUEST1 = 960_684
+    SPENDING1 = 89_154
+    BEQUEST1 = 959_220
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
