@@ -12,6 +12,11 @@ import compare  # noqa  (chdir to examples)
 from owlplanner import utils as u  # noqa
 import em  # noqa
 
+PEN = os.environ.get("EM_PEN", "1") == "1"
+TAX = os.environ.get("EM_TAX", "1") == "1"
+REF = os.environ.get("EM_REF") == "1"          # also the exact (full-band) DP
+VARIANTS = os.environ.get("EM_VARIANTS", "orig").split(",")
+
 
 def one(path, mu0):
     p = compare.load(path)
@@ -30,17 +35,22 @@ def one(path, mu0):
     inp = em.inputs(p, opts)
     kw = (dict(bequest=u.get_monetary_option(opts, "bequest", 1) if "bequest" in opts else 1.0)
           if p.objective == "maxSpending" else dict(netSpending=u.get_monetary_option(opts, "netSpending", 1)))
-    res = em.solve_dp(inp, r=None, **kw)
-    ref = em.solve_dp(inp, r=None, fast=False, **kw)
+    res = em.solve_dp(inp, r=None, penalty=PEN, taxable=TAX, **kw)
+    ref = em.solve_dp(inp, r=None, fast=False, penalty=PEN, taxable=TAX, **kw) if REF else {"value": np.nan, "t_total": np.nan}
     fx = p.w_ijn[:, 1, :].sum(axis=0) + p.x_in.sum(axis=0)
-    ev = em.evaluate(inp, None, fx, **kw)
+    ev0 = em.evaluate(inp, None, fx, **kw)
+    eo, eq, pen = em.owl_extras(p)
+    ev = em.evaluate(inp, None, fx, eo=eo, eq=eq, pen=pen, **kw)
     pct = lambda v: round(100 * (v - full) / abs(full), 2)
     return {"full": round(full), "em": round(res["value"]), "err_pct": pct(res["value"]),
-            "em_ref": round(ref["value"]), "acct_err_pct": pct(ev["value"]),
+            "em_ref": None if np.isnan(ref["value"]) else round(ref["value"]), "fp_gap": res.get("fp_gap"), "draw_excess": round(res["draw_excess"]), "acct_err_pct": pct(ev["value"]), "acct0_err_pct": pct(ev0["value"]),
+            "em_pen": round(res["penalty_total"]), "owl_pen": round(float(pen.sum())),
+            "em_drag": round(res["drag_income"]), "owl_drag": round(float((eo + eq).sum())),
+            "iters": res["iters"], "converged": res["converged"],
             "R_spread_pct": round(100 * inp["R_spread"], 2), "mu": inp["mu"],
             "conv": p.convergenceType,
             "resid": round(sum(v["abs_sum"] for v in getattr(p, "fixedPointResidual", {}).values())),
-            "t_full": round(tf, 2), "t_em": round(res["t_total"], 3), "t_em_ref": round(ref["t_total"], 2),
+            "t_full": round(tf, 2), "t_em": round(res["t_total"], 3), "t_em_ref": None if np.isnan(ref["t_total"]) else round(ref["t_total"], 2),
             "liq_min": round(res["liq_min"])}
 
 
@@ -51,5 +61,6 @@ if __name__ == "__main__":
         if compare.PHI1:
             out["phi1"] = True
         for tag, mu0 in (("orig", False), ("mu0", True)):
-            out[tag] = one(c, mu0)
+            if tag in VARIANTS:
+                out[tag] = one(c, mu0)
         print(json.dumps(out), flush=True)

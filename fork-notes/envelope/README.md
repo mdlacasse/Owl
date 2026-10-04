@@ -131,6 +131,10 @@ On five of the six cases the EM agrees with Owl's exact modes to within 0.07% (m
 - `em.py`: the envelope model (`inputs`, `cost_table`, `solve_dp`, `evaluate`).
 - `compare.py` → `compare_results.jsonl`, `compare_phi1.jsonl` (`EM_PHI1=1`): EM vs full (§4).
 - `verify_exact.py` → `verify_*.jsonl`: full model with exact MILP modes.
+- `compare_orig.py` → `orig*_results.jsonl`: EM vs full on the original cases (§7, §8). `EM_PEN=0`/`EM_TAX=0` turn off the penalty and the taxable state, `EM_REF=1` adds the exact DP, `EM_PHI1=1` sets beneficiary fractions to 1.
+- `verify_orig.py` → `verify_orig.jsonl`: full model with exact MILP modes on the original cases (§8).
+
+§3–§7 were produced by `em.py` as of commit 359bdf4; `solve_dp` now defaults to the §8 model (`penalty=True, taxable=True`), so re-running `compare.py` gives §8-style numbers.
 
 Reproduce: `cd fork-notes/envelope && python3 ladder.py && python3 compare.py` (all examples; a case path as argument runs one).
 
@@ -193,7 +197,57 @@ So two assumptions must stay, because they *are* the collapse: (a) the same retu
   It agrees with the MILP to within a month in three of four cases. Robin, the asset-location case, is the exception. It is slower, not faster. jack+jill gets two different full-model values at identical ages, 0.27% apart: loop-mode noise, as CLAUDE.md warns.
 - **Spending–bequest frontier from one solve** [derived, spot-checked]. In the EM the bequest target enters only the budget identity. Unless the liquidity or RMD constraints move the optimal x, basis is linear in the bequest, with slope −d_N γ_N / Σ d_n ξ_n γ_n. Measured at bequests of 0, 200k, 400k and 800k: the EM's x was unchanged and its basis exactly linear for kim+sam-spending and jack+jill. The full model's slopes differ from the EM's by 0.6% and 1.9%. For dana the x changed and the EM's increments drift by 1.5%.
 - **Single-multiplier water-filling** ("recognize until the marginal rate is ν + λ"). This is exact when every τ_n is convex (no IRMAA/ACA cliffs, no torpedo) and is solved by bisection on λ. It is useful as an interpretable rule. With cliffs it lost 1.3% against the DP on jack+jill in the envelope world (first EM version, §4 period) [run, not kept as a script].
-- **Not tried** [inferred]:
-  - a second DP state for the taxable account, which would remove the largest remaining gap;
-  - the early-withdrawal penalty tied to the liquidity floor;
-  - seeding Owl's loop parameters (Ψ, M, ACA) from the EM's plan, so the loop starts at the better point the EM finds.
+- **Not tried** [inferred]: seeding Owl's loop parameters (Ψ, M, ACA) from the EM's plan, so the loop starts at the better point the EM finds. (The taxable-account state and the penalty, listed here before, are §8.)
+
+## 8. Follow-up 2 (2026-10-04): early-withdrawal penalty, Roth conversion caps, taxable account as a DP state
+
+Florin's point stands: the penalty fits the collapse and should have been in the EM from the start. So should the conversion caps, which every example sets (`maxRothConversion` from 0 to 400k, `noRothConversions`, `startRothConversions`) and which §2 had listed as left out. All three are now in `em.py` (`solve_dp(..., penalty=True, taxable=True)`).
+
+### 8.1 What was added [derived from Owl's code, then measured]
+
+- **Penalty.** Owl charges 10% on tax-deferred withdrawals before 59½ (`P_n`, plan.py:6585) and locks each Roth conversion for 5 years (`_add_roth_maturation_constraints`). The EM simulates the cash plan: in a year in which no living holder is 59½ yet, cash comes from the liquid pool and matured conversions first, and the shortfall S is withdrawn as S/0.9 with a 10% penalty. That withdrawal becomes a floor on x_n and the penalty is added to τ_n, iterated to a fixed point. Simplifications: the lock is applied only in penalized years; conversions made before the plan starts are not locked; a couple is penalized only when both are under 59½.
+- **Liquidity inside the DP.** The liquid pool after year n is L0 + s·h − (PV of spending net of fixed cash) − (F + ν·s·h), and F + ν·s·h is the PV of taxes paid so far. For a given state the cheapest path is also the most liquid, so this constraint keeps the DP exact for a given spending path. It replaces the iterated floor of §7.
+- **Taxable account as a second state.** State (s, t): PV recognized so far, PV taxable balance. The second decision is the year's net draw (negative = deposit). Each year's tax gets Owl's own taxable income: interest-like yield on the balance after the draw (ordinary), dividends on its equity share and the gain on the equity share of the draw (`_add_taxable_income`, `_update_gain_fraction`). Constraints:
+  - net draw ≤ cash need − (cash that cannot go to the Roth). That cash is the RMD, or recognition beyond the year's conversion cap. Without this, money would move from the taxable account to the Roth, which Owl allows only through conversions. A negative right-hand side forces a deposit: windfalls (joe sells a house in 2032), RMDs beyond spending, and every withdrawal beyond spending when the cap is 0 (bill, jon+jane).
+  - taxable balance ≤ liquid pool (Roth ≥ 0).
+  - The gain fraction K/b evolves as (K/b + taxed yield)/R regardless of draws, because average-cost basis scales with the balance on a withdrawal. So it is exogenous, exact without contributions or deposits and approximate with them.
+- **Solver.** A coarse 2-D DP (recognition on 1/100 of the budget, taxable on 16–41 levels), then alternating fine 1-D DPs: the recognition schedule for the taxable path (§7 banded DP), and the taxable path for the schedule (4× finer levels). Each pair is re-checked, and the best consistent pair is kept. Spending (maxSpending) is iterated from an upper estimate with damping; from below it stops at the lowest fixed point. Levels force one level of slack in the draw and Roth constraints, otherwise rounding accumulates over years of forced deposits. The `draw_excess` column measures what that slack lets through.
+
+### 8.2 Results on the original cases [run]
+
+`compare_orig.py` → `orig2_results.jsonl`, `orig2_phi1.jsonl` (penalty, caps and taxable state on); `orig1d_results.jsonl` (`EM_PEN=0 EM_TAX=0`: the §7 model, for comparison). "EM on full's x" now feeds Owl's own taxable income and penalties (`owl_extras`) into the EM's accounting.
+
+| Case | Full (loop) | EM now | EM vs full | §7 EM vs full | EM on full's x (now / §7) | draw excess (PV) | t full | t EM now | t §7 EM |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| alex+jamie | 228,369 | 230,038 | +0.73% | +1.36% | +0.11% / +0.84% | 16,654 | 0.17 | 1.46 | 0.09 |
+| bill | 36,666 | 36,666 | 0.00% | 0.00% | 0.00% / 0.00% | 0 | 0.04 | 0.01 | 0.02 |
+| cameron | 18,996 | 18,996 | 0.00% | 0.00% | 0.00% / 0.00% | 0 | 0.13 | 1.42 | 0.04 |
+| chris+pat | 116,916 | 117,287 | +0.32% | +0.60% | −0.01% / +0.30% | 5,146 | 0.33 | 1.94 | 0.07 |
+| dana | 81,228 | 81,270 | +0.05% | +0.23% | 0.00% / +0.19% | 1,412 | 0.06 | 0.93 | 0.07 |
+| devon | 248,306 | 248,775 | +0.19% | +0.58% | 0.00% / +0.33% | 264 | 0.07 | 1.35 | 0.21 |
+| helen+ruth | 194,069 | 195,227 | +0.60% | +1.96% | 0.00% / +1.19% | 14,677 | 0.14 | 0.67 | 0.05 |
+| jack+jill | 102,545 | 102,966 | +0.41% | +1.09% | −0.33% / +0.46% | 5,093 | 1.30 | 3.31 | 0.11 |
+| joe | 92,575 | 92,652 | +0.08% | +3.34% | 0.00% / +2.87% | 26,307 | 0.08 | 1.80 | 0.06 |
+| john+sally | 16,803 | 32,022 | +90.6% | +158.7% | 0.00% / +63.4% | 7,746 | 0.13 | 0.90 | 0.04 |
+| jon+jane | 160,677 | 160,176 | −0.31% | +0.60% | 0.00% / +0.22% | 121,460 | 0.15 | 5.21 | 0.09 |
+| jordan+taylor (φ=1) | 4,220,573 | 4,335,996 | +2.73% | +4.53% | 0.00% / +2.55% | 105,600 | 0.12 | 1.67 | 0.03 |
+| jordan+taylor-qcd (φ=1) | 3,111,557 | 3,225,845 | +3.67% | +5.49% | 0.00% / +3.01% | 83,629 | 0.14 | 1.83 | 0.04 |
+| kim+sam-bequest | 1,944,071 | 1,962,350 | +0.94% | +4.34% | +0.01% / +2.97% | 84,406 | 0.48 | 1.87 | 0.04 |
+| kim+sam-spending | 185,949 | 186,409 | +0.25% | +0.75% | 0.00% / +0.47% | 59,982 | 0.37 | 1.71 | 0.07 |
+| morgan | 38,744 | 43,341 | +11.87% | +16.55% | +0.01% / +3.49% | 268 | 0.32 | 2.12 | 0.16 |
+| robin | 44,013 | 42,847 | −2.65% | −2.56% | −3.88% / −3.64% | 0 | 0.26 | 0.79 | 0.05 |
+
+Readings:
+
+- **The accounting now matches Owl.** Fed Owl's own recognition schedule, taxable income and penalties, the EM reproduces Owl's objective within ±0.11% in 15 of 17 cases (§7: up to +3.5%) [run]. The exceptions are jack+jill (−0.33%, which has a 2.9% return spread between accounts) and robin (per-account allocations). Both are assumption (a). The two jordan cases are compared at φ=1 as before.
+- **The optimum is within −0.3% to +0.9% of Owl in 12 of 17** (§7: −2.6% to +2% in 10, of which 7 within ±1%) [run]. joe went from +3.34% to +0.08% and kim+sam-bequest from +4.34% to +0.94%.
+- **morgan +11.9% is Owl's ACA loop, not the EM.** Owl's loop settles in 2026–2036 at MAGI levels where ACA costs the full benchmark premium, $14–18k a year: above 400% FPL in 2026–2031, and just under the 138% floor in 2033–2036. Re-solved with `withACA="optimize"` (exact MILP, gap 1e-4, 51 s), Owl gives 43,931, and the EM is −1.3% below that (`verify_orig.py` → `verify_orig.jsonl`) [run]. The penalty itself is now matched: the EM charges $21.6k against Owl's $23.7k.
+- **john+sally (+$15.2k on the bequest) is unexplained.** The accounting gap is 0, and Owl's exact modes (`withMedicare`, `withLTCG`, `withNIIT` = optimize) return the same 16,803 as the loop [run]. So the EM's plan is either infeasible in Owl for a reason the EM does not model, or better than Owl's optimum. I have not found which. The bequest is the residual behind a $145k spending floor on $2M of assets, so the percentage is inflated; in absolute terms the gap is $15k.
+- **jordans (φ=1) +2.7% and +3.7%: not confirmed.** Owl's exact modes gave *lower* values than its loop here (3,978,469 and 2,996,389, both "oscillatory"), so they are no reference [run]. I did not investigate further.
+- **Draw excess:** levels force one level of slack, and the final plan's taxable draws exceed the cash need by these PV totals. That is optimistic: the excess should stay in the taxable account and pay drag. It is large in jon+jane ($121k: the fine path DP finds no consistent path and the coarse one is used), the jordans and kim+sam (all with forced deposits) [run]. Bounding its effect on the objective needs a run that charges it, which I have not done.
+- **Speed: the taxable state makes the EM slower than Owl.** 0.7–5.2 s against Owl's default loop at 0.04–1.3 s, and against 0.02–0.21 s for the §7 one-state EM [run]. A second continuous state, coupled to the first through the draw limit and liquidity, is no longer a cheap DP. The exact Owl modes it can stand in for take 51–93 s on morgan and the jordans [run].
+
+### 8.3 What this says about the collapse [inferred from the runs above]
+
+- The penalty and the conversion caps keep the one-state structure. The penalty is a floor on x_n plus a known cost; the cap is a limit on the Roth share of x_n. Both should have been in the EM from the first version.
+- The taxable account does not collapse. With it as a state, the EM's accounting matches Owl's, and its optimum moves to within 1% of Owl in most cases. But the solver needs alternation, damping and slack to get there, and it ends up slower than Owl. For the household's decisions, the one-state EM (§7) is the fast screen and Owl remains the model of record.

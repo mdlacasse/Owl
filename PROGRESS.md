@@ -109,6 +109,10 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 
 **Filed by the user on 2026-10-04** (issue numbers not recorded yet): ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes, partial first year, ACA optimize rates. **Not filed:** docs/paper drift (`issue-docs-loop-and-paper.md`). The last two were verified on 2026-10-04 against the primary text: Rev. Proc. 2025-25 section 3.01 (irs.gov) and 26 CFR 1.36B-3(g)(1) for the ACA band; 42 U.S.C. 402(e)(2)(D) (govinfo.gov), 20 CFR 404.338 and 404.313(e)(1) (ecfr.gov) and POMS RS 00615.320 (secure.ssa.gov) for the survivor rule. Repro numbers re-run on this branch match the drafts. Note: www.ssa.gov itself answers 403 to curl (the site, not the proxy); POMS is on secure.ssa.gov. Rule from the user: never file a draft that asks the maintainer to check a source we didn't check; mark it not ready instead. Each patch draft has a `.patch` verified on stock `dev` `c1e5619` (full suite with each patch alone: 2604-2606 passed, 1 skipped; flake8 clean). Applied in the fork on branch `claude/project-thread-qx5fy0`.
 
+## Envelope model (2026-10-04, branch `claude/project-thread-u0d9t0`)
+
+Back-of-envelope question: `fork-notes/envelope/README.md`. A one-state DP (`em.py`) reproduces Owl within ±1% on most examples in 0.02–0.2 s; with the early-withdrawal penalty, conversion caps and the taxable account as a second state (§8), the EM's accounting matches Owl's within ±0.11% in 15 of 17 cases and its optimum is within −0.3% to +0.9% in 12 of 17, but it takes 0.7–5 s (slower than Owl's loop). morgan's +12% is Owl's ACA loop (vs `withACA="optimize"`: EM −1.3%). Open: john+sally (+$15k bequest, unexplained), slack-induced draw excess (jon+jane). Nothing to file upstream from this yet.
+
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
 1. #157 NY non-indexed amounts (patch `ad4452d`) — filed; NJ addendum drafted (patch `20ccb2d`)

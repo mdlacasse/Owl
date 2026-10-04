@@ -1,0 +1,5 @@
+{"case": "Case_morgan.toml", "phi1": false, "families": ["withACA"], "value": 43931, "status": "solved", "gap": 9.80510342734432e-05, "t": 51.2, "conv": "oscillatory"}
+{"case": "Case_john+sally.toml", "phi1": false, "families": ["withMedicare"], "value": 16803, "status": "solved", "gap": 0.0, "t": 0.2, "conv": "monotonic"}
+{"case": "Case_john+sally.toml", "phi1": false, "families": ["withMedicare", "withLTCG", "withNIIT"], "value": 16803, "status": "solved", "gap": 0.0, "t": 22.7, "conv": "monotonic"}
+{"case": "Case_jordan+taylor.toml", "phi1": true, "families": ["withMedicare", "withLTCG", "withNIIT"], "value": 3978469, "status": "solved", "gap": 0.0, "t": 92.8, "conv": "oscillatory"}
+{"case": "Case_jordan+taylor-qcd.toml", "phi1": true, "families": ["withMedicare", "withLTCG", "withNIIT"], "value": 2996389, "status": "solved", "gap": 0.0, "t": 75.8, "conv": "oscillatory"}
