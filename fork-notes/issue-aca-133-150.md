@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): ACA 2026 contribution between 133% and 150% FPL starts at 2.10% instead of 3.14%
 
-**Not filed yet.**
+**Not ready to file: waits on verification against the primary source,** Rev. Proc. 2025-25 (irs.gov), for the 2026 applicable percentage table. Those hosts were blocked from this environment on 2026-10-04. Re-check the rule and the repro numbers once they're reachable, then remove this line.
 
 **Title:** ACA (loop mode): the 2026 applicable percentage from 133% to 150% FPL should run from 3.14% to 4.19%, not from 2.10%
 
@@ -19,7 +19,6 @@ Rev. Proc. 2025-25 sets the 2026 applicable percentage table as:
 
 The table jumps at 133%. `_ACA_CONTRIB_PCT_2026` stores one value per breakpoint, `[0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996]`, and `_aca_contrib_pct` interpolates between consecutive values, so in the 133-150% band `acaCosts` runs from 2.10% (the rate below 133%) to 4.19%. Every other band starts where the previous one ends, so this is the only band affected. Because loop mode charges the full premium below 138% (Medicaid), the affected incomes are 138-150% FPL. There the expected contribution is understated by up to 0.73 points of MAGI, at 138%.
 
-(Source note: irs.gov was not reachable from where I checked this. The table above matches my reading of Rev. Proc. 2025-25 and several secondary summaries of it. Please check it against the Rev. Proc. before relying on it.)
 
 **Repro** (on `dev`, `c1e5619`), from the repository root:
 

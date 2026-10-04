@@ -107,7 +107,7 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 - [ ] ACA optimize: step rates (each band charged its final %) and the <138% FPL rule differs from loop mode (repro: optimize ends $1,786/yr higher where income drifts below 138%). Design question; drafted: `fork-notes/issue-aca-optimize-rates.md`.
 - [ ] Paper vs code drift, loop mode as a fixed point, taxable bond returns, plan year: one docs issue drafted, `fork-notes/issue-docs-loop-and-paper.md`.
 
-Drafts not yet filed (user files): the seven above. Each patch draft has a `.patch` verified on stock `dev` `c1e5619` (full suite with each patch alone: 2604-2606 passed, 1 skipped; flake8 clean). Applied in the fork on branch `claude/project-thread-qx5fy0`.
+Drafts not yet filed (user files): the seven above. **Ready to file:** cost basis, SS-age taxes, partial first year, ACA optimize rates, docs/paper drift. **Not ready, waiting on primary-source verification** (irs.gov, ssa.gov, ecfr.gov, govinfo.gov blocked on 2026-10-04): ACA 133-150% band (Rev. Proc. 2025-25) and survivor never claimed (POMS RS 00615.320 / 20 CFR 404.338). Rule from the user: never file a draft that asks the maintainer to check a source we didn't check; mark it not ready instead. Each patch draft has a `.patch` verified on stock `dev` `c1e5619` (full suite with each patch alone: 2604-2606 passed, 1 skipped; flake8 clean). Applied in the fork on branch `claude/project-thread-qx5fy0`.
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 

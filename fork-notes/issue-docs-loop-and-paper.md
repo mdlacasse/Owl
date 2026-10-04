@@ -8,7 +8,7 @@
 
 **1. Loop mode returns a fixed point, not an optimum.** Chapter 3 ("The Self-Consistent Iteration Loop") presents the loop as resolving the nonlinear terms. Each iteration optimizes with the lagged quantities held constant, then recomputes them. At the fixed point the plan charges itself the right IRMAA, SS tax, NIIT, ACA premium and LTCG room, but the LP never sees their **marginal** cost. IRMAA cliffs and the premium-credit phase-out are invisible when choosing conversions. So is the SS "tax torpedo": taxable SS enters `_add_taxable_income` as the constant `Psi_n * zetaBar`, so a dollar of other income is charged its bracket rate and not the 1.5x or 1.85x it really costs. The same holds for the 3.8% NIIT, the OBBBA senior-deduction phase-out and the LTCG stacking room. A fixed point of this map is optimal only where the derivatives of the lagged terms are zero.
 
-Measured on the shipped examples, all loop vs. one family switched to `"optimize"` (`maxTime=60` per MILP). This was run on a fork at upstream `dev` `a85ff76`. Its additions (state moves, local tax, NJ exclusion) are opt-in, but its NY benefit recapture (#158) applies to the two NY examples, so their figures may differ slightly on `dev`. The script is short and can be shared to rerun on `dev`. Objective: spending basis $/yr, or bequest $, today's dollars.
+Measured on the shipped examples, all loop vs. one family switched to `"optimize"` (`maxTime=60` per MILP). This was run on a fork at upstream `dev` `a85ff76`. The fork's additions are opt-in except its NY benefit recapture, which applies to the two NY examples, cameron and robin. Those two were rerun on stock `dev` `c1e5619` and gave identical figures (cameron +0/+0, robin +0/+96). Objective: spending basis $/yr, or bequest $, today's dollars.
 
 | Case | Objective | All loop | Medicare optimize | SS taxability optimize |
 |---|---|---:|---:|---:|
@@ -30,7 +30,7 @@ Suggested text: loop mode returns a self-consistent plan whose own income agrees
 
 **3. Plan year is today's calendar year.** `_setStartingDate` ignores the year, and ages, RMD start, FRA and tax-year logic follow `date.today()`. The same case file gives different results after January 1, and a pinned seed reproduces the rates but not the plan. `info/PARAMETERS.md` documents this; the paper's assumptions don't.
 
-**4. Paper vs code drift** (`papers/owl.tex` on `dev`; line numbers approximate):
+**4. Paper vs code drift** (`papers/owl.tex` on `dev`):
 
 | Paper | Code | Note |
 |---|---|---|
@@ -47,4 +47,4 @@ Suggested text: loop mode returns a self-consistent plan whose own income agrees
 | Ch. 10 longevity: "life expectancy set to the drawn last-survivor horizon" | each person's drawn age is passed to `clone` | code more correct than text |
 | CVaR relation and "efficient frontier" | the commitment LP's optimum is the empirical quantile of the scenario bases at level `1/Lambda`, and each is a perfect-foresight optimum | the framing overstates |
 
-These were found reading the 2026 `owl.tex` against the code at `a85ff76`. Line numbers moved since; the equation labels are stable.
+These were found reading the 2026 `owl.tex` against the code at `a85ff76`, and are cited by equation label.

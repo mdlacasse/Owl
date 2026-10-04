@@ -1,6 +1,6 @@
 # Draft upstream issue (mdlacasse/Owl): survivor of a worker who died before claiming gets 82.5% of PIA
 
-**Not filed yet.**
+**Not ready to file: waits on verification against the primary source,** POMS RS 00615.320 / 20 CFR 404.338 / SSA Act 202(e)(2)(D) (ssa.gov, ecfr.gov, govinfo.gov), for the survivor rule when the worker never claimed. Those hosts were blocked from this environment on 2026-10-04. Re-check the rule and the repro numbers once they're reachable, then remove this line.
 
 **Title:** Survivor benefit: a worker who dies before claiming should leave 100% of PIA (plus DRCs earned up to death), not the 82.5% floor
 
@@ -17,7 +17,6 @@
 
 The 82.5% figure is the widow(er)'s limit (RIB-LIM). It caps a survivor benefit when the deceased had **reduced** their own benefit by claiming early: the survivor gets the larger of the deceased's reduced benefit and 82.5% of PIA (POMS RS 00615.320; Social Security Act 202(e)(2)(D)). A worker who was never entitled had no reduced benefit, so the limit doesn't apply. The survivor's base is 100% of PIA. If death came after FRA, it also includes the delayed retirement credits earned up to death. The paper lists the current behavior as a limitation ("credited with the 82.5% PIA floor rather than the benefit accrued to the date of death"). The gap is 17.5 to 49.5 points of PIA: 100% to 132% against 82.5%. It applies whenever the user's fixed claiming age is later than the first death. For example, a spouse planning to claim at 70 whose life expectancy is 68.
 
-(Source note: ssa.gov, ecfr.gov and govinfo.gov were not reachable from where I checked this, so the rule above is from memory and secondary summaries of POMS RS 00615.320, not from the primary text. Please check it before relying on it.)
 
 **Repro** (on `dev`, `c1e5619`), from the repository root:
 
