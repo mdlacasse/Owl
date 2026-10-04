@@ -54,7 +54,10 @@ On a detected cycle, `_check_cycle` keeps the iterate with the **highest objecti
 
 Suggestion: among the iterates in the cycle, pick the one with the smallest fixed-point residual, or re-solve once with the cycle's averaged parameters. At minimum, show the residual next to the objective in the summary.
 
-### 2.3 Bracket fill is wrong in years where cash has no marginal value [run]
+### 2.3 Bracket fill is wrong in years where cash has no marginal value [run] — fixed 2026-10-04
+
+**Fix:** the loop prices tax at `TAX_TIEBREAK` (1e-4 per today's dollar) from the first iterate that fills a year out of order. An accepted final LP that first goes out of order is re-solved with spending pinned (`_repairBracketOrder`). `_check_bracket_order` warns and sets `bracketOrderExcess`. Always-on pricing was tried and rejected: it moved two examples' fixed points (morgan +1.5% spending, john+sally -4% bequest) though neither was out of order. At `EPSILON` (5e-7) the fill stayed wrong, since those reduced costs sit at HiGHS's dual tolerance. After the fix `degen.py` gives 0 out-of-order years, reported tax $887,113 = filled in order, bequest $2,912,759, spending unchanged at $31,580, and the loop converges in 3 iterations. Before, it stopped on a false 2-cycle with an LTCG residual of $10,413. All 17 examples are unchanged. Tests: `tests/plan/test_bracket_order.py`.
+
 
 The `f_tn` bracket variables are tight only when the year's cash carries a positive shadow price. In a liquidity-constrained `maxSpending` plan, the early years bind spending. Late-year income above spending then becomes surplus that ends in a bequest above its floor, and it is worth nothing to the objective. The solver may then fill brackets in any order. `degen.py` (single, $150k saved, a $144k/yr indexed pension and SS from 70):
 
@@ -73,7 +76,10 @@ The objective is unaffected, but the reported taxes, bequest and the Taxes sheet
 - a lexicographic epsilon on total tax (always consistent with the primary objective);
 - a post-solve check that re-fills brackets in order, or re-solves with tax minimized while the objective is pinned.
 
-### 2.4 `withACA="optimize"` is not exact and can make feasible cases infeasible [code, run]
+### 2.4 `withACA="optimize"` is not exact and can make feasible cases infeasible [code, run] — infeasible band fixed 2026-10-04
+
+**Fix (band only):** `tx._aca_capped_limits` clips the bracket thresholds at the first MAGI where `pct_r x MAGI` reaches the SLCSP. Contributions only rise with the bracket, so every higher income pays the full premium, which is the last bracket's cost. Brackets left with zero width get their binary fixed to 0. `aca.py` now solves in optimize mode with the full premium ($5,125), identical to loop mode. Tests: `TestACAOptimize::test_capped_limits_*` and `test_income_where_contribution_exceeds_premium_is_feasible`. **Still open:** top-of-bracket step rates; the <138% FPL disagreement with loop mode; 2026 rates used for 2025.
+
 
 - **Step rates.** Each FPL bracket charges a constant applicable percentage, the value at the bracket's top (`_ACA_LP_CONTRIB`, `tax_federal.py:202`), while loop mode interpolates the sliding scale (`_aca_contrib_pct`). Inside a bracket the MILP overcharges, and it creates cliffs at 150/200/250/300% FPL that the statute does not have [recalled: the 2026 table is piecewise linear in FPL ratio except 300-400%].
 - **Infeasible band.** The cost row is an equality `maca = pct_r * MAGI` with the bound `maca <= SLCSP` (`plan.py:4160`). Any MAGI below 400% FPL where `pct_r * MAGI > SLCSP` is therefore infeasible, when the true cost is `min(SLCSP, pct * MAGI)`. `aca.py` (single, no tax-deferred account, so MAGI is pinned near 370% FPL):
@@ -153,8 +159,8 @@ With `start_date` later than Jan 1, `_add_initial_balances` divides each balance
 
 ## 5. Suggested order
 
-1. Bracket-order degeneracy (2.3): small fix, wrong outputs today.
-2. ACA optimize mode (2.4): fix the infeasible band (`min` via one more selector, or drop the `maca <= SLCSP` bound and price the min with the existing `za`), then use the sliding scale (SOS2 or finer breakpoints).
+1. ~~Bracket-order degeneracy (2.3)~~ done.
+2. ACA optimize mode (2.4): ~~infeasible band~~ done; still to do: the sliding scale (SOS2 or finer breakpoints).
 3. Cost basis (2.6) and the partial first year (2.7): bookkeeping, easy to test.
 4. Cycle acceptance by residual (2.2).
 5. Paper corrections (section 3). Most are upstream issues; draft them as such, per CONTRIBUTING.

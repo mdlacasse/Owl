@@ -34,7 +34,7 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min, 2674 passed / 1 skipped at the last merge.
+- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2704 passed / 1 skipped / 1 failed on 2026-10-04; the failure is the timing-dependent NJ time-limit test (PROGRESS.md).
 - Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 

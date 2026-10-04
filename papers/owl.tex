@@ -3204,6 +3204,14 @@ In this case, the objective function will need to consider the sum over all year
 		+ \bar{S}^{\mathrm{aca}}_n\, z_{6n}^{\mathrm{aca}},
 		\qquad n \in \{0, \ldots, n_{\mathrm{aca}}-1\}.
 	\end{equation}
+	The net premium is $\min(\bar{S}^{\mathrm{aca}}_n,\ \bar{\mathcal{C}}^{\mathrm{aca}}_r\,\mathbb{G}_n)$,
+	and the bound $m^{\mathrm{aca}}_n \le \bar{S}^{\mathrm{aca}}_n$ would otherwise make every MAGI
+	below 400\% FPL with $\bar{\mathcal{C}}^{\mathrm{aca}}_r\,\mathbb{G}_n > \bar{S}^{\mathrm{aca}}_n$
+	infeasible. Because the applicable percentage only rises with $r$, every MAGI above the first point
+	$\mathbb{G}^*_n$ where the charge reaches the SLCSP pays the full premium. The thresholds are
+	therefore clipped, $\bar{\mathcal{L}}^{\mathrm{aca}}_{rn} \leftarrow
+	\min(\bar{\mathcal{L}}^{\mathrm{aca}}_{rn},\,\mathbb{G}^*_n)$, so those incomes fall in bracket~6;
+	brackets left with zero width have their binary fixed to zero.
 	For $n \ge n_{\mathrm{aca}}$, $m^{\mathrm{aca}}_n = 0$ (Medicare-eligible; no ACA cost).
 	The variable $m^{\mathrm{aca}}_n$ is added to the cash-flow constraint Eq.~(\ref{Eq:C4})
 	alongside $m_n$ when \code{withACA="optimize"} is active.
@@ -4110,6 +4118,18 @@ churn). The second line penalizes withdrawals $w_{1jn}$ from the second individu
 otherwise equivalent. The weight $\varepsilon$ is chosen small (e.g.\ of order
 $10^{-9}$ in the same units as $y$) so that the primary objective dominates; it is
 often enabled by default when optimizing Medicare (IRMAA) to stabilize bracket selection.
+
+The bracket variables $f_{tn}$ (and their state, local and capital-gains counterparts) are a
+relaxation that fills the low brackets first only because tax costs the objective something.
+In a year whose cash has no value---typically late surplus that can only raise a bequest above
+its floor---every split of income across brackets is optimal, and a solver may fill the top
+bracket first, reporting tax the plan does not owe.
+When an iterate of the self-consistent loop shows such a year, the loop adds a tie-break of
+$10^{-4}$ per today's dollar of bracket tax, $c[q_f(t,n)] \mathrel{+}= 10^{-4}\,\theta^x_{tn}/\gamma_n$,
+for the remaining iterations; a final iterate that first shows one is re-solved with spending and
+binaries pinned and the same tie-break. The term is left off otherwise, because even this small a
+cost changes which fixed point the loop settles on in cases that never needed it.
+A post-solve check warns if any year is still filled out of order.
 
 
 \chapter{Rate models for return scenarios}

@@ -93,8 +93,9 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 
 - [ ] Loop mode returns a self-consistent plan, not an optimal one. Optimizing IRMAA or SS taxability raised the objective on 9 of 13 examples by up to +1.3% bequest / +2.3% spending, never lowered it.
 - [ ] A non-converging loop keeps its highest-objective iterate, whatever its residual (cameron: SS off by $29.8k).
-- [ ] Bracket fill goes out of order when late cash has no value: a constructed case reports $1.56M lifetime tax vs $0.91M filled in order. No check exists.
-- [ ] `withACA="optimize"`: top-of-bracket step rates, and `maca <= SLCSP` makes MAGI infeasible where `pct x MAGI > SLCSP` below 400% FPL (reproduced).
+- [x] Bracket fill goes out of order when late cash has no value (constructed case: $1.56M reported vs $0.91M). **Fixed 2026-10-04**: tax tie-break switched on in the loop when a year goes out of order, a final re-solve, and a post-solve check. The 17 examples are unchanged.
+- [x] `withACA="optimize"` infeasible where `pct x MAGI > SLCSP` below 400% FPL. **Fixed 2026-10-04**: thresholds clipped at that crossing. Step rates are still open.
+- [ ] Pre-existing, found while testing: `test_time_limit_keeps_the_tiers_and_reports_the_gap` fails on `06468de` too. With `maxTime=2` the fixed NJ tier puts 2032 (state AGI exactly $150,000) in the above-ceiling tier, so it claims nothing where the statute allows 25%: $5,402 charged vs $3,330 statutory. Timing-dependent (2 s MILP).
 - [ ] SS claiming-age MILP charges every candidate age the same SS tax (taxable SS from the previous iterate).
 - [ ] Cost basis omits reinvested dividends (gain fraction 0.76 vs 0.63 after 11 years in the repro); whole-account gain fraction applied to the equity share only.
 - [ ] Partial first year: balances are back-projected for growth only, while year-0 flows run full-year.
@@ -122,4 +123,4 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-Full suite after the NJ solve limits: 2700 passed, 1 skipped; flake8 clean.
+Full suite after the bracket-order and ACA fixes (2026-10-04): 2704 passed, 1 failed, 1 skipped; flake8 clean. The failure is `test_time_limit_keeps_the_tiers_and_reports_the_gap`, which fails the same way on `06468de` (see the model review list above). After the NJ solve limits it was 2700 passed, 1 skipped.

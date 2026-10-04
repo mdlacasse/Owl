@@ -583,6 +583,25 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     return costs
 
 
+def _aca_capped_limits(limits, contrib_pct, slcsp):
+    """Clip the LP bracket thresholds at the MAGI where the expected contribution reaches the SLCSP.
+
+    The net premium is min(SLCSP, pct * MAGI), but bracket r of the LP charges pct_r * MAGI with
+    the cost capped at the SLCSP by a bound, which made every MAGI with pct_r * MAGI > SLCSP below
+    400% FPL infeasible instead of costing the full premium. Contributions only rise from one bracket
+    to the next, so from the first MAGI where the charge reaches the SLCSP, every higher income pays
+    the full premium: the cost of the last bracket. Clipping the thresholds there moves those incomes
+    into the last bracket; the brackets above the crossing get zero width.
+    """
+    lower = 0.0
+    for r, upper in enumerate(limits):
+        pct = contrib_pct[r]
+        if pct > 0 and slcsp <= pct * upper:
+            return np.minimum(limits, max(lower, slcsp / pct))
+        lower = upper
+    return limits
+
+
 def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     """
     Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
@@ -595,6 +614,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
       - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
         use 2026 rates; SC-loop mode (acaCosts) is year-aware.
       - MAGI below 138% FPL: LP uses bracket 0 at 2.1% instead of full SLCSP (Medicaid).
+      - Each bracket charges one rate (its top one), where acaCosts interpolates the sliding scale.
 
     Parameters
     ----------
@@ -617,7 +637,8 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     n_aca : int
         Number of ACA-eligible plan years (0 = no ACA in LP).
     Lbar_aca_nr : ndarray, shape (n_aca, N_ACA_R-1)
-        Inflation-adjusted FPL bracket thresholds per year ($).
+        Inflation-adjusted FPL bracket thresholds per year ($), clipped at the MAGI where the
+        contribution reaches the SLCSP (see _aca_capped_limits).
     cap_pct_aca_r : ndarray, shape (N_ACA_R,)
         Contribution rates per bracket (constant across years).
     slcsp_aca_n : ndarray, shape (n_aca,)
@@ -654,7 +675,6 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
         fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
         fpl = _ACA_FPL[fpl_year][hh_size - 1] * gamma_n[n]
 
-        Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
         # Scale SLCSP for couple-to-individual transition (same logic as acaCosts).
         if Ni == 2 and hh_size == 1:
             age_remaining = thisyear + n - yobs[eligible[0]]
@@ -662,6 +682,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
         else:
             slcsp_scale = 1.0
         slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * gamma_n[n]
+        Lbar[nn] = _aca_capped_limits(_ACA_LP_BREAKPOINTS * fpl, _ACA_LP_CONTRIB, slcsp_aca_n[nn])
 
     return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
 
