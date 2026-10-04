@@ -1,5 +1,7 @@
 # Draft follow-up comment on mdlacasse/Owl#160 (NJ retirement exclusion)
 
+**Superseded, not posted.** The maintainer answered on 2026-10-04: the state layer stays a pure LP, so NJ keeps `retirement_income_exemption = 0` upstream for now. Kept for the record of the fork's solve limits.
+
 #160 was filed from the draft at `9e3b658`, which left solve time as an open question with three options. This comment reports what the fork chose. Post it as a comment rather than an edit, so the original question stays readable.
 
 ---
