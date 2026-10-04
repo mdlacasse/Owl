@@ -133,3 +133,67 @@ On five of the six cases the EM agrees with Owl's exact modes to within 0.07% (m
 - `verify_exact.py` → `verify_*.jsonl`: full model with exact MILP modes.
 
 Reproduce: `cd fork-notes/envelope && python3 ladder.py && python3 compare.py` (all examples; a case path as argument runs one).
+
+## 7. Follow-up (2026-10-04): keeping every assumption the collapse tolerates, a faster DP, other collapses
+
+### 7.1 Only three assumptions are needed [derived], so the EM now drops the rest
+
+The collapse in §2 needs only: (a) in each year, every account earns the same return R_n; (b) no tax inside the taxable account; (c) pooling of taxable, Roth and HSA, which (a) and (b) make exact. Inflation, the OBBBA expiry, indexed and unindexed thresholds, and any rate sequence (historical, stochastic, glide paths) only change the per-year cost functions τ_n and the discount factors d_n = Π_{m<n} 1/R_m. §4 imposed them anyway. `em.py` now works in nominal dollars with the plan's own per-year returns (the balance-weighted mean across the accounts that exist that year; `R_spread` reports the largest gap between accounts) and its own inflation, brackets and thresholds.
+
+`compare_orig.py` → `orig_results.jsonl`, `orig_phi1.jsonl`: full model vs EM on the **original** cases (the full model keeps dividends; the `mu0` column in the raw output sets dividends to 0 in both and changes little). "EM fast vs exact DP" is the §7.2 banded DP against the reference DP.
+
+| Case | Full (L0) | EM | EM vs full | EM on full's x | EM fast vs exact DP | R spread % | t full (s) | t EM fast | t EM exact DP |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| alex+jamie | 228,369 | 231,464 | +1.36% | +0.84% | -0.012% | 0.0 | 0.15 | 0.096 | 1.85 |
+| bill | 36,666 | 36,666 | -0.00% | -0.00% | +0.000% | 0.0 | 0.06 | 0.005 | 0.0 |
+| cameron | 18,996 | 18,996 | +0.00% | +0.00% | +0.000% | 0.0 | 0.15 | 0.026 | 0.04 |
+| chris+pat | 116,916 | 117,616 | +0.60% | +0.30% | +0.000% | 0.0 | 0.37 | 0.055 | 0.42 |
+| dana | 81,228 | 81,416 | +0.23% | +0.19% | +0.000% | 0.0 | 0.14 | 0.039 | 0.68 |
+| devon | 248,306 | 249,748 | +0.58% | +0.33% | +0.000% | 0.0 | 0.07 | 0.149 | 2.19 |
+| helen+ruth | 194,069 | 197,867 | +1.96% | +1.19% | -0.021% | 0.0 | 0.16 | 0.031 | 0.44 |
+| jack+jill | 102,545 | 103,667 | +1.09% | +0.46% | +0.000% | 2.87 | 1.39 | 0.081 | 0.73 |
+| joe | 92,575 | 95,662 | +3.34% | +2.87% | +0.000% | 0.0 | 0.11 | 0.041 | 0.66 |
+| john+sally | 16,803 | 43,474 | +158.74% | +63.43% | +0.000% | 0.0 | 0.12 | 0.149 | 1.52 |
+| jon+jane | 160,677 | 161,642 | +0.60% | +0.22% | +0.000% | 0.0 | 0.17 | 0.058 | 0.66 |
+| jordan+taylor (φ=1) | 4,220,573 | 4,411,886 | +4.53% | +2.55% | -0.007% | 0.0 | 0.12 | 0.04 | 0.75 |
+| jordan+taylor-qcd (φ=1) | 3,111,557 | 3,282,501 | +5.49% | +3.01% | +0.000% | 0.0 | 0.12 | 0.054 | 0.9 |
+| kim+sam-bequest | 1,944,071 | 2,028,525 | +4.34% | +2.97% | +0.000% | 0.0 | 0.49 | 0.074 | 1.02 |
+| kim+sam-spending | 185,949 | 187,351 | +0.75% | +0.47% | +0.000% | 0.0 | 0.41 | 0.048 | 0.9 |
+| morgan | 38,744 | 45,154 | +16.54% | +3.49% | -0.009% | 0.0 | 0.38 | 0.181 | 0.96 |
+| robin | 44,013 | 42,888 | -2.56% | -3.64% | +0.000% | 1.59 | 0.29 | 0.035 | 0.23 |
+
+Readings [run unless marked]:
+
+- **Within 0 to +2% in 10 of 17** (bill, cameron, alex+jamie, dana, chris+pat, devon, helen+ruth, jack+jill, jon+jane, kim+sam-spending), on the cases' own inputs. That includes jack+jill's 1969 historical sequence and chris+pat's stochastic draw.
+- **Taxable-account tax**, assumption (b): joe, kim+sam-bequest, both jordans and john+sally. The accounting gap ("EM on full's x") is +2.6% to +3.0%, and these are the cases with the largest taxable accounts. john+sally's bequest is a small residual: the gap is $26.7k on a plan whose L1 bequest is $196k.
+- **Per-account allocations**, assumption (a): robin is the only example with `type = "account"` allocations. The EM is −2.6% and its accounting −3.6%. The full model can hold the higher-return mix where it is taxed least (asset location), which a common return cannot represent [mechanism inferred; the 1.6% return spread is measured].
+- **Early-withdrawal penalty**: morgan's accounting gap of +3.5% sits in years 2026–2030, before age 59½. In those years the full model's tax exceeds the EM's at the same income (e.g. $17.1k vs $11.4k in 2028), which is the 10% penalty in `T_n`. The rest of morgan's +16.5% is the ACA marginal cost the loop does not see. §4 confirmed that with `withACA="optimize"` in the envelope world; it is not re-verified here [inferred]. The penalty fits the collapse: it applies to the recognition the liquidity floor forces before 59½. It is not implemented.
+- A first version of this run counted a deceased spouse's accounts as earning 0 after the death, because their allocation is zero. That gave alex+jamie −11% and kim+sam-bequest −10%. Fixed before the table above.
+
+So two assumptions must stay, because they *are* the collapse: (a) the same return in every account (robin shows the cost when it fails), and (b) no taxable-account tax. Everything else can be kept at no structural cost.
+
+### 7.2 The DP for a single run [run]
+
+- **Cost table:** `tx.mediCosts` and `tx.acaCosts` were called once per grid point. Vectorized copies (`_medicare`, `_aca`) agree with Owl's functions to 4e-12 on 40 random MAGI paths for each of four cases. Table time dropped from 0.3–0.5 s to 0.01–0.02 s.
+- **DP:** a coarse pass on a grid 1/200 of the budget (all states), then the exact DP restricted to a band of ±4 coarse steps around the coarse path. The band is widened and re-solved whenever the optimum touches its edge.
+- **Result:** 0.005–0.18 s per solve (median 0.05 s), against 0.04–2.2 s for the exact DP and 0.06–1.4 s for the full model's default loop mode. The banded result equals the exact DP in 13 of 17 cases and is within 0.02% in the other four (table above). It is a heuristic: a nonconvex optimum far from the coarse path could be missed, and nothing guarantees otherwise.
+- A dense min-plus convolution over all states was tried first. It was 2–4× *slower* than the reference loop, because the (B+1)² array per year is memory-bound.
+
+### 7.3 Other collapses
+
+- **SS claiming ages as an outer enumeration** [run, `ss_ages.py` → `ss_ages_results.jsonl`]. Claiming ages only change the exogenous SS series. So each candidate pair is one EM solve: every whole year 62–70 per person, then a monthly refinement. Compared with Owl's `withSSAges="optimize"` MILP:
+
+  | Case | EM's ages | Owl MILP's ages | Full model at EM's ages | Owl MILP | EM search time | Owl MILP time |
+  |---|---|---|---:|---:|---:|---:|
+  | dana | 68.25 | 68.17 | 81,459 | 81,452 | 2.1 s | 0.3 s |
+  | kim+sam-spending | 70, 69.92 | 70, 70 | 186,159 | 186,153 | 7.7 s | 1.5 s |
+  | jack+jill | 68.92, 65.92 | 68.92, 65.92 | 103,811 | 104,092 | 11.2 s | 4.3 s |
+  | robin | 68.08 | 65.5 | 44,022 | 44,070 | 2.0 s | 1.4 s |
+
+  It agrees with the MILP to within a month in three of four cases. Robin, the asset-location case, is the exception. It is slower, not faster. jack+jill gets two different full-model values at identical ages, 0.27% apart: loop-mode noise, as CLAUDE.md warns.
+- **Spending–bequest frontier from one solve** [derived, spot-checked]. In the EM the bequest target enters only the budget identity. Unless the liquidity or RMD constraints move the optimal x, basis is linear in the bequest, with slope −d_N γ_N / Σ d_n ξ_n γ_n. Measured at bequests of 0, 200k, 400k and 800k: the EM's x was unchanged and its basis exactly linear for kim+sam-spending and jack+jill. The full model's slopes differ from the EM's by 0.6% and 1.9%. For dana the x changed and the EM's increments drift by 1.5%.
+- **Single-multiplier water-filling** ("recognize until the marginal rate is ν + λ"). This is exact when every τ_n is convex (no IRMAA/ACA cliffs, no torpedo) and is solved by bisection on λ. It is useful as an interpretable rule. With cliffs it lost 1.3% against the DP on jack+jill in the envelope world (first EM version, §4 period) [run, not kept as a script].
+- **Not tried** [inferred]:
+  - a second DP state for the taxable account, which would remove the largest remaining gap;
+  - the early-withdrawal penalty tied to the liquidity floor;
+  - seeding Owl's loop parameters (Ψ, M, ACA) from the EM's plan, so the loop starts at the better point the EM finds.
