@@ -22,8 +22,8 @@ Read these first, in this order:
   - MCP explain adapted.
 - Upstream issues filed by the user and open: #157 (NY not indexed), #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer). Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
 - Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
-- Drafted, for the user to file: NJ addendum to #157 (`fork-notes/issue-nj-not-indexed.md`) and the NJ exclusion issue (`fork-notes/issue-nj-retirement-exclusion.md`).
-- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts; not yet triaged into fixes or upstream issues).
+- Drafted, for the user to file: NJ addendum to #157 (`fork-notes/issue-nj-not-indexed.md`), the NJ exclusion issue (`fork-notes/issue-nj-retirement-exclusion.md`), bracket order (`fork-notes/issue-bracket-order.md`) and ACA optimize infeasibility (`fork-notes/issue-aca-optimize-infeasible.md`); the last two have `.patch` files verified on stock `dev`.
+- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band; other findings not yet triaged.
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
 ## Setup (the container is ephemeral; redo each session)
@@ -34,7 +34,7 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2704 passed / 1 skipped / 1 failed on 2026-10-04; the failure is the timing-dependent NJ time-limit test (PROGRESS.md).
+- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2711 passed / 1 skipped on 2026-10-04.
 - Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 

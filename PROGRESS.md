@@ -16,7 +16,9 @@ Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/pha
 | #157 addendum: NJ not indexed either; NJ exemptions missing | **Drafted** as a comment on #157 (`fork-notes/issue-nj-not-indexed.md`; repro run on stock `dev`); user to post |
 | #158 NY benefit recapture missing | **Filed**; awaiting upstream (draft in `fork-notes/issue-ny-recapture.md`) |
 | #159 Design proposal: mid-plan moves + local tax | **Filed**; awaiting the maintainer's answers to its six questions (draft in `fork-notes/issue-residency-local-design.md`) |
-| NJ retirement-income exclusion missing | **Drafted** (`fork-notes/issue-nj-retirement-exclusion.md`); user to file |
+| NJ retirement-income exclusion missing | **Drafted** (`fork-notes/issue-nj-retirement-exclusion.md`; now mentions the kept-tier downward move); user to file |
+| Tax brackets filled top-down where late cash has no value | **Drafted** (`fork-notes/issue-bracket-order.md`, patch `.patch`); repro and patch verified on stock `dev` `a85ff76` (patch alone: 2597 passed, 1 skipped; 17 examples unchanged); user to file |
+| `withACA="optimize"` infeasible where pct x MAGI > SLCSP below 400% FPL | **Drafted** (`fork-notes/issue-aca-optimize-infeasible.md`, patch `.patch`); verified on stock `dev` (patch alone: 2596 passed, 1 skipped); user to file |
 | Loop anomaly (NY→FL at year 5 scored below staying) | Not filed: no repro on stock upstream beyond the known ~0.1% loop noise (search recorded in `phase1-revised.md`) |
 | Upstream workflow | Branch from and target `dev` (CONTRIBUTING) |
 
@@ -95,7 +97,7 @@ Review of the paper (`papers/owl.tex`) against the implementation: `fork-notes/m
 - [ ] A non-converging loop keeps its highest-objective iterate, whatever its residual (cameron: SS off by $29.8k).
 - [x] Bracket fill goes out of order when late cash has no value (constructed case: $1.56M reported vs $0.91M). **Fixed 2026-10-04**: tax tie-break switched on in the loop when a year goes out of order, a final re-solve, and a post-solve check. The 17 examples are unchanged.
 - [x] `withACA="optimize"` infeasible where `pct x MAGI > SLCSP` below 400% FPL. **Fixed 2026-10-04**: thresholds clipped at that crossing. Step rates are still open.
-- [ ] Pre-existing, found while testing: `test_time_limit_keeps_the_tiers_and_reports_the_gap` fails on `06468de` too. With `maxTime=2` the fixed NJ tier puts 2032 (state AGI exactly $150,000) in the above-ceiling tier, so it claims nothing where the statute allows 25%: $5,402 charged vs $3,330 statutory. Timing-dependent (2 s MILP).
+- [x] NJ kept tier held income on its floor (`maxTime=2`: a year at exactly $150,000 claimed nothing instead of 25%, $5,402 vs $3,330 statutory; failed on `06468de` too). **Fixed 2026-10-04** (`755377e`): such a year's kept tier moves down to the statute's, downward only. 4 of 4 repeated runs were non-statutory without the fix, 0 of 4 with it; deterministic unit test added.
 - [ ] SS claiming-age MILP charges every candidate age the same SS tax (taxable SS from the previous iterate).
 - [ ] Cost basis omits reinvested dividends (gain fraction 0.76 vs 0.63 after 11 years in the repro); whole-account gain fraction applied to the equity share only.
 - [ ] Partial first year: balances are back-projected for growth only, while year-0 flows run full-year.
@@ -123,4 +125,4 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-Full suite after the bracket-order and ACA fixes (2026-10-04): 2704 passed, 1 failed, 1 skipped; flake8 clean. The failure is `test_time_limit_keeps_the_tiers_and_reports_the_gap`, which fails the same way on `06468de` (see the model review list above). After the NJ solve limits it was 2700 passed, 1 skipped.
+Full suite after the bracket-order, ACA and NJ kept-tier fixes (2026-10-04): 2711 passed, 1 skipped; flake8 clean.
