@@ -328,3 +328,79 @@ def valid_states() -> list:
     """Return sorted list of valid two-letter state abbreviations."""
     data = load_state_data()
     return sorted({k.rsplit("_", 1)[0] for k in data})
+
+
+def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_path=None) -> dict:
+    """State income tax parameters per plan year, for a residence that can change during the plan.
+
+    states_n gives the state of residence in each plan year (the state in force on December 31
+    governs the whole year; "" means no state income tax). Each distinct state's parameters come
+    from st_taxParams over the whole horizon, and year n takes its column from states_n[n]. A plan
+    with a single state gets exactly st_taxParams' arrays.
+
+    The bracket dimension is padded to the longest schedule with zero-width brackets at the
+    state's top rate (the #149 rule). A year without a state gets one zero-rate bracket wide
+    enough for any income, as the no-income-tax states have, so the state taxable-income row
+    always has room.
+
+    Returns a dict of per-year arrays:
+      N_st, theta_tn, DeltaBar_tn, sigmaBar_n (the state's own deduction and per-filer exemptions;
+      zero where the state follows the federal deduction, which the Plan fills in), re_cap_in,
+      pe_cap_in, credit_n, and the per-year flags conv_ok_n, tax_ss_n, fed_sd_n, senior_bonus_n,
+      pension_eligible_n.
+    """
+    states_n = [(s or "").upper() for s in states_n]
+    if len(states_n) != N_n:
+        raise ValueError(f"states_n has {len(states_n)} entries; the plan has {N_n} years.")
+    gamma_n = np.asarray(gamma_n, dtype=float)
+
+    per_state = {}
+    for state in dict.fromkeys(states_n):
+        if not state:
+            continue
+        (n_st, theta, delta, sigma, re_cap, pe_cap, conv_ok, tax_ss, _ss_thresh) = st_taxParams(
+            state, N_i, n_d, N_n, gamma_n, yobs, mobs=mobs, i_d=i_d, toml_path=toml_path
+        )
+        fed_sd, bonus = federal_deduction(state, toml_path)
+        per_state[state] = {
+            "theta": theta, "delta": delta, "sigma": sigma, "re_cap": re_cap, "pe_cap": pe_cap,
+            "conv_ok": conv_ok, "tax_ss": tax_ss, "fed_sd": fed_sd, "bonus": bonus,
+            "pension_eligible": get_state_entry(state, 0, toml_path).get("pension_exemption", 0) == 0,
+            "credit": st_credits(state, N_i, n_d, N_n, gamma_n, yobs=yobs, mobs=mobs, i_d=i_d, toml_path=toml_path),
+        }
+
+    N_st = max((p["theta"].shape[0] for p in per_state.values()), default=1)
+    out = {
+        "N_st": N_st,
+        "theta_tn": np.zeros((N_st, N_n)),
+        "DeltaBar_tn": np.zeros((N_st, N_n)),
+        "sigmaBar_n": np.zeros(N_n),
+        "re_cap_in": np.zeros((N_i, N_n)),
+        "pe_cap_in": np.zeros((N_i, N_n)),
+        "credit_n": np.zeros(N_n),
+        "conv_ok_n": np.ones(N_n, dtype=bool),
+        "tax_ss_n": np.zeros(N_n, dtype=bool),
+        "fed_sd_n": np.zeros(N_n, dtype=bool),
+        "senior_bonus_n": np.zeros(N_n, dtype=bool),
+        "pension_eligible_n": np.ones(N_n, dtype=bool),
+    }
+    for n, state in enumerate(states_n):
+        if not state:
+            # No state income tax: a single zero-rate bracket with room for any income.
+            out["DeltaBar_tn"][0, n] = _LAST_BRACKET_SENTINEL * gamma_n[n]
+            continue
+        p = per_state[state]
+        k = p["theta"].shape[0]
+        out["theta_tn"][:k, n] = p["theta"][:, n]
+        out["theta_tn"][k:, n] = p["theta"][k - 1, n]  # padding at the top rate, zero width
+        out["DeltaBar_tn"][:k, n] = p["delta"][:, n]
+        out["sigmaBar_n"][n] = p["sigma"][n]
+        out["re_cap_in"][:, n] = p["re_cap"][:, n]
+        out["pe_cap_in"][:, n] = p["pe_cap"][:, n]
+        out["credit_n"][n] = p["credit"][n]
+        out["conv_ok_n"][n] = p["conv_ok"]
+        out["tax_ss_n"][n] = p["tax_ss"]
+        out["fed_sd_n"][n] = p["fed_sd"]
+        out["senior_bonus_n"][n] = p["bonus"]
+        out["pension_eligible_n"][n] = p["pension_eligible"]
+    return out

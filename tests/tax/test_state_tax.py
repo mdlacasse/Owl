@@ -566,3 +566,45 @@ def test_personal_credit_reduces_state_tax_down_to_zero():
     gross = np.sum(p.st_f_tn * p.st_theta_tn, axis=0)
     np.testing.assert_allclose(p.st_T_n, np.maximum(0.0, gross - p.st_credit_n), atol=0.05)
     assert np.any(gross > p.st_credit_n) and np.any(p.st_T_n < gross - 1)
+
+
+# ---------------------------------------------------------------------------
+# Per-year state schedule (issue #159)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("state", ["NY", "NJ", "MD", "CA", "CO", "FL", "PA", "OH"])
+def test_schedule_of_one_state_is_st_taxparams(state):
+    """With a single state, st_schedule gives exactly st_taxParams' arrays and flags."""
+    yobs, mobs = [1960, 1962], [3, 7]
+    ref = tax_state.st_taxParams(state, 2, 20, 30, _GAMMA, yobs, mobs=mobs, i_d=0)
+    s = tax_state.st_schedule([state] * 30, 2, 20, 30, _GAMMA, yobs, mobs=mobs, i_d=0)
+    assert s["N_st"] == ref[0]
+    for key, k in (("theta_tn", 1), ("DeltaBar_tn", 2), ("sigmaBar_n", 3), ("re_cap_in", 4), ("pe_cap_in", 5)):
+        np.testing.assert_array_equal(s[key], ref[k])
+    assert np.all(s["conv_ok_n"] == ref[6]) and np.all(s["tax_ss_n"] == ref[7])
+    fed_sd, bonus = tax_state.federal_deduction(state)
+    assert np.all(s["fed_sd_n"] == fed_sd) and np.all(s["senior_bonus_n"] == bonus)
+    np.testing.assert_array_equal(
+        s["credit_n"], tax_state.st_credits(state, 2, 20, 30, _GAMMA, yobs=yobs, mobs=mobs, i_d=0)
+    )
+
+
+def test_schedule_takes_each_year_from_its_state_and_pads_brackets():
+    """NY for five years, then FL, then no state: each year is its state's column; NY's longer
+    schedule sets N_st, and the shorter ones are padded at their top rate with zero width."""
+    states = ["NY"] * 5 + ["FL"] * 5 + [""] * 20
+    s = tax_state.st_schedule(states, 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    ny = tax_state.st_taxParams("NY", 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    fl = tax_state.st_taxParams("FL", 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    assert s["N_st"] == ny[0] > fl[0]
+    np.testing.assert_array_equal(s["theta_tn"][:, :5], ny[1][:, :5])
+    np.testing.assert_array_equal(s["DeltaBar_tn"][:, :5], ny[2][:, :5])
+    k = fl[0]
+    np.testing.assert_array_equal(s["DeltaBar_tn"][:k, 5:10], fl[2][:, 5:10])
+    assert not s["DeltaBar_tn"][k:, 5:10].any()  # padding has no width
+    np.testing.assert_array_equal(s["theta_tn"][k:, 5:10], np.broadcast_to(fl[1][k - 1, 5:10], (ny[0] - k, 5)))
+    # No state: one zero-rate bracket wide enough for any income, nothing else.
+    assert not s["theta_tn"][:, 10:].any()
+    assert np.all(s["DeltaBar_tn"][0, 10:] > 1e6) and not s["DeltaBar_tn"][1:, 10:].any()
+    assert not s["sigmaBar_n"][10:].any() and not s["credit_n"][10:].any()

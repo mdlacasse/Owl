@@ -427,9 +427,12 @@ class Plan:
         self._st_lp = False  # True when state income tax LP is active
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
-        self.st_conv_ok = True  # Whether Roth conversions count toward the state exemption
-        self.st_fed_sd = False  # Whether the state follows the federal standard deduction
-        self.st_senior_bonus = False  # Whether that includes the OBBBA senior bonus
+        # Per-year state flags (the state of residence can differ by year; see tax_state.st_schedule).
+        self.st_conv_ok_n = np.ones(self.N_n, dtype=bool)  # Roth conversions count toward the exemption
+        self.st_tax_ss_n = np.zeros(self.N_n, dtype=bool)  # The state taxes Social Security
+        self.st_fed_sd_n = np.zeros(self.N_n, dtype=bool)  # The state follows the federal standard deduction
+        self.st_senior_bonus_n = np.zeros(self.N_n, dtype=bool)  # ...including the OBBBA senior bonus
+        self.st_pension_eligible_n = np.ones(self.N_n, dtype=bool)  # Pensions share the retirement exemption
         self.st_re_in = np.zeros((self.N_i, self.N_n))  # State retirement exemption claimed per person
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
@@ -1677,6 +1680,10 @@ class Plan:
         self.state = state
         self.caseStatus = "modified"
 
+    def _states_n(self):
+        """State of residence in each plan year ("" for none)."""
+        return [self.state] * self.N_n
+
     def setInterpolationMethod(self, method, center=15, width=5):
         """
         Interpolate asset allocation ratios from initial value (today) to
@@ -2295,17 +2302,20 @@ class Plan:
             self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, MAGI_n, self.yOBBBA
         )
 
-        # A state that follows the federal standard deduction takes this year's federal
-        # amount, age-65 additions included; the OBBBA senior bonus only where it conforms.
-        if self.state and self.st_fed_sd:
-            if self.st_senior_bonus:
-                self.st_sigmaBar_n = self.sigmaBar_n.copy()
-            else:
+        # In a year whose state follows the federal standard deduction, the state deduction is
+        # this year's federal amount, age-65 additions included; the OBBBA senior bonus only where
+        # the state conforms. Other years keep the state's own deduction and exemptions.
+        if self.state and np.any(self.st_fed_sd_n):
+            fed_bonus = self.st_fed_sd_n & self.st_senior_bonus_n
+            fed_no_bonus = self.st_fed_sd_n & ~self.st_senior_bonus_n
+            st_sigma = self._st_sigma_own_n.copy()
+            st_sigma[fed_bonus] = self.sigmaBar_n[fed_bonus]
+            if np.any(fed_no_bonus):
                 # Infinite MAGI phases the senior bonus out entirely.
                 no_bonus = np.full(self.N_n, np.inf)
-                self.st_sigmaBar_n = tx.taxParams(
-                    self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA
-                )[0]
+                sigma_nb = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA)[0]
+                st_sigma[fed_no_bonus] = sigma_nb[fed_no_bonus]
+            self.st_sigmaBar_n = st_sigma
 
         if not self._adjustedParameters:
             self.mylog.vprint("Adjusting parameters for inflation.")
@@ -2522,7 +2532,7 @@ class Plan:
         # State income tax LP variables (continuous, before binary block).
         # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
         # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
-        st_lp = bool(self.state) and bool(np.any(self.st_theta_tn > 0))
+        st_lp = any(self._states_n()) and bool(np.any(self.st_theta_tn > 0))
         self._st_lp = st_lp
         st_re_lp = st_lp and np.any(self.st_re_cap_in > 0)
         vm.add_if(st_lp, "st_f", self.N_st, self.N_n)  # state bracket allocations
@@ -2677,11 +2687,11 @@ class Plan:
         # Under withSSTaxability="optimize", taxable SS is the tss variable, so exclude it
         # through tss: Psi_n there lags the LP by one self-consistent iteration.
         ss_lp = "tss" in vm
-        # SS adjustment: federal G_n contains taxable SS; remove it if state excludes SS.
-        if self.st_tax_ss or ss_lp:
+        # SS adjustment: federal G_n contains taxable SS; remove it in years whose state excludes SS.
+        if ss_lp:
             ss_excl_n = np.zeros(self.N_n)
         else:
-            ss_excl_n = self.Psi_n * np.sum(self.zetaBar_in, axis=0)
+            ss_excl_n = np.where(self.st_tax_ss_n, 0.0, self.Psi_n * np.sum(self.zetaBar_in, axis=0))
         # Pension exemption (parameter): each person's pension up to their own cap.
         pe_adj_n = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
         rhs_n = -ss_excl_n - pe_adj_n
@@ -2700,7 +2710,7 @@ class Plan:
             row.addElem(vm["e"].idx(n), -1)  # add back the federal standard deduction
             for p in range(self.N_p):
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
-            if ss_lp and not self.st_tax_ss:
+            if ss_lp and not self.st_tax_ss_n[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
@@ -2714,15 +2724,14 @@ class Plan:
 
         # Eligible-income cap: each person can't exempt more than their own retirement income.
         if "st_re" in vm:
-            # Pensions share the retirement exemption unless the state has a separate pension one.
-            pension_eligible = tax_state.get_state_entry(self.state, 0).get("pension_exemption", 0) == 0
+            # Pensions share the retirement exemption unless that year's state has a separate one.
             for i in range(self.N_i):
                 for n in range(self.N_n):
                     row = self.A.newRow({vm["st_re"].idx(i, n): 1})
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                    if self.st_conv_ok:
+                    if self.st_conv_ok_n[n]:
                         row.addElem(vm["x"].idx(i, n), -1)
-                    rhs = self.piBar_in[i, n] if pension_eligible else 0
+                    rhs = self.piBar_in[i, n] if self.st_pension_eligible_n[n] else 0
                     self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
 
     @_fixedAcrossIterations
@@ -4615,24 +4624,23 @@ class Plan:
         # Note: st_ss_thresh_n (AGI threshold for SS exemption, e.g. KS $75k, MO $100k) is
         # returned but not yet used in the LP — those states are currently treated as binary
         # (SS fully exempt or fully taxed). Full threshold modeling is a known limitation.
-        if self.state:
-            (
-                self.N_st,
-                self.st_theta_tn,
-                self.st_DeltaBar_tn,
-                self.st_sigmaBar_n,
-                self.st_re_cap_in,
-                self.st_pe_cap_in,
-                self.st_conv_ok,
-                self.st_tax_ss,
-                _st_ss_thresh_n,
-            ) = tax_state.st_taxParams(
-                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs, i_d=self.i_d
+        if any(self._states_n()):
+            sched = tax_state.st_schedule(
+                self._states_n(), self.N_i, self.n_d, self.N_n, self.gamma_n, self.yobs, mobs=self.mobs, i_d=self.i_d
             )
-            self.st_fed_sd, self.st_senior_bonus = tax_state.federal_deduction(self.state)
-            self.st_credit_n = tax_state.st_credits(
-                self.state, self.N_i, self.n_d, self.N_n, self.gamma_n, yobs=self.yobs, mobs=self.mobs, i_d=self.i_d
-            )
+            self.N_st = sched["N_st"]
+            self.st_theta_tn = sched["theta_tn"]
+            self.st_DeltaBar_tn = sched["DeltaBar_tn"]
+            self._st_sigma_own_n = sched["sigmaBar_n"]  # before federal-deduction conformity
+            self.st_sigmaBar_n = sched["sigmaBar_n"].copy()
+            self.st_re_cap_in = sched["re_cap_in"]
+            self.st_pe_cap_in = sched["pe_cap_in"]
+            self.st_credit_n = sched["credit_n"]
+            self.st_conv_ok_n = sched["conv_ok_n"]
+            self.st_tax_ss_n = sched["tax_ss_n"]
+            self.st_fed_sd_n = sched["fed_sd_n"]
+            self.st_senior_bonus_n = sched["senior_bonus_n"]
+            self.st_pension_eligible_n = sched["pension_eligible_n"]
 
         # _adjustParameters reads the Part D options from solverOptions: give it this solve's
         # options, not the previous solve's (or those loaded with the case).
