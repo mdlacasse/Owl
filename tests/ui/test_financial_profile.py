@@ -222,7 +222,7 @@ def _timetableHelpDicts():
     """
     import ast
 
-    tree = ast.parse((UI_DIR / "Financial_Profile.py").read_text())
+    tree = ast.parse((UI_DIR / "Financial_Profile.py").read_text(encoding="utf-8"))
     found = {}
     for node in tree.body:
         if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name):

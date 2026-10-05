@@ -59,7 +59,7 @@ def test_requirements_matches_lockfile():
     )
 
     expected = _body(result.stdout)
-    actual = _body((_REPO_ROOT / "requirements.txt").read_text())
+    actual = _body((_REPO_ROOT / "requirements.txt").read_text(encoding="utf-8"))
 
     missing = sorted(set(expected) - set(actual))
     extra = sorted(set(actual) - set(expected))

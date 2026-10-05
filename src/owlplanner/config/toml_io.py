@@ -148,7 +148,7 @@ def load_toml(
         if not filename.endswith(".toml"):
             filename = filename + ".toml"
         try:
-            f = open(filename, "r")
+            f = open(filename, "r", encoding="utf-8")
         except OSError as e:
             raise FileNotFoundError(f"File {filename} not found: {e}") from e
         try:
@@ -207,7 +207,7 @@ def save_toml(
         filename = os.path.join(dirpart, base) if dirpart else base
         if mylog:
             mylog.vprint(f"Saving plan case file as '{filename}'.")
-        with open(filename, "w") as casefile:
+        with open(filename, "w", encoding="utf-8") as casefile:
             toml.dump(diconf, casefile, encoder=_CleanFloatEncoder())
     elif isinstance(file, StringIO):
         string = toml.dumps(diconf, encoder=_CleanFloatEncoder())

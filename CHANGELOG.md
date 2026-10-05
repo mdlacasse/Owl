@@ -35,6 +35,13 @@ The two corrections pull in opposite directions; in the examples with a cost bas
 changes by less than 0.7%. Plans without a cost basis are unchanged. Thanks to Florin Mateoc
 (@fmateoc) for reporting it and supplying the fix (#166).
 
+#### Fixed: case files and state data are read and written as UTF-8 on Windows
+
+On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
+description held characters such as em dashes might not open on another computer, and the state
+tax data was read the same way. All text files are now read and written as UTF-8 on every
+platform, as the TOML format requires, and a test keeps it that way.
+
 ### Version 2026.10.4
 
 #### Fixed: reported taxes and bequests in years where extra cash has no value

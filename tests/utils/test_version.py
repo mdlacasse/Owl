@@ -30,7 +30,7 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def test_version_matches_pyproject():
-    pyproject = tomllib.loads((_REPO_ROOT / "pyproject.toml").read_text())
+    pyproject = tomllib.loads((_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     expected = pyproject["project"]["version"]
     assert __version__ == expected, (
         f"version mismatch: pyproject.toml has {expected!r} but owlplanner.__version__ "

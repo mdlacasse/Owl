@@ -1846,11 +1846,11 @@ def test_save_case_persists_survivor_claim_age(tmp_path):
     """save_case round-trips the setting into the TOML it writes."""
     data = _save_survivor_case(str(tmp_path), case_name="surv", ss_survivor_claim_age="FRA")
     assert "error" not in data, data
-    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text()
+    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text(encoding="utf-8")
 
 
 def test_save_case_omits_default_survivor_claim_age(tmp_path):
     """The default is not written, keeping generated case files clean."""
     data = _save_survivor_case(str(tmp_path), case_name="surv_default")
     assert "error" not in data, data
-    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text()
+    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text(encoding="utf-8")

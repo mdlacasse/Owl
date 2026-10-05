@@ -46,7 +46,7 @@ NO_TAX_STATES = frozenset(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"]
 def _load_state_data(toml_path: str = None) -> dict:
     """Load and cache taxes_state.toml. Returns the raw parsed dict."""
     path = toml_path or str(_TOML_PATH)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return toml.load(f)
 
 

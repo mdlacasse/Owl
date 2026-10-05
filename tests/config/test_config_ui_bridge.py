@@ -49,7 +49,7 @@ def test_load_toml_start_roth_past_year_reset():
     """startRothConversions in the past is reset when config file is read (via sanitize_config)."""
     from datetime import date
 
-    toml_content = open("examples/Case_joe.toml").read()
+    toml_content = open("examples/Case_joe.toml", encoding="utf-8").read()
     toml_content = toml_content.replace(
         "startRothConversions = 2026",
         "startRothConversions = 2019",  # Past year
@@ -83,7 +83,7 @@ def test_ui_to_config_linear_omits_interpolation_center_width():
 
 def test_config_to_ui_roundtrip():
     """config -> ui -> config preserves structure."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
 
     assert uidic["name"] == "joe"
@@ -99,7 +99,7 @@ def test_config_to_ui_roundtrip():
 
 def test_ui_to_config_to_plan():
     """ui dict -> config -> plan produces valid plan."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
     back = ui_to_config(uidic)
     plan = config_to_plan(back, verbose=False, loadHFP=False)
@@ -558,7 +558,7 @@ def _plan_known_options():
 
     import owlplanner
 
-    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text()
+    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text(encoding="utf-8")
     for node in ast.walk(ast.parse(src)):
         if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "knownOptions":
             return {e.value for e in node.value.elts if isinstance(e, ast.Constant)}
@@ -586,7 +586,7 @@ def test_ui_translated_solver_options_are_accepted_by_solve():
 
     import ui.sskeys as sskeys  # noqa: F401  (import guards the path used below)
 
-    src = pathlib.Path(sskeys.__file__).read_text()
+    src = pathlib.Path(sskeys.__file__).read_text(encoding="utf-8")
     emitted = set(re.findall(r'options\["([A-Za-z]+)"\]', src))
     assert emitted, "no translated solver options found — the regex or sskeys.py changed shape"
     unknown = emitted - _plan_known_options()
@@ -839,7 +839,7 @@ def _save_couple_case(tmp_path):
         output_dir=str(tmp_path),
         case_name="couple_alloc",
     )
-    with open(json.loads(res)["toml_file"]) as f:
+    with open(json.loads(res)["toml_file"], encoding="utf-8") as f:
         return f.read()
 
 

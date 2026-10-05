@@ -215,10 +215,10 @@ def test_couple_case_without_pension_indexed_or_ages_solves(tmp_path):
     """Omitting pension_indexed and pension_ages defaults them for every person (#155)."""
     import shutil
 
-    lines = open("examples/Case_john+sally.toml").read().splitlines()
+    lines = open("examples/Case_john+sally.toml", encoding="utf-8").read().splitlines()
     kept = [ln for ln in lines if not ln.startswith(("pension_indexed", "pension_ages"))]
     assert len(kept) == len(lines) - 2
-    (tmp_path / "Case_couple.toml").write_text("\n".join(kept) + "\n")
+    (tmp_path / "Case_couple.toml").write_text("\n".join(kept) + "\n", encoding="utf-8")
     shutil.copy("examples/HFP_john+sally.xlsx", tmp_path)
 
     p = owl.readConfig(str(tmp_path / "Case_couple.toml"), verbose=False)

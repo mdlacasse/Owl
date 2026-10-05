@@ -103,7 +103,7 @@ class RateModel(BaseRateModel):
 """
 
     plugin_path = tmp_path / "my_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     meta = get_rate_model_metadata("custom", method_file=str(plugin_path))
 
@@ -123,7 +123,7 @@ def test_plugin_missing_class_raises(tmp_path):
 """
 
     plugin_path = tmp_path / "bad_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     with pytest.raises(ValueError):
         get_rate_model_metadata("custom", method_file=str(plugin_path))
