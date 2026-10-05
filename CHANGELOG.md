@@ -1,3 +1,12 @@
+### Version 2026.10.5
+
+#### Fixed: ACA premiums from 138% to 150% of the poverty line
+
+For 2026, the expected contribution between 133% and 150% of the poverty line now rises from 3.14%
+to 4.19% of income, as Rev. Proc. 2025-25 sets it, instead of from 2.10%. Households in this range
+(above the 138% Medicaid limit) were charged up to about $160 a year too little for coverage.
+Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#164).
+
 ### Version 2026.10.4
 
 #### Fixed: reported taxes and bequests in years where extra cash has no value

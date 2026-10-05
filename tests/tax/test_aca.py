@@ -216,6 +216,29 @@ class TestAcaCostsFunction:
         costs = tx.acaCosts(yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026)
         assert np.isclose(costs[0], slcsp, rtol=1e-4), "2026 above 400%: expect full premium"
 
+    def test_2026_band_133_150_starts_at_3_14(self):
+        """2026 (Rev. Proc. 2025-25): the 133-150% band runs from 3.14% to 4.19%, not from 2.10%."""
+        yobs = np.array([1985])
+        horizons = np.array([5])
+        fpl_2026 = tx._ACA_FPL[2026][0]
+        gamma_n = self._gamma(5)
+        slcsp = 12_000.0
+        for ratio in (1.40, 1.45, 1.4999):
+            magi = ratio * fpl_2026
+            costs = tx.acaCosts(
+                yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026
+            )
+            pct = 0.0314 + (ratio - 1.33) / (1.50 - 1.33) * (0.0419 - 0.0314)
+            assert np.isclose(costs[0], pct * magi, rtol=1e-6), f"ratio {ratio}: {costs[0]} vs {pct * magi}"
+
+    def test_2026_bands_continuous_above_150(self):
+        """2026: the percentage is continuous at 150%, 200%, 250% and 300% FPL."""
+        bp, pct, init = tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+        for k in range(1, len(bp) - 1):
+            below = tx._aca_contrib_pct(bp[k] - 1e-9, bp, pct, init)
+            above = tx._aca_contrib_pct(bp[k], bp, pct, init)
+            assert np.isclose(below, above, atol=1e-6), f"jump at {bp[k]}: {below} vs {above}"
+
 
 # ---------------------------------------------------------------------------
 # Integration tests using Plan.solve()
