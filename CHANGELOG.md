@@ -15,6 +15,16 @@ the full premium, so a household that could not move its income out of that rang
 infeasible. It now pays the full premium, as in loop mode. Thanks to Florin Mateoc (@fmateoc) for
 reporting it and supplying the fix (#161).
 
+#### Changed: ACA costs nothing up to 138% of the poverty line, and optimize mode follows the sliding scale
+
+Up to 138% of the poverty line, a household is now assumed covered by Medicaid, at no premium, in
+both ACA modes; loop mode used to charge the full benchmark premium there and optimize mode 2.10%
+of income. This is the rule in Medicaid expansion states; the others are not modeled. In
+`withACA = "optimize"`, the expected contribution now rises across each income band as the
+statute sets it, as in loop mode, instead of charging each band's top rate, so the two modes
+agree. Plans that can keep income at or below 138% now take advantage of it; the *morgan* example
+spends about $2,100 a year more. Thanks to Florin Mateoc (@fmateoc) for reporting it (#165).
+
 ### Version 2026.10.4
 
 #### Fixed: reported taxes and bequests in years where extra cash has no value

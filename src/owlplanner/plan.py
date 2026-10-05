@@ -2369,7 +2369,7 @@ class Plan:
 
             if self.slcsp_annual > 0:
                 n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
-                self.n_aca, self.Lbar_aca_nr, self.cap_pct_aca_r, self.slcsp_aca_n = tx.acaVals(
+                self.n_aca, self.Lbar_aca_nr, self.tangents_aca_nrk, self.slcsp_aca_n = tx.acaVals(
                     self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n, n_aca_start=n_aca_start
                 )
             else:
@@ -3882,8 +3882,7 @@ class Plan:
           c) Bracket bounds (Big-M): MAGI portion in bracket q is within its FPL thresholds.
 
         Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
-        Note: MAGI below 138% FPL qualifies for Medicaid — the LP places it in the lowest
-              bracket at the base contribution rate (2.1%) rather than returning full SLCSP.
+        Note: MAGI below 138% FPL is bracket 0, Medicaid at no premium, as in loop mode.
         """
         if not self._aca_lp:
             return
@@ -3965,8 +3964,12 @@ class Plan:
         """
         Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
 
-        In optimize mode: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp_aca_n[nn]*za[nn,6].
-        For brackets 0-5: proportional cost. For bracket 6 (above 400% FPL): fixed cost = SLCSP.
+        In optimize mode, for each tangent k:
+            maca_n >= sum_{r=1}^{5} (slope_rk * haca[nn,r] + intercept_rk * za[nn,r]) + slcsp_aca_n[nn] * za[nn,6].
+        Only the selected bracket's terms are nonzero, so row k is that bracket's k-th tangent under
+        its sliding-scale cost pct(MAGI) * MAGI, and maca is their maximum. Bracket 0 (below 138% FPL)
+        is Medicaid, at no cost; bracket 6 (400% and up) pays the full SLCSP. maca is priced slightly
+        in the objective (MIP_TIEBREAK) so it never rises above that maximum where cash has no value.
         In loop mode: maca variable does not exist; ACA_n (SC loop) goes in the cash-flow RHS.
         """
         if not self._aca_lp:
@@ -3976,14 +3979,17 @@ class Plan:
         for n in range(self.n_aca, self.N_n):
             self.B.setRange(self.vm["maca"].idx(n), 0, 0)
 
-        # Cost constraint: maca_n = sum_{r=0}^{5} cap_pct_r * haca[nn,r] + slcsp*za[nn,6].
-        # Bracket 6 (>400% FPL): 2026 rules impose full SLCSP (no PTC), not proportional to MAGI.
+        # Cost: maca_n >= each tangent of the selected bracket (sliding scale), or the full SLCSP in
+        # bracket 6 (>400% FPL: no PTC under 2026 rules). Bracket 0 (Medicaid) adds nothing.
         for nn in range(self.n_aca):
-            row = self.A.newRow({self.vm["maca"].idx(nn): 1})
-            for r in range(tx.N_ACA_R - 1):  # r=0..5 only; bracket 6 uses fixed SLCSP
-                row.addElem(self.vm["haca"].idx(nn, r), -self.cap_pct_aca_r[r])
-            row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
-            self.A.addRow(row, 0, 0, tag=("aca_cost_def", nn))
+            for k in range(self.tangents_aca_nrk.shape[2]):
+                row = self.A.newRow({self.vm["maca"].idx(nn): 1})
+                for r in range(1, tx.N_ACA_R - 1):
+                    slope, intercept = self.tangents_aca_nrk[nn, r, k]
+                    row.addElem(self.vm["haca"].idx(nn, r), -slope)
+                    row.addElem(self.vm["za"].idx(nn, r), -intercept)
+                row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
+                self.A.addRow(row, 0, np.inf, tag=("aca_cost_def", nn, k))
             self.B.setRange(self.vm["maca"].idx(nn), 0, self.slcsp_aca_n[nn])
 
     def _build_objective_vector(self, objective, options):
@@ -4008,6 +4014,12 @@ class Plan:
 
         if self._tax_tiebreak_on:
             c_arr += TAX_TIEBREAK * self._tax_cost_vector()
+
+        # The ACA cost in optimize mode is only bounded below (by its tangents), so price it slightly:
+        # in a year whose cash has no value it would otherwise be free to rise (see TAX_TIEBREAK).
+        if "maca" in self.vm:
+            for n in range(self.N_n):
+                c_arr[self.vm["maca"].idx(n)] += MIP_TIEBREAK / self.gamma_n[n]
 
         # Turn on epsilon by default to reduce churn and frontload Roth conversions.
         default_epsilon = EPSILON

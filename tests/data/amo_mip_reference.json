@@ -5370,12 +5370,12 @@
   },
   "Case_morgan": {
    "HiGHS": {
-    "_rerecorded": "2026-10-03 from Owl.dev LP after OR's $256 personal credit was modeled: +$255/yr from the credit itself, +$569/yr from the oscillatory loop settling on a better fixed point",
+    "_rerecorded": "2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 38744.42,
+    "basis": 40888.78,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,
@@ -5630,12 +5630,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-10-03 from Owl.dev LP after OR's $256 personal credit was modeled: +$255/yr from the credit itself, +$569/yr from the oscillatory loop settling on a better fixed point",
+    "_rerecorded": "2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 38744.42,
+    "basis": 40888.79,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,
