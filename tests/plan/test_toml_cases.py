@@ -117,6 +117,8 @@ def getHFP(exdir, case, check_exists=True):
 # neither: jack+jill 102_515 -> 102_577 (the loop now waits for its fed-back quantities to
 # settle) and kim+sam-spending 186_583 -> 186_590 under HiGHS.
 #
+# jack+jill, joe and robin moved (-42, -469, -56) when taxable cost basis started counting taxed,
+# reinvested dividends and interest and putting the unrealized gain in the equity share.
 # kim+sam-spending returned to 186_583 under HiGHS when residualTol became a per-year bar: at
 # $50/yr it converges where it did before the exit test, while MOSEK still settles at 186_519.
 EXPECTED_OBJECTIVE_VALUES = {
@@ -125,11 +127,11 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 16_803,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 102_577,
+        "net_spending_basis": 102_535,
         "bequest": 400_000,
     },
     "Case_joe": {
-        "net_spending_basis": 93_044,
+        "net_spending_basis": 92_575,
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
@@ -141,7 +143,7 @@ EXPECTED_OBJECTIVE_VALUES = {
         "bequest": 1_944_071,
     },
     "Case_robin": {
-        "net_spending_basis": 44_069,
+        "net_spending_basis": 44_013,
         "bequest": 50_000,
     },
 }

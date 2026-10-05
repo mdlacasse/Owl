@@ -833,6 +833,19 @@ class Plan:
         """Unrealized gain fraction in [0, 1] from average-cost basis and account balance."""
         return min(1.0, max(0.0, 1.0 - float(basis) / max(1.0, float(balance))))
 
+    @staticmethod
+    def _equity_gain_fraction(basis, balance, alpha0):
+        """Unrealized gain fraction of the equity share of a taxable account, in [0, 1].
+
+        The model taxes bond and cash returns every year, so those holdings sit at their basis and
+        the account's whole unrealized gain, balance - basis, is in the equities. The gain fraction
+        is applied to the equity share of each withdrawal (alpha0 * w), so it is the whole-account
+        fraction divided by alpha0; realized gains are then (1 - basis/balance) * w.
+        """
+        if alpha0 <= 0:
+            return 0.0
+        return min(1.0, Plan._gain_fraction_from_basis(basis, balance) / float(alpha0))
+
     def setExpirationYearOBBBA(self, yOBBBA):
         """
         Set year at which OBBBA is speculated to expire and rates go back to something like pre-TCJA.
@@ -4876,15 +4889,20 @@ class Plan:
             if self.taxable_basis_i[i] == 0:
                 continue  # NaN → legacy fallback for this person
             b0 = self.beta_ij[i, 0]
-            self.gain_fraction_in[i, :] = self._gain_fraction_from_basis(self.taxable_basis_i[i], b0)
+            alpha0 = self.alpha_ijkn[i, 0, 0, 0]
+            self.gain_fraction_in[i, :] = self._equity_gain_fraction(self.taxable_basis_i[i], b0, alpha0)
 
     def _update_gain_fraction(self):
         """Update gain_fraction_in using last SC-iteration balances and withdrawals.
         Both fixed contributions (kappa) and LP surplus deposits (d_in) add to basis at full value
-        because they are new purchases at the current market price.
+        because they are new purchases at the current market price. So do the dividends and the
+        bond/cash returns taxed each year, which stay in the account and are reinvested: leaving
+        them out would tax them a second time on sale.
         Persons with zero basis are skipped (their NaN entries mean legacy fallback)."""
         if self.gain_fraction_in is None:
             return
+        # Same yield the model taxes each year as dividends and interest (see _add_taxable_income).
+        fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
         for i in range(self.N_i):
             if self.taxable_basis_i[i] == 0:
                 continue  # stays NaN → legacy
@@ -4892,13 +4910,18 @@ class Plan:
             for n in range(self.N_n):
                 b_n = self.b_ijn[i, 0, n]
                 w_n = self.w_ijn[i, 0, n]
+                d_n = self.d_in[i, n]
+                kappa_n = self.kappa_ijn[i, 0, n]
+                alpha0 = self.alpha_ijkn[i, 0, 0, n]
                 # New purchases: fixed HFP contributions + LP-decided surplus deposits (both at full basis).
-                c_n = self.kappa_ijn[i, 0, n] + self.d_in[i, n]
-                self.gain_fraction_in[i, n] = self._gain_fraction_from_basis(basis, b_n)
+                c_n = kappa_n + d_n
+                # Reinvested income taxed this year: dividends on equities, all positive returns on the rest.
+                taxed_n = (self.mu * alpha0 + fak_in[i, n]) * (b_n - w_n + d_n + 0.5 * kappa_n)
+                self.gain_fraction_in[i, n] = self._equity_gain_fraction(basis, b_n, alpha0)
                 if b_n > 0:
-                    basis = basis * (1.0 - w_n / b_n) + c_n
+                    basis = basis * (1.0 - w_n / b_n) + c_n + max(0.0, taxed_n)
                 else:
-                    basis = c_n
+                    basis = c_n + max(0.0, taxed_n)
 
     def _scSolve(self, objective, options, solverMethod):
         """

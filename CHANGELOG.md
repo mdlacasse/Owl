@@ -25,6 +25,16 @@ statute sets it, as in loop mode, instead of charging each band's top rate, so t
 agree. Plans that can keep income at or below 138% now take advantage of it; the *morgan* example
 spends about $2,100 a year more. Thanks to Florin Mateoc (@fmateoc) for reporting it (#165).
 
+#### Fixed: capital gains on taxable accounts with a known cost basis
+
+When a cost basis is entered, the dividends and interest taxed each year and left in the account
+now add to it, so they are no longer taxed a second time when sold. The account's unrealized
+gain is also placed in its stocks, since bond and cash returns are taxed as they are earned, so
+a withdrawal realizes the account's full embedded gain rather than only the stock share of it.
+The two corrections pull in opposite directions; in the examples with a cost basis, spending
+changes by less than 0.7%. Plans without a cost basis are unchanged. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#166).
+
 ### Version 2026.10.4
 
 #### Fixed: reported taxes and bequests in years where extra cash has no value
