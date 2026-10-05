@@ -852,13 +852,31 @@ Four types of savings accounts are considered and are tracked separately for spo
 - Tax-free savings accounts (e.g., Roth 401k, Roth IRA),
 - Health Savings Accounts (HSA) — triple tax-advantaged: contributions are pre-tax, growth is tax-free, and qualified medical withdrawals (including Medicare Parts B/D and Medigap premiums) are tax-free.
 
-Account values are assumed to be known at the beginning of the current year,
-which is not always possible. For that purpose,
-the `Account balance date` has the effect of back-projecting the amounts entered
-to the beginning of the year using the return rates and allocations
-assumed for the first year. If withdrawals contributing to the
-net spending were already performed for the current year,
-true account balances should be corrected to reflect values as of Jan 1st.
+Each plan year runs from January 1, so the first year is a full calendar year. Balances are
+entered as of the `Account balance date` (today by default), and **Owl** back-projects them to
+January 1 by removing the growth since then, using the return rates and allocations assumed for
+the first year. It does not add back the money that has already moved through the accounts this
+year. With a date after January 1, the first year therefore counts again what already happened:
+spending paid so far, net of the income received so far, is charged again, which is cautious for
+a retiree drawing down savings, and contributions already made are added again, which is generous
+for someone still saving. For the same balance entered on October 1 rather than January 1, one
+retiree example comes out about 2% lower.
+
+To keep this small:
+- If you have balances as of January 1 (from a year-end statement, for example), enter those and
+  set the date to January 1. The first year is then exact.
+- Otherwise, in the first-year row of the *Wages and Contributions* table, enter only the
+  contributions, QCDs and big-ticket items still to come this year. Those already made have
+  already moved the balance you entered, and they are amounts you know, so there is no reason to
+  spread them over the year.
+- Keep wages, like Social Security and pensions, at their full-year amounts: the income received
+  so far is what offsets the spending already paid.
+- Spending is the one flow that cannot be split this way: it is an annual target, so the part of
+  it already spent this year, net of that income, is counted again.
+
+Graphs and worksheets show the whole first year, as for every other year. The *Summary* shows the
+`Net spending remaining in year`: the first year's net spending times the fraction of the year
+still ahead, which is what is left to spend from the start date.
 
 For married couples, the *Advanced options* expander holds a
 *Survivor's Spousal Beneficiary Fractions* section, where the spousal `Beneficiary fractions`

@@ -50,7 +50,13 @@ else:
         today = date.today()
         thisyear = today.year
         kz.initCaseKey("startDate", today)
-        helpmsg = "Date at which savings balances are known. Values will be back projected to Jan 1st."
+        helpmsg = (
+            "Date at which savings balances are known. Values are back-projected to January 1 for "
+            "growth only, and the first year is a full calendar year, so flows already made this year "
+            "are counted again. Use January 1 balances when you have them; otherwise enter only the "
+            "contributions, QCDs and big-ticket items still to come this year in the Wages and "
+            "Contributions table, keeping wages at their full-year amount. See Documentation."
+        )
         ret = st.date_input(
             "Account balance date",
             min_value=date(thisyear, 1, 1),
