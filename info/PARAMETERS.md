@@ -34,6 +34,7 @@ Basic information about the individuals in the plan.
 | `life_expectancy` | list of `N_i` integers | Life expectancy in years for each individual |
 | `start_date` | string | Start date of the plan (e.g., `"01-01"`, `"01/01"`, `"2026-01-01"`). Only the month and day are used; the plan always starts in the current year. Defaults to `"today"` if not specified |
 | `state` | string | *(Optional)* Two-letter US state abbreviation for state income tax calculations (e.g., `"MN"`, `"CA"`). Omit or set to `""` for federal-only (no state tax) |
+| `moves` | list of tables | *(Optional)* At most one change of state during the plan, e.g. `moves = [ { year = 2031, state = "FL" } ]`. The new state taxes that calendar year and every year after it (the state of residence on December 31 taxes the whole year). `year` must fall after the first plan year and within the plan; `state` is a two-letter abbreviation, or `""` for no state tax, and must differ from `state`. Omit for no move |
 
 -------
 

@@ -271,6 +271,27 @@ def test_build_explanation_reports_state_tax():
 
 
 @pytest.mark.toml
+def test_build_explanation_reports_state_move():
+    """After a move from CA to FL, each reported year names its state and FL years are omitted."""
+    plan = _solved_plan()
+    move_year = int(plan.year_n[0]) + 5
+    plan.setStateTax("CA", [(move_year, "FL")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    st = build_explanation(plan)["state_tax_brackets"]
+    assert st["state"] == "CA"
+    assert st["move"] == {"year": move_year, "state": "FL"}
+    assert st["by_year"] and all(r["state"] == "CA" and r["year"] < move_year for r in st["by_year"])
+
+    # Starting with no state and moving to CA: no first-year state tax, CA years reported.
+    plan.setStateTax("", [(move_year, "CA")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    ex = build_explanation(plan)
+    assert "state_tax" not in ex["this_year"]
+    rows = ex["state_tax_brackets"]["by_year"]
+    assert rows and all(r["state"] == "CA" and r["year"] >= move_year for r in rows)
+
+
+@pytest.mark.toml
 def test_build_explanation_omits_state_tax_without_income_tax():
     """A no-income-tax state gets no state sections."""
     ex = build_explanation(_solved_plan(state="TX"))

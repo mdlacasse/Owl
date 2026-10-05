@@ -320,6 +320,13 @@ state you choose; see the [*Modeling Capabilities*](https://github.com/mdlacasse
 reference for the details and limitations of
 state-tax modeling.
 
+If you plan to move during retirement, turn on *Move to another state during the plan* and
+enter the year of the move and the new state. Only one move is modeled. The state where you
+live on December 31 taxes the whole year, so the year of the move is taxed by the new state
+and the years before it by the starting state. Leave the new state blank to stop modeling
+state taxes from that year. The optimizer takes the move into account: leaving a high-tax
+state for a no-income-tax state, for example, tends to push Roth conversions past the move.
+
 Birth date is required because Social Security has special rules for people born on
 the 1st or 2nd of the month; any other day of the month produces the same results.
 

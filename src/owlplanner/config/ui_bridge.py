@@ -179,6 +179,10 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
         start_date_str = str(date.today())
     dic["startDate"] = _start_date_to_ui(start_date_str)
     dic["state"] = bi.get("state", "")
+    moves = bi.get("moves") or []
+    dic["stateMoveEnabled"] = bool(moves)
+    dic["stateMoveYear"] = int(moves[0]["year"]) if moves else date.today().year + 5
+    dic["stateMoveState"] = moves[0].get("state", "") if moves else ""
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
     _ic = aa.get("interpolation_center")
@@ -671,6 +675,14 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         diconf["solver_options"]["withSSAges"] = "optimize"
     else:
         diconf["solver_options"]["withSSAges"] = ss_ages_mode
+
+    if uidic.get("stateMoveEnabled"):
+        diconf["basic_info"]["moves"] = [
+            {
+                "year": _get_ui(uidic, "stateMoveYear", date.today().year + 5, int),
+                "state": uidic.get("stateMoveState") or "",
+            }
+        ]
 
     return diconf
 

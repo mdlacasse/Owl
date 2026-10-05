@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from datetime import date
 from io import StringIO
 import streamlit as st
 
@@ -148,6 +149,35 @@ else:
     )
     with col3:
         kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state", help=_state_help)
+        thisyear = date.today().year
+        kz.initCaseKey("stateMoveEnabled", False)
+        kz.initCaseKey("stateMoveYear", thisyear + 5)
+        kz.initCaseKey("stateMoveState", "")
+        _move_help = (
+            "Model one change of state during the plan. "
+            "The state of residence on December 31 taxes the whole year, "
+            "so the year of the move is taxed by the new state."
+        )
+        kz.getToggle("Move to another state during the plan", "stateMoveEnabled", help=_move_help)
+        if kz.getCaseKey("stateMoveEnabled"):
+            mcol1, mcol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with mcol1:
+                kz.getIntNum(
+                    "Year of the move",
+                    "stateMoveYear",
+                    min_value=thisyear + 1,
+                    max_value=thisyear + 100,
+                    help="First calendar year taxed by the new state. It must fall within the plan.",
+                )
+            with mcol2:
+                kz.getSelectbox(
+                    "New state",
+                    _state_choices(),
+                    "stateMoveState",
+                    help="State of residence from that year on. Leave blank to stop modeling state taxes.",
+                )
+            if kz.getCaseKey("stateMoveState") == kz.getCaseKey("state"):
+                st.warning("The new state is the starting state.", icon=":material/warning:")
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."

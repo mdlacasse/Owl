@@ -2521,7 +2521,8 @@ async def explain_results(
       - tax_brackets: the top federal bracket reached each year, the headroom left in
         it, and the years the optimizer deliberately fills the bracket to the boundary.
       - state_tax_brackets: in a state with an income tax, the same per year for the state
-        brackets, with the state tax paid. Absent for no-income-tax states.
+        brackets, with the state tax paid and the state taxing each year (a plan can move
+        once, basic_info.moves). Absent for no-income-tax states.
       - account_depletion: the order and timing in which accounts are drawn to zero.
       - binding_constraints: which named constraints are active.
 

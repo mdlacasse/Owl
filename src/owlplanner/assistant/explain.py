@@ -345,7 +345,8 @@ def _state_bracket(plan, n):
     """Top state bracket reached in year n: rate, headroom (None when open-ended), fill flag."""
     f = plan.st_f_tn
     filled = [t for t in range(f.shape[0]) if f[t, n] > 1.0]
-    if not filled:
+    # No bracket to report in a year without a state income tax (after a move, or before one).
+    if not filled or not np.any(plan.st_theta_tn[:, n] > 0):
         return None
     t_top = max(filled)
     width = plan.st_DeltaBar_tn[:, n]
@@ -361,7 +362,7 @@ def _state_bracket(plan, n):
 
 def _year0_state_tax(plan):
     """This year's state income tax and state bracket position."""
-    out = {"state": plan.state, "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
+    out = {"state": plan._states_n()[0], "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
     bracket = _state_bracket(plan, 0)
     if bracket:
         out["top_bracket_rate_pct"] = bracket["top_bracket_rate_pct"]
@@ -459,7 +460,7 @@ def _this_year(plan, dd, cols):
     if bracket:
         out["tax_bracket"] = bracket
 
-    if _has_state_tax(plan):
+    if _has_state_tax(plan) and np.any(plan.st_theta_tn[:, 0] > 0):
         out["state_tax"] = _year0_state_tax(plan)
 
     thresholds = _year0_thresholds(plan)
@@ -759,6 +760,7 @@ def _state_bracket_analysis(plan):
     if not _has_state_tax(plan):
         return None
     gamma = plan.gamma_n
+    states = plan._states_n()
     rows = []
     for n in range(plan.N_n):
         bracket = _state_bracket(plan, n)
@@ -767,24 +769,34 @@ def _state_bracket_analysis(plan):
         rows.append(
             {
                 "year": int(plan.year_n[n]),
+                "state": states[n],
                 "state_tax_today": _round(float(plan.st_T_n[n]) / gamma[n]),
                 "top_bracket_rate_pct": bracket["top_bracket_rate_pct"],
                 "headroom_in_bracket_today": bracket["headroom"],
                 "filled_to_boundary": bracket["filled_to_boundary"],
             }
         )
-    return {
+    out = {
         "state": plan.state,
         "total_state_tax_today": _round(float(np.sum(plan.st_T_n / gamma[: plan.N_n]))),
         "by_year": rows,
-        "note": f"Top {plan.state} income-tax bracket reached each year, the state tax paid and the room "
-        "left in that bracket (today's $). State taxable income is not federal taxable income: it "
+        "note": "Top state income-tax bracket reached each year, the state tax paid and the room "
+        "left in that bracket (today's $). Years without a state income tax are omitted. "
+        "State taxable income is not federal taxable income: it "
         "starts from gross income, includes capital gains, and takes the state's own standard "
         "deduction and exemptions (Social Security, pensions, retirement income, where the state "
         "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
         "boundary, the next dollar of income, such as a Roth conversion, is taxed at a higher "
         "state rate.",
     }
+    if plan.state_moves:
+        year, new_state = plan.state_moves[0]
+        out["move"] = {"year": int(year), "state": new_state}
+        out["note"] += (
+            f" The household moves to {new_state or 'no state'} in {year}; the state of residence on "
+            "December 31 taxes the whole year, so that year is taxed by the new state."
+        )
+    return out
 
 
 def _depletion(plan):

@@ -64,6 +64,12 @@ class BasicInfo(BaseModel):
     sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
     state: str = Field(default="", description="Two-letter US state abbreviation (e.g. 'MN'). Empty = no state tax.")
+    moves: List[Dict[str, Any]] = Field(
+        default=[],
+        max_length=1,
+        description="At most one change of state: [{year = 2031, state = 'FL'}]. The new state taxes that year "
+        "and every year after.",
+    )
 
 
 class SavingsAssets(BaseModel):

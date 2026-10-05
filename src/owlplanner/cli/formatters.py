@@ -186,6 +186,7 @@ def plan_to_dict(plan) -> dict:
         "objective": plan.objective,
         "individuals": list(plan.inames),
         "state": state,
+        "state_moves": [{"year": int(y), "state": s} for y, s in plan.state_moves],
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,

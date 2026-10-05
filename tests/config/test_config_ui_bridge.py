@@ -709,6 +709,52 @@ def test_state_toml_save_load_roundtrip():
     assert back2["basic_info"].get("state", "") == ""
 
 
+def test_state_move_roundtrips_through_ui_and_toml():
+    """basic_info.moves round-trips through the UI keys and a TOML save/load; none means no key."""
+    diconf = _minimal_config_for_rates()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": 2031, "state": "FL"}]
+
+    uidic = config_to_ui(diconf)
+    assert uidic["stateMoveEnabled"] is True
+    assert uidic["stateMoveYear"] == 2031
+    assert uidic["stateMoveState"] == "FL"
+    assert ui_to_config(uidic)["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+    uidic["stateMoveEnabled"] = False
+    assert "moves" not in ui_to_config(uidic)["basic_info"]
+
+    sio = StringIO()
+    save_toml(diconf, sio)
+    back, _, _ = load_toml(StringIO(sio.getvalue()))
+    assert back["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+
+def test_state_move_reaches_the_plan_and_back():
+    """config_to_plan sets the move, plan_to_config writes it, apply_config_to_plan clears it."""
+    from datetime import date
+
+    year = date.today().year + 3
+    diconf = _minimal_married_config()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": year, "state": "FL"}]
+    diconf["rates_selection"]["values"] = [6.0, 4.0, 3.3, 2.8]
+    plan = config_to_plan(diconf, verbose=False, loadHFP=False)
+    assert plan.state_moves == [(year, "FL")]
+    assert plan._states_n()[:4] == ["NY", "NY", "NY", "FL"]
+    back = plan_to_config(plan)
+    assert back["basic_info"]["moves"] == [{"year": year, "state": "FL"}]
+
+    back["basic_info"].pop("moves")
+    apply_config_to_plan(plan, back)
+    assert plan.state_moves == []
+    assert "moves" not in plan_to_config(plan)["basic_info"]
+
+    back["basic_info"]["state"] = ""
+    apply_config_to_plan(plan, back)
+    assert plan.state == ""
+
+
 def _minimal_config_for_rates():
     """Minimal config dict with rates_selection section."""
     return {

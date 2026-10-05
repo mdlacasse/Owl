@@ -1,3 +1,23 @@
+### Version 2026.10.6
+
+#### New: one change of state during the plan
+
+A plan can now move once to another state. On the *Create Case* page, turn on *Move to another
+state during the plan* and enter the year of the move and the new state; in a case file, add
+`moves = [ { year = 2031, state = "FL" } ]` to `[basic_info]`. The state of residence on
+December 31 taxes the whole year, so the year of the move is taxed by the new state. Leaving the
+new state blank stops state taxes from that year. The optimizer plans around the move: leaving a
+high-tax state for one without an income tax tends to push Roth conversions past it, and the
+reverse brings them forward. Only one move is modeled, and local taxes are not. Thanks to Florin
+Mateoc (@fmateoc) for proposing it (#159).
+
+#### Fixed: case files and state data are read and written as UTF-8 on Windows
+
+On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
+description held characters such as em dashes might not open on another computer, and the state
+tax data was read the same way. All text files are now read and written as UTF-8 on every
+platform, as the TOML format requires, and a test keeps it that way.
+
 ### Version 2026.10.5
 
 #### Fixed: ACA premiums from 138% to 150% of the poverty line
@@ -34,13 +54,6 @@ a withdrawal realizes the account's full embedded gain rather than only the stoc
 The two corrections pull in opposite directions; in the examples with a cost basis, spending
 changes by less than 0.7%. Plans without a cost basis are unchanged. Thanks to Florin Mateoc
 (@fmateoc) for reporting it and supplying the fix (#166).
-
-#### Fixed: case files and state data are read and written as UTF-8 on Windows
-
-On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
-description held characters such as em dashes might not open on another computer, and the state
-tax data was read the same way. All text files are now read and written as UTF-8 on every
-platform, as the TOML format requires, and a test keeps it that way.
 
 ### Version 2026.10.4
 

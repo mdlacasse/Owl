@@ -608,3 +608,83 @@ def test_schedule_takes_each_year_from_its_state_and_pads_brackets():
     assert not s["theta_tn"][:, 10:].any()
     assert np.all(s["DeltaBar_tn"][0, 10:] > 1e6) and not s["DeltaBar_tn"][1:, 10:].any()
     assert not s["sigmaBar_n"][10:].any() and not s["credit_n"][10:].any()
+
+
+# ---------------------------------------------------------------------------
+# A change of state during the plan (#159)
+# ---------------------------------------------------------------------------
+
+
+def _move_plan(state, moves=None):
+    thisyear = date.today().year
+    p = Plan(["Jack"], [f"{thisyear - 62}-01-01"], [90], "TestMove")
+    p.setStateTax(state, moves)
+    p.setAccountBalances(taxable=[200], taxDeferred=[1500], taxFree=[0])
+    p.setSocialSecurity([2500], [70])
+    p.setRates("conservative")
+    p.setAllocationRatios("individual", generic=np.array([[[60, 40, 0, 0], [60, 40, 0, 0]]]))
+    p.setSpendingProfile("flat")
+    return p
+
+
+def test_move_sets_the_state_of_each_year():
+    p = _move_plan("ny", [{"year": date.today().year + 3, "state": "fl"}])
+    assert p.state_moves == [(date.today().year + 3, "FL")]
+    assert p._states_n()[:5] == ["NY", "NY", "NY", "FL", "FL"]
+    assert p._states_n()[-1] == "FL"
+    p.setStateTax("NY", [(date.today().year + 3, "")])  # moving away from any state income tax
+    assert p._states_n()[2:4] == ["NY", ""]
+    p.setStateTax("NY")
+    assert p.state_moves == [] and set(p._states_n()) == {"NY"}
+
+
+@pytest.mark.parametrize(
+    "moves, match",
+    [
+        ([(2030, "FL"), (2035, "TX")], "At most one"),
+        ([(0, "FL")], "after the first plan year"),
+        ([(3000, "FL")], "after the first plan year"),
+        ([(None, "FL")], "calendar year"),
+        ([(2030, "ZZ")], "Unknown state"),
+        ([(2030, "ny")], "starting state"),
+    ],
+)
+def test_move_is_validated(moves, match):
+    p = _move_plan("NY")
+    if moves[0][0] == 0:
+        moves = [(int(p.year_n[0]), "FL")]
+    with pytest.raises(ValueError, match=match):
+        p.setStateTax("NY", moves)
+    assert p.state == "NY" and p.state_moves == []  # a rejected move changes nothing
+
+
+def test_move_to_florida_stops_state_tax_and_defers_conversions():
+    """Leaving CA for FL: no state tax from the year of the move, and Roth conversions wait for it;
+    the reverse move brings them forward. Spending lies between staying in either state."""
+    k = 4
+    move_year = date.today().year + k
+    plans = {}
+    for label, state, moves in (
+        ("CA", "CA", None),
+        ("FL", "FL", None),
+        ("CA->FL", "CA", [(move_year, "FL")]),
+        ("FL->CA", "FL", [(move_year, "CA")]),
+    ):
+        p = _move_plan(state, moves)
+        p.solve("maxSpending", options={"verbose": False})
+        assert p.caseStatus == "solved", label
+        plans[label] = p
+
+    ca_fl, fl_ca = plans["CA->FL"], plans["FL->CA"]
+    assert np.sum(ca_fl.st_T_n[:k]) > 0
+    assert np.sum(ca_fl.st_T_n[k:]) == pytest.approx(0, abs=1)
+    assert np.sum(fl_ca.st_T_n[:k]) == pytest.approx(0, abs=1)
+    assert np.sum(fl_ca.st_T_n[k:]) > 0
+
+    # Conversions follow the cheaper state.
+    assert np.sum(ca_fl.x_in[:, :k]) < np.sum(plans["CA"].x_in[:, :k])
+    assert np.sum(ca_fl.x_in[:, k:]) > np.sum(plans["CA"].x_in[:, k:])
+    assert np.sum(fl_ca.x_in[:, :k]) > np.sum(plans["FL"].x_in[:, :k])
+
+    for p in (ca_fl, fl_ca):
+        assert plans["CA"].g_n[0] < p.g_n[0] < plans["FL"].g_n[0]

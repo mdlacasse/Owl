@@ -171,6 +171,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "case_name": plan._name,
         "filing_status": plan.filingStatus,
         "state": plan.state or None,
+        "state_moves": [{"year": int(y), "state": s} for y, s in plan.state_moves],
         "individuals": individuals,
         "time_horizon": {
             "start_year": int(plan.year_n[0]),

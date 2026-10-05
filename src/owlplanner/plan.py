@@ -422,6 +422,7 @@ class Plan:
         self._aca_lp = False  # True when withACA="optimize" is active
         self.maca_n = np.zeros(self.N_n)  # ACA LP cost variable extraction result
         self.state = ""  # Two-letter US state for state income tax ("" = none)
+        self.state_moves = []  # At most one (year, state): the state of residence from that year on
         self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
         self.st_credit_n = np.zeros(self.N_n)  # State personal credit available per year (N_n,)
         self._st_lp = False  # True when state income tax LP is active
@@ -1656,7 +1657,7 @@ class Plan:
             self.mylog.vprint(f"ACA coverage starts in calendar year {self.aca_start_year}.")
         self.caseStatus = "modified"
 
-    def setStateTax(self, state):
+    def setStateTax(self, state, moves=None):
         """
         Set two-letter US state abbreviation for state income tax modeling.
 
@@ -1671,18 +1672,55 @@ class Plan:
         ----------
         state : str
             Two-letter state abbreviation (e.g. 'MN', 'CA', 'TX'). Case-insensitive.
+        moves : list, optional
+            At most one move, as ``[{"year": 2031, "state": "FL"}]`` (or ``[(2031, "FL")]``).
+            The new state applies from that calendar year to the end of the plan: the state
+            of residence on December 31 taxes the whole year, so the year of the move is
+            taxed by the new state. The year must fall after the first plan year and within
+            the plan. Omitted or empty, the household stays in ``state`` throughout.
         """
         from . import tax_state as ts
 
-        state = state.upper().strip() if state else ""
-        if state and state not in ts.valid_states():
-            raise ValueError(f"Unknown state '{state}'. Use a valid two-letter abbreviation from: {ts.valid_states()}")
+        def _norm(st):
+            st = st.upper().strip() if st else ""
+            if st and st not in ts.valid_states():
+                raise ValueError(f"Unknown state '{st}'. Use a valid two-letter abbreviation from: {ts.valid_states()}")
+            return st
+
+        state = _norm(state)
+        moves = list(moves or [])
+        if len(moves) > 1:
+            raise ValueError(f"At most one change of state is supported, got {len(moves)}.")
+        state_moves = []
+        for mv in moves:
+            year, new_state = (mv.get("year"), mv.get("state")) if isinstance(mv, dict) else mv
+            try:
+                year = int(year)
+            except (TypeError, ValueError):
+                raise ValueError(f"Year of the move must be a calendar year, got '{year}'.") from None
+            new_state = _norm(new_state)
+            if not self.year_n[0] < year <= self.year_n[-1]:
+                raise ValueError(
+                    f"Year of the move ({year}) must fall after the first plan year ({self.year_n[0]}) "
+                    f"and no later than the last ({self.year_n[-1]})."
+                )
+            if new_state == state:
+                raise ValueError(f"The move goes to the starting state ('{state}').")
+            state_moves.append((year, new_state))
         self.state = state
+        self.state_moves = state_moves
+        if state_moves:
+            year, new_state = state_moves[0]
+            self.mylog.vprint(f"State of residence: '{state}' until {year - 1}, '{new_state}' from {year}.")
         self.caseStatus = "modified"
 
     def _states_n(self):
         """State of residence in each plan year ("" for none)."""
-        return [self.state] * self.N_n
+        states = [self.state] * self.N_n
+        for year, new_state in self.state_moves:
+            for n in range(year - self.year_n[0], self.N_n):
+                states[n] = new_state
+        return states
 
     def setInterpolationMethod(self, method, center=15, width=5):
         """
@@ -2305,7 +2343,7 @@ class Plan:
         # In a year whose state follows the federal standard deduction, the state deduction is
         # this year's federal amount, age-65 additions included; the OBBBA senior bonus only where
         # the state conforms. Other years keep the state's own deduction and exemptions.
-        if self.state and np.any(self.st_fed_sd_n):
+        if any(self._states_n()) and np.any(self.st_fed_sd_n):
             fed_bonus = self.st_fed_sd_n & self.st_senior_bonus_n
             fed_no_bonus = self.st_fed_sd_n & ~self.st_senior_bonus_n
             st_sigma = self._st_sigma_own_n.copy()
@@ -6844,7 +6882,7 @@ class Plan:
         # All taxes: ordinary income, dividends, NIIT, and state income tax.
         allTaxes = self.T_n + self.U_n + self.J_n
         aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
-        st_n = self.st_T_n if self.state else None
+        st_n = self.st_T_n if any(self._states_n()) else None
         fig = self._plotter.plot_taxes(
             self.year_n, allTaxes, self.medicare_n, self.gamma_n, value, title, self.inames, A_n=aca_n, ST_n=st_n
         )

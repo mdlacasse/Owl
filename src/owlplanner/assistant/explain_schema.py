@@ -165,6 +165,7 @@ class StateBracketYear(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     year: int = Field(description="Calendar year.")
+    state: str = Field(description="Two-letter code of the state taxing that year.")
     state_tax_today: float = Field(description="State income tax for the year (today's $).")
     top_bracket_rate_pct: float = Field(description="State marginal rate of the highest bracket reached (%).")
     headroom_in_bracket_today: Optional[float] = Field(
@@ -173,12 +174,22 @@ class StateBracketYear(BaseModel):
     filled_to_boundary: bool = Field(description="True when the state bracket is filled to its edge.")
 
 
+class StateMove(BaseModel):
+    """A change of state of residence during the plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(description="First calendar year taxed by the new state.")
+    state: str = Field(description="Two-letter code of the new state; empty for none.")
+
+
 class StateTaxBrackets(BaseModel):
     """Per-year state income tax and bracket fill, for plans in a state with an income tax."""
 
     model_config = ConfigDict(extra="forbid")
 
-    state: str = Field(description="Two-letter state code.")
+    state: str = Field(description="Two-letter code of the starting state.")
+    move: Optional[StateMove] = Field(default=None, description="The change of state during the plan, if any.")
     total_state_tax_today: float = Field(description="State income tax over the plan (today's $).")
     by_year: List[StateBracketYear] = Field(description="State tax, bracket reached and headroom, per year.")
     note: str = Field(description="Interpretation guidance.")

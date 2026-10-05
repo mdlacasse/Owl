@@ -358,9 +358,10 @@ def config_to_plan(
     _apply_solver_options_to_plan(p, known)
     _apply_aca_to_plan(p, known)
     state = known["basic_info"].get("state", "")
-    if state:
+    moves = known["basic_info"].get("moves") or []
+    if state or moves:
         try:
-            p.setStateTax(state)
+            p.setStateTax(state, moves)
         except ValueError as e:
             raise ValueError(f"Invalid state in config: {e}") from e
 
@@ -393,12 +394,13 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_optimization_to_plan(plan, known)
     _apply_solver_options_to_plan(plan, known)
     _apply_aca_to_plan(plan, known)
+    # Always applied, so that clearing the state or the move in the UI clears it on the plan.
     state = known["basic_info"].get("state", "")
-    if state:
-        try:
-            plan.setStateTax(state)
-        except ValueError as e:
-            raise ValueError(f"Invalid state in config: {e}") from e
+    moves = known["basic_info"].get("moves") or []
+    try:
+        plan.setStateTax(state, moves)
+    except ValueError as e:
+        raise ValueError(f"Invalid state in config: {e}") from e
 
     res = known.get("results", {})
     plan.setDefaultPlots(res.get("default_plots", "nominal"))
@@ -427,6 +429,9 @@ def plan_to_config(myplan: "Plan") -> dict:
         "start_date": myplan.startDate,
         "state": getattr(myplan, "state", ""),
     }
+    moves = getattr(myplan, "state_moves", [])
+    if moves:
+        diconf["basic_info"]["moves"] = [{"year": int(y), "state": s} for y, s in moves]
 
     # Savings Assets
     diconf["savings_assets"] = {}
