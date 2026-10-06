@@ -382,6 +382,9 @@ class SolverOptions(BaseModel):
         default=None, ge=0.0, description="Local search: cap per restricted solve (s)."
     )
     localSearchRadius: Optional[int] = Field(default=None, ge=0, description="Local search: SS-taxability flips.")
+    partialBequestWeight: Optional[float] = Field(
+        default=None, ge=0.0, description="Value of a dollar left to non-spouse heirs at the first death (0.001)."
+    )
     localSearchStepNodes: Optional[int] = Field(
         default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
     )

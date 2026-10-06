@@ -1,5 +1,24 @@
 ### Version 2026.10.7
 
+#### Fixed: exact NIIT could charge far more than the law allows, emptying the partial bequest
+
+With `withNIIT = "optimize"`, including local search, the tax was bounded only from below and
+relied on being minimized. Where the plan's money was worth nothing to the objective, typically
+a first spouse's assets left to non-spouse heirs while only the final bequest counts, the
+optimizer could pay it out as NIIT instead. One couple's plan charged $190,000 to $290,000 of
+NIIT a year on under $3,000 of investment income and left a partial bequest of $98,000; with the
+tax capped, the same plan leaves $2.2M for an identical final bequest. NIIT is now capped at 3.8%
+of net investment income.
+
+#### Changed: money left at the first death to non-spouse heirs counts a little
+
+When beneficiary fractions are below 1, part of the first spouse's accounts goes to other heirs.
+Neither objective counted it, so wherever the household did not need that money, any amount of it
+was equally optimal and the partial bequest was arbitrary. The objective now counts each dollar
+left to those heirs as 0.1% of a dollar of spending or final bequest. In the cases measured this
+gives up no final bequest and leaves cases with fractions of 28% unchanged; it only breaks the tie.
+The weight can be set with the solver option `partialBequestWeight`.
+
 #### New: solve time in the Summary
 
 The Summary has a *Solve time* row: how long the last solve took on the clock, with the CPU time

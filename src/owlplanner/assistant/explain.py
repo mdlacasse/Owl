@@ -138,6 +138,7 @@ CONSTRAINT_FAMILIES = {
     "ltcg_partition_hi": {"class": "artifact", "label": "LTCG partition anti-degeneracy bound"},
     "niit_excess": {"class": "artifact", "label": "NIIT excess-over-threshold big-M"},
     "niit_nii": {"class": "artifact", "label": "NIIT investment-income big-M"},
+    "niit_nii_cap": {"class": "artifact", "label": "NIIT cap at 3.8% of investment income"},
     "irmaa_amo": {"class": "artifact", "label": "IRMAA bracket exactly-one selector"},
     "irmaa_bracket_lb": {"class": "artifact", "label": "IRMAA bracket bound big-M"},
     "irmaa_bracket_ub": {"class": "artifact", "label": "IRMAA bracket bound big-M"},

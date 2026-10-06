@@ -72,3 +72,10 @@ def test_niit_row_prices_the_plans_own_investment_income(plan):
     J_ref = tx.computeNIIT(plan.N_i, plan.MAGI_n, plan.I_n, plan.Q_n, plan.n_d, plan.N_n)
     assert np.any(J_ref > 0), "the case should pay NIIT"
     np.testing.assert_allclose(plan.J_n, J_ref, atol=0.05)
+
+
+def test_niit_never_exceeds_its_cap(plan):
+    """NIIT is at most 3.8% of net investment income, whichever branch applies (row niit_nii_cap)."""
+    assert _rows(plan, "niit_nii_cap")
+    nii = plan.I_n + plan.Q_n
+    assert np.all(plan.J_n <= 0.038 * nii + 0.05), np.max(plan.J_n - 0.038 * nii)
