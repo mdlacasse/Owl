@@ -11,6 +11,15 @@ high-tax state for one without an income tax tends to push Roth conversions past
 reverse brings them forward. Only one move is modeled, and local taxes are not. Thanks to Florin
 Mateoc (@fmateoc) for proposing it (#159).
 
+#### Fixed: survivor benefit when a spouse dies before claiming Social Security
+
+A spouse who died before claiming left the survivor only 82.5% of their PIA. That limit applies
+only when the deceased had claimed early and taken a reduced benefit. The survivor now receives
+the full PIA, plus the delayed retirement credits earned up to death when death came after full
+retirement age: up to 132% of PIA instead of 82.5%. This matters when a spouse plans to claim
+late but dies first. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix
+(#169).
+
 #### Fixed: case files and state data are read and written as UTF-8 on Windows
 
 On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
