@@ -353,6 +353,26 @@ def fixedIncomeStreams(plan, N=None):
     }
 
 
+def _duration(seconds):
+    """Seconds as '8.2 s' or '2m 05s'."""
+    if seconds < 60:
+        return f"{seconds:.1f} s"
+    m, sec = divmod(int(round(seconds)), 60)
+    return f"{m}m {sec:02d}s"
+
+
+def _solve_time(plan):
+    """Wall-clock time of the last solve, with the process CPU time in parentheses.
+
+    Machine- and load-dependent, unlike every other row: a fact about the run, like its date.
+    """
+    wall = getattr(plan, "lastSolveWallTime", None)
+    if wall is None:
+        return "n/a"
+    cpu = getattr(plan, "lastSolveCPUTime", None)
+    return f"{_duration(wall)} wall clock" + ("" if cpu is None else f" (CPU {_duration(cpu)})")
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values.
 
@@ -619,6 +639,7 @@ def build_summary_dic(plan, N=None):
     rel_half = plan.oscillationRel / 2.0
     dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
     dic["Case executed on"] = str(plan._timestamp)
+    dic["Solve time"] = _solve_time(plan)
     # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.
     dic["Owl version"] = f"{__version__} ({engine_commit() or 'no git'})"
 

@@ -287,6 +287,9 @@ def _timer(func):
         # per-solve figure with their own total.
         if func.__name__ == "solve":
             self.lastSolveWallTime = rt
+            # CPU time of the whole process, solver threads included: with MOSEK on several
+            # threads it can be several times the wall time.
+            self.lastSolveCPUTime = pt
         self.mylog.vprint(
             f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.", tag="INFO"
         )
@@ -538,6 +541,7 @@ class Plan:
         # Wall time of the most recent solve(), in seconds; None until one has run.
         # Used to turn a solve count into an estimated duration for this specific case.
         self.lastSolveWallTime = None
+        self.lastSolveCPUTime = None
         # Why the last solve produced no plan, in words; empty when it succeeded.
         self.solverMessage = ""
         # Whether the solver certified that no solution exists, as opposed to failing.

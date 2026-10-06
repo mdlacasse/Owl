@@ -1,5 +1,13 @@
 ### Version 2026.10.7
 
+#### New: solve time in the Summary
+
+The Summary has a *Solve time* row: how long the last solve took on the clock, with the CPU time
+it used in parentheses. Solve times now range from under a second with the default iteration to
+minutes with branch-and-bound, so compared cases show what each one cost. The clock time depends
+on the machine and on what else it is doing; the CPU time much less so, though with MOSEK on
+several cores it can exceed the clock time.
+
 #### Fixed: Spending Optimization with lifespan sampling left out debts and fixed assets
 
 With lifespan sampling on, Spending Optimization solves a copy of the case for each sampled
