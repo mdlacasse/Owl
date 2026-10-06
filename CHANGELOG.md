@@ -19,6 +19,13 @@ left to those heirs as 0.1% of a dollar of spending or final bequest. In the cas
 gives up no final bequest and leaves cases with fractions of 28% unchanged; it only breaks the tie.
 The weight can be set with the solver option `partialBequestWeight`.
 
+#### Fixed: Graphs lost its images after a visit to Reports
+
+After the fix in 2026.10.6 that stopped a visit to Reports from forcing Graphs to solve the case
+again, coming back to Graphs showed no images: Reports refreshed the plan's Financial Profile
+tables, which marked the plan itself as changed, and a plan marked changed draws nothing. The plan
+now stays solved when the tables are the same; an edit still marks it changed.
+
 #### New: solve time in the Summary
 
 The Summary has a *Solve time* row: how long the last solve took on the clock, with the CPU time
