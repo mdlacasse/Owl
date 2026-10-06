@@ -2726,10 +2726,14 @@ class Plan:
         # through tss: Psi_n there lags the LP by one self-consistent iteration.
         ss_lp = "tss" in vm
         # SS adjustment: federal G_n contains taxable SS; remove it in years whose state excludes SS.
+        # With withSSAges="optimize" the own benefit is the ssb variable (added to the row below),
+        # and only the spousal/survivor offset is a parameter.
+        ssb_lp = not ss_lp and "ssb" in vm
         if ss_lp:
             ss_excl_n = np.zeros(self.N_n)
         else:
-            ss_excl_n = np.where(self.st_tax_ss_n, 0.0, self.Psi_n * np.sum(self.zetaBar_in, axis=0))
+            ss_par_n = np.sum(self._ssa_spousal_offset if ssb_lp else self.zetaBar_in, axis=0)
+            ss_excl_n = np.where(self.st_tax_ss_n, 0.0, self.Psi_n * ss_par_n)
         # Pension exemption (parameter): each person's pension up to their own cap.
         pe_adj_n = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
         rhs_n = -ss_excl_n - pe_adj_n
@@ -2750,6 +2754,9 @@ class Plan:
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             if ss_lp and not self.st_tax_ss_n[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
+            elif ssb_lp and not self.st_tax_ss_n[n]:
+                for i in range(self.N_i):
+                    row.addElem(vm["ssb"].idx(i, n), self.Psi_n[n])  # exclude Psi_n * own benefit
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # A personal credit only offsets tax: the credit used stays below the year's state tax.
@@ -3085,9 +3092,14 @@ class Plan:
         removes feasible plans silently.
         """
         Nn = self.N_n
+        ss_in = self.zetaBar_in
+        if "ssb" in self.vm:
+            # The MAGI rows carry the own benefit of whichever claiming age the MILP picks, which can
+            # exceed the previous iterate's: bound it by the largest candidate.
+            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + np.max(self._ssa_B_own[:, :, :Nn], axis=1))
         fixed = (
             np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
-            + np.sum(self.piBar_in + self.spiaBar_in + self.zetaBar_in + self.Lambda_in, axis=0)
+            + np.sum(self.piBar_in + self.spiaBar_in + ss_in + self.Lambda_in, axis=0)
             + self.fixed_assets_ordinary_income_n
             + np.maximum(self.fixed_assets_capital_gains_n, 0.0)
             + self.fixed_assets_tax_free_n
@@ -3292,14 +3304,18 @@ class Plan:
                         + self.spiaBar_in[i, n]
                     )
                 else:
+                    ss_const, ssb_idx = self._ss_benefit_terms(i, n)
                     rhs += (
                         self.omega_in[i, n]
                         + self.other_inc_in[i, n]
                         + self.netinv_in[i, n]
-                        + self.Psi_n[n] * self.zetaBar_in[i, n]
+                        + self.Psi_n[n] * ss_const
                         + self.piBar_in[i, n]
                         + self.spiaBar_in[i, n]
                     )
+                    if ssb_idx is not None:
+                        # Taxable SS follows the claiming age the MILP picks (Psi_n lags).
+                        row.addElem(ssb_idx, -self.Psi_n[n])
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
                 fak = fak_in[i, n]
@@ -3454,6 +3470,17 @@ class Plan:
                 tag=("ss_tax_tss_lb_formula", n),
             )
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)  # t^σ ≤ 0.85·ζ̄
+
+    def _ss_benefit_terms(self, i, n):
+        """Person i's SS income in year n as (constant part, ssb column index or None).
+
+        With withSSAges="optimize" the own benefit is the LP variable ssb[i, n] and only the
+        spousal/survivor offset is a parameter, so every row that charges tax or premiums on SS
+        sees the benefit of the claiming age the MILP picks. Otherwise all of it is zetaBar.
+        """
+        if "ssb" in self.vm:
+            return self._ssa_spousal_offset[i, n], self.vm["ssb"].idx(i, n)
+        return self.zetaBar_in[i, n], None
 
     def _ssaAgeIsFixed(self, i):
         """
@@ -3886,7 +3913,10 @@ class Plan:
                     + 0.5 * self.kappa_ijn[i, 0, n2] * afac
                 )
                 if not ss_lp:
-                    sumoni += self.Psi_n[n2] * self.zetaBar_in[i, n2]  # taxable SS (SC-loop param)
+                    ss_const, ssb_idx = self._ss_benefit_terms(i, n2)
+                    sumoni += self.Psi_n[n2] * ss_const  # taxable SS (SC-loop param)
+                    if ssb_idx is not None:
+                        row.addElem(ssb_idx, -self.Psi_n[n2])
                 rhs += sumoni
 
             if ss_lp:
@@ -3981,11 +4011,14 @@ class Plan:
                 row_magi[d_idx] = row_magi.get(d_idx, 0) - afac
                 row_magi[w0_idx] = row_magi.get(w0_idx, 0) + (afac - bfac)
 
+                ss_const, ssb_idx = self._ss_benefit_terms(i, n)
+                if ssb_idx is not None:
+                    row_magi[ssb_idx] = row_magi.get(ssb_idx, 0) - 1
                 rhs_magi += (
                     self.omega_in[i, n]
                     + self.other_inc_in[i, n]
                     + self.netinv_in[i, n]
-                    + self.zetaBar_in[i, n]  # full SS (not 0.5×SS; ACA uses MAGI)
+                    + ss_const  # full SS (not 0.5×SS; ACA uses MAGI)
                     + self.piBar_in[i, n]
                     + self.spiaBar_in[i, n]
                     + 0.5 * self.kappa_ijn[i, 0, n] * afac

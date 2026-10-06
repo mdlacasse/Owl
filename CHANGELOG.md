@@ -20,6 +20,15 @@ retirement age: up to 132% of PIA instead of 82.5%. This matters when a spouse p
 late but dies first. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix
 (#169).
 
+#### Fixed: optimized claiming ages are taxed on their own benefits
+
+With `withSSAges = "optimize"`, the tax on Social Security, the IRMAA and ACA incomes, and the
+state Social Security exclusion were computed from the benefits of the claiming age chosen in the
+previous iteration rather than the age being considered. The result could depend on the starting
+ages and report a plan whose taxes belonged to another age. Each candidate age is now taxed on its
+own benefits, and the result matches a solve with that age fixed. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#168).
+
 #### Fixed: case files and state data are read and written as UTF-8 on Windows
 
 On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose

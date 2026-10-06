@@ -305,3 +305,85 @@ class TestSurvivorOffset:
         assert jack_jill.caseStatus == "solved"
         assert not jack_jill._ssa_fold_survivor
         assert np.all(jack_jill._ssa_spousal_offset > -1e-6)
+
+
+# ---------------------------------------------------------------------------
+# Taxes on SS follow the claiming age the MILP picks
+# ---------------------------------------------------------------------------
+
+
+def _exact_ss_plan(age):
+    """Single, tax-deferred only, constant rates, an indexed pension from 63.
+
+    With Medicare off and the SS taxable share pinned, the only quantity the loop still feeds
+    back is the benefit stream itself, so each claiming-age MILP is exact once taxable SS
+    follows the ssb variables.
+    """
+    import io
+    from datetime import date
+
+    import owlplanner as owl
+
+    ty = date.today().year
+    p = owl.Plan(["Bo"], [f"{ty - 61}-03-15"], [85], "ss_age_tax", verbose=False, logstreams=[io.StringIO()])
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[0], taxDeferred=[300], taxFree=[0], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("user", values=[6, 4, 3, 2.5])
+    p.setSocialSecurity([3000], [age])
+    p.setPension([8000], [63], indexed=[True])
+    return p
+
+
+_EXACT_OPTS = {"withMedicare": "None", "withSSTaxability": 0.85, "bequest": 0}
+
+
+class TestClaimingAgeTaxes:
+    def test_tax_rows_carry_ssb(self):
+        """The taxable-income row charges Psi_n on the own-benefit variable."""
+        p = _exact_ss_plan(67)
+        p.solve("maxSpending", options={**_EXACT_OPTS, "withSSAges": "optimize"})
+        assert p.caseStatus == "solved"
+        const, idx = p._ss_benefit_terms(0, 10)
+        assert idx == p.vm["ssb"].idx(0, 10)
+        assert const == pytest.approx(p._ssa_spousal_offset[0, 10])
+
+    def test_result_independent_of_starting_age_and_consistent(self):
+        """Same age and spending from any starting age, equal to a fixed-age solve at that age.
+
+        When taxable SS came from the previous iterate's benefits, the plan started at 62 stopped
+        on 64 5/12 reporting $104,526/yr, while a fixed-age solve at 64 5/12 gives $104,518/yr:
+        the accepted plan had not been charged the tax on its own benefits.
+        """
+        results = []
+        for start in (62, 70):
+            p = _exact_ss_plan(start)
+            p.solve("maxSpending", options={**_EXACT_OPTS, "withSSAges": "optimize"})
+            assert p.caseStatus == "solved"
+            results.append((float(p.ssecAges[0]), float(p.g_n[0])))
+        assert results[0][0] == pytest.approx(results[1][0])
+        assert results[0][1] == pytest.approx(results[1][1], abs=1.0)
+
+        fixed = _exact_ss_plan(results[0][0])
+        fixed.solve("maxSpending", options=_EXACT_OPTS)
+        assert results[0][1] == pytest.approx(float(fixed.g_n[0]), abs=1.0)
+
+    def test_state_ss_exclusion_follows_the_claiming_age(self):
+        """In a state that excludes SS (CA), the state base removes the taxable share of the own
+        benefit the MILP picks. With the previous iterate's benefits removed instead, the result
+        depended on the starting age (64 2/12 at $99,331 or $99,348/yr) and neither start
+        matched the fixed-age solve."""
+        results = []
+        for start in (62, 70):
+            p = _exact_ss_plan(start)
+            p.setStateTax("CA")
+            p.solve("maxSpending", options={**_EXACT_OPTS, "withSSAges": "optimize"})
+            assert p.caseStatus == "solved"
+            results.append((float(p.ssecAges[0]), float(p.g_n[0])))
+        assert results[0][0] == pytest.approx(results[1][0])
+        assert results[0][1] == pytest.approx(results[1][1], abs=1.0)
+
+        fixed = _exact_ss_plan(results[0][0])
+        fixed.setStateTax("CA")
+        fixed.solve("maxSpending", options=_EXACT_OPTS)
+        assert results[0][1] == pytest.approx(float(fixed.g_n[0]), abs=1.0)
