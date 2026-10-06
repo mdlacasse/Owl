@@ -1,0 +1,7 @@
+# Draft reply on mdlacasse/Owl#167 (partial first year), not posted
+
+Status: drafted 2026-10-06, for the user to decide whether to post. The maintainer documented the limitation (`22ec12f`) and kept the issue open for a short first period. His second comment suggests adding the amount spent from January 1 until now to the balances. His own documentation (`ui/Documentation.py`, `info/modeling-capabilities.md` at `22ec12f`) says what is counted again is "spending paid so far, net of the income received so far", and tells users to keep wages, SS and pensions at full-year amounts. The two pieces of advice only agree if the amount added back is net of that income. The reply below says only that.
+
+---
+
+Thanks, the documentation covers it. One precision on the workaround in your second comment, so that the two pieces of advice add up: with wages, Social Security and pensions kept at their full-year amounts (as the documentation says), the year-to-date income is counted again too, not only the spending. The amount to add to the balance (most naturally the taxable account) is then the spending and taxes paid since January 1 *minus* the wages, benefits and pensions received since January 1, which is the "net of the income received so far" in the documentation. For a retiree drawing down savings that is positive. For someone still working and saving it is usually negative, and adding the gross spending would overstate the balance by the year-to-date income.

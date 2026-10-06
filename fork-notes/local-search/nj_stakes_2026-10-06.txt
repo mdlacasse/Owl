@@ -1,0 +1,30 @@
+== exact 900,600
+| $1.5M | FL | 126,340 | 0 | 0.1 s | LP | 359,564 | loop |
+| $1.5M | NY | 125,063 | 31,554 | 0.1 s | LP | 386,867 | loop |
+| $1.5M | NJ, no exclusion | 124,587 | 42,595 | 0.1 s | LP | 331,833 | loop |
+| $1.5M | NJ, exclusion | 126,069 | 0 | 6.2 s | 0.01% | 180,630 | loop |
+== default 900,600
+| $1.5M | FL | 123,818 | 0 | 0.6 s | LP | 33,012 | loop |
+| $1.5M | NY | 122,597 | 31,572 | 0.6 s | LP | 2,622 | loop |
+| $1.5M | NJ, no exclusion | 121,817 | 42,526 | 0.9 s | LP | 2,214 | loop |
+| $1.5M | NJ, exclusion | 122,406 | 0 | 17.8 s | 0.01% | 1,147 | loop |
+== ls 900,600
+| $1.5M | FL | 125,130 | 0 | 43.3 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $1.5M | NY | 123,206 | 46,892 | 59.3 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $1.5M | NJ, no exclusion | 122,947 | 54,692 | 45.9 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $1.5M | NJ, exclusion | 123,636 | 20,193 | 184.1 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+== exact 1500,1000
+| $2.5M | FL | 161,844 | 0 | 0.1 s | LP | 161,207 | loop |
+| $2.5M | NY | 157,945 | 97,369 | 0.1 s | LP | 156,943 | loop |
+| $2.5M | NJ, no exclusion | 157,621 | 106,720 | 0.1 s | LP | 157,005 | loop |
+| $2.5M | NJ, exclusion | 158,828 | 63,291 | 63.3 s | 0.17% | 37,274 | loop |
+== default 1500,1000
+| $2.5M | FL | 157,821 | 0 | 0.2 s | LP | 1,252 | loop |
+| $2.5M | NY | 153,952 | 97,634 | 0.2 s | LP | 1,293 | loop |
+| $2.5M | NJ, no exclusion | 153,632 | 106,872 | 0.2 s | LP | 1,295 | loop |
+| $2.5M | NJ, exclusion | 154,482 | 63,370 | 66.5 s | 0.19% | 2,178 | loop |
+== ls 1500,1000
+| $2.5M | FL | 158,833 | 0 | 63.8 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $2.5M | NY | 154,431 | 98,123 | 81.8 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $2.5M | NJ, no exclusion | 154,038 | 106,500 | 59.6 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |
+| $2.5M | NJ, exclusion | 154,993 | 75,289 | 180.0 s | LP | 0 | local search (SS, IRMAA, LTCG, NIIT) |

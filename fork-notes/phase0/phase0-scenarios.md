@@ -64,12 +64,23 @@ owlcli compare otherFiles/Case_us.toml --set 'basic_info.moves=[{"year": 2032, "
 ```
 
 NY benefit recapture (above $107,650 of NY AGI) applies automatically, and the Yonkers surcharge
-includes it. Not modeled: NYC household and school-tax credits, part-year residency, NJ's
-retirement-income exclusion, and property tax (Phase 2). So these runs compare income tax only; the
+includes it. NJ's retirement-income exclusion (lines 28a-28c) is modeled exactly (a MILP; see
+`CLAUDE.md`). Not modeled: NYC household and school-tax credits, part-year residency, and property
+tax (Phase 2). So these runs compare income tax only; the
 larger residency difference, property tax, still has to go in as big-ticket items.
 
 Differences under about 1% between residency variants can be loop noise rather than a real
-difference (see `fork-notes/phase1-revised.md`). Keep the solver options identical across variants.
+difference, with either sign (see `PROGRESS.md`, NJ stakes). Keep the solver options identical
+across variants, and for decisions run each variant with local search and with the exact LP:
+
+```bash
+owlcli compare otherFiles/Case_us.toml --set basic_info.state=NJ \
+    --set solver_options.breakpointMethod=local-search
+owlcli compare otherFiles/Case_us.toml --set basic_info.state=NJ \
+    --set solver_options.withMedicare=None --set solver_options.withSSTaxability=0.85
+```
+
+(`--set` applies to the variant only, so put the same solver options in the base file first.)
 
 ## 4. Part-time work (Phase 5; placeholder now)
 

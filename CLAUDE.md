@@ -8,22 +8,21 @@ Read these first, in this order:
 2. `fork-notes/phase0/phase0-scenarios.md` — how the household's scenarios are run (`owlcli run` / `owlcli compare`).
 3. `PROGRESS.md` (repo root, fork-only like this file): the running log of what is done, filed and next. Update it at the end of every work session and commit it with the work.
 
-## State (2026-10-04)
+## State (2026-10-06)
 
-- Branch `claude/project-thread-qx5fy0` (2026-10-04: model-review fixes for ACA 133-150% band, survivor never claimed, cost basis, SS-age taxes) on top of `claude/project-thread-v39073` (continued from `claude/optimistic-darwin-n5xykl`, from `claude/relaxed-turing-xzrv89`, from `claude/inspiring-rubin-f0a0p9`), merged with upstream `main` at `c58228e` (2026.10.4; contains `dev` `c1e5619`). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `5006479` (2026.10.7; `main` is the same commit). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
-  - typed state params (`StateTaxParams`, with upstream's indexing flags and credits as `credit_n`);
+  - typed state params (`StateTaxParams`; `st_taxParams` and `st_schedule` return it, where upstream returns a tuple and a dict; flag fields use upstream's dict keys `conv_ok_n`, `tax_ss_n`, `pension_eligible_n`, `fed_sd_n`, `senior_bonus_n`);
   - SC-loop registry `_SC_PARAMS`;
-  - mid-plan moves (`basic_info.moves`, `residency.py`);
+  - moves beyond upstream's one (#159): several, each with an optional locality, as `residency.Residence(year, state, locality)` in `Plan.state_moves` (upstream: `(year, state)` pairs, one move). Plan attribute names follow upstream's (`st_*_n` flags, `_states_n()`); the UI edits the first move and keeps the rest from the file;
   - local tax (`basic_info.locality`, `tax_local.py`, `data/taxes_local.toml`: NYC, Yonkers);
   - NY benefit recapture, loop mode (`tax_state.state_recapture`);
-  - NJ not indexed, NJ exemptions; NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, 60 s default cap; data `retirement_exclusion_*` in `taxes_state.toml`;
-  - summary and Taxes-sheet breakdown;
-  - MCP explain adapted.
-- Upstream issues filed by the user and open: #158 (NY recapture), #159 (design proposal: moves + local tax, six questions for the maintainer), #160 (NJ exclusion; maintainer keeps state taxes a pure LP, so NJ stays unexcluded upstream and the fork keeps its MILP; our reply is posted, see PROGRESS.md), #161 (ACA optimize infeasible), #163 (SC-loop cycle selection). #162 (bracket order) was fixed upstream in `3fca646` (2026.10.4) with our patch verbatim and merged here; the fork keeps its copy, which also covers local brackets. #157 (NY/NJ not indexed, with the user's NJ addendum) was fixed upstream in `3c88ce1` (2026.10.3) and merged here, taking theirs. Drafts are in `fork-notes/issue-*.md`. Earlier ones were fixed upstream (#147, #149, #155), and our copies were dropped in the merges.
-- Dropped by decision: recapture optimize mode. A conversion-cap grid showed zero regret, and lifetime recapture was $81–6.4k.
-- Drafts behind filed issues: bracket order #162 (`fork-notes/issue-bracket-order.md`), ACA optimize infeasibility #161 (`fork-notes/issue-aca-optimize-infeasible.md`), SC-loop cycle selection #163 (`fork-notes/issue-cycle-selection.md`), each with a `.patch` verified on stock `dev`; the #160 reply (`fork-notes/issue-nj-retirement-exclusion-reply.md`).
-- Model review of paper vs code: `fork-notes/model-review/README.md` (findings and repro scripts). Fixed so far: bracket order, ACA infeasible band, ACA 133-150% band, survivor of a worker who never claimed, cost basis (reinvested income, gain in equities), SS-age MILP taxes. Filed upstream by the user on 2026-10-04 (numbers not recorded yet): those four plus partial first year and ACA optimize rates. Not filed: docs/paper drift (`fork-notes/issue-docs-loop-and-paper.md`).
+  - NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, capped at `RX_NODE_LIMIT` (20,000 HiGHS nodes; MOSEK 60 s) without `maxTime`; a local-search family (`localsearch.FAMILIES`); data `retirement_exclusion_*` in `taxes_state.toml`;
+  - local search: a tie with the loop keeps the plan with the lower residual (cameron), proposed upstream in the #171 reply draft;
+  - summary and Taxes-sheet breakdown; MCP explain adapted.
+- Upstream (maintainer responses as of 2026-10-06): fixed upstream and merged, taking theirs: #161, #164, #165 (also Medicaid at no premium up to 138% FPL), #166, #168, #169; #159 implemented as one move, no local tax (fork keeps its extension). #167 (partial first year) documented upstream (`22ec12f`), left open for a short first period; our reply draft `fork-notes/issue-partial-first-year-reply.md` (not posted). #163 (cycle selection) on hold. #171 (pinned loop) declined in favor of `breakpointMethod = "local-search"` (2026.10.6); our findings `fork-notes/local-search/README.md`, reply draft `fork-notes/issue-local-search-reply.md` (not posted). Still open from before: #158 (NY recapture), #160 (NJ exclusion; upstream keeps state taxes a pure LP). Earlier fixes upstream: #147, #149, #155, #157, #162. Drafts are in `fork-notes/issue-*.md`.
+- Dropped by decision: recapture optimize mode (conversion-cap grid showed zero regret; lifetime recapture $81–6.4k); the envelope model as an upstream feature (#171 declined; it stays a fork-notes screen).
+- Not filed: docs/paper drift (`fork-notes/issue-docs-loop-and-paper.md`); upstream rewrote parts of `papers/owl.tex` in 2026.10.6-7, so recheck it before filing.
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
 
 ## Setup (the container is ephemeral; redo each session)
@@ -34,8 +33,8 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 2 -q -p no:cacheprovider`. About 4–7 min. 2724 passed / 1 skipped on 2026-10-04 (with the model-review fixes).
-- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`.
+- Tests: `.venv/bin/python -m pytest -n 4 -q -p no:cacheprovider`. About 6 min on 4 cores. 2792 passed / 1 skipped on 2026-10-06 after the 2026.10.7 merge.
+- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`. Upstream's `localsearch.py:28` is 122 characters (their CI allows 127); leave it.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 
 ## Conventions
@@ -50,8 +49,9 @@ uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 
 - **`owlcli compare`:** `--set` applies to the variant only, so the base case file must be complete.
 - **Cliffs belong in the MILP, not the loop:** a loop-fed tier for the NJ exclusion 2-cycled and accepted a plan that undercharged its own tax by $13.9k. A big-M on income made each MILP 4-6 s; the disaggregated form takes about 1 s. Never add the same column twice to one row (`abcapi` does not merge duplicates; HiGHS crashed with "double free").
-- **NJ exclusion solve limits:** tier binaries are free only in years within `RX_WINDOW` (1.5x the top ceiling) of the previous iterate's income (`RXF_n`, an SC parameter; iteration 0 runs without the exclusion). Without `maxTime`, a MILP carrying them stops at `RX_TIME_LIMIT` (60 s), warns with the gap, and later iterations keep its tiers (`_rx_fixed`); `solverGap` reports that MILP's gap. Results that hit the cap depend on CPU speed, so don't time-cap runs you compare across machines; pass a large `maxTime` for decisions.
-- **Loop noise:** under the default self-consistent loop, scenario differences under about 1% can come from the loop settling on different fixed points. For decisions, also run with `withMedicare="None"` and a pinned `withSSTaxability` (e.g. `0.85`) so the LP is exact.
+- **NJ exclusion solve limits:** tier binaries are free only in years within `RX_WINDOW` (1.5x the top ceiling) of the previous iterate's income (`RXF_n`, an SC parameter; iteration 0 runs without the exclusion). Without `maxTime`, a HiGHS MILP carrying them stops at `RX_NODE_LIMIT` (20,000 nodes; HiGHS says "Solution limit reached"), warns with the gap, and later iterations keep its tiers (`_rx_fixed`; not inside local search); `solverGap` reports that MILP's gap. Node caps give the same plan on any machine (the old 60 s cap did not); MOSEK still uses 60 s. With `maxTime`, there is no node cap.
+- **Upstream's local search and fork binaries:** `localsearch.FAMILIES` must list every binary block the search may meet. A block left out is relaxed by the LP start, and the search then returns that fractional plan (it did, for `zx`, until 2026-10-06). Upstream sends its other non-family binaries (`zssa`, `zo`) to branch-and-bound before searching.
+- **Loop noise:** under the default self-consistent loop, scenario differences under about 1% can come from the loop settling on different fixed points, and can have the wrong sign (NJ vs NY at $1.5M: loop −$191/yr, local search +$430, exact LP +$1,006; PROGRESS.md). For decisions, compare variants with `breakpointMethod="local-search"` (seconds to minutes each; never worse than the loop), cross-check with the exact LP (`withMedicare="None"`, `withSSTaxability=0.85`), and treat differences smaller than the spread between the two as unresolved. Local search overrides a pinned SS fraction with the IRS formula.
 - **Degenerate tests:** in a fixed-income `maxSpending` test plan, first-year income can cap spending, and later taxes then cost nothing. Use `maxBequest` with `netSpending` instead.
 - **Earnings test:** not modeled. In scenarios where one spouse works, optimize SS ages only for the one who stops (`withSSAges=["Name"]`).
 - **`pkill -f <pattern>`** can kill the shell running it. Kill by PID instead.

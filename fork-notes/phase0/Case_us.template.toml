@@ -18,8 +18,11 @@ names = [ "SpouseA", "SpouseB", ]        # TODO: real names
 sexes = [ "M", "F", ]                    # TODO: adjust
 date_of_birth = [ "1964-01-01", "1964-12-01", ]  # TODO: exact dates (A: early 1964, B: Dec 1964)
 life_expectancy = [ 92, 92, ]
-start_date = "2026-01-01"               # TODO: balances must be as of this date; with "today"
-                                         # use today's balances and only the rest of 2026's wages
+start_date = "2026-01-01"               # TODO: balances must be as of this date (year-end statements).
+# Year 0 is always a full calendar year; a later date only back-projects growth (upstream #167).
+# If only later balances are at hand: keep 2026 wages, SS and pensions at full-year amounts, enter
+# only the contributions still to come, and add to the taxable balance the 2026 spending and taxes
+# paid so far minus the wages and benefits received so far (negative while saving).
 state = "NY"                             # scenarios vary it; Westchester outside Yonkers = plain NY
 locality = ""                            # "" | "Yonkers" | "NYC" (see data/taxes_local.toml)
 # moves = [ { year = 2032, state = "FL" }, ]   # optional later change of residence
