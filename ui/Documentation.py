@@ -1478,7 +1478,7 @@ finds the best strategy, then Medicare premiums are calculated from that strateg
 and the problem is re-solved with those premiums as fixed costs until they stabilize.
 This provides good accuracy with reasonable computation time.
 
-For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
+To let the optimizer place income at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
 It is significantly slower than the loop — seconds to many minutes, depending on the case — because
@@ -1530,6 +1530,17 @@ should a case prove slow to settle; it is reachable from the TOML file and the P
 (`maxIter`) but is not exposed in the interface.
 
 The *Advanced options* expander contains:
+- *Solve tax breakpoints by local search (expert)* – carries every tax breakpoint (Social Security
+  taxability, Medicare, ACA when SLCSP > 0, capital gains, NIIT) as binary variables and solves them
+  by local search instead of branch-and-bound: small restricted problems around the iteration's plan.
+  It usually finds a somewhat better plan than the iteration, in seconds to a few minutes, and never
+  a worse one; it is not a proven optimum. When on, the individual MILP settings below do not apply,
+  and a fixed Social Security taxable fraction is replaced by the IRS formula (the log says so):
+  local search keeps the problem well behaved without it.
+- *MILP strategy (expert)* – how the breakpoints turned to MILP below are solved: *branch-and-bound*,
+  the solver's complete search, which stops at the solver gap or time limit and can take many minutes
+  per solve, or *local-search*. Available once at least one threshold is set to MILP.
+  The Summary's *Breakpoint method* row records which treatment produced each plan.
 - *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
   optimization rather than by iteration; enabled only when Medicare and IRMAA calculations are on.
 - *Solve ACA brackets with MILP (expert)* – chooses the ACA bracket inside the optimization, letting
@@ -1545,12 +1556,13 @@ solve the Medicare brackets that way for high-income retirees where IRMAA surcha
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
 - *Solve LTCG brackets with MILP (expert)* – replaces the iteration for LTCG ordinary income
-  stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
+  stacking with a MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
   so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
   placement significantly affects the objective.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
-  Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
+  A binary variable per year selects which term of the minimum bounds the tax: investment income, or MAGI
+  above the threshold (\\$200k single / \\$250k MFJ).
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
@@ -1560,7 +1572,7 @@ against future IRMAA simultaneously.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables. This is slower than the loop but no longer needs the
+within the optimization using binary variables. This is slower than the loop but no longer needs the
 `gap` to be loosened by hand: on the shipped *jack+jill* case it takes about 20 seconds with MOSEK
 at default settings, against about 1 second for the loop, and finds a spending basis 1.4% higher.
 Prefer MOSEK for it — the same case took over two minutes with HiGHS and returned a worse answer.

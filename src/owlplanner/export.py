@@ -607,6 +607,7 @@ def build_summary_dic(plan, N=None):
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)
     dic["Convergence"] = plan.convergenceType
+    dic["Breakpoint method"] = getattr(plan, "breakpointMethodUsed", "loop")
     # Residual uncertainty from a self-consistent loop that did not settle: the accepted
     # objective sits inside the oscillation band, so report an error bar in the units of
     # the final modified objective (today's dollars: spending basis for maxSpending,

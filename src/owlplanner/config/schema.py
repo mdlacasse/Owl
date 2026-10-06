@@ -375,6 +375,16 @@ class SolverOptions(BaseModel):
     withSSAges: Optional[Union[str, List[str]]] = None
     withDuals: Optional[bool] = None
     withdrawalOrder: Optional[str] = None
+    mipStrategy: Optional[Literal["branch-and-bound", "local-search"]] = None
+    breakpointMethod: Optional[Literal["loop", "branch-and-bound", "local-search"]] = None
+    localSearchTime: Optional[float] = Field(default=None, ge=0.0, description="Local search: total budget (s).")
+    localSearchStepTime: Optional[float] = Field(
+        default=None, ge=0.0, description="Local search: cap per restricted solve (s)."
+    )
+    localSearchRadius: Optional[int] = Field(default=None, ge=0, description="Local search: SS-taxability flips.")
+    localSearchStepNodes: Optional[int] = Field(
+        default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
+    )
 
     # Other
     previousMAGIs: Optional[List[float]] = None

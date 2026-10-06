@@ -860,7 +860,7 @@ pass until they converge.
 The total LTCG tax is derived from the bracket allocation after solving.
 Reference: \cite{irs409}.
 
-An optional exact MIP formulation is available via \code{withLTCG="optimize"}.
+An optional MIP formulation is available via \code{withLTCG="optimize"}.
 In this mode, the ordinary taxable income $G_n$ is embedded as a continuous
 LP variable together with binary variables that select the applicable LTCG
 bracket in each year, replacing the self-consistent loop refinement of
@@ -902,7 +902,7 @@ The threshold is fixed in nominal dollars; its real impact over time is
 correctly reflected in the model.
 Reference: \cite{irc1411}.
 
-An optional exact MIP formulation is available via \code{withNIIT="optimize"}.
+An optional MIP formulation is available via \code{withNIIT="optimize"}.
 In this mode, MAGI is embedded as a continuous LP variable together with a
 binary variable $z^j_n$ that selects, each year, which term of the IRS
 $\min(\cdot,\cdot)$ bounds the tax: the excess of MAGI over the threshold, or
@@ -1035,8 +1035,9 @@ Owl resolves this circularity through a self-consistent (SC) iteration
 loop: nonlinear quantities are fixed at their previous-iteration values
 during each LP solve, then recomputed from the new solution, and the
 process repeats until convergence.
-For quantities that require exact simultaneous treatment, binary variables
-and MIP reformulations replace the SC loop entirely.
+Threshold quantities can instead be carried inside the optimization as binary
+variables (MIP reformulations); the loop still iterates the quantities that remain
+nonlinear in the solution.
 
 \section{Planning Horizon and Time Steps}
 
@@ -1233,11 +1234,11 @@ a damped update.
 The loop typically converges in fewer than fifteen iterations for
 well-posed plans.
 
-Five optional MIP formulations replace portions of the SC loop with exact
-binary constraints, eliminating the corresponding nonlinearity entirely:
+Five optional MIP formulations replace portions of the SC loop with binary
+constraints, carrying the corresponding thresholds inside the optimization:
 \begin{itemize}[nosep]
   \item \code{withSSTaxability="optimize"} --- models SS taxability as an
-    exact piecewise-linear MIP using binary variables $z^\sigma$ to select
+    piecewise-linear MIP using binary variables $z^\sigma$ to select
     the correct taxability threshold (0\%, 50\%, or 85\%) each year.
   \item \code{withLTCG="optimize"} --- uses binary variables $z^l$ to select
     the correct 0\%, 15\%, or 20\% LTCG bracket each year, rather than
@@ -1248,14 +1249,12 @@ binary constraints, eliminating the corresponding nonlinearity entirely:
   \item \code{withACA="optimize"} --- folds ACA premium bracket selection and
     MAGI into the MIP, replacing the per-iteration SC approximation.
   \item \code{withMedicare="optimize"} --- models IRMAA bracket selection
-    using binary variables $z^m$, guaranteeing the globally optimal bracket
-    assignment each year.
+    using binary variables $z^m$ to select each year's bracket.
 \end{itemize}
-Each exact formulation eliminates the corresponding SC-loop approximation at
-the cost of additional binary variables.
+Each formulation removes the corresponding SC-loop approximation at the cost of
+additional binary variables.
 When multiple flags are active simultaneously, the resulting MILP can be large;
-the \code{withDecomposition} option (Section~\ref{sec:decomposition}) provides
-sequential (relax-and-fix) and Benders strategies to reduce solve time.
+Section~\ref{sec:decomposition} describes the two strategies that solve it.
 
 \section{Filing Status and the Death of a Spouse}
 
@@ -1296,63 +1295,64 @@ An optional interface to \textbf{MOSEK}, a commercial solver requiring a
 separate license, is also supported and generally provides faster solution
 times for large MIP problems.
 
-\section{MIP Decomposition}
+\section{MIP Strategies: Branch-and-Bound and Local Search}
 \label{Sec:MIPDecomp}
 \label{sec:decomposition}
 
-When multiple \code{"optimize"} flags are active simultaneously---for example,
-\code{withLTCG}, \code{withMedicare}, \code{withACA}, \code{withSSTaxability},
-and \code{withNIIT} all set to \code{"optimize"}---the monolithic MILP can
-accumulate on the order of 300 binary variables from the five bracket-selector
-families ($z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$). These are the only binaries
-a plan carries; with every tax mode left in loop mode the problem is a pure
-linear program.
-Solve times grow substantially with this binary count.
-The \code{withDecomposition} option partitions the MILP into two interacting
-subproblems that are solved sequentially, separating bracket selection from
-continuous planning:
-\begin{itemize}[nosep]
-  \item \textbf{Master problem} --- selects the bracket binary families
-    $z^m$, $z^a$, $z^\sigma$, $z^l$, $z^j$.
-  \item \textbf{Subproblem} --- solves the continuous planning problem (all
-    LP variables), with bracket assignments fixed by the master.
-\end{itemize}
-Two decomposition strategies are available.
+When the \code{"optimize"} flags are active simultaneously---\code{withSSTaxability},
+\code{withMedicare}, \code{withACA}, \code{withLTCG} and \code{withNIIT}---the MILP
+carries on the order of 300 binary variables from the five bracket-selector families
+($z^\sigma$, $z^m$, $z^a$, $z^l$, $z^j$); with every tax mode in loop mode the problem
+is a pure linear program. The option \code{mipStrategy} selects how those binaries are
+solved within each iteration of the SC loop.
 
-\paragraph*{Sequential (relax-and-fix).}
-The LP relaxation (all binaries relaxed to $[0,1]$) is solved first.
-The bracket binary families are then rounded to 0 or 1 in a fixed order
-($z^l \to z^\sigma \to z^j \to z^m \to z^a$).
-Finally, the reduced problem is solved with all bracket binaries fixed.
-This is a fast heuristic and is not guaranteed to be globally optimal, but
-in practice it produces near-optimal or optimal solutions.
+\paragraph*{Branch-and-bound} (\code{mipStrategy="branch-and-bound"}, the default) hands
+the whole MILP to the solver's complete search. It stops when the relative gap between the
+incumbent and the best bound falls below \code{gap}, or at \code{maxTime}, so its answer is
+certified only to that gap. It is not exact in a wider sense either: it is solved inside the
+SC loop, which still iterates the quantities that remain nonlinear in the solution
+(investment income, gain fractions, the OBBBA phaseout). Solve times grow quickly with the
+binary count; on the bequest cases studied, a median of about six minutes per solve with
+MOSEK, and HiGHS is far slower.
 
-\paragraph*{Benders decomposition.}
-Classical Benders decomposition~\cite{benders1962} provides a certified global
-optimum.
-Starting from an initial bracket assignment, the subproblem LP is solved and its
-dual variables $\pi$ are used to generate a Benders optimality cut
-\begin{equation}
-    \eta \ge \alpha + \bm{\beta}^\top z,
-    \qquad
-    \alpha = \theta_{\mathrm{LP}} - \bm{\beta}^\top z^*,
-    \quad
-    \beta_j = -\sum_i \pi_i A_{ij},
-\end{equation}
-where $\theta_{\mathrm{LP}}$ is the subproblem LP objective and $A_{ij}$ are
-the constraint coefficients of master column $j$.
-The cut is added to the master; the master MIP is re-solved for a new bracket
-assignment and a lower bound on $\eta$.
-An upper bound is obtained by solving the subproblem MIP.
-The loop terminates when the gap between the upper and lower bounds falls within
-the solver's MIP gap tolerance.
-In practice the algorithm converges in one to three iterations.
-If the LP relaxation gap cannot be closed, Benders falls back to the sequential
-strategy.
+\paragraph*{Local search} (\code{mipStrategy="local-search"}) is a fix-and-optimize
+heuristic. Within each SC iteration it solves a sequence of small restricted problems, each
+with most binaries pinned:
+\begin{enumerate}[nosep]
+  \item \emph{A feasible starting plan.} The previous iteration's binaries (an LP); failing
+    that, a repair from the self-consistent loop's own plan, with its withdrawals and
+    conversions held in a narrow band and the binaries free. The full MILP is never solved:
+    if every attempt fails, the loop's plan is kept.
+  \item \emph{Moves.} (a) $z^\sigma$ pinned, the other families freed one at a time;
+    (b) the other families pinned, $z^\sigma$ free within a local-branching ball of at most
+    $k$ flips from the current plan; (a$'$) when neither moved, the other families freed
+    jointly; (c) every family's binaries freed in the years where the plan's own income
+    implies a different cost than the one charged (the fixed-point residual).
+  \item Repeat until no move improves the objective.
+\end{enumerate}
+Every restricted problem contains the current plan, so each is feasible and none returns a
+worse plan: the search descends monotonically. Before searching, the plan is solved once in
+loop mode; that plan seeds the search and is also its floor, so the result is never worse
+than the loop's. Each restricted solve is capped by branch-and-bound nodes
+(\code{localSearchStepNodes}; 3{,}000 with HiGHS, 20{,}000 with MOSEK, which count nodes
+differently) rather than by time, so that the same case gives the same answer on any machine;
+\code{localSearchStepTime} (60\,s) is only a backstop. The search has a budget
+(\code{localSearchTime}, 300\,s), and $k$ is \code{localSearchRadius} (4). The preset
+\code{breakpointMethod="local-search"} replaces a fixed Social Security taxable fraction with the
+IRS formula: local search keeps the problem well behaved without it. Local search carries no certificate and can stop short of the optimum, chiefly on the
+unrestricted problem, which has the most freedom. Claiming-age selectors
+(\code{withSSAges="optimize"}) and withdrawal-ordering gates are not searched; such cases are
+solved by branch-and-bound.
 
-Both strategies support HiGHS and MOSEK.
-The option is \code{withDecomposition = "none" | "sequential" | "benders"};
-the default is \code{"none"} (monolithic MILP).
+The preset \code{breakpointMethod = "local-search"} (or \code{"branch-and-bound"}) sets every
+applicable family to \code{"optimize"} and selects the strategy in one step.
+
+In tests of a prototype with HiGHS, on the shipped examples (with a benchmark ACA premium
+added where someone is under 65), local search was never worse than the loop and improved
+17 of 23 cases. Over 72 historical start years of a bequest-maximizing case swept over
+first-year Roth conversions (1,261 cells), the cells whose regret came out negative---an
+artifact of the solver, since a restricted plan cannot beat an unrestricted one---fell from
+124 with the loop to 47 with local search, at a median of 28\,s per solve.
 
 \chapter{Indices, variables, and parameters}
 In the next sections, the indices, variables, and parameters are
@@ -2133,8 +2133,8 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	In the default SC-loop mode $J_n$ is a derived quantity, recomputed after each
 	LP solve from the current $\mathbb{G}_n$ and held fixed during the solve.
 	When \code{withNIIT="optimize"} is selected, $J_n$ and $\mathbb{G}_n$ become
-	LP decision variables, and a binary variable $z^j_n$ exactly determines whether
-	the NIIT threshold is exceeded (see the Net Investment Income Tax subsection of
+	LP decision variables, and a binary variable $z^j_n$ selects which term of the
+	IRS minimum bounds the tax (see the Net Investment Income Tax subsection of
 	the Constraints chapter).
 
 \item [$K_{in}$]
@@ -4871,10 +4871,8 @@ A statement such as ``convert \$45k--\$60k this year in 87\% of scenarios''
 is more decision-relevant than any single-scenario schedule.
 Each scenario is solved with perfect foresight of its own return path, so the
 spread \emph{understates} true decision uncertainty; a two-stage stochastic
-formulation committing the first-year decisions across scenarios --- the
-natural extension on top of the existing Benders infrastructure of
-Sec.~(\ref{Sec:MIPDecomp}) --- would price that uncertainty exactly and is
-left as future work.
+formulation committing the first-year decisions across scenarios would price
+that uncertainty and is left as future work.
 
 \chapter{Stochastic Spending Optimization and Longevity Risk}
 \label{chap:stochastic-spending}

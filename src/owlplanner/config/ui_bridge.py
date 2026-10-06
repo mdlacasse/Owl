@@ -63,6 +63,8 @@ ACC_CONF = ACCOUNT_TYPES
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 #   stopRothConversions -> stopRothConversionsEnabled / stopRothConversions (absent = no end)
 #   includeMedicarePartD -> includeMedicarePartD (always written; absent in the UI = True)
+#   breakpointMethod     -> localSearch (True for "local-search")
+#   mipStrategy        -> mipStrategy ("branch-and-bound" | "local-search"; written only when not default)
 # ui/sskeys.getSolveParameters() must translate each of these the same way ui_to_config() does.
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
@@ -343,6 +345,8 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
+    dic["localSearch"] = so.get("breakpointMethod", "loop") == "local-search"
+    dic["mipStrategy"] = so.get("mipStrategy", "branch-and-bound")
 
     # An absent stop year means "no end". The UI carries that as an explicit toggle rather
     # than a magic year, so a stop year can never be left behind by a horizon change.
@@ -638,6 +642,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     optimize_niit = bool(uidic.get("optimizeNIIT"))
     diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"
     diconf["solver_options"]["withNIIT"] = "optimize" if optimize_niit else "loop"
+    if uidic.get("localSearch"):
+        diconf["solver_options"]["breakpointMethod"] = "local-search"
+    elif uidic.get("mipStrategy", "branch-and-bound") == "local-search":
+        diconf["solver_options"]["mipStrategy"] = "local-search"
 
     if uidic.get("stopRothConversionsEnabled", False):
         diconf["solver_options"]["stopRothConversions"] = _get_ui(

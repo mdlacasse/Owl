@@ -1,5 +1,21 @@
 ### Version 2026.10.6
 
+#### New: local search for the tax breakpoints (expert)
+
+The tax breakpoints (Social Security taxability, Medicare, ACA, capital gains and NIIT) can now be
+solved by local search instead of branch-and-bound. Turn on *Solve tax breakpoints by local search
+(expert)* in Run Options' advanced options, or set `breakpointMethod = "local-search"` in
+`[solver_options]`. Each solve starts from the plan the usual iteration finds, then improves it
+through small restricted problems around it, never solving the full problem: it is never worse
+than that plan, usually somewhat better, and takes seconds to a few minutes; it is not a proven
+optimum. Each restricted problem is limited by solver nodes rather than seconds, so the same case
+gives the same answer on any machine. It replaces a fixed Social Security taxable fraction with
+the IRS formula, and the log says so. `mipStrategy` chooses the strategy for breakpoints set to
+MILP individually. The Summary has a new *Breakpoint method* row, so that compared cases show how
+each treated the breakpoints; the AI assistant tools take `breakpoint_method` and report the
+method used. The documentation now calls the full search branch-and-bound rather
+than exact: it stops at the solver gap, and the iteration still runs around it.
+
 #### New: one change of state during the plan
 
 A plan can now move once to another state. On the *Create Case* page, turn on *Move to another
@@ -8,8 +24,8 @@ state during the plan* and enter the year of the move and the new state; in a ca
 December 31 taxes the whole year, so the year of the move is taxed by the new state. Leaving the
 new state blank stops state taxes from that year. The optimizer plans around the move: leaving a
 high-tax state for one without an income tax tends to push Roth conversions past it, and the
-reverse brings them forward. Only one move is modeled, and local taxes are not. Thanks to Florin
-Mateoc (@fmateoc) for proposing it (#159).
+reverse brings them forward. Only one move is modeled, and local taxes are not. The AI assistant
+tools take it as `state_move`. Thanks to Florin Mateoc (@fmateoc) for proposing it (#159).
 
 #### Fixed: visiting Reports no longer makes Graphs solve the case again
 

@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 ###########################################################################
+import copy
 import numpy as np
 import pandas as pd
 from datetime import date, datetime
@@ -33,6 +34,7 @@ import time
 import textwrap
 
 from . import amorepair
+from . import localsearch
 from . import utils as u
 from . import tax_federal as tx
 from . import tax_state
@@ -546,6 +548,11 @@ class Plan:
         # Per-family distance between the model solved and the model this plan's own income
         # implies, today's dollars; set by _computeFixedPointResidual after a successful solve.
         self.fixedPointResidual = {}
+        # How the last solve treated the tax thresholds ("loop", "branch-and-bound (...)",
+        # "local search (...)"), and the local search's step log when it ran.
+        self.breakpointMethodUsed = "loop"
+        self.localSearchLog = []
+        self._localSearch = None
         self.bracketOrderExcess = 0.0
         # Whether the objective prices tax (TAX_TIEBREAK); switched on by _scSolve when needed.
         self._tax_tiebreak_on = False
@@ -4588,6 +4595,12 @@ class Plan:
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
             "withDuals",  # Re-solve final LP with binaries fixed to extract shadow prices
             "withdrawalOrder",  # "optimal" (default) or "taxable_first" (naive ordering gates)
+            "mipStrategy",  # "branch-and-bound" (default) or "local-search" for the optimize modes
+            "breakpointMethod",  # preset: "loop" (default), "branch-and-bound" or "local-search"
+            "localSearchTime",  # local search: total time budget per solve (s)
+            "localSearchStepTime",  # local search: time cap per restricted solve (s)
+            "localSearchRadius",  # local search: flips allowed on the SS-taxability binaries
+            "localSearchStepNodes",  # local search: node limit per restricted solve
         ]
         options = {} if options is None else options
 
@@ -4610,6 +4623,10 @@ class Plan:
 
         if objective not in knownObjectives:
             raise ValueError(f"Objective '{objective}' is not one of {knownObjectives}.")
+
+        self._applyBreakpointOptions(myoptions)
+        if self._useLocalSearch(myoptions):
+            return self._localSearchSolve(objective, myoptions)
 
         if objective == "maxBequest" and "netSpending" not in myoptions:
             raise RuntimeError(f"Objective '{objective}' needs netSpending option.")
@@ -4720,6 +4737,11 @@ class Plan:
         else:
             raise RuntimeError("Internal error in defining solverMethod.")
 
+        search = getattr(self, "_localSearch", None)
+        if search is not None:
+            search.use_mosek = solverMethod == self._mosekSolve
+            solverMethod = search.solve
+
         self.mylog.vprint(f"Using '{solver}' solver for optimizing {objective}.")
         myoptions_txt = textwrap.fill(f"{myoptions}", initial_indent="\t", subsequent_indent="\t", width=100)
         self.mylog.vprint(f"Solver options:\n{myoptions_txt}.")
@@ -4727,7 +4749,151 @@ class Plan:
 
         self.objective = objective
         self.solverOptions = myoptions
+        self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions)
 
+        return None
+
+    def _breakpointFamilies(self, options):
+        """Labels of the tax families this solve carries as binary variables."""
+        fams = []
+        if options.get("withSSTaxability", "loop") == "optimize":
+            fams.append("SS")
+        if options.get("withMedicare", "loop") == "optimize":
+            fams.append("IRMAA")
+        if options.get("withACA", "loop") == "optimize" and self.slcsp_annual > 0:
+            fams.append("ACA")
+        if options.get("withLTCG", "loop") == "optimize":
+            fams.append("LTCG")
+        if options.get("withNIIT", "loop") == "optimize":
+            fams.append("NIIT")
+        return fams
+
+    def _breakpointMethodLabel(self, options, fallback=False):
+        """How this solve treated the tax thresholds, for the Summary (always present)."""
+        fams = self._breakpointFamilies(options)
+        if not fams:
+            return "loop"
+        if fallback:
+            return "local search -> loop"
+        method = "local search" if options.get("mipStrategy") == "local-search" else "branch-and-bound"
+        return f"{method} ({', '.join(fams)})"
+
+    def _applyBreakpointOptions(self, options):
+        """Validate mipStrategy and expand the breakpointMethod preset in place.
+
+        breakpointMethod="branch-and-bound" or "local-search" sets every applicable family to
+        "optimize" (Medicare unless it is off, ACA when a benchmark premium is set) and mipStrategy
+        to the same value; "loop" changes nothing.
+        """
+        preset = options.get("breakpointMethod", "loop")
+        if preset not in ("loop", "branch-and-bound", "local-search"):
+            raise ValueError(f"breakpointMethod '{preset}' must be 'loop', 'branch-and-bound' or 'local-search'.")
+        if preset != "loop":
+            pinned = options.get("withSSTaxability", "loop")
+            if isinstance(pinned, (int, float)) and not isinstance(pinned, bool):
+                self.mylog.print(
+                    f"breakpointMethod='{preset}' overrides the pinned taxable fraction of Social Security "
+                    f"({float(pinned):.2f}): it is now set by the IRS formula.",
+                    tag="WARNING",
+                )
+            options["withSSTaxability"] = "optimize"
+            options["withLTCG"] = "optimize"
+            options["withNIIT"] = "optimize"
+            if options.get("withMedicare", "loop") not in ("none", "None", False):
+                options["withMedicare"] = "optimize"
+            if self.slcsp_annual > 0:
+                options["withACA"] = "optimize"
+            options["mipStrategy"] = preset
+        strategy = options.get("mipStrategy", "branch-and-bound")
+        if strategy not in ("branch-and-bound", "local-search"):
+            raise ValueError(f"mipStrategy '{strategy}' must be 'branch-and-bound' or 'local-search'.")
+
+    def _useLocalSearch(self, options):
+        """True when this solve should run the local search (not from inside one)."""
+        if getattr(self, "_localSearchSeeding", False) or options.get("mipStrategy") != "local-search":
+            return False
+        if not self._breakpointFamilies(options):
+            return False
+        blockers = []
+        if options.get("withSSAges", "fixed") == "optimize":
+            blockers.append('withSSAges="optimize"')
+        if options.get("withdrawalOrder", "optimal") == "taxable_first":
+            blockers.append('withdrawalOrder="taxable_first"')
+        if blockers:
+            self.mylog.print(
+                f"Local search does not cover {' and '.join(blockers)}: using branch-and-bound.", tag="WARNING"
+            )
+            options["mipStrategy"] = "branch-and-bound"
+            return False
+        return True
+
+    def _objectiveValue(self, objective):
+        return float(self.g_n[0]) if objective == "maxSpending" else float(self.bequest)
+
+    def _localSearchSolve(self, objective, myoptions):
+        """mipStrategy="local-search": solve the loop first, search from its plan, keep the better.
+
+        The loop's plan is both the seed and the floor: the search starts from it and the
+        result is kept only if it beats it. With no feasible starting plan, or no better plan,
+        the loop's plan is what the solve returns, and the Summary says so.
+        """
+        from .localsearch import NoIncumbent
+
+        loop_opts = {k: v for k, v in myoptions.items()
+                     if k not in ("mipStrategy", "breakpointMethod", "localSearchTime",
+                                  "localSearchStepTime", "localSearchRadius", "localSearchStepNodes")}
+        for opt in ("withSSTaxability", "withLTCG", "withNIIT", "withACA"):
+            if loop_opts.get(opt) == "optimize":
+                loop_opts[opt] = "loop"
+        if loop_opts.get("withMedicare") == "optimize":
+            loop_opts["withMedicare"] = "loop"
+
+        def run_loop():
+            self._localSearchSeeding = True
+            try:
+                self.solve(objective, options=dict(loop_opts))
+            finally:
+                self._localSearchSeeding = False
+
+        run_loop()
+        if self.caseStatus != "solved":
+            self.mylog.print("Local search: the self-consistent loop found no plan to start from.", tag="WARNING")
+            self.solverOptions = myoptions
+            self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions, fallback=True)
+            return None
+        floor = self._objectiveValue(objective)
+        # The loop's plan is the floor. Keep it as solved, rather than re-solving on fallback: a
+        # second solve starts from state the first one left behind and can settle elsewhere.
+        skip = ("mylog",)
+        loop_state = copy.deepcopy({k: v for k, v in self.__dict__.items() if k not in skip})
+        self.mylog.vprint(f"Local search: the loop's plan is worth {u.d(floor)}; searching from it.")
+
+        self._localSearch = localsearch.LocalSearch(
+            self, self.w_ijn.copy(), self.x_in.copy(),
+            step_time=u.get_numeric_option(myoptions, "localSearchStepTime", localsearch.STEP_TIME, min_value=0),
+            total_time=u.get_numeric_option(myoptions, "localSearchTime", localsearch.TOTAL_TIME, min_value=0),
+            radius=int(u.get_numeric_option(myoptions, "localSearchRadius", localsearch.RADIUS, min_value=0)),
+            step_nodes=int(u.get_numeric_option(myoptions, "localSearchStepNodes", 0, min_value=0)) or None,
+        )
+        found = False
+        self._localSearchSeeding = True  # the search itself must not recurse
+        try:
+            self.solve(objective, options=dict(myoptions))
+            found = self.caseStatus == "solved" and self._objectiveValue(objective) > floor * (1 + 1e-9)
+        except NoIncumbent:
+            self.mylog.print("Local search: no feasible starting plan; keeping the loop's plan.")
+        finally:
+            self._localSearchSeeding = False
+            self.localSearchLog = self._localSearch.log
+            self._localSearch = None
+
+        if not found:
+            self.mylog.vprint("Local search: no better plan than the loop's; keeping the loop's plan.")
+            log = self.localSearchLog
+            self.__dict__.update(loop_state)
+            self.localSearchLog = log
+        self.solverOptions = myoptions
+        self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions, fallback=not found)
         return None
 
     def _build_sc_loop_policy(self, options):
@@ -5306,16 +5472,8 @@ class Plan:
         Nn = self.N_n
         return tx.capitalGainTax(self.N_i, self.G_n + self.Q_n, self.Q_n, self.gamma_n[:Nn], self.n_d, Nn)
 
-    def _computeFixedPointResidual(self, includeMedicare):
-        """Measure how far the solved plan sits from the model its own income implies.
-
-        Every quantity the self-consistent loop carries enters the LP as a constant taken from the
-        previous iterate. The loop stops on the objective, not on those constants, so a plan can be
-        reported while its own income would still move them -- and an "optimal" answer is only
-        optimal for the model that was built. This recomputes each of them from the returned plan
-        and records the difference, in today's dollars, as self.fixedPointResidual:
-        {family: {"sum", "abs_sum", "max_abs"}}. Purely diagnostic: nothing here changes a solution.
-        """
+    def _fixedPointResidualByYear(self, includeMedicare):
+        """Per-year disagreements behind _computeFixedPointResidual: {family: array (today's $)}."""
         Nn = self.N_n
         g = self.gamma_n[:Nn]
         ss = np.sum(self.zetaBar_in, axis=0)
@@ -5335,8 +5493,9 @@ class Plan:
             res["IRMAA"] = (self.medicare_n - M_true) / g
 
         if self.slcsp_annual > 0:
+            # Same dollar of slack: an optimizer parks income at the 400% cliff or the 138% line.
             n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
-            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n, g, self.slcsp_annual, Nn,
+            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n - 1.0, g, self.slcsp_annual, Nn,
                                    n_aca_start=n_aca_start)
             res["ACA"] = (self.aca_costs_n - ACA_true) / g
 
@@ -5346,6 +5505,19 @@ class Plan:
         res["deduction"] = (self.sigmaBar_n - sigma_true) / g
 
         res["LTCG"] = (self.U_n - self._ltcg_tax_implied()) / g
+        return res
+
+    def _computeFixedPointResidual(self, includeMedicare):
+        """Measure how far the solved plan sits from the model its own income implies.
+
+        Every quantity the self-consistent loop carries enters the LP as a constant taken from the
+        previous iterate. The loop stops on the objective, not on those constants, so a plan can be
+        reported while its own income would still move them -- and an "optimal" answer is only
+        optimal for the model that was built. This recomputes each of them from the returned plan
+        and records the difference, in today's dollars, as self.fixedPointResidual:
+        {family: {"sum", "abs_sum", "max_abs"}}. Purely diagnostic: nothing here changes a solution.
+        """
+        res = self._fixedPointResidualByYear(includeMedicare)
 
         self.fixedPointResidual = {
             k: {"sum": float(np.sum(v)), "abs_sum": float(np.sum(np.abs(v))), "max_abs": float(np.max(np.abs(v)))}
@@ -5527,7 +5699,9 @@ class Plan:
         h.setOptionValue("output_flag", bool(verbose))
         h.setOptionValue("mip_rel_gap", float(mygap))
         h.setOptionValue("time_limit", float(time_limit))
-        h.setOptionValue("mip_max_nodes", 1_000_000)
+        # mipMaxNodes is internal: local search caps each restricted solve by nodes, not time,
+        # so that its answer does not depend on machine speed or load.
+        h.setOptionValue("mip_max_nodes", int(options.get("mipMaxNodes", 1_000_000)))
         h.setOptionValue("presolve", "on")
 
         inf = highspy.kHighsInf
@@ -5559,6 +5733,7 @@ class Plan:
             h.setSolution(len(c), all_idx, warm_x.astype(np.float64))
 
         h.run()
+        self._lastMipNodes = int(h.getInfoValue("mip_node_count")[1] or 0)
 
         ms = h.getModelStatus()
         _, pstatus = h.getInfoValue("primal_solution_status")
@@ -5685,9 +5860,14 @@ class Plan:
 
         if col_overrides:
             for col, (lb, ub) in col_overrides.items():
+                key = abc._bound_key(lb, ub)
+                if key == "fx" and lb != ub:
+                    # Within the fixed-bound tolerance but not equal: MOSEK rejects a "fixed"
+                    # variable whose bounds differ, so give it one value.
+                    lb = ub = 0.5 * (lb + ub)
                 vlb[col] = lb
                 vub[col] = ub
-                vkeys[col] = abc._bound_key(lb, ub)
+                vkeys[col] = key
 
         task = mosek.Task()
         task.set_Stream(mosek.streamtype.err, lambda t: self.mylog.vprint(t.strip()))
@@ -5776,6 +5956,8 @@ class Plan:
         )
         task.putdouparam(mosek.dparam.mio_max_time, float(time_limit))
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
+        if "mipMaxNodes" in options:  # internal: see _run_highs
+            task.putintparam(mosek.iparam.mio_max_num_branches, int(options["mipMaxNodes"]))
         self._apply_mosek_threads(task, options)
 
         # Warm start: an incumbent lets branch-and-bound prune every node that cannot beat it.
@@ -5789,6 +5971,7 @@ class Plan:
         except mosek.Error as e:
             self._infeasible = False
             return None, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1.0
+        self._lastMipNodes = int(task.getintinf(mosek.iinfitem.mio_num_branch)) if int_vars else 0
 
         if int_vars:
             sol = mosek.soltype.itg

@@ -645,6 +645,12 @@ def getSolveParameters():
     options["withLTCG"] = "optimize" if ltcgopt else "loop"
     niitopt = getCaseKey("optimizeNIIT")
     options["withNIIT"] = "optimize" if niitopt else "loop"
+    # Local search: the preset sets every applicable family to MILP; otherwise the strategy
+    # applies to whichever families are on.
+    if getCaseKey("localSearch"):
+        options["breakpointMethod"] = "local-search"
+    elif getCaseKey("mipStrategy") == "local-search":
+        options["mipStrategy"] = "local-search"
     # SS taxability — "loop", "optimize", or numeric fixed fraction.
     ss_mode = getCaseKey("ssTaxabilityMode")
     if ss_mode == "value":
