@@ -2565,7 +2565,6 @@ class Plan:
         vm.add_if(ltcg_lp, "gn", self.N_n)  # G_n: ordinary taxable income (LTCG MILP)
         vm.add_if(niit_lp, "magi", self.N_n)  # MAGI_n LP variable (NIIT MILP)
         vm.add_if(niit_lp, "Jn", self.N_n)  # J_n: NIIT tax LP variable (NIIT MILP)
-        vm.add_if(niit_lp, "niis", self.N_n)  # NII surplus: max(0, MAGI-T-NII), no binary needed
         vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)  # SS own-benefit LP var (SS age optimize)
         # State income tax LP variables (continuous, before binary block).
         # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
@@ -3762,24 +3761,20 @@ class Plan:
         """
         Add NIIT big-M binary constraints when withNIIT='optimize'.
 
-        IRS formula: J_n = max(0, 0.038 * min(MAGI_n - T, NII_n))
+        IRS formula: J_n = 0.038 * max(0, min(MAGI_n - T, NII_n))
         where NII_n = I_n + Q_n (net investment income: interest/divs + capital gains).
 
-        Modeled with binary zj_n (zj=1 iff MAGI_n > T) and a continuous surplus niis_n
-        (= max(0, MAGI_n - T - NII_n), the amount by which the MAGI-based exposure
-        exceeds NII):
+        J_n is a cost the optimizer minimizes, so it settles on the largest of its lower bounds.
+        One binary zj_n chooses which term of the min() bounds it:
 
-          (1') J_n + 0.038*niis_n >= 0.038*(MAGI_n - T) - M*(1-zj)  [combined MAGI/NII floor]
-          (2)  J_n <= M*zj                                             [J=0 when below threshold]
-          (3)  MAGI_n <= T + M*zj                                      [MAGI bounded when zj=0]
-          (4)  niis_n <= (MAGI_n - T) - NII_n + M*(1-zj)              [NII cap on surplus]
-               with AGI-basis MAGI = G_n + e_n + Q_n: MAGI_n - NII_n = G_n + e_n - I_n
-               equivalently: niis_n - G_n - e_n <= -T - I_n + M*(1-zj)
-               (Q_n and SS cancel between MAGI and NII; I_n is a SC-loop parameter)
+          (1) J_n >= 0.038*(MAGI_n - T) - M*zj      [zj=0: the excess over the threshold]
+          (2) J_n >= 0.038*NII_n - M*(1-zj)         [zj=1: the investment income]
+          (3) J_n >= 0                              [column bound]
 
-        Since J_n is a cost the optimizer minimizes, it naturally drives niis_n to its upper
-        bound (= max(0, MAGI-T-NII)), giving J_n = 0.038*min(MAGI-T, NII). No second binary
-        is needed.
+        Choosing the smaller branch gives J_n = 0.038*max(0, min(MAGI_n - T, NII_n)) over every
+        income range, including T < MAGI_n < T + NII_n. With the AGI-basis MAGI = G_n + e_n + Q_n,
+        NII_n = I_n + Q_n = I_n + MAGI_n - G_n - e_n, so row (2) needs no capital-gains term
+        (I_n is a SC-loop parameter).
         """
         if not self._niit_lp:
             return
@@ -3795,50 +3790,38 @@ class Plan:
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
             T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
 
-            # MAGI and the NII surplus are bounded by the year's income; the tax itself by 3.8%
-            # of it. One constant covers all three rows, sized by the largest of them.
-            M_niit = max(self._ceiling_n[n], T_niit)
+            # Each row is relaxed by at most 3.8% of the year's income: MAGI and NII are both
+            # bounded by the income ceiling.
+            M_niit = 0.038 * max(self._ceiling_n[n], T_niit)
 
             Jn_idx = self.vm["Jn"].idx(n)
             magi_idx = self.vm["magi"].idx(n)
             zj_idx = self.vm["zj"].idx(n)
-            niis_idx = self.vm["niis"].idx(n)
             e_idx = self.vm["e"].idx(n)
 
             # Bounds
             self.B.setRange(Jn_idx, 0, 0.038 * self._ceiling_n[n])
-            self.B.setRange(magi_idx, 0, M_niit)
-            self.B.setRange(niis_idx, 0, M_niit)
+            self.B.setRange(magi_idx, 0, max(self._ceiling_n[n], T_niit))
 
-            # (1') J_n + 0.038*niis_n >= 0.038*(MAGI_n - T) - M*(1-zj)
-            #   → J_n + 0.038*niis_n - 0.038*magi_n - M*zj >= -0.038*T - M
+            # (1) J_n >= 0.038*(MAGI_n - T) - M*zj  →  J_n - 0.038*magi_n + M*zj >= -0.038*T
             self.A.addNewRow(
-                {Jn_idx: 1, niis_idx: 0.038, magi_idx: -0.038, zj_idx: -M_niit},
-                -0.038 * T_niit - M_niit,
+                {Jn_idx: 1, magi_idx: -0.038, zj_idx: M_niit},
+                -0.038 * T_niit,
                 np.inf,
-                tag=("niit_floor", n),
+                tag=("niit_excess", n),
             )
 
-            # (2) J_n <= M*zj  →  J_n - M*zj <= 0
-            self.A.addNewRow({Jn_idx: 1, zj_idx: -M_niit}, -np.inf, 0, tag=("niit_j_zero", n))
-
-            # (3) MAGI_n <= T + M*zj  →  MAGI_n - M*zj <= T
-            self.A.addNewRow({magi_idx: 1, zj_idx: -M_niit}, -np.inf, T_niit, tag=("niit_magi_cap", n))
-
-            # (4) niis_n <= (MAGI_n - T) - (I_n + Q_n) + M*(1-zj)
-            # With the AGI-basis MAGI = G_n + e_n + Q_n, both Q_n and the SS terms cancel:
-            #   MAGI_n - NII_n = (G_n + e_n + Q_n) - (I_n + Q_n) = G_n + e_n - I_n
-            #   niis_n <= G_n + e_n - T - I_n + M*(1-zj)
-            #   niis_n - G_n - e_n + M*zj <= M - T - I_n
-            rhs4 = M_niit - T_niit - float(I_n_param[n])
-            row4 = {niis_idx: 1, e_idx: -1, zj_idx: M_niit}
+            # (2) J_n >= 0.038*(I_n + MAGI_n - G_n - e_n) - M*(1-zj)
+            #   →  J_n - 0.038*magi_n + 0.038*G_n + 0.038*e_n - M*zj >= 0.038*I_n - M
+            row2 = {Jn_idx: 1, magi_idx: -0.038, e_idx: 0.038, zj_idx: -M_niit}
             if "gn" in self.vm:
-                row4[self.vm["gn"].idx(n)] = row4.get(self.vm["gn"].idx(n), 0) - 1
+                g_idx = self.vm["gn"].idx(n)
+                row2[g_idx] = row2.get(g_idx, 0) + 0.038
             else:
                 for t in range(self.N_t):
                     f_idx = self.vm["f"].idx(t, n)
-                    row4[f_idx] = row4.get(f_idx, 0) - 1
-            self.A.addNewRow(row4, -np.inf, rhs4, tag=("niit_surplus_cap", n))
+                    row2[f_idx] = row2.get(f_idx, 0) + 0.038
+            self.A.addNewRow(row2, 0.038 * float(I_n_param[n]) - M_niit, np.inf, tag=("niit_nii", n))
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":

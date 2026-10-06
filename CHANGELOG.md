@@ -29,6 +29,14 @@ ages and report a plan whose taxes belonged to another age. Each candidate age i
 own benefits, and the result matches a solve with that age fixed. Thanks to Florin Mateoc
 (@fmateoc) for reporting it and supplying the fix (#168).
 
+#### Fixed: exact NIIT mode no longer excludes plans just above the threshold
+
+With `withNIIT = "optimize"`, a year whose income exceeded the NIIT threshold by less than its
+investment income ($250k married, $200k single) could not be represented, so the optimizer never
+considered plans with such a year, and a plan forced into it could be reported infeasible. Each
+year now pays 3.8% of the smaller of the excess and the investment income over every income
+range, as the statute sets it.
+
 #### Fixed: case files and state data are read and written as UTF-8 on Windows
 
 On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
