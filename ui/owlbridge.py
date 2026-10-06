@@ -1239,8 +1239,10 @@ def _setContributions(plan, action):
 
     # readHFP above re-derived this from the edited tables, which carry every column,
     # so it now reads as empty. Refresh rather than leave the file-load notice standing
-    # over values the user has since filled in.
-    kz.setCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
+    # over values the user has since filled in. Display bookkeeping, not a plan input: store
+    # it without flagging the case modified, or every page that syncs the tables (Reports does
+    # on each visit, to offer the workbook download) would force a re-solve.
+    kz.storeCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
 
     # Check if data actually changed
     data_changed = False

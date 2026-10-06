@@ -11,6 +11,12 @@ high-tax state for one without an income tax tends to push Roth conversions past
 reverse brings them forward. Only one move is modeled, and local taxes are not. Thanks to Florin
 Mateoc (@fmateoc) for proposing it (#159).
 
+#### Fixed: visiting Reports no longer makes Graphs solve the case again
+
+Opening the Reports page marked an unchanged case as modified, so going back to Graphs or
+Worksheets solved it again, which can take a minute with the slower options. A case is now
+solved again only when something in it has changed.
+
 #### Fixed: survivor benefit when a spouse dies before claiming Social Security
 
 A spouse who died before claiming left the survivor only 82.5% of their PIA. That limit applies
