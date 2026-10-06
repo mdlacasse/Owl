@@ -174,7 +174,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "filing_status": plan.filingStatus,
         "state": plan.state or None,
         **({"locality": plan.locality} if plan.locality else {}),
-        **({"state_moves": state_moves} if state_moves else {}),
+        "state_moves": state_moves,
         "individuals": individuals,
         "time_horizon": {
             "start_year": int(plan.year_n[0]),

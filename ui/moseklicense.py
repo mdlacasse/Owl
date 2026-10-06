@@ -59,7 +59,7 @@ def createLicense():
         return
 
     license_path = os.path.join(streamlit_d, "mosek.lic")
-    with open(license_path, "w", opener=opener) as fh:
+    with open(license_path, "w", opener=opener, encoding="utf-8") as fh:
         fh.write(license + "\n")
 
     # print(f"Created MOSEK license file {license_path}")

@@ -1846,11 +1846,62 @@ def test_save_case_persists_survivor_claim_age(tmp_path):
     """save_case round-trips the setting into the TOML it writes."""
     data = _save_survivor_case(str(tmp_path), case_name="surv", ss_survivor_claim_age="FRA")
     assert "error" not in data, data
-    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text()
+    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text(encoding="utf-8")
 
 
 def test_save_case_omits_default_survivor_claim_age(tmp_path):
     """The default is not written, keeping generated case files clean."""
     data = _save_survivor_case(str(tmp_path), case_name="surv_default")
     assert "error" not in data, data
-    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text()
+    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Change of state (#159) and the breakpoint method, through the MCP
+# ---------------------------------------------------------------------------
+
+
+def test_state_move_reaches_the_plan():
+    year = datetime.date.today().year + 3
+    plan = _single(state="NY", state_move={"year": year, "state": "FL"})
+    assert plan.state == "NY"
+    assert plan.state_moves == [(year, "FL", "")]  # fork: Residence(year, state, locality)
+
+
+def test_state_move_is_validated():
+    with pytest.raises(ValueError):
+        _single(state="NY", state_move={"year": 1900, "state": "FL"})
+
+
+@pytest.mark.toml
+def test_run_from_params_with_a_move_and_local_search():
+    year = datetime.date.today().year + 3
+    result = _run(
+        run_from_params(
+            names=["Martin"],
+            birth_dates=["1960-07-01"],
+            life_expectancy=[85],
+            taxable=[200_000],
+            tax_deferred=[800_000],
+            roth=[100_000],
+            ss_monthly_pias=[2500],
+            ss_ages=[67],
+            state="NY",
+            state_move={"year": year, "state": "FL"},
+            breakpoint_method="local-search",
+            rate_method="conservative",
+        )
+    )
+    data = json.loads(result)
+    assert data["status"] == "solved", data
+    assert data["breakpoint_method"].startswith("local search"), data["breakpoint_method"]
+
+
+def test_explanation_downgrade_drops_the_breakpoint_preset():
+    from owlplanner.assistant.tools import _downgrade_milp_tax_modes
+
+    opts = {"breakpointMethod": "local-search", "mipStrategy": "local-search", "withNIIT": "optimize"}
+    downgraded = _downgrade_milp_tax_modes(opts)
+    assert "breakpointMethod" not in opts and "mipStrategy" not in opts
+    assert opts["withNIIT"] == "loop"
+    assert set(downgraded) == {"withNIIT", "breakpointMethod"}

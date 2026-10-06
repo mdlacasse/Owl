@@ -197,13 +197,21 @@ _ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
 _ACA_CONTRIB_INITIAL_2026 = np.array([0.0314, 0.0419, 0.066, 0.0844, 0.0996])
 # No cap above 400%: full SLCSP (no PTC)
 
+# Below 138% FPL the household is assumed covered by Medicaid, at no premium. That is the rule in
+# expansion states; in the others there is no Medicaid for most adults and the marketplace rules
+# apply from 100% FPL, which is not modeled.
+_ACA_MEDICAID_RATIO = 1.38
+
 # ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
 N_ACA_R = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
 # LP bracket thresholds as multiples of FPL (6 thresholds → 7 brackets, constant structure).
-_ACA_LP_BREAKPOINTS = _ACA_BREAKPOINTS_2026  # [1.33, 1.50, 2.00, 2.50, 3.00, 4.00]
-# Contribution rates per LP bracket (constant-within-bracket approximation of piecewise function).
-# Brackets 0-5: 2026 rates. Bracket 6 (>400% FPL): cost = full SLCSP (handled via za*slcsp in plan.py).
-_ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # r=6 not used in proportional sum
+# Bracket 0 (below 138%): Medicaid, no premium. Brackets 1-5: the 2026 sliding scale, priced by
+# tangent lines (see acaVals). Bracket 6 (400% and up): full SLCSP (za * slcsp in plan.py).
+_ACA_LP_BREAKPOINTS = np.array([_ACA_MEDICAID_RATIO, 1.50, 2.00, 2.50, 3.00, 4.00])
+# Tangent lines per bracket under the sliding-scale cost pct(MAGI) * MAGI, which is convex within a
+# bracket. Their maximum follows the cost from below, exactly at the tangent points; with four
+# evenly spaced points the shortfall is a few dollars at most.
+_ACA_LP_TANGENTS = 4
 
 ###############################################################################
 # Data that is unlikely to change.
@@ -500,9 +508,8 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
     Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
 
-    Below 138% FPL the individual qualifies for Medicaid rather than marketplace
-    subsidies. This function returns the full SLCSP in that edge case and emits
-    no warning; callers should check for Medicaid eligibility if desired.
+    Up to and including 138% FPL the household is assumed covered by Medicaid, at no premium (the
+    rule in expansion states; non-expansion states are not modeled).
 
     Parameters
     ----------
@@ -563,9 +570,8 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
         slcsp = slcsp_annual * slcsp_scale * gamma_n[n]
         magi = magi_n[n]
 
-        # Below 138% FPL: Medicaid territory; return full premium (no PTC).
-        if magi < 1.38 * fpl:
-            costs[n] = slcsp
+        # Up to 138% FPL (133% plus the 5% income disregard): Medicaid, no premium.
+        if magi <= _ACA_MEDICAID_RATIO * fpl:
             continue
 
         ratio = magi / fpl
@@ -594,28 +600,68 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     return costs
 
 
-def _aca_capped_limits(limits, contrib_pct, slcsp):
-    """Clip the LP bracket thresholds at the MAGI where the expected contribution reaches the SLCSP.
+def _aca_lp_band(r):
+    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..5), as multiples of FPL."""
+    lo, hi = _ACA_LP_BREAKPOINTS[r - 1], _ACA_LP_BREAKPOINTS[r]
+    p_lo = _aca_contrib_pct(lo, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026)
+    p_hi = _aca_contrib_pct(hi - 1e-12, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026)
+    return lo, hi, p_lo, p_hi
 
-    The net premium is min(SLCSP, pct * MAGI), but bracket r of the LP charges pct_r * MAGI with
-    the cost capped at the SLCSP by a bound, which made every MAGI with pct_r * MAGI > SLCSP below
-    400% FPL infeasible instead of costing the full premium. Contributions only rise from one bracket
-    to the next, so from the first MAGI where the charge reaches the SLCSP, every higher income pays
-    the full premium: the cost of the last bracket. Clipping the thresholds there moves those incomes
-    into the last bracket; the brackets above the crossing get zero width.
+
+def _aca_band_cost_coefs(r, fpl):
+    """Coefficients (a, b) of the bracket's cost a*M + b*M**2 in MAGI dollars M.
+
+    The applicable percentage rises linearly across the bracket, p = p_lo + s*(M/fpl - lo), so the
+    expected contribution p*M is quadratic in M and convex (b >= 0).
     """
-    lower = 0.0
-    for r, upper in enumerate(limits):
-        pct = contrib_pct[r]
-        if pct > 0 and slcsp <= pct * upper:
-            return np.minimum(limits, max(lower, slcsp / pct))
-        lower = upper
+    lo, hi, p_lo, p_hi = _aca_lp_band(r)
+    s = (p_hi - p_lo) / (hi - lo)
+    return p_lo - s * lo, s / fpl
+
+
+def _aca_tangents(fpl):
+    """Tangent lines (slope, intercept) under each bracket's cost, shape (N_ACA_R, K, 2), in dollars.
+
+    Bracket 0 (Medicaid) and bracket 6 (full SLCSP) have no proportional cost and stay zero.
+    """
+    tan = np.zeros((N_ACA_R, _ACA_LP_TANGENTS, 2))
+    for r in range(1, N_ACA_R - 1):
+        lo, hi, _, _ = _aca_lp_band(r)
+        a, b = _aca_band_cost_coefs(r, fpl)
+        for k, x in enumerate(np.linspace(lo, hi, _ACA_LP_TANGENTS)):
+            m = x * fpl
+            tan[r, k] = (a + 2 * b * m, -b * m * m)
+    return tan
+
+
+def _aca_capped_limits(fpl, slcsp):
+    """LP bracket thresholds ($), clipped at the MAGI where the expected contribution reaches the SLCSP.
+
+    The net premium is min(SLCSP, contribution). The contribution only rises with MAGI, so from the
+    first MAGI where it reaches the SLCSP every higher income pays the full premium: the cost of the
+    last bracket. Clipping the thresholds there moves those incomes into the last bracket, and the
+    brackets above the crossing get zero width (issue #161). The crossing is found on the sliding
+    scale, where the cost is quadratic in MAGI within a bracket.
+    """
+    limits = _ACA_LP_BREAKPOINTS * fpl
+    if slcsp <= 0:
+        return np.zeros_like(limits)  # no premium: every income in the last bracket, at no cost
+    for r in range(1, N_ACA_R - 1):
+        lo, hi, _, p_hi = _aca_lp_band(r)
+        if slcsp > p_hi * hi * fpl:
+            continue  # the whole bracket costs less than the SLCSP
+        a, b = _aca_band_cost_coefs(r, fpl)
+        if b > 0:
+            m_star = (-a + np.sqrt(a * a + 4 * b * slcsp)) / (2 * b)
+        else:
+            m_star = slcsp / a
+        return np.minimum(limits, max(lo * fpl, m_star))
     return limits
 
 
 def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     """
-    Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
+    Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
     Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
     inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
@@ -624,8 +670,9 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     Limitations:
       - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
         use 2026 rates; SC-loop mode (acaCosts) is year-aware.
-      - MAGI below 138% FPL: LP uses bracket 0 at 2.1% instead of full SLCSP (Medicaid).
-      - Each bracket charges one rate (its top one), where acaCosts interpolates the sliding scale.
+      - Below 138% FPL: bracket 0, Medicaid at no premium, as in acaCosts.
+      - Within brackets 1-5 the cost follows the sliding scale through tangent lines, slightly from
+        below between tangent points.
 
     Parameters
     ----------
@@ -650,12 +697,13 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     Lbar_aca_nr : ndarray, shape (n_aca, N_ACA_R-1)
         Inflation-adjusted FPL bracket thresholds per year ($), clipped at the MAGI where the
         contribution reaches the SLCSP (see _aca_capped_limits).
-    cap_pct_aca_r : ndarray, shape (N_ACA_R,)
-        Contribution rates per bracket (constant across years).
+    tangents_aca_nrk : ndarray, shape (n_aca, N_ACA_R, _ACA_LP_TANGENTS, 2)
+        Per year and bracket, the (slope, intercept) of tangent lines under the bracket's cost in
+        dollars of MAGI; the cost charged is the largest of them.
     slcsp_aca_n : ndarray, shape (n_aca,)
         Inflation-adjusted SLCSP premium cap per year ($). Zero for nn < n_aca_start.
     """
-    empty = (0, np.zeros((0, N_ACA_R - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
+    empty = (0, np.zeros((0, N_ACA_R - 1)), np.zeros((0, N_ACA_R, _ACA_LP_TANGENTS, 2)), np.zeros(0))
     if slcsp_annual <= 0:
         return empty
 
@@ -671,6 +719,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
         return empty
 
     Lbar = np.zeros((n_aca, N_ACA_R - 1))
+    tangents = np.zeros((n_aca, N_ACA_R, _ACA_LP_TANGENTS, 2))
     slcsp_aca_n = np.zeros(n_aca)
 
     for nn in range(n_aca):
@@ -693,9 +742,10 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
         else:
             slcsp_scale = 1.0
         slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * gamma_n[n]
-        Lbar[nn] = _aca_capped_limits(_ACA_LP_BREAKPOINTS * fpl, _ACA_LP_CONTRIB, slcsp_aca_n[nn])
+        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn])
+        tangents[nn] = _aca_tangents(fpl)
 
-    return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
+    return n_aca, Lbar, tangents, slcsp_aca_n
 
 
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):

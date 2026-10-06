@@ -178,8 +178,8 @@ class StateBracketYear(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     year: int = Field(description="Calendar year.")
-    state: Optional[str] = Field(default=None, description="State in force that year; present when the plan moves.")
-    locality: Optional[str] = Field(default=None, description="City in force that year, if any; with moves.")
+    state: str = Field(description="Two-letter code of the state taxing that year.")
+    locality: Optional[str] = Field(default=None, description="City in force that year, if any.")
     state_tax_today: float = Field(
         description="State income tax for the year, recapture and local tax included (today's $)."
     )
@@ -202,15 +202,26 @@ class StateBracketYear(BaseModel):
     filled_to_boundary: bool = Field(description="True when the state bracket is filled to its edge.")
 
 
+class StateMove(BaseModel):
+    """A change of state of residence during the plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(description="First calendar year taxed by the new state.")
+    state: str = Field(description="Two-letter code of the new state; empty for none.")
+    locality: Optional[str] = Field(default=None, description="City at the new residence, if any (fork).")
+
+
 class StateTaxBrackets(BaseModel):
     """Per-year state income tax and bracket fill, for plans in a state with an income tax."""
 
     model_config = ConfigDict(extra="forbid")
 
-    state: str = Field(description="Two-letter state code in the first plan year.")
+    state: str = Field(description="Two-letter code of the starting state.")
     locality: Optional[str] = Field(default=None, description="City in the first plan year, if any.")
-    moves: Optional[List[Dict[str, Any]]] = Field(
-        default=None, description="Later changes of residence: year, state, locality."
+    move: Optional[StateMove] = Field(default=None, description="The (first) change of residence, if any.")
+    moves: Optional[List[StateMove]] = Field(
+        default=None, description="Every change of residence, when there is more than one (fork)."
     )
     total_state_tax_today: float = Field(description="State income tax over the plan (today's $).")
     by_year: List[StateBracketYear] = Field(description="State tax, bracket reached and headroom, per year.")

@@ -140,7 +140,7 @@ class TestNIITMilp:
         """J_n never exceeds 0.038 * NII_n (IRS NII cap) — exercises high-ordinary-income case.
 
         Large tax-deferred / small taxable forces MAGI-T >> NII in some years.
-        The NII cap (niis surplus variable) must reduce J_n below 0.038*(MAGI-T).
+        The NII branch of the min() must hold J_n below 0.038*(MAGI-T).
         """
         # Dominating IRA balance → large RMDs → G_n drives MAGI above $250k threshold.
         # Tiny taxable account → Q_n is small → NII cap binds.
@@ -290,3 +290,53 @@ def test_niit_optimize_joe_fixed_asset_capital_gains():
     )
     J_ref = tx.computeNIIT(p.N_i, p.MAGI_n, p.I_n, p.Q_n, p.n_d, p.N_n)
     np.testing.assert_allclose(p.J_n, J_ref, atol=200.0, err_msg="NIIT optimize J_n vs reference with fixed-asset CG")
+
+
+class _Pinned(Exception):
+    """Carries the result of the pinned solve out of plan.solve()."""
+
+
+@pytest.mark.toml
+def test_niit_band_is_feasible():
+    """Above the threshold by less than NII (T < MAGI < T + NII), NIIT is 3.8% of MAGI - T.
+
+    The jack+jill loop plan has such a year (2035: MAGI $394k, T $250k, NII $184k). The NIIT
+    MILP once had no binary value for it: z=0 capped MAGI at T, and z=1 required MAGI - T >= NII
+    through a surplus variable that could not go negative, so pinning that year's tax-deferred
+    withdrawals to the loop's values was infeasible. It must be feasible, at the statutory NIIT.
+    """
+    q = owl.readConfig(str(_REPO_ROOT / "examples" / "Case_jack+jill.toml"), verbose=False)
+    q.solve(q.objective, options=dict(q.solverOptions))
+    assert q.caseStatus == "solved"
+    band = []
+    for n in range(q.N_n):
+        T = 200000.0 if (q.N_i == 1 or n >= q.n_d) else 250000.0
+        if T + 1000 < q.MAGI_n[n] < T + q.I_n[n] + q.Q_n[n] - 1000:
+            band.append((n, T))
+    assert band, "the loop plan no longer has a year in the band; pick another case"
+
+    p = owl.readConfig(str(_REPO_ROOT / "examples" / "Case_jack+jill.toml"), verbose=False)
+    opts = dict(p.solverOptions)
+    opts.update({"withNIIT": "optimize", "maxIter": 1})
+
+    def pinned(objective, options):
+        p._buildConstraints(objective, options)
+        w = p.vm["w"]
+        overrides = {}
+        for n, _ in band:
+            for i in range(p.N_i):
+                v = float(q.w_ijn[i, 1, n])
+                h = max(1.0, 1e-4 * abs(v))
+                overrides[w.idx(i, 1, n)] = (max(0.0, v - h), v + h)
+        raise _Pinned(p._run_mip(p.A, p.B, p.c, options, col_overrides=overrides, update_warm=False))
+
+    p._milpSolve = pinned
+    p._mosekSolve = pinned
+    with pytest.raises(_Pinned) as caught:
+        p.solve(p.objective, options=opts)
+    _, x, ok, msg, _ = caught.value.args[0]
+    assert ok, f"pinned band year infeasible: {msg}"
+    for n, T in band:
+        magi = x[p.vm["magi"].idx(n)]
+        J = x[p.vm["Jn"].idx(n)]
+        assert J == pytest.approx(0.038 * (magi - T), abs=1.0)

@@ -123,8 +123,8 @@ class TestAcaCostsFunction:
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20, thisyear=2025)
         assert np.allclose(costs[0], expected_net, rtol=1e-3)
 
-    def test_medicaid_threshold_returns_full_premium(self):
-        """Below 138% FPL: return full SLCSP (Medicaid territory; no PTC)."""
+    def test_medicaid_threshold_costs_nothing(self):
+        """Below 138% FPL: Medicaid, no premium (issue #165)."""
         yobs = np.array([1985])
         horizons = np.array([20])
         # Single FPL = 15,650; 138% = 21,597; use MAGI below this
@@ -133,7 +133,7 @@ class TestAcaCostsFunction:
         magi_n = np.full(20, magi)
         gamma_n = self._gamma(20)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20)
-        assert np.allclose(costs[0], slcsp), "Expected full premium in Medicaid territory."
+        assert costs[0] == 0.0, "Expected no premium under Medicaid."
 
     def test_couple_both_eligible(self):
         """Couple both pre-65: household size = 2, uses couple FPL."""
@@ -347,15 +347,22 @@ class TestACAOptimize:
             f"Optimize spending ({spending_opt:.0f}) should be >= loop spending ({spending_loop:.0f})"
         )
 
-    def test_maca_n_nonzero_in_eligible_years(self):
-        """In optimize mode, maca_n should be nonzero in pre-65 ACA-eligible years."""
+    def test_maca_n_matches_the_statute_in_eligible_years(self):
+        """In optimize mode, maca_n is the 2026 ACA cost of each year's own MAGI (as loop mode computes it).
+
+        This plan can hold MAGI just under 138% FPL, where Medicaid costs nothing (issue #165), so
+        zero is a legitimate cost: the check is that each year's maca_n agrees with acaCosts.
+        """
         p = _make_plan(dob1="1975-06-15", le1=88)
         p.setSocialSecurity([2000], [67])
         p.setACA(slcsp=18.0)
         p.solve("maxSpending", options={"withACA": "optimize"})
 
         assert p._aca_lp, "Expected _aca_lp flag to be True in optimize mode."
-        assert np.any(p.maca_n > 0), "Expected nonzero maca_n in ACA-eligible years."
+        # The LP holds MAGI on a bracket edge (here 138% FPL) only to within the solver's feasibility
+        # tolerance, a tenth of a cent or so above it; a cent below keeps the statute's side of it.
+        expected = tx.acaCosts(p.yobs, p.horizons, p.MAGI_aca_n - 0.01, p.gamma_n, p.slcsp_annual, p.N_n)
+        np.testing.assert_allclose(p.maca_n[: p.n_aca], expected[: p.n_aca], atol=10.0)
 
     def test_aca_n_zero_in_optimize_mode(self):
         """In optimize mode, ACA_n (SC-loop result) should be all-zero."""
@@ -400,16 +407,62 @@ class TestACAOptimize:
         assert hit_bracket_6, "Expected at least one ACA year with MAGI >= 400% FPL and maca > 0"
 
     def test_capped_limits_move_full_premium_incomes_to_last_bracket(self):
-        """Thresholds are clipped where the bracket's charge pct_r * MAGI reaches the SLCSP."""
+        """Thresholds are clipped where the sliding-scale contribution reaches the SLCSP."""
         fpl = 15_960.0
         limits = tx._ACA_LP_BREAKPOINTS * fpl
-        # 5,000 / 9.96% = 50,201 lies in the 300-400% bracket [47,880, 63,840].
-        capped = tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 5_000.0)
+        # 5,000 / 9.96% = 50,201 lies in the flat 300-400% bracket [47,880, 63,840].
+        capped = tx._aca_capped_limits(fpl, 5_000.0)
         assert np.allclose(capped, np.minimum(limits, 5_000.0 / 0.0996))
+        # 2,000 crosses inside the sliding 150-200% bracket: the contribution there is exactly 2,000.
+        m = tx._aca_capped_limits(fpl, 2_000.0)[2]
+        assert 1.50 * fpl < m < 2.00 * fpl
+        pct = tx._aca_contrib_pct(
+            m / fpl, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+        )
+        assert pct * m == pytest.approx(2_000.0, rel=1e-9)
         # A premium above every bracket's charge leaves the thresholds alone.
-        assert np.allclose(tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 20_000.0), limits)
+        assert np.allclose(tx._aca_capped_limits(fpl, 20_000.0), limits)
         # No premium (before coverage starts): every income is in the last bracket, at no cost.
-        assert np.allclose(tx._aca_capped_limits(limits, tx._ACA_LP_CONTRIB, 0.0), 0.0)
+        assert np.allclose(tx._aca_capped_limits(fpl, 0.0), 0.0)
+
+    def test_tangents_follow_the_sliding_scale_from_below(self):
+        """Optimize mode prices each bracket by tangents: never above the statute's cost, within a few dollars."""
+        fpl = tx._ACA_FPL[2026][0]
+        tan = tx._aca_tangents(fpl)
+        for r in range(1, tx.N_ACA_R - 1):
+            lo, hi, _, _ = tx._aca_lp_band(r)
+            for m in np.linspace(lo * fpl, hi * fpl * (1 - 1e-9), 401):
+                pct = tx._aca_contrib_pct(
+                    m / fpl, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+                )
+                lp = max(tan[r, k, 0] * m + tan[r, k, 1] for k in range(tan.shape[1]))
+                assert lp <= pct * m + 1e-6
+                assert pct * m - lp < 10.0
+        assert not tan[0].any() and not tan[tx.N_ACA_R - 1].any()  # Medicaid and full-premium brackets
+
+    @pytest.mark.parametrize("pension", [1_650, 2_200, 3_000])
+    def test_optimize_matches_loop_on_aca(self, pension):
+        """Loop and optimize charge the same ACA (issue #165): sliding scale, and Medicaid below 138% FPL.
+
+        A $1,650/month pension drifts below 138% FPL as the taxable account runs down; there both
+        modes now charge nothing, where loop charged the full SLCSP and optimize 2.10%.
+        """
+        def solve(mode):
+            p = Plan(["Cy"], ["1976-06-15"], [85], "aca modes", verbose=False)
+            p.setSpendingProfile("flat")
+            p.setAccountBalances(taxable=[100], taxDeferred=[0], taxFree=[50], startDate="01-01")
+            p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+            p.setRates("user", values=[6, 4, 3, 2.5])
+            p.setPension([pension], [45], indexed=[True])
+            p.setACA(9.0)
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85,
+                                    "withACA": mode})
+            return p
+
+        p_loop, p_opt = solve("loop"), solve("optimize")
+        assert p_loop.caseStatus == p_opt.caseStatus == "solved"
+        np.testing.assert_allclose(p_opt.aca_costs_n, p_loop.aca_costs_n, atol=10.0)
+        assert p_opt.basis == pytest.approx(p_loop.basis, abs=5.0)
 
     def test_income_where_contribution_exceeds_premium_is_feasible(self):
         """Below 400% FPL with 9.96% x MAGI above the SLCSP: full premium, not infeasibility.

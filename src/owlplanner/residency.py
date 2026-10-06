@@ -51,15 +51,16 @@ def residence_by_year(state: str, locality: str, moves, first_year: int, N_n: in
     """Return the (state, locality) in force in each of the N_n plan years.
 
     The residence on December 31 governs the whole year: there is no part-year split.
-    *moves* is an iterable of Residence (or tuples of (year, state[, locality])); each must fall
-    after the first plan year and within the horizon, and no year may appear twice. A move names
+    *moves* is an iterable of Residence, tuples (year, state[, locality]) or dicts with those keys;
+    each must fall after the first plan year and within the horizon, no year may appear twice, and
+    each must change the residence. A move names
     the whole new residence, so its locality does not carry over from the old state.
     """
     by_year = [normalize(state, locality)] * N_n
     seen = set()
-    for move in sorted(Residence(*m) for m in moves):
-        year = int(move.year)
-        dest = normalize(move.state, move.locality)
+    for move in sorted(as_residence(m) for m in moves):
+        year = move.year
+        dest = (move.state, move.locality)
         if not first_year < year < first_year + N_n:
             raise ValueError(
                 f"A move must fall after the first plan year and within the plan "
@@ -68,5 +69,22 @@ def residence_by_year(state: str, locality: str, moves, first_year: int, N_n: in
         if year in seen:
             raise ValueError(f"Two moves in {year}.")
         seen.add(year)
+        if dest == by_year[year - first_year]:
+            where = "the starting state" if dest == by_year[0] else "the residence it leaves"
+            raise ValueError(f"The move in {year} goes to {where} ('{'/'.join(filter(None, dest))}').")
         by_year[year - first_year:] = [dest] * (N_n - (year - first_year))
     return by_year
+
+
+def as_residence(move) -> Residence:
+    """A move given as a Residence, a tuple (year, state[, locality]) or a dict with those keys."""
+    if isinstance(move, dict):
+        year, state, locality = move.get("year"), move.get("state"), move.get("locality", "")
+    else:
+        year, state, *rest = move
+        locality = rest[0] if rest else ""
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        raise ValueError(f"Year of the move must be a calendar year, got '{year}'.") from None
+    return Residence(year, *normalize(state, locality))

@@ -23,9 +23,19 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import glob
+import os
+
 import numpy as np
+import pytest
 
 from owlplanner import Plan
+from owlplanner.config import readConfig
+
+
+def _solver():
+    """Honour OWL_TEST_SOLVER, as the conftest does for plans that pick their solver themselves."""
+    return "MOSEK" if os.environ.get("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
 
 
 def _cash_rich_late_plan():
@@ -94,3 +104,46 @@ def test_excess_measures_an_out_of_order_fill():
     assert years == [int(p.year_n[n])]
     expected = (total * p.theta_tn[-1, n] - _ordered_tax(p, n)) / p.gamma_n[n]
     assert abs(excess - expected) < 1.0
+
+
+def _ordered(total, width, rate):
+    tax = 0.0
+    for t in range(len(width)):
+        part = min(max(total, 0.0), width[t])
+        tax += part * rate[t]
+        total -= part
+    return tax
+
+
+@pytest.mark.toml
+@pytest.mark.parametrize("path", sorted(glob.glob("examples/Case_*.toml")), ids=lambda s: s.split("Case_")[1][:-5])
+def test_example_brackets_are_filled_bottom_up(path):
+    """Every shipped case charges each year's income in bracket order, federal, state and capital gains."""
+    p = readConfig(path, verbose=False)
+    p.mylog.setVerbose(False)
+    p.solverOptions["solver"] = _solver()
+    p.resolve()
+    assert p.caseStatus == "solved"
+    assert p.bracketOrderExcess == 0.0, f"{p.bracketOrderExcess:,.2f} of tax charged out of bracket order"
+    # Capital gains: in loop mode the 0%/15% room comes from the previous iterate's ordinary income and
+    # is not kept after the loop, so U_n can legitimately differ from what this iterate's income implies,
+    # in either direction (reported as the LTCG fixed-point residual). What holds whatever the room is
+    # that no year is charged more than the top 20% rate on all of its gains.
+    over = p.U_n - 0.20 * np.maximum(p.Q_n, 0.0)
+    assert np.all(over <= 1.0), f"capital-gains tax above 20% of gains in {p.year_n[np.argmax(over)]}"
+
+
+def test_state_brackets_fill_bottom_up_when_late_cash_is_worthless():
+    """The same worthless-cash plan in a graduated-rate state: the state brackets are filled in order too."""
+    p = _cash_rich_late_plan()
+    p.setStateTax("CA")
+    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85})
+    assert p.caseStatus == "solved"
+    assert np.sum(p.s_n > 1) > 10  # still on the degenerate face
+    assert p.N_st > 1 and np.any(p.st_f_tn > 1)
+    assert p.bracketOrderExcess == 0.0
+    for n in range(p.N_n):
+        charged = float(p.st_f_tn[:, n] @ p.st_theta_tn[:, n])
+        ordered = _ordered(float(np.sum(p.st_f_tn[:, n])), p.st_DeltaBar_tn[:, n], p.st_theta_tn[:, n])
+        assert charged == pytest.approx(ordered, abs=1.0), int(p.year_n[n])
+        assert p.T_n[n] == pytest.approx(_ordered_tax(p, n), abs=1.0), int(p.year_n[n])

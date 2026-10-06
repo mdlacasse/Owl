@@ -51,7 +51,7 @@ def test_params_are_nominal_and_switch_to_the_single_chart_after_a_death():
 
 
 def test_schedule_takes_the_exclusion_only_from_the_years_in_new_jersey():
-    p = tax_state.st_taxParams_schedule(["NY"] * 5 + ["NJ"] * 25, 2, 30, 30, np.ones(31), [1962, 1963], mobs=[6, 12])
+    p = tax_state.st_schedule(["NY"] * 5 + ["NJ"] * 25, 2, 30, 30, np.ones(31), [1962, 1963], mobs=[6, 12])
     assert np.all(p.rx_cap_n[:5] == 0) and np.all(p.rx_cap_n[5:] == 100_000)
 
 

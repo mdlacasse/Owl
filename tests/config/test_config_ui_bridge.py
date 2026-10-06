@@ -49,7 +49,7 @@ def test_load_toml_start_roth_past_year_reset():
     """startRothConversions in the past is reset when config file is read (via sanitize_config)."""
     from datetime import date
 
-    toml_content = open("examples/Case_joe.toml").read()
+    toml_content = open("examples/Case_joe.toml", encoding="utf-8").read()
     toml_content = toml_content.replace(
         "startRothConversions = 2026",
         "startRothConversions = 2019",  # Past year
@@ -83,7 +83,7 @@ def test_ui_to_config_linear_omits_interpolation_center_width():
 
 def test_config_to_ui_roundtrip():
     """config -> ui -> config preserves structure."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
 
     assert uidic["name"] == "joe"
@@ -99,7 +99,7 @@ def test_config_to_ui_roundtrip():
 
 def test_ui_to_config_to_plan():
     """ui dict -> config -> plan produces valid plan."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
     back = ui_to_config(uidic)
     plan = config_to_plan(back, verbose=False, loadHFP=False)
@@ -558,7 +558,7 @@ def _plan_known_options():
 
     import owlplanner
 
-    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text()
+    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text(encoding="utf-8")
     for node in ast.walk(ast.parse(src)):
         if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "knownOptions":
             return {e.value for e in node.value.elts if isinstance(e, ast.Constant)}
@@ -586,7 +586,7 @@ def test_ui_translated_solver_options_are_accepted_by_solve():
 
     import ui.sskeys as sskeys  # noqa: F401  (import guards the path used below)
 
-    src = pathlib.Path(sskeys.__file__).read_text()
+    src = pathlib.Path(sskeys.__file__).read_text(encoding="utf-8")
     emitted = set(re.findall(r'options\["([A-Za-z]+)"\]', src))
     assert emitted, "no translated solver options found — the regex or sskeys.py changed shape"
     unknown = emitted - _plan_known_options()
@@ -707,6 +707,52 @@ def test_state_toml_save_load_roundtrip():
     save_toml(diconf, sio2)
     back2, _, _ = load_toml(StringIO(sio2.getvalue()))
     assert back2["basic_info"].get("state", "") == ""
+
+
+def test_state_move_roundtrips_through_ui_and_toml():
+    """basic_info.moves round-trips through the UI keys and a TOML save/load; none means no key."""
+    diconf = _minimal_config_for_rates()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": 2031, "state": "FL"}]
+
+    uidic = config_to_ui(diconf)
+    assert uidic["stateMoveEnabled"] is True
+    assert uidic["stateMoveYear"] == 2031
+    assert uidic["stateMoveState"] == "FL"
+    assert ui_to_config(uidic)["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+    uidic["stateMoveEnabled"] = False
+    assert "moves" not in ui_to_config(uidic)["basic_info"]
+
+    sio = StringIO()
+    save_toml(diconf, sio)
+    back, _, _ = load_toml(StringIO(sio.getvalue()))
+    assert back["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+
+def test_state_move_reaches_the_plan_and_back():
+    """config_to_plan sets the move, plan_to_config writes it, apply_config_to_plan clears it."""
+    from datetime import date
+
+    year = date.today().year + 3
+    diconf = _minimal_married_config()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": year, "state": "FL"}]
+    diconf["rates_selection"]["values"] = [6.0, 4.0, 3.3, 2.8]
+    plan = config_to_plan(diconf, verbose=False, loadHFP=False)
+    assert plan.state_moves == [(year, "FL", "")]  # fork: Residence(year, state, locality)
+    assert plan._states_n()[:4] == ["NY", "NY", "NY", "FL"]
+    back = plan_to_config(plan)
+    assert back["basic_info"]["moves"] == [{"year": year, "state": "FL"}]
+
+    back["basic_info"].pop("moves")
+    apply_config_to_plan(plan, back)
+    assert plan.state_moves == []
+    assert "moves" not in plan_to_config(plan)["basic_info"]
+
+    back["basic_info"]["state"] = ""
+    apply_config_to_plan(plan, back)
+    assert plan.state == ""
 
 
 def _minimal_config_for_rates():
@@ -839,7 +885,7 @@ def _save_couple_case(tmp_path):
         output_dir=str(tmp_path),
         case_name="couple_alloc",
     )
-    with open(json.loads(res)["toml_file"]) as f:
+    with open(json.loads(res)["toml_file"], encoding="utf-8") as f:
         return f.read()
 
 

@@ -23,7 +23,7 @@ brackets = [[0.0, 0.0], [10000.0, 3.0]]
 
 def _write(tmp_path, text, name="local.toml"):
     f = tmp_path / name  # the loader caches by path, so variants need distinct names
-    f.write_text(text)
+    f.write_text(text, encoding="utf-8")
     return str(f)
 
 

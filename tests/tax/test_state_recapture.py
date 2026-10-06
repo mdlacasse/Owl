@@ -121,7 +121,7 @@ def test_params_carry_recapture_and_do_not_inflate_it():
 
 def test_schedule_takes_recapture_only_from_the_years_in_new_york():
     gamma = np.ones(31)
-    p = tax_state.st_taxParams_schedule(["NY"] * 5 + ["FL"] * 25, 2, 30, 30, gamma, [1964, 1964], mobs=[6, 12])
+    p = tax_state.st_schedule(["NY"] * 5 + ["FL"] * 25, 2, 30, 30, gamma, [1964, 1964], mobs=[6, 12])
     assert np.all(np.isfinite(p.recap_start_n[:5])) and np.all(np.isinf(p.recap_start_n[5:]))
 
 

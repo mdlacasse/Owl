@@ -136,10 +136,8 @@ CONSTRAINT_FAMILIES = {
     "ltcg_q01_zero": {"class": "artifact", "label": "LTCG 15% shutoff big-M (MILP mode)"},
     "ltcg_zl_monotone": {"class": "artifact", "label": "LTCG regime-binary ordering"},
     "ltcg_partition_hi": {"class": "artifact", "label": "LTCG partition anti-degeneracy bound"},
-    "niit_floor": {"class": "artifact", "label": "NIIT floor big-M"},
-    "niit_j_zero": {"class": "artifact", "label": "NIIT shutoff big-M"},
-    "niit_magi_cap": {"class": "artifact", "label": "NIIT MAGI-threshold big-M"},
-    "niit_surplus_cap": {"class": "artifact", "label": "NIIT surplus cap big-M"},
+    "niit_excess": {"class": "artifact", "label": "NIIT excess-over-threshold big-M"},
+    "niit_nii": {"class": "artifact", "label": "NIIT investment-income big-M"},
     "irmaa_amo": {"class": "artifact", "label": "IRMAA bracket exactly-one selector"},
     "irmaa_bracket_lb": {"class": "artifact", "label": "IRMAA bracket bound big-M"},
     "irmaa_bracket_ub": {"class": "artifact", "label": "IRMAA bracket bound big-M"},
@@ -345,7 +343,8 @@ def _state_bracket(plan, n):
     """Top state bracket reached in year n: rate, headroom (None when open-ended), fill flag."""
     f = plan.st_f_tn
     filled = [t for t in range(f.shape[0]) if f[t, n] > 1.0]
-    if not filled:
+    # No bracket to report in a year without a state income tax (after a move, or before one).
+    if not filled or not np.any(plan.st_theta_tn[:, n] > 0):
         return None
     t_top = max(filled)
     width = plan.st_DeltaBar_tn[:, n]
@@ -381,6 +380,11 @@ def _state_exclusion(plan, n):
     if held:
         out["exclusion_ceiling"] = _round(float(held[0]) / plan.gamma_n[n])
     return out
+
+
+def _loc(locality):
+    """{"locality": locality} when there is one, else nothing."""
+    return {"locality": locality} if locality else {}
 
 
 def _residence(plan, n):
@@ -494,7 +498,7 @@ def _this_year(plan, dd, cols):
     if bracket:
         out["tax_bracket"] = bracket
 
-    if _has_state_tax(plan):
+    if _has_state_tax(plan) and np.any(plan.st_theta_tn[:, 0] > 0):
         out["state_tax"] = _year0_state_tax(plan)
 
     thresholds = _year0_thresholds(plan)
@@ -803,11 +807,8 @@ def _state_bracket_analysis(plan):
             continue
         # A year the exclusion takes to zero tax is shown too: it is where the exclusion matters most.
         bracket = bracket or {"top_bracket_rate_pct": 0.0, "headroom": None, "filled_to_boundary": False}
-        row = {"year": int(plan.year_n[n])}
-        if moves:
-            row["state"], locality = _residence(plan, n)
-            if locality:
-                row["locality"] = locality
+        state, locality = _residence(plan, n)
+        row = {"year": int(plan.year_n[n]), "state": state, **_loc(locality)}
         row.update(
             {
                 "state_tax_today": _round(float(plan.st_T_n[n]) / gamma[n]),
@@ -823,8 +824,9 @@ def _state_bracket_analysis(plan):
         "state": plan.state,
         "total_state_tax_today": _round(float(np.sum(plan.st_T_n / gamma[: plan.N_n]))),
         "by_year": rows,
-        "note": f"Top {plan.state} income-tax bracket reached each year, the state tax paid and the room "
-        "left in that bracket (today's $). State taxable income is not federal taxable income: it "
+        "note": "Top state income-tax bracket reached each year, the state tax paid and the room "
+        "left in that bracket (today's $). Years without a state income tax are omitted. "
+        "State taxable income is not federal taxable income: it "
         "starts from gross income, includes capital gains, and takes the state's own standard "
         "deduction and exemptions (Social Security, pensions, retirement income, where the state "
         "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
@@ -838,7 +840,16 @@ def _state_bracket_analysis(plan):
     if getattr(plan, "locality", ""):
         out["locality"] = plan.locality
     if moves:
-        out["moves"] = [{"year": m.year, "state": m.state or None, "locality": m.locality or None} for m in moves]
+        first = moves[0]
+        out["move"] = {"year": int(first.year), "state": first.state, **_loc(first.locality)}
+        if len(moves) > 1:
+            out["moves"] = [{"year": int(m.year), "state": m.state, **_loc(m.locality)} for m in moves]
+        for m in moves:
+            dest = (m.state or "no state") + (f" ({m.locality})" if m.locality else "")
+            out["note"] += f" The household moves to {dest} in {m.year}."
+        out["note"] += (
+            " The residence on December 31 taxes the whole year, so the year of a move is taxed by the new state."
+        )
     return out
 
 

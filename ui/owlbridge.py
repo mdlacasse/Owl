@@ -1239,8 +1239,10 @@ def _setContributions(plan, action):
 
     # readHFP above re-derived this from the edited tables, which carry every column,
     # so it now reads as empty. Refresh rather than leave the file-load notice standing
-    # over values the user has since filled in.
-    kz.setCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
+    # over values the user has since filled in. Display bookkeeping, not a plan input: store
+    # it without flagging the case modified, or every page that syncs the tables (Reports does
+    # on each visit, to offer the workbook download) would force a re-solve.
+    kz.storeCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
 
     # Check if data actually changed
     data_changed = False
@@ -1967,9 +1969,13 @@ def genDic(plan):
     dic["status"] = ["unknown", "single", "married"][plan.N_i]
     dic["state"] = getattr(plan, "state", "")
     dic["locality"] = getattr(plan, "locality", "")
-    dic["moves"] = [
-        {"year": m.year, "state": m.state, **({"locality": m.locality} if m.locality else {})}
-        for m in getattr(plan, "state_moves", ())
+    moves = getattr(plan, "state_moves", [])
+    dic["stateMoveEnabled"] = bool(moves)
+    dic["stateMoveYear"] = int(moves[0].year) if moves else date.today().year + 5
+    dic["stateMoveState"] = moves[0].state if moves else ""
+    dic["stateMoveLocality"] = moves[0].locality if moves else ""
+    dic["stateMovesMore"] = [  # fork: further moves, from the case file only
+        {"year": m.year, "state": m.state, **({"locality": m.locality} if m.locality else {})} for m in moves[1:]
     ]
     # Prepend year if not there.
     tdate = plan.startDate.replace("/", "-").split("-")
@@ -2066,6 +2072,8 @@ def genDic(plan):
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = plan.solverOptions.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
+    dic["localSearch"] = plan.solverOptions.get("breakpointMethod", "loop") == "local-search"
+    dic["mipStrategy"] = plan.solverOptions.get("mipStrategy", "branch-and-bound")
 
     enabled, swap_year, swap_first = parse_swap_roth_converters(
         plan.solverOptions.get("swapRothConverters", 0), plan.inames

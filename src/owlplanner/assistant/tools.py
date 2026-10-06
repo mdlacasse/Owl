@@ -190,6 +190,7 @@ def _build_mcp_opts(
     previous_magis=None,
     with_medicare=None,
     with_aca=None,
+    breakpoint_method=None,
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
     withdrawal_order=None,
@@ -224,6 +225,8 @@ def _build_mcp_opts(
         opts["withMedicare"] = with_medicare
     if with_aca is not None:
         opts["withACA"] = with_aca
+    if breakpoint_method is not None:
+        opts["breakpointMethod"] = breakpoint_method
     if withdrawal_order is not None:
         opts["withdrawalOrder"] = withdrawal_order
     _swap = _swap_roth_converters_value(inames, swap_roth_converters_first, swap_roth_converters_year)
@@ -290,6 +293,11 @@ def _downgrade_milp_tax_modes(opts):
         if opts.get(key) == "optimize":
             opts[key] = "loop"
             downgraded.append(key)
+    # The breakpointMethod preset would set the families back to MILP inside solve().
+    if opts.get("breakpointMethod", "loop") != "loop":
+        downgraded.append("breakpointMethod")
+    opts.pop("breakpointMethod", None)
+    opts.pop("mipStrategy", None)
     return downgraded
 
 
@@ -871,6 +879,7 @@ def _build_plan_from_params(
     liquidation_capgains_rate=None,
     assumed=None,
     reproducible_seed=None,
+    state_move=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
@@ -1003,8 +1012,8 @@ def _build_plan_from_params(
     plan.setRates(
         rate_method, frm=rate_frm, to=rate_to, values=rate_values, constrain_mean=constrain_mean, **(rate_params or {})
     )
-    if state:
-        plan.setStateTax(state)
+    if state or state_move:
+        plan.setStateTax(state, [state_move] if state_move else None)
     plan.setSpendingProfile(
         spending_profile,
         percent=int(survivor_fraction),
@@ -1245,6 +1254,7 @@ def _run_from_params_blocking(
     previous_magis=None,
     with_medicare=None,
     with_aca=None,
+    breakpoint_method=None,
     aca_start_year=None,
     slcsp=None,
     ss_trim_pct=None,
@@ -1255,6 +1265,7 @@ def _run_from_params_blocking(
     liquidation_tax_rate=None,
     liquidation_capgains_rate=None,
     assumed=None,
+    state_move=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1308,6 +1319,7 @@ def _run_from_params_blocking(
         liquidation_tax_rate=liquidation_tax_rate,
         liquidation_capgains_rate=liquidation_capgains_rate,
         assumed=assumed,
+        state_move=state_move,
     )
     if (
         assumed is not None
@@ -1336,6 +1348,7 @@ def _run_from_params_blocking(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -1382,6 +1395,14 @@ async def run_from_params(
             "TX (no state income tax) is assumed and flagged in assumed_defaults."
         ),
     ] = None,
+    state_move: Annotated[
+        dict | None,
+        Field(
+            description='One change of state during the plan, e.g. {"year": 2031, "state": "FL"}: the '
+            "new state taxes that year and every year after (the December 31 residence taxes the whole "
+            'year). "state" may be "" for no state income tax. At most one move.'
+        ),
+    ] = None,
     objective: Annotated[str, Field(description="maxSpending (default) or maxBequest.")] = "maxSpending",
     rate_method: Annotated[
         str | None,
@@ -1422,6 +1443,7 @@ async def run_from_params(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -1549,6 +1571,8 @@ async def run_from_params(
                           0.5, 0.75, or 1.0 = joint-and-survivor.
         state:          2-letter state abbreviation for state income tax.  Ask for it; when
                         omitted, TX (no state tax) is assumed and flagged in assumed_defaults.
+        state_move:     One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
+                        the new state taxes that year and every year after. At most one move.
         objective:      Optimization objective: "maxSpending" (default) or "maxBequest".
         rate_method:    Return model name (use list_rate_models to see options).  Use "user"
                         together with rate_values to specify custom fixed rates; use
@@ -1648,6 +1672,10 @@ async def run_from_params(
                         attractive.  E.g. 22 if heirs are in the 22% bracket.
         with_aca:       ACA premium modeling mode: "none", "loop" (iterative, default when
                         slcsp is set), or "optimize" (embed in MIP).  Requires slcsp > 0.
+        breakpoint_method: How tax breakpoints are solved: "loop" (default),
+                        "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
+                        plan; never worse than the loop, not a proven optimum). Sets every
+                        applicable family to MILP and overrides a fixed SS taxable fraction.
         aca_start_year: Calendar year ACA coverage begins (e.g. 2028 if retiring that year).
                         Omit or 0 to start from the plan's first year.
         with_medicare:  Medicare IRMAA modeling mode: "none" (disable), "loop" (iterative
@@ -1774,6 +1802,7 @@ async def run_from_params(
             previous_magis,
             with_medicare,
             with_aca,
+            breakpoint_method,
             aca_start_year,
             slcsp,
             ss_trim_pct,
@@ -1784,6 +1813,7 @@ async def run_from_params(
             liquidation_tax_rate,
             liquidation_capgains_rate,
             assumed,
+            state_move,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -1834,6 +1864,7 @@ def save_case(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -1863,6 +1894,7 @@ def save_case(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -1945,6 +1977,7 @@ def save_case(
             liquidation_tax_rate=liquidation_tax_rate,
             liquidation_capgains_rate=liquidation_capgains_rate,
             assumed=assumed,
+            state_move=state_move,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -1956,6 +1989,8 @@ def save_case(
         plan.solverOptions["withMedicare"] = with_medicare
     if with_aca is not None:
         plan.solverOptions["withACA"] = with_aca
+    if breakpoint_method is not None:
+        plan.solverOptions["breakpointMethod"] = breakpoint_method
     if net_spending is not None:
         plan.solverOptions["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -2174,6 +2209,7 @@ async def compare_to_baseline(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
     rate_values: list[float] | None = None,
@@ -2204,6 +2240,7 @@ async def compare_to_baseline(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
@@ -2365,6 +2402,7 @@ async def compare_to_baseline(
             liquidation_tax_rate=liquidation_tax_rate,
             liquidation_capgains_rate=liquidation_capgains_rate,
             reproducible_seed=seed_used,
+            state_move=state_move,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2380,6 +2418,7 @@ async def compare_to_baseline(
             previous_magis=previous_magis,
             with_medicare=with_medicare,
             with_aca=with_aca,
+            breakpoint_method=breakpoint_method,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2453,6 +2492,7 @@ async def explain_results(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
     rate_values: list[float] | None = None,
@@ -2483,6 +2523,7 @@ async def explain_results(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
@@ -2521,7 +2562,8 @@ async def explain_results(
       - tax_brackets: the top federal bracket reached each year, the headroom left in
         it, and the years the optimizer deliberately fills the bracket to the boundary.
       - state_tax_brackets: in a state with an income tax, the same per year for the state
-        brackets, with the state tax paid. Absent for no-income-tax states.
+        brackets, with the state tax paid and the state taxing each year (a plan can move
+        once, basic_info.moves). Absent for no-income-tax states.
       - account_depletion: the order and timing in which accounts are drawn to zero.
       - binding_constraints: which named constraints are active.
 
@@ -2638,6 +2680,7 @@ async def explain_results(
             dividend_rate=dividend_rate,
             liquidation_tax_rate=liquidation_tax_rate,
             liquidation_capgains_rate=liquidation_capgains_rate,
+            state_move=state_move,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2653,6 +2696,7 @@ async def explain_results(
             previous_magis=previous_magis,
             with_medicare=with_medicare,
             with_aca=with_aca,
+            breakpoint_method=breakpoint_method,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2982,6 +3026,7 @@ async def run_stochastic(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -3011,6 +3056,7 @@ async def run_stochastic(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -3078,6 +3124,8 @@ async def run_stochastic(
                               See run_from_params for full parameter documentation.
         state:                Two-letter US state code for state income tax.  Ask for it; when
                               omitted, TX (no state tax) is assumed and flagged in assumed_defaults.
+        state_move:           One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
+                              the new state taxes that year and every year after. At most one move.
         objective:            "maxSpending" (default) or "maxBequest".
         rate_method:          Rate model for the base deterministic solve and for MC scenarios.
         survivor_fraction:    Survivor spending as % of couple spending (default 60).
@@ -3241,6 +3289,7 @@ async def run_stochastic(
                 dividend_rate=dividend_rate,
                 assumed=assumed,
                 reproducible_seed=seed,
+                state_move=state_move,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3259,6 +3308,7 @@ async def run_stochastic(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3426,6 +3476,7 @@ async def run_spending_bequest_frontier(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
     rate_frm: int | None = None,
@@ -3452,6 +3503,7 @@ async def run_spending_bequest_frontier(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -3660,6 +3712,7 @@ async def run_spending_bequest_frontier(
                 dividend_rate=dividend_rate,
                 assumed=assumed,
                 reproducible_seed=seed,
+                state_move=state_move,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3676,6 +3729,7 @@ async def run_spending_bequest_frontier(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3832,6 +3886,7 @@ async def run_year1_robustness(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -3861,6 +3916,7 @@ async def run_year1_robustness(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -3994,6 +4050,7 @@ async def run_year1_robustness(
                 dividend_rate=dividend_rate,
                 assumed=assumed,
                 reproducible_seed=seed,
+                state_move=state_move,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4012,6 +4069,7 @@ async def run_year1_robustness(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4120,6 +4178,7 @@ def _longevity_stochastic_blocking(
     obbba_expiration_year=None,
     dividend_rate=None,
     assumed=None,
+    state_move=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4177,6 +4236,7 @@ def _longevity_stochastic_blocking(
         dividend_rate=dividend_rate,
         assumed=assumed,
         reproducible_seed=seed,
+        state_move=state_move,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4249,6 +4309,7 @@ async def run_longevity_stochastic(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -4278,6 +4339,7 @@ async def run_longevity_stochastic(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     optimize_ss_ages: bool | str | list[str] | None = None,
     constrain_mean: bool = False,
@@ -4346,6 +4408,8 @@ async def run_longevity_stochastic(
         spias:            Single Premium Immediate Annuities (see run_from_params).
         state:            Two-letter US state code.  When omitted, TX (no state tax) is
                           assumed and flagged in assumed_defaults.
+        state_move:       One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
+                          the new state taxes that year and every year after. At most one move.
         objective:        "maxSpending" (default) or "maxBequest".
         rate_method:      Rate model for scenarios.
         survivor_fraction: Survivor spending as % of couple spending (default 60).
@@ -4433,6 +4497,7 @@ async def run_longevity_stochastic(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=names,
@@ -4501,6 +4566,7 @@ async def run_longevity_stochastic(
             obbba_expiration_year,
             dividend_rate,
             assumed,
+            state_move,
         )
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
@@ -4543,6 +4609,7 @@ async def run_historical(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -4572,6 +4639,7 @@ async def run_historical(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     slcsp: float | None = None,
     ss_trim_pct: int | None = None,
@@ -4628,6 +4696,8 @@ async def run_historical(
         spias:            Single Premium Immediate Annuities (see run_from_params).
         state:            Two-letter US state code.  When omitted, TX (no state tax) is
                           assumed and flagged in assumed_defaults.
+        state_move:       One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
+                          the new state taxes that year and every year after. At most one move.
         objective:        "maxSpending" (default) or "maxBequest".
         rate_method:      Rate model for the base/deterministic context (does not affect
                           the historical scenarios, which always use historical data).
@@ -4666,6 +4736,10 @@ async def run_historical(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         ACA premium modeling: "none", "loop", or "optimize". Requires slcsp > 0.
+        breakpoint_method: How tax breakpoints are solved: "loop" (default),
+                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
+                          plan; never worse than the loop, not a proven optimum). Sets every
+                          applicable family to MILP and overrides a fixed SS taxable fraction.
         aca_start_year:   Calendar year ACA coverage begins.
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
@@ -4777,6 +4851,7 @@ async def run_historical(
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
+                state_move=state_move,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4795,6 +4870,7 @@ async def run_historical(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4857,6 +4933,7 @@ async def run_monte_carlo(
     fixed_assets: list[dict] | None = None,
     spias: list[dict] | None = None,
     state: str | None = None,
+    state_move: dict | None = None,
     objective: str = "maxSpending",
     rate_method: str = "gmm",
     rate_values: list[float] | None = None,
@@ -4886,6 +4963,7 @@ async def run_monte_carlo(
     previous_magis: list[float] | None = None,
     with_medicare: str | None = None,
     with_aca: str | None = None,
+    breakpoint_method: str | None = None,
     aca_start_year: int | None = None,
     slcsp: float | None = None,
     constrain_mean: bool = False,
@@ -4946,6 +5024,8 @@ async def run_monte_carlo(
         spias:            Single Premium Immediate Annuities (see run_from_params).
         state:            Two-letter US state code.  When omitted, TX (no state tax) is
                           assumed and flagged in assumed_defaults.
+        state_move:       One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
+                          the new state taxes that year and every year after. At most one move.
         objective:        "maxSpending" (default) or "maxBequest".
         rate_method:      Stochastic rate model (REQUIRED to be stochastic).  Default "gmm"
                           (Gaussian mixture — defaults to full 1928-present calibration window).
@@ -4991,6 +5071,10 @@ async def run_monte_carlo(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         ACA premium modeling: "none", "loop", or "optimize". Requires slcsp > 0.
+        breakpoint_method: How tax breakpoints are solved: "loop" (default),
+                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
+                          plan; never worse than the loop, not a proven optimum). Sets every
+                          applicable family to MILP and overrides a fixed SS taxable fraction.
         aca_start_year:   Calendar year ACA coverage begins.
         constrain_mean:   If True, pin each scenario's mean returns to historical averages,
                           isolating sequence-of-returns risk.
@@ -5102,6 +5186,7 @@ async def run_monte_carlo(
                 obbba_expiration_year=obbba_expiration_year,
                 dividend_rate=dividend_rate,
                 assumed=assumed,
+                state_move=state_move,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5120,6 +5205,7 @@ async def run_monte_carlo(
         previous_magis=previous_magis,
         with_medicare=with_medicare,
         with_aca=with_aca,
+        breakpoint_method=breakpoint_method,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,

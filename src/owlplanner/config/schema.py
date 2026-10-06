@@ -67,9 +67,10 @@ class BasicInfo(BaseModel):
     locality: str = Field(
         default="", description="City or county whose income tax applies on top of the state's (e.g. 'NYC', 'Yonkers')."
     )
-    moves: List[dict] = Field(
+    moves: List[Dict[str, Any]] = Field(
         default=[],
-        description="Later changes of residence, e.g. [{year = 2032, state = 'FL'}]; each applies from that year on.",
+        description="Later changes of residence: [{year = 2031, state = 'FL'}], optionally with a locality. "
+        "The new residence taxes that year and every year after. Upstream Owl takes at most one move.",
     )
 
 
@@ -376,6 +377,16 @@ class SolverOptions(BaseModel):
     withSSAges: Optional[Union[str, List[str]]] = None
     withDuals: Optional[bool] = None
     withdrawalOrder: Optional[str] = None
+    mipStrategy: Optional[Literal["branch-and-bound", "local-search"]] = None
+    breakpointMethod: Optional[Literal["loop", "branch-and-bound", "local-search"]] = None
+    localSearchTime: Optional[float] = Field(default=None, ge=0.0, description="Local search: total budget (s).")
+    localSearchStepTime: Optional[float] = Field(
+        default=None, ge=0.0, description="Local search: cap per restricted solve (s)."
+    )
+    localSearchRadius: Optional[int] = Field(default=None, ge=0, description="Local search: SS-taxability flips.")
+    localSearchStepNodes: Optional[int] = Field(
+        default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
+    )
 
     # Other
     previousMAGIs: Optional[List[float]] = None

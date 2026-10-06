@@ -320,6 +320,13 @@ state you choose; see the [*Modeling Capabilities*](https://github.com/mdlacasse
 reference for the details and limitations of
 state-tax modeling.
 
+If you plan to move during retirement, turn on *Move to another state during the plan* and
+enter the year of the move and the new state. Only one move is modeled. The state where you
+live on December 31 taxes the whole year, so the year of the move is taxed by the new state
+and the years before it by the starting state. Leave the new state blank to stop modeling
+state taxes from that year. The optimizer takes the move into account: leaving a high-tax
+state for a no-income-tax state, for example, tends to push Roth conversions past the move.
+
 Birth date is required because Social Security has special rules for people born on
 the 1st or 2nd of the month; any other day of the month produces the same results.
 
@@ -852,13 +859,31 @@ Four types of savings accounts are considered and are tracked separately for spo
 - Tax-free savings accounts (e.g., Roth 401k, Roth IRA),
 - Health Savings Accounts (HSA) — triple tax-advantaged: contributions are pre-tax, growth is tax-free, and qualified medical withdrawals (including Medicare Parts B/D and Medigap premiums) are tax-free.
 
-Account values are assumed to be known at the beginning of the current year,
-which is not always possible. For that purpose,
-the `Account balance date` has the effect of back-projecting the amounts entered
-to the beginning of the year using the return rates and allocations
-assumed for the first year. If withdrawals contributing to the
-net spending were already performed for the current year,
-true account balances should be corrected to reflect values as of Jan 1st.
+Each plan year runs from January 1, so the first year is a full calendar year. Balances are
+entered as of the `Account balance date` (today by default), and **Owl** back-projects them to
+January 1 by removing the growth since then, using the return rates and allocations assumed for
+the first year. It does not add back the money that has already moved through the accounts this
+year. With a date after January 1, the first year therefore counts again what already happened:
+spending paid so far, net of the income received so far, is charged again, which is cautious for
+a retiree drawing down savings, and contributions already made are added again, which is generous
+for someone still saving. For the same balance entered on October 1 rather than January 1, one
+retiree example comes out about 2% lower.
+
+To keep this small:
+- If you have balances as of January 1 (from a year-end statement, for example), enter those and
+  set the date to January 1. The first year is then exact.
+- Otherwise, in the first-year row of the *Wages and Contributions* table, enter only the
+  contributions, QCDs and big-ticket items still to come this year. Those already made have
+  already moved the balance you entered, and they are amounts you know, so there is no reason to
+  spread them over the year.
+- Keep wages, like Social Security and pensions, at their full-year amounts: the income received
+  so far is what offsets the spending already paid.
+- Spending is the one flow that cannot be split this way: it is an annual target, so the part of
+  it already spent this year, net of that income, is counted again.
+
+Graphs and worksheets show the whole first year, as for every other year. The *Summary* shows the
+`Net spending remaining in year`: the first year's net spending times the fraction of the year
+still ahead, which is what is left to spend from the start date.
 
 For married couples, the *Advanced options* expander holds a
 *Survivor's Spousal Beneficiary Fractions* section, where the spousal `Beneficiary fractions`
@@ -1453,7 +1478,7 @@ finds the best strategy, then Medicare premiums are calculated from that strateg
 and the problem is re-solved with those premiums as fixed costs until they stabilize.
 This provides good accuracy with reasonable computation time.
 
-For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
+To let the optimizer place income at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
 It is significantly slower than the loop — seconds to many minutes, depending on the case — because
@@ -1505,6 +1530,17 @@ should a case prove slow to settle; it is reachable from the TOML file and the P
 (`maxIter`) but is not exposed in the interface.
 
 The *Advanced options* expander contains:
+- *Solve tax breakpoints by local search (expert)* – carries every tax breakpoint (Social Security
+  taxability, Medicare, ACA when SLCSP > 0, capital gains, NIIT) as binary variables and solves them
+  by local search instead of branch-and-bound: small restricted problems around the iteration's plan.
+  It usually finds a somewhat better plan than the iteration, in seconds to a few minutes, and never
+  a worse one; it is not a proven optimum. When on, the individual MILP settings below do not apply,
+  and a fixed Social Security taxable fraction is replaced by the IRS formula (the log says so):
+  local search keeps the problem well behaved without it.
+- *MILP strategy (expert)* – how the breakpoints turned to MILP below are solved: *branch-and-bound*,
+  the solver's complete search, which stops at the solver gap or time limit and can take many minutes
+  per solve, or *local-search*. Available once at least one threshold is set to MILP.
+  The Summary's *Breakpoint method* row records which treatment produced each plan.
 - *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
   optimization rather than by iteration; enabled only when Medicare and IRMAA calculations are on.
 - *Solve ACA brackets with MILP (expert)* – chooses the ACA bracket inside the optimization, letting
@@ -1520,12 +1556,13 @@ solve the Medicare brackets that way for high-income retirees where IRMAA surcha
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
 - *Solve LTCG brackets with MILP (expert)* – replaces the iteration for LTCG ordinary income
-  stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
+  stacking with a MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
   so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
   placement significantly affects the objective.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
-  Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
+  A binary variable per year selects which term of the minimum bounds the tax: investment income, or MAGI
+  above the threshold (\\$200k single / \\$250k MFJ).
   Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
@@ -1535,7 +1572,7 @@ against future IRMAA simultaneously.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables. This is slower than the loop but no longer needs the
+within the optimization using binary variables. This is slower than the loop but no longer needs the
 `gap` to be loosened by hand: on the shipped *jack+jill* case it takes about 20 seconds with MOSEK
 at default settings, against about 1 second for the loop, and finds a spending basis 1.4% higher.
 Prefer MOSEK for it — the same case took over two minutes with HiGHS and returned a worse answer.

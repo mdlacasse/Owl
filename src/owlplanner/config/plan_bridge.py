@@ -276,12 +276,15 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
     plan.yOBBBA = max(plan.yOBBBA, this_year)
 
 
-def _apply_state_to_plan(plan, known):
-    """Set the state of residence and any later moves from ``basic_info``."""
+def _apply_state_to_plan(plan, known, always=False):
+    """Set the state of residence, its locality and any later moves from ``basic_info``.
+
+    With *always*, also applied when there is no state, so that clearing it clears the plan's.
+    """
     bi = known["basic_info"]
     state = bi.get("state", "")
-    moves = [(m["year"], m.get("state", ""), m.get("locality", "")) for m in bi.get("moves", [])]
-    if state or moves:
+    moves = bi.get("moves") or []
+    if always or state or moves:
         try:
             plan.setStateTax(state, moves, bi.get("locality", ""))
         except (ValueError, KeyError, TypeError) as e:
@@ -400,7 +403,8 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_optimization_to_plan(plan, known)
     _apply_solver_options_to_plan(plan, known)
     _apply_aca_to_plan(plan, known)
-    _apply_state_to_plan(plan, known)
+    # Always applied, so that clearing the state or the move in the UI clears it on the plan.
+    _apply_state_to_plan(plan, known, always=True)
 
     res = known.get("results", {})
     plan.setDefaultPlots(res.get("default_plots", "nominal"))

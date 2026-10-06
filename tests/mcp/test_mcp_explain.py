@@ -271,6 +271,27 @@ def test_build_explanation_reports_state_tax():
 
 
 @pytest.mark.toml
+def test_build_explanation_reports_state_move():
+    """After a move from CA to FL, each reported year names its state and FL years are omitted."""
+    plan = _solved_plan()
+    move_year = int(plan.year_n[0]) + 5
+    plan.setStateTax("CA", [(move_year, "FL")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    st = build_explanation(plan)["state_tax_brackets"]
+    assert st["state"] == "CA"
+    assert st["move"] == {"year": move_year, "state": "FL"}
+    assert st["by_year"] and all(r["state"] == "CA" and r["year"] < move_year for r in st["by_year"])
+
+    # Starting with no state and moving to CA: no first-year state tax, CA years reported.
+    plan.setStateTax("", [(move_year, "CA")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    ex = build_explanation(plan)
+    assert "state_tax" not in ex["this_year"]
+    rows = ex["state_tax_brackets"]["by_year"]
+    assert rows and all(r["state"] == "CA" and r["year"] >= move_year for r in rows)
+
+
+@pytest.mark.toml
 def test_build_explanation_omits_state_tax_without_income_tax():
     """A no-income-tax state gets no state sections."""
     ex = build_explanation(_solved_plan(state="TX"))
@@ -313,7 +334,7 @@ def test_build_explanation_reports_locality_and_recapture():
     st = ex["state_tax_brackets"]
     assert st["locality"] == "Yonkers" and "moves" not in st
     rows = {r["year"]: r for r in st["by_year"]}
-    assert all("state" not in r for r in rows.values())  # one state throughout: not repeated per year
+    assert all(r["state"] == "NY" and r["locality"] == "Yonkers" for r in rows.values())
     recap = [n for n in range(plan.N_n) if plan.st_recap_n[n] > 1 and int(plan.year_n[n]) in rows]
     assert recap, "test needs a year with NY recapture"
     for n in recap:
@@ -329,8 +350,8 @@ def test_build_explanation_labels_each_year_with_its_state_after_a_move():
     ex = build_explanation(plan)
     PlanExplanation.model_validate(ex)
     st = ex["state_tax_brackets"]
-    assert st["moves"] == [{"year": move, "state": "FL", "locality": None}]
+    assert st["move"] == {"year": move, "state": "FL"} and "moves" not in st  # one move: upstream's field
     rows = {r["year"]: r for r in st["by_year"]}
     assert all(r["state"] == "NY" and r["locality"] == "Yonkers" for y, r in rows.items() if y < move)
-    assert any(y < move for y in rows) and any(y >= move for y in rows)
-    assert all(r["state"] == "FL" and "locality" not in r for y, r in rows.items() if y >= move)
+    assert any(y < move for y in rows)
+    assert not any(y >= move for y in rows)  # years without a state income tax are omitted (upstream)

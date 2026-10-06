@@ -58,7 +58,7 @@ class LocalTaxParams:
 
 @lru_cache(maxsize=1)
 def _load_local_data(toml_path: str = None) -> dict:
-    with open(toml_path or str(_TOML_PATH), "r") as f:
+    with open(toml_path or str(_TOML_PATH), "r", encoding="utf-8") as f:
         return toml.load(f)
 
 

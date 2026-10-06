@@ -37,6 +37,8 @@ kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("otherMedical", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
+kz.initCaseKey("localSearch", False)
+kz.initCaseKey("mipStrategy", "branch-and-bound")
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
 
@@ -223,6 +225,20 @@ else:
     st.divider()
     with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Calculations]")
+        helpmsg_ls = (
+            "Carry the tax breakpoints (Social Security taxability, Medicare, ACA, capital gains and "
+            "NIIT) as binary variables and solve them by local search (fix-and-optimize): small "
+            "restricted problems around the iteration's plan instead of a full branch-and-bound. "
+            "Usually a somewhat better plan than the iteration, in seconds to a few minutes; "
+            "not a proven optimum. The plan is never worse than the iteration's. "
+            "Overrides a fixed Social Security taxable fraction: the IRS formula applies instead."
+        )
+        ls_on = kz.getToggle("Solve tax breakpoints by local search (expert)", "localSearch", help=helpmsg_ls)
+        if ls_on:
+            st.caption(
+                "Local search sets every breakpoint below to MILP, Social Security taxability included; "
+                "the individual settings do not apply."
+            )
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
             helpmsg = (
@@ -232,7 +248,8 @@ else:
             )
             medioff = not medion
             ret = kz.getToggle(
-                "Solve Medicare brackets with MILP (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff
+                "Solve Medicare brackets with MILP (expert)", "optimizeMedicare", help=helpmsg,
+                disabled=medioff or ls_on,
             )
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
             helpmsg_aca = (
@@ -240,7 +257,7 @@ else:
                 "Exact at a bracket edge, and slower. Only applies when SLCSP > 0."
             )
             ret = kz.getToggle(
-                "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff
+                "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff or ls_on
             )
         with col2:
             kz.initCaseKey("noLateSurplus", False)
@@ -254,13 +271,29 @@ else:
                 "iteration, for the stacking of ordinary income under long-term gains. "
                 "Exact at a bracket edge, and slower."
             )
-            ret = kz.getToggle("Solve LTCG brackets with MILP (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            ret = kz.getToggle(
+                "Solve LTCG brackets with MILP (expert)", "optimizeLTCG", help=helpmsg_ltcg, disabled=ls_on
+            )
             helpmsg_niit = (
                 "Decide inside the optimization whether income crosses the Net Investment "
                 "Income Tax threshold, instead of by iteration. Only has an effect when the "
                 "capital-gains brackets are solved the same way."
             )
-            ret = kz.getToggle("Solve NIIT threshold with MILP (expert)", "optimizeNIIT", help=helpmsg_niit)
+            ret = kz.getToggle(
+                "Solve NIIT threshold with MILP (expert)", "optimizeNIIT", help=helpmsg_niit, disabled=ls_on
+            )
+        any_milp = any(
+            kz.getCaseKey(k) for k in ("optimizeMedicare", "optimizeACA", "optimizeLTCG", "optimizeNIIT")
+        ) or kz.getCaseKey("ssTaxabilityMode") == "optimize"
+        helpmsg_strategy = (
+            "How the breakpoints set to MILP are solved. 'branch-and-bound': the complete search, "
+            "which stops at the solver gap or time limit. 'local-search': fix-and-optimize around the "
+            "iteration's plan, faster, not a proven optimum."
+        )
+        ret = kz.getRadio(
+            "MILP strategy (expert)", ["branch-and-bound", "local-search"], "mipStrategy",
+            help=helpmsg_strategy, disabled=ls_on or not any_milp,
+        )
 
         st.divider()
         st.markdown("#### :orange[Social Security Taxability]")
@@ -271,9 +304,9 @@ else:
             helpmsg = (
                 "’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
                 "’value’: pin SS taxable fraction to a fixed value (enter in box). "
-                "’optimize’: solve taxable SS exactly within the LP using binary variables (expert)."
+                "’optimize’: solve taxable SS within the optimization using binary variables (expert)."
             )
-            ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
+            ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg, disabled=ls_on)
         with col2:
             if kz.getCaseKey("ssTaxabilityMode") == "value":
                 kz.initCaseKey("ssTaxabilityValue", 0.85)

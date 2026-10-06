@@ -53,7 +53,7 @@ OBJECTIVE_RTOL = 6e-3
 
 
 def _load_reference():
-    with open(REFERENCE_FILE) as f:
+    with open(REFERENCE_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 

@@ -63,6 +63,8 @@ ACC_CONF = ACCOUNT_TYPES
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 #   stopRothConversions -> stopRothConversionsEnabled / stopRothConversions (absent = no end)
 #   includeMedicarePartD -> includeMedicarePartD (always written; absent in the UI = True)
+#   breakpointMethod     -> localSearch (True for "local-search")
+#   mipStrategy        -> mipStrategy ("branch-and-bound" | "local-search"; written only when not default)
 # ui/sskeys.getSolveParameters() must translate each of these the same way ui_to_config() does.
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
@@ -180,7 +182,12 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["startDate"] = _start_date_to_ui(start_date_str)
     dic["state"] = bi.get("state", "")
     dic["locality"] = bi.get("locality", "")
-    dic["moves"] = list(bi.get("moves", []))
+    moves = bi.get("moves") or []
+    dic["stateMoveEnabled"] = bool(moves)
+    dic["stateMoveYear"] = int(moves[0]["year"]) if moves else date.today().year + 5
+    dic["stateMoveState"] = moves[0].get("state", "") if moves else ""
+    dic["stateMoveLocality"] = moves[0].get("locality", "") if moves else ""
+    dic["stateMovesMore"] = [dict(m) for m in moves[1:]]  # fork: further moves, from the case file only
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
     _ic = aa.get("interpolation_center")
@@ -341,6 +348,8 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
+    dic["localSearch"] = so.get("breakpointMethod", "loop") == "local-search"
+    dic["mipStrategy"] = so.get("mipStrategy", "branch-and-bound")
 
     # An absent stop year means "no end". The UI carries that as an explicit toggle rather
     # than a magic year, so a stop year can never be left behind by a horizon change.
@@ -518,8 +527,6 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     }
     if uidic.get("locality"):
         diconf["basic_info"]["locality"] = uidic["locality"]
-    if uidic.get("moves"):
-        diconf["basic_info"]["moves"] = list(uidic["moves"])
 
     # Savings: UI $k = config $k (per doc: tables dollars, UI thousands except fixed income)
     for j, acc in enumerate(ACC_CONF):
@@ -640,6 +647,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     optimize_niit = bool(uidic.get("optimizeNIIT"))
     diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"
     diconf["solver_options"]["withNIIT"] = "optimize" if optimize_niit else "loop"
+    if uidic.get("localSearch"):
+        diconf["solver_options"]["breakpointMethod"] = "local-search"
+    elif uidic.get("mipStrategy", "branch-and-bound") == "local-search":
+        diconf["solver_options"]["mipStrategy"] = "local-search"
 
     if uidic.get("stopRothConversionsEnabled", False):
         diconf["solver_options"]["stopRothConversions"] = _get_ui(
@@ -677,6 +688,16 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         diconf["solver_options"]["withSSAges"] = "optimize"
     else:
         diconf["solver_options"]["withSSAges"] = ss_ages_mode
+
+    if uidic.get("stateMoveEnabled"):
+        first = {
+            "year": _get_ui(uidic, "stateMoveYear", date.today().year + 5, int),
+            "state": uidic.get("stateMoveState") or "",
+        }
+        if uidic.get("stateMoveLocality"):
+            first["locality"] = uidic["stateMoveLocality"]
+        # Fork: moves after the first come from the case file and are kept as they are.
+        diconf["basic_info"]["moves"] = [first] + [dict(m) for m in uidic.get("stateMovesMore") or []]
 
     return diconf
 

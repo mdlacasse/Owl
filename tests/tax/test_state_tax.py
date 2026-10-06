@@ -352,7 +352,7 @@ def test_st_taxparams_ny_age_59_and_a_half():
 @pytest.mark.parametrize("state,expected", [("NY", True), ("IL", True), ("KY", True), ("MD", False)])
 def test_st_taxparams_roth_conversion_eligibility(state, expected):
     """Roth conversion income counts toward the exemption except in MD."""
-    conv_ok = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1]).conv_ok
+    conv_ok = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1]).conv_ok_n
     assert np.all(conv_ok == expected)
 
 
@@ -451,8 +451,8 @@ def test_state_taxparams_returns_dataclass():
     assert isinstance(sp, tax_state.StateTaxParams)
     assert sp.N_st >= 4
     assert sp.credit_n.shape == (30,)
-    assert sp.conv_ok.shape == sp.tax_ss.shape == (30,)
-    assert sp.conv_ok.dtype == sp.tax_ss.dtype == bool
+    assert sp.conv_ok_n.shape == sp.tax_ss_n.shape == (30,)
+    assert sp.conv_ok_n.dtype == sp.tax_ss_n.dtype == bool
 
 
 def _schedule_tax(income, brackets):
@@ -582,3 +582,129 @@ def test_personal_credit_reduces_state_tax_down_to_zero():
     gross = np.sum(p.st_f_tn * p.st_theta_tn, axis=0)
     np.testing.assert_allclose(p.st_T_n, np.maximum(0.0, gross - p.st_credit_n), atol=0.05)
     assert np.any(gross > p.st_credit_n) and np.any(p.st_T_n < gross - 1)
+
+
+# ---------------------------------------------------------------------------
+# Per-year state schedule (issue #159)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("state", ["NY", "NJ", "MD", "CA", "CO", "FL", "PA", "OH"])
+def test_schedule_of_one_state_is_st_taxparams(state):
+    """With a single state, st_schedule gives exactly st_taxParams' arrays and flags.
+
+    Upstream's version indexes a tuple and a dict; the fork's StateTaxParams has named fields."""
+    yobs, mobs = [1960, 1962], [3, 7]
+    ref = tax_state.st_taxParams(state, 2, 20, 30, _GAMMA, yobs, mobs=mobs, i_d=0)
+    s = tax_state.st_schedule([state] * 30, 2, 20, 30, _GAMMA, yobs, mobs=mobs, i_d=0)
+    assert s.N_st == ref.N_st
+    for key in ("theta_tn", "DeltaBar_tn", "sigmaBar_n", "re_cap_in", "pe_cap_in", "credit_n",
+                "conv_ok_n", "tax_ss_n", "fed_sd_n", "senior_bonus_n", "pension_eligible_n"):
+        np.testing.assert_array_equal(getattr(s, key), getattr(ref, key))
+    fed_sd, bonus = tax_state.federal_deduction(state)
+    assert np.all(s.fed_sd_n == fed_sd) and np.all(s.senior_bonus_n == bonus)
+    np.testing.assert_array_equal(
+        s.credit_n, tax_state.st_credits(state, 2, 20, 30, _GAMMA, yobs=yobs, mobs=mobs, i_d=0)
+    )
+
+
+def test_schedule_takes_each_year_from_its_state_and_pads_brackets():
+    """NY for five years, then FL, then no state: each year is its state's column; NY's longer
+    schedule sets N_st, and the shorter ones are padded at their top rate with zero width."""
+    states = ["NY"] * 5 + ["FL"] * 5 + [""] * 20
+    s = tax_state.st_schedule(states, 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    ny = tax_state.st_taxParams("NY", 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    fl = tax_state.st_taxParams("FL", 1, 30, 30, _GAMMA, [1960], mobs=[1])
+    assert s.N_st == ny.N_st > fl.N_st
+    np.testing.assert_array_equal(s.theta_tn[:, :5], ny.theta_tn[:, :5])
+    np.testing.assert_array_equal(s.DeltaBar_tn[:, :5], ny.DeltaBar_tn[:, :5])
+    k = fl.N_st
+    np.testing.assert_array_equal(s.DeltaBar_tn[:k, 5:10], fl.DeltaBar_tn[:, 5:10])
+    assert not s.DeltaBar_tn[k:, 5:10].any()  # padding has no width
+    np.testing.assert_array_equal(
+        s.theta_tn[k:, 5:10], np.broadcast_to(fl.theta_tn[k - 1, 5:10], (ny.N_st - k, 5))
+    )
+    # No state: one zero-rate bracket wide enough for any income, nothing else.
+    assert not s.theta_tn[:, 10:].any()
+    assert np.all(s.DeltaBar_tn[0, 10:] > 1e6) and not s.DeltaBar_tn[1:, 10:].any()
+    assert not s.sigmaBar_n[10:].any() and not s.credit_n[10:].any()
+
+
+# ---------------------------------------------------------------------------
+# A change of state during the plan (#159)
+# ---------------------------------------------------------------------------
+
+
+def _move_plan(state, moves=None):
+    thisyear = date.today().year
+    p = Plan(["Jack"], [f"{thisyear - 62}-01-01"], [90], "TestMove")
+    p.setStateTax(state, moves)
+    p.setAccountBalances(taxable=[200], taxDeferred=[1500], taxFree=[0])
+    p.setSocialSecurity([2500], [70])
+    p.setRates("conservative")
+    p.setAllocationRatios("individual", generic=np.array([[[60, 40, 0, 0], [60, 40, 0, 0]]]))
+    p.setSpendingProfile("flat")
+    return p
+
+
+def test_move_sets_the_state_of_each_year():
+    p = _move_plan("ny", [{"year": date.today().year + 3, "state": "fl"}])
+    assert p.state_moves == [(date.today().year + 3, "FL", "")]  # fork: Residence(year, state, locality)
+    assert p._states_n()[:5] == ["NY", "NY", "NY", "FL", "FL"]
+    assert p._states_n()[-1] == "FL"
+    p.setStateTax("NY", [(date.today().year + 3, "")])  # moving away from any state income tax
+    assert p._states_n()[2:4] == ["NY", ""]
+    p.setStateTax("NY")
+    assert p.state_moves == [] and set(p._states_n()) == {"NY"}
+
+
+@pytest.mark.parametrize(
+    "moves, match",
+    [
+        ([(2030, "FL"), (2030, "TX")], "Two moves"),  # fork: several moves, one per year
+        ([(0, "FL")], "after the first plan year"),
+        ([(3000, "FL")], "after the first plan year"),
+        ([(None, "FL")], "calendar year"),
+        ([(2030, "ZZ")], "Unknown state"),
+        ([(2030, "ny")], "starting state"),
+    ],
+)
+def test_move_is_validated(moves, match):
+    p = _move_plan("NY")
+    if moves[0][0] == 0:
+        moves = [(int(p.year_n[0]), "FL")]
+    with pytest.raises(ValueError, match=match):
+        p.setStateTax("NY", moves)
+    assert p.state == "NY" and p.state_moves == []  # a rejected move changes nothing
+
+
+def test_move_to_florida_stops_state_tax_and_defers_conversions():
+    """Leaving CA for FL: no state tax from the year of the move, and Roth conversions wait for it;
+    the reverse move brings them forward. Spending lies between staying in either state."""
+    k = 4
+    move_year = date.today().year + k
+    plans = {}
+    for label, state, moves in (
+        ("CA", "CA", None),
+        ("FL", "FL", None),
+        ("CA->FL", "CA", [(move_year, "FL")]),
+        ("FL->CA", "FL", [(move_year, "CA")]),
+    ):
+        p = _move_plan(state, moves)
+        p.solve("maxSpending", options={"verbose": False})
+        assert p.caseStatus == "solved", label
+        plans[label] = p
+
+    ca_fl, fl_ca = plans["CA->FL"], plans["FL->CA"]
+    assert np.sum(ca_fl.st_T_n[:k]) > 0
+    assert np.sum(ca_fl.st_T_n[k:]) == pytest.approx(0, abs=1)
+    assert np.sum(fl_ca.st_T_n[:k]) == pytest.approx(0, abs=1)
+    assert np.sum(fl_ca.st_T_n[k:]) > 0
+
+    # Conversions follow the cheaper state.
+    assert np.sum(ca_fl.x_in[:, :k]) < np.sum(plans["CA"].x_in[:, :k])
+    assert np.sum(ca_fl.x_in[:, k:]) > np.sum(plans["CA"].x_in[:, k:])
+    assert np.sum(fl_ca.x_in[:, :k]) > np.sum(plans["FL"].x_in[:, :k])
+
+    for p in (ca_fl, fl_ca):
+        assert plans["CA"].g_n[0] < p.g_n[0] < plans["FL"].g_n[0]

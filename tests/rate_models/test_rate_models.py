@@ -206,7 +206,7 @@ class RateModel(BaseRateModel):
 """
 
     plugin_path = tmp_path / "my_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -231,7 +231,7 @@ class RateModel(BaseRateModel):
 """
 
     plugin_path = tmp_path / "bad_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -252,7 +252,7 @@ def test_plugin_missing_class(tmp_path):
 """
 
     plugin_path = tmp_path / "bad_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -281,7 +281,7 @@ class RateModel(BaseRateModel):
         return np.ones((N, 4)) * 0.03
 """
     plugin_path = tmp_path / "det_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 
@@ -307,7 +307,7 @@ class RateModel(BaseRateModel):
         return np.hstack([arr, arr, arr, arr]) / 100.0
 """
     plugin_path = tmp_path / "seq_plugin.py"
-    plugin_path.write_text(plugin_code)
+    plugin_path.write_text(plugin_code, encoding="utf-8")
 
     p = Plan(["Joe"], ["1961-01-15"], [80], "test", verbose=False)
 

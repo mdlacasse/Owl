@@ -367,3 +367,23 @@ class TestClaimingAgeTaxes:
         fixed = _exact_ss_plan(results[0][0])
         fixed.solve("maxSpending", options=_EXACT_OPTS)
         assert results[0][1] == pytest.approx(float(fixed.g_n[0]), abs=1.0)
+
+    def test_state_ss_exclusion_follows_the_claiming_age(self):
+        """In a state that excludes SS (CA), the state base removes the taxable share of the own
+        benefit the MILP picks. With the previous iterate's benefits removed instead, the result
+        depended on the starting age (64 2/12 at $99,331 or $99,348/yr) and neither start
+        matched the fixed-age solve."""
+        results = []
+        for start in (62, 70):
+            p = _exact_ss_plan(start)
+            p.setStateTax("CA")
+            p.solve("maxSpending", options={**_EXACT_OPTS, "withSSAges": "optimize"})
+            assert p.caseStatus == "solved"
+            results.append((float(p.ssecAges[0]), float(p.g_n[0])))
+        assert results[0][0] == pytest.approx(results[1][0])
+        assert results[0][1] == pytest.approx(results[1][1], abs=1.0)
+
+        fixed = _exact_ss_plan(results[0][0])
+        fixed.setStateTax("CA")
+        fixed.solve("maxSpending", options=_EXACT_OPTS)
+        assert results[0][1] == pytest.approx(float(fixed.g_n[0]), abs=1.0)

@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from datetime import date
 from io import StringIO
 import streamlit as st
 
@@ -167,6 +168,56 @@ else:
                 "locality",
                 help="Adds the city's resident income tax on top of the state's. Blank means the rest of the state.",
             )
+        thisyear = date.today().year
+        kz.initCaseKey("stateMoveEnabled", False)
+        kz.initCaseKey("stateMoveYear", thisyear + 5)
+        kz.initCaseKey("stateMoveState", "")
+        kz.initCaseKey("stateMoveLocality", "")
+        kz.initCaseKey("stateMovesMore", [])
+        _move_help = (
+            "Model a change of residence during the plan. "
+            "The residence on December 31 taxes the whole year, "
+            "so the year of the move is taxed by the new state and city."
+        )
+        kz.getToggle("Move to another state during the plan", "stateMoveEnabled", help=_move_help)
+        if kz.getCaseKey("stateMoveEnabled"):
+            mcol1, mcol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with mcol1:
+                kz.getIntNum(
+                    "Year of the move",
+                    "stateMoveYear",
+                    min_value=thisyear + 1,
+                    max_value=thisyear + 100,
+                    help="First calendar year taxed by the new state. It must fall within the plan.",
+                )
+            with mcol2:
+                kz.getSelectbox(
+                    "New state",
+                    _state_choices(),
+                    "stateMoveState",
+                    help="State of residence from that year on. Leave blank to stop modeling state taxes.",
+                )
+                move_localities = _locality_choices(kz.getCaseKey("stateMoveState") or "")
+                if kz.getCaseKey("stateMoveLocality") not in move_localities:
+                    kz.setCaseKey("stateMoveLocality", "")
+                    st.session_state.pop(kz.genCaseKey("stateMoveLocality"), None)
+                if len(move_localities) > 1:
+                    kz.getSelectbox(
+                        "New city income tax (optional)",
+                        move_localities,
+                        "stateMoveLocality",
+                        help="City income tax from that year on. Blank means the rest of the state.",
+                    )
+            if (kz.getCaseKey("stateMoveState"), kz.getCaseKey("stateMoveLocality")) == (
+                kz.getCaseKey("state"),
+                kz.getCaseKey("locality"),
+            ):
+                st.warning("The new residence is the starting one.", icon=":material/warning:")
+            if kz.getCaseKey("stateMovesMore"):
+                st.info(
+                    f"The case file has {len(kz.getCaseKey('stateMovesMore'))} further move(s), kept as they are.",
+                    icon=":material/info:",
+                )
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."

@@ -14,7 +14,7 @@ GAMMA = np.array([1.025**n for n in range(31)])
 
 
 def _params(states_n, **kw):
-    return tax_state.st_taxParams_schedule(states_n, 2, 30, 30, GAMMA, [1964, 1964], mobs=[6, 12], **kw)
+    return tax_state.st_schedule(states_n, 2, 30, 30, GAMMA, [1964, 1964], mobs=[6, 12], **kw)
 
 
 # ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ def test_locality_needs_a_state():
 
 
 # ---------------------------------------------------------------------------
-# st_taxParams_schedule
+# st_schedule
 # ---------------------------------------------------------------------------
 
 
@@ -120,7 +120,7 @@ def test_mixed_bracket_counts_pad_with_zero_width_top_rate():
 def test_flags_follow_the_state_in_force():
     """MD does not count conversions; IL exempts retirement income; both vary by year."""
     sched = _params(["MD"] * 10 + ["IL"] * 20)
-    assert not sched.conv_ok[:10].any() and sched.conv_ok[10:].all()
+    assert not sched.conv_ok_n[:10].any() and sched.conv_ok_n[10:].all()
 
 
 # ---------------------------------------------------------------------------
@@ -151,13 +151,13 @@ def test_setStateTax_validates_moves():
         p.setStateTax("NY", [(THISYEAR + 3, "QQ")])
     with pytest.raises(ValueError, match="after the first plan year"):
         p.setStateTax("NY", [(THISYEAR, "FL")])
-    assert p.state == "NY" and p.state_moves == ()  # rejected calls leave the plan untouched
+    assert p.state == "NY" and p.state_moves == []  # rejected calls leave the plan untouched
 
 
 def test_setStateTax_without_moves_resets_them():
     p = _plan("NY", [(THISYEAR + 3, "FL")])
     p.setStateTax("NY")
-    assert p.state_moves == ()
+    assert p.state_moves == []
 
 
 def test_no_state_tax_after_moving_to_florida():

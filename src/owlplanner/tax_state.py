@@ -62,11 +62,11 @@ class StateTaxParams:
     pe_cap_in      -- shape (N_i, N_n) pension-only exemption cap per individual
                       (0 = pensions count toward re_cap_in instead)
     ss_thresh_n    -- shape (N_n,) AGI threshold below which SS is exempt (0 = not applicable)
-    conv_ok        -- shape (N_n,) bool, whether Roth conversion income counts toward re_cap_in
-    tax_ss         -- shape (N_n,) bool, whether the state taxes Social Security benefits
-    pe_pooled      -- shape (N_n,) bool, whether pensions share re_cap_in (no separate pension cap)
-    fed_sd         -- shape (N_n,) bool, whether the state takes the federal standard deduction
-    senior_bonus   -- shape (N_n,) bool, whether that includes the OBBBA senior deduction
+    conv_ok_n      -- shape (N_n,) bool, whether Roth conversion income counts toward re_cap_in
+    tax_ss_n       -- shape (N_n,) bool, whether the state taxes Social Security benefits
+    pension_eligible_n -- shape (N_n,) bool, whether pensions share re_cap_in (no separate pension cap)
+    fed_sd_n       -- shape (N_n,) bool, whether the state takes the federal standard deduction
+    senior_bonus_n -- shape (N_n,) bool, whether that includes the OBBBA senior deduction
     credit_n       -- shape (N_n,) per-filer personal and senior credits, subtracted from the
                       state tax down to zero (see st_credits)
     recap_start_n  -- shape (N_n,) state AGI where benefit recapture begins (np.inf = none)
@@ -90,11 +90,11 @@ class StateTaxParams:
     re_cap_in: np.ndarray
     pe_cap_in: np.ndarray
     ss_thresh_n: np.ndarray
-    conv_ok: np.ndarray
-    tax_ss: np.ndarray
-    pe_pooled: np.ndarray
-    fed_sd: np.ndarray
-    senior_bonus: np.ndarray
+    conv_ok_n: np.ndarray
+    tax_ss_n: np.ndarray
+    pension_eligible_n: np.ndarray
+    fed_sd_n: np.ndarray
+    senior_bonus_n: np.ndarray
     credit_n: np.ndarray
     recap_start_n: np.ndarray
     recap_width_n: np.ndarray
@@ -110,7 +110,7 @@ class StateTaxParams:
 def _load_state_data(toml_path: str = None) -> dict:
     """Load and cache taxes_state.toml. Returns the raw parsed dict."""
     path = toml_path or str(_TOML_PATH)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return toml.load(f)
 
 
@@ -421,11 +421,11 @@ def st_taxParams(
         re_cap_in=re_cap_in,
         pe_cap_in=pe_cap_in,
         ss_thresh_n=ss_thresh_n,
-        conv_ok=flag(conv_ok),
-        tax_ss=flag(tax_ss),
-        pe_pooled=flag(pe_base == 0),
-        fed_sd=flag(fed_sd),
-        senior_bonus=flag(senior_bonus),
+        conv_ok_n=flag(conv_ok),
+        tax_ss_n=flag(tax_ss),
+        pension_eligible_n=flag(pe_base == 0),
+        fed_sd_n=flag(fed_sd),
+        senior_bonus_n=flag(senior_bonus),
         credit_n=st_credits(state, N_i, n_d, N_n, gamma_n, yobs=yobs, mobs=mobs, i_d=i_d, toml_path=toml_path),
         recap_start_n=recap[0],
         recap_width_n=recap[1],
@@ -438,7 +438,7 @@ def st_taxParams(
     )
 
 
-def st_taxParams_schedule(
+def st_schedule(
     states_n: list, N_i: int, n_d: int, N_n: int, gamma_n: np.ndarray, yobs: list, *, mobs: list, i_d=None,
     toml_path=None,
 ) -> StateTaxParams:
@@ -446,7 +446,9 @@ def st_taxParams_schedule(
 
     *states_n* holds the state in force in each year ("" = none), as returned by
     residence_by_year. Each column is taken from that state's own st_taxParams; the bracket
-    dimension is padded to the longest schedule with zero-width top-rate brackets.
+    dimension is padded to the longest schedule with zero-width top-rate brackets (#149). A year
+    without a state gets one zero-rate bracket wide enough for any income. Upstream Owl's
+    st_schedule (#159) returns the same arrays as a dict; this fork keeps them typed.
     """
     per_state = {
         s: st_taxParams(s, N_i, n_d, N_n, gamma_n, yobs, mobs=mobs, i_d=i_d, toml_path=toml_path)
@@ -460,7 +462,8 @@ def st_taxParams_schedule(
     re_cap_in = np.zeros((N_i, N_n))
     pe_cap_in = np.zeros((N_i, N_n))
     ss_thresh_n = np.zeros(N_n)
-    flags = {name: np.zeros(N_n, dtype=bool) for name in ("conv_ok", "tax_ss", "pe_pooled", "fed_sd", "senior_bonus")}
+    flag_names = ("conv_ok_n", "tax_ss_n", "pension_eligible_n", "fed_sd_n", "senior_bonus_n")
+    flags = {name: np.zeros(N_n, dtype=bool) for name in flag_names}
     credit_n = np.zeros(N_n)
     recap = np.tile(np.array([[np.inf], [1.0], [0.0]]), (1, N_n))
     N_rx = max((p.rx_limit_kn.shape[0] for p in per_state.values()), default=1)

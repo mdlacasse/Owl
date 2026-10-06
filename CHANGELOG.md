@@ -60,13 +60,18 @@ two brackets. Wage-only local taxes do not belong there. The NYC rates and thres
 rate were checked against the 2025 IT-201-I (2026 not yet published; the Yonkers rate is unchanged in
 the 2026 withholding tables).
 
-#### New: change of state during the plan
+#### Changed: several moves and a locality on top of upstream's change of state (#159)
 
-`basic_info.moves` (and `Plan.setStateTax(state, moves)`) lists later changes of residence, e.g.
-`moves = [{year = 2032, state = "FL"}]`, optionally naming a `locality`. From that year on the new state taxes the household, so
-the optimizer sees today's rates against tomorrow's when timing Roth conversions or withdrawals.
-The state in force on December 31 governs the whole year; part-year residency is not apportioned.
-A plan with no `moves` is unchanged. The web UI preserves `moves` from a file but does not edit them.
+Upstream 2026.10.6 models one change of state (`basic_info.moves`, `Plan.setStateTax(state, moves)`,
+per-year state parameters). The fork keeps its own extension of the same model: any number of moves,
+each optionally naming a `locality` (`moves = [{year = 2032, state = "NJ"}]`, or
+`{year = 2030, state = "NY", locality = "Yonkers"}` for a move within the state), and a move may
+stay in the state if it changes the locality. The residence in force on December 31 governs the
+whole year. Plan attributes, the per-year flags (`st_conv_ok_n`, `st_tax_ss_n`, `st_fed_sd_n`,
+`st_senior_bonus_n`, `st_pension_eligible_n`) and `_states_n()` follow upstream's names. The web UI
+uses upstream's move toggle for the first move, with a city selector, and keeps any further moves
+from the case file as they are. The explanation reports the first move as upstream's `move` and,
+when there are more, all of them in `moves`.
 
 #### Changed: state indexing and exemptions now come from upstream (#157)
 
@@ -78,10 +83,129 @@ A personal credit offsets the state tax including recapture, and a local surchar
 tax after the credit. The `StateTaxParams` dataclass carries the credits as `credit_n`, so a move
 takes the new state's credits from its year.
 
-#### Changed: `st_taxParams` returns a `StateTaxParams` dataclass
+#### Changed: `st_taxParams` and `st_schedule` return a `StateTaxParams` dataclass
 
-The nine-element tuple is replaced by a frozen dataclass with named fields. `Plan` attribute names
-are unchanged.
+Upstream's nine-element tuple (`st_taxParams`) and dict (`st_schedule`) are replaced by a frozen
+dataclass with named fields, which also carries the fork's recapture and exclusion arrays. Its flag
+fields carry upstream's dict keys (`conv_ok_n`, `tax_ss_n`, ...).
+### Version 2026.10.7
+
+#### Fixed: phantom ACA and IRMAA inconsistencies with the capital-gains brackets solved as MILP
+
+With `withLTCG = "optimize"` and `withNIIT = "optimize"` (including local search), the split of a
+year's capital gains across the 0%, 15% and 20% brackets was allowed to hold a dollar more than the
+gains. The solver took that dollar whenever it cost nothing, with gains in the 0% bracket, and the
+reported MAGI then read a dollar high. A plan priced at exactly 400% of the poverty line, or at an
+IRMAA tier, was reported a dollar above it, and its fixed-point residual showed thousands of
+dollars of ACA or IRMAA inconsistency the plan did not have. The split now holds exactly the
+year's gains. The exact NIIT also uses the plan's own interest and dividend income rather than the
+previous iteration's, so NIIT no longer depends on the iteration. Plans with these options can
+change slightly; in the cases checked, the ACA, IRMAA and NIIT residuals are now zero.
+
+### Version 2026.10.6
+
+#### New: local search for the tax breakpoints (expert)
+
+The tax breakpoints (Social Security taxability, Medicare, ACA, capital gains and NIIT) can now be
+solved by local search instead of branch-and-bound. Turn on *Solve tax breakpoints by local search
+(expert)* in Run Options' advanced options, or set `breakpointMethod = "local-search"` in
+`[solver_options]`. Each solve starts from the plan the usual iteration finds, then improves it
+through small restricted problems around it, never solving the full problem: it is never worse
+than that plan, usually somewhat better, and takes seconds to a few minutes; it is not a proven
+optimum. Each restricted problem is limited by solver nodes rather than seconds, so the same case
+gives the same answer on any machine. It replaces a fixed Social Security taxable fraction with
+the IRS formula, and the log says so. `mipStrategy` chooses the strategy for breakpoints set to
+MILP individually. The Summary has a new *Breakpoint method* row, so that compared cases show how
+each treated the breakpoints; the AI assistant tools take `breakpoint_method` and report the
+method used. The documentation now calls the full search branch-and-bound rather
+than exact: it stops at the solver gap, and the iteration still runs around it.
+
+#### New: one change of state during the plan
+
+A plan can now move once to another state. On the *Create Case* page, turn on *Move to another
+state during the plan* and enter the year of the move and the new state; in a case file, add
+`moves = [ { year = 2031, state = "FL" } ]` to `[basic_info]`. The state of residence on
+December 31 taxes the whole year, so the year of the move is taxed by the new state. Leaving the
+new state blank stops state taxes from that year. The optimizer plans around the move: leaving a
+high-tax state for one without an income tax tends to push Roth conversions past it, and the
+reverse brings them forward. Only one move is modeled, and local taxes are not. The AI assistant
+tools take it as `state_move`. Thanks to Florin Mateoc (@fmateoc) for proposing it (#159).
+
+#### Fixed: visiting Reports no longer makes Graphs solve the case again
+
+Opening the Reports page marked an unchanged case as modified, so going back to Graphs or
+Worksheets solved it again, which can take a minute with the slower options. A case is now
+solved again only when something in it has changed.
+
+#### Fixed: survivor benefit when a spouse dies before claiming Social Security
+
+A spouse who died before claiming left the survivor only 82.5% of their PIA. That limit applies
+only when the deceased had claimed early and taken a reduced benefit. The survivor now receives
+the full PIA, plus the delayed retirement credits earned up to death when death came after full
+retirement age: up to 132% of PIA instead of 82.5%. This matters when a spouse plans to claim
+late but dies first. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix
+(#169).
+
+#### Fixed: optimized claiming ages are taxed on their own benefits
+
+With `withSSAges = "optimize"`, the tax on Social Security, the IRMAA and ACA incomes, and the
+state Social Security exclusion were computed from the benefits of the claiming age chosen in the
+previous iteration rather than the age being considered. The result could depend on the starting
+ages and report a plan whose taxes belonged to another age. Each candidate age is now taxed on its
+own benefits, and the result matches a solve with that age fixed. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#168).
+
+#### Fixed: exact NIIT mode no longer excludes plans just above the threshold
+
+With `withNIIT = "optimize"`, a year whose income exceeded the NIIT threshold by less than its
+investment income ($250k married, $200k single) could not be represented, so the optimizer never
+considered plans with such a year, and a plan forced into it could be reported infeasible. Each
+year now pays 3.8% of the smaller of the excess and the investment income over every income
+range, as the statute sets it.
+
+#### Fixed: case files and state data are read and written as UTF-8 on Windows
+
+On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
+description held characters such as em dashes might not open on another computer, and the state
+tax data was read the same way. All text files are now read and written as UTF-8 on every
+platform, as the TOML format requires, and a test keeps it that way.
+
+### Version 2026.10.5
+
+#### Fixed: ACA premiums from 138% to 150% of the poverty line
+
+For 2026, the expected contribution between 133% and 150% of the poverty line now rises from 3.14%
+to 4.19% of income, as Rev. Proc. 2025-25 sets it, instead of from 2.10%. Households in this range
+(above the 138% Medicaid limit) were charged up to about $160 a year too little for coverage.
+Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#164).
+
+#### Fixed: ACA *optimize* mode no longer reports feasible plans as infeasible
+
+With `withACA = "optimize"`, an income below 400% of the poverty line whose expected
+contribution exceeded the benchmark (SLCSP) premium was treated as impossible instead of paying
+the full premium, so a household that could not move its income out of that range was reported
+infeasible. It now pays the full premium, as in loop mode. Thanks to Florin Mateoc (@fmateoc) for
+reporting it and supplying the fix (#161).
+
+#### Changed: ACA costs nothing up to 138% of the poverty line, and optimize mode follows the sliding scale
+
+Up to 138% of the poverty line, a household is now assumed covered by Medicaid, at no premium, in
+both ACA modes; loop mode used to charge the full benchmark premium there and optimize mode 2.10%
+of income. This is the rule in Medicaid expansion states; the others are not modeled. In
+`withACA = "optimize"`, the expected contribution now rises across each income band as the
+statute sets it, as in loop mode, instead of charging each band's top rate, so the two modes
+agree. Plans that can keep income at or below 138% now take advantage of it; the *morgan* example
+spends about $2,100 a year more. Thanks to Florin Mateoc (@fmateoc) for reporting it (#165).
+
+#### Fixed: capital gains on taxable accounts with a known cost basis
+
+When a cost basis is entered, the dividends and interest taxed each year and left in the account
+now add to it, so they are no longer taxed a second time when sold. The account's unrealized
+gain is also placed in its stocks, since bond and cash returns are taxed as they are earned, so
+a withdrawal realizes the account's full embedded gain rather than only the stock share of it.
+The two corrections pull in opposite directions; in the examples with a cost basis, spending
+changes by less than 0.7%. Plans without a cost basis are unchanged. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#166).
 
 ### Version 2026.10.4
 

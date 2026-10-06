@@ -97,7 +97,13 @@ def plan_convergence(plan) -> dict:
     residual = {
         family: _round(v["abs_sum"]) for family, v in getattr(plan, "fixedPointResidual", {}).items()
     }
-    return {"convergence": plan.convergenceType, "fixed_point_residual_today_dollars": residual}
+    return {
+        "convergence": plan.convergenceType,
+        # How the tax breakpoints were solved: "loop", "branch-and-bound (...)", "local search (...)",
+        # or "local search -> loop" when the search kept the loop's plan.
+        "breakpoint_method": getattr(plan, "breakpointMethodUsed", "loop"),
+        "fixed_point_residual_today_dollars": residual,
+    }
 
 
 def plan_to_dict(plan) -> dict:
@@ -188,7 +194,7 @@ def plan_to_dict(plan) -> dict:
         "individuals": list(plan.inames),
         "state": state,
         **({"locality": plan.locality} if plan.locality else {}),
-        **({"state_moves": state_moves} if state_moves else {}),
+        "state_moves": state_moves,
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,
