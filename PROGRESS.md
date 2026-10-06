@@ -13,7 +13,7 @@ Maintainer's responses as relayed by the user on 2026-10-06; issue states not re
 |---|---|
 | #147, #149, #155 | Fixed upstream earlier; our copies dropped |
 | #157 NY/NJ not indexed (+ NJ addendum) | Fixed upstream (`3c88ce1`, 2026.10.3); merged, theirs |
-| #158 NY benefit recapture missing | Filed; no response relayed. Fork keeps loop-mode recapture |
+| #158 NY benefit recapture missing | Filed; no response (the issue said our code would not apply as is). **2026-10-06: rebuilt on stock `dev` `b4f1605`** without our loop registry or typed params, on upstream's `st_schedule`: `fork-notes/issue-ny-recapture.patch` (4 files, +369/−6, 23 tests; full upstream suite 2720 passed, 1 skipped; plans identical to the fork's to the dollar). Follow-up comment drafted, **not posted**: `fork-notes/issue-ny-recapture-update.md`. Fork keeps its own version (locality surcharge on it, credits, Summary line) |
 | #159 Moves + local tax (design) | **Implemented upstream as one move** (`f5820c0`, `a3897b2`, 2026.10.6), no local tax. Maintainer: wants equivalence of all variables between states and no lookup between years (e.g. IRMAA) before folding more in; "consider PA". **Merged 2026-10-06**: Plan names, `_states_n()`, the UI toggle and `basic_info.moves` follow upstream; the fork keeps several moves, a locality per move, and typed `StateTaxParams` (`st_schedule` under upstream's name). Three upstream asserts adapted (3-tuples), two `st_schedule` tests read fields. PA not looked at (its local earned-income taxes are wage taxes, which `taxes_local.toml` excludes by design; not verified this session) |
 | #160 NJ retirement-income exclusion | Answered 2026-10-04: upstream keeps state taxes a pure LP. Our reply posted. Fork keeps its MILP |
 | #161 ACA optimize infeasible | **Fixed upstream** (`bf817dd`, 2026.10.5), crossing found on the sliding scale; merged, theirs |
@@ -22,11 +22,11 @@ Maintainer's responses as relayed by the user on 2026-10-06; issue states not re
 | #164 ACA 133-150% band | Fixed upstream (`d88a37e`); merged, theirs |
 | #165 ACA optimize rates | Fixed upstream (`7ad4c7e`): sliding scale by tangents, and Medicaid at no premium up to 138% FPL in both modes (morgan +$2,100/yr). Merged, theirs |
 | #166 Cost basis | Fixed upstream (`4f90899`); merged, theirs |
-| #167 Partial first year | **Documented upstream** (`22ec12f`), left open for a short first period. Maintainer suggests adding the amount spent since Jan 1 to the balances. Reply drafted, **not posted** (`fork-notes/issue-partial-first-year-reply.md`): with income kept full-year, as his docs say, the add-back is spending and taxes paid minus income received. Fork template updated (`fork-notes/phase0/Case_us.template.toml`) |
+| #167 Partial first year | **Documented upstream** (`22ec12f`), left open for a short first period. Maintainer suggests adding the amount spent since Jan 1 to the balances. Reply **posted** by the user 2026-10-06 (`fork-notes/issue-partial-first-year-reply.md`): with income kept full-year, as his docs say, the add-back is spending and taxes paid minus income received. Fork template updated (`fork-notes/phase0/Case_us.template.toml`) |
 | #168 SS-age taxes | Fixed upstream (`a746a04`); merged, theirs |
 | #169 Survivor never claimed | Fixed upstream (`1a21641`); merged, theirs |
-| Envelope model (issue number not recorded) | Status not relayed |
-| #171 Pinned loop | **Declined**: second model too costly; `withACA="optimize"` captures morgan's gain; maintainer's answer is local search (`breakpointMethod="local-search"`, 2026.10.6). Asked for our findings: measured, reply drafted, **not posted** (`fork-notes/issue-local-search-reply.md`, details `fork-notes/local-search/README.md`) |
+| #170 Envelope model | Filed with #171; one conversation with it (the maintainer answered both on #171) |
+| #171 Pinned loop | **Declined**: second model too costly; `withACA="optimize"` captures morgan's gain; maintainer's answer is local search (`breakpointMethod="local-search"`, 2026.10.6). Asked for our findings: measured, reply **posted** by the user 2026-10-06 (`fork-notes/issue-local-search-reply.md`, details `fork-notes/local-search/README.md`) |
 | Loop anomaly (NY→FL at year 5) | Not filed (no repro beyond loop noise) |
 | Upstream workflow | Branch from and target `dev` (CONTRIBUTING) |
 
@@ -119,20 +119,20 @@ Back-of-envelope question: `fork-notes/envelope/README.md`. A one-state DP (`em.
 
 Seeding Owl's loop from the one-state plan does nothing (≤0.05% except john+sally +3%). Pinning Owl's yearly recognition to it, with the loop seeded from it, gives morgan +10.2% on stock `dev` (+11.0% with Ψ fixed, all other residuals 0) and −0.55% to +0.47% elsewhere; john+sally −$5.8k, because the EM's schedule needs an untaxed taxable account (README §10, which also explains the john+sally gap).
 
-Upstream: the pinned loop was filed as #171 and **declined** (2026-10-05/06): a second model with its own assumptions costs too much to maintain; `withACA="optimize"` already gets morgan's gain (+7.9%); the maintainer's answer is local search (2026.10.6), which beats the pinned loop's results on the examples (`fork-notes/local-search/README.md`). The EM issue's status was not relayed. The EM stays a fork-notes screen.
+Upstream: the pinned loop was filed as #171 and **declined** (2026-10-05/06): a second model with its own assumptions costs too much to maintain; `withACA="optimize"` already gets morgan's gain (+7.9%); the maintainer's answer is local search (2026.10.6), which beats the pinned loop's results on the examples (`fork-notes/local-search/README.md`). The EM issue is #170, answered together with #171. The EM stays a fork-notes screen.
 
 ## Upstream contributions (maintainer implements from issues; send issue + patch, not PRs)
 
 1. #157 NY non-indexed amounts (patch `ad4452d`) — filed; NJ addendum drafted (patch `20ccb2d`)
-2. #158 NY benefit recapture (patch `fe7fba3`) — filed
+2. #158 NY benefit recapture (patch `fe7fba3`) — filed; stock-`dev` patch and follow-up drafted 2026-10-06, not posted
 3. #159 Design issue: residency moves + local tax layer — one move implemented upstream (2026.10.6), no local tax; merged
 4. #160 NJ retirement-income exclusion (patches `7fcfadf`, `395be10`) — filed; maintainer keeps state taxes a pure LP; our reply posted
 5. #161 ACA optimize infeasibility — fixed upstream (2026.10.5), merged
 6. #162 Bracket order — fixed upstream with our patch (2026.10.4), merged
 7. #163 SC-loop cycle selection — on hold upstream
 8. Filed 2026-10-04 by the user: #164 ACA 133-150% band, #169 survivor never claimed, #166 cost basis, #168 SS-age taxes (all fixed upstream, merged); #167 partial first year (documented, open); #165 ACA optimize rates (fixed upstream). Not filed: docs/paper drift
-9. Pinned loop #171 — declined in favor of local search; findings reply drafted (`issue-local-search-reply.md`), not posted. Envelope model issue — status not relayed
-10. #167 reply drafted (`issue-partial-first-year-reply.md`), not posted
+9. #170 envelope model and #171 pinned loop (one conversation) — declined in favor of local search; findings reply posted 2026-10-06
+10. #167 reply posted 2026-10-06
 
 When upstream lands #158, merge `dev` and drop our duplicate, as with #149, #155, #157 and the 2026.10.5-7 fixes.
 
