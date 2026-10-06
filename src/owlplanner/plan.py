@@ -3699,18 +3699,20 @@ class Plan:
 
             # (3') Companion upper bound on the same row: prevents q[1,n]/q[2,n] from being
             # inflated along the flat direction shared with f_tn's per-bracket split (q[2,n]
-            # is otherwise unbounded above in loop mode). loss_buf widens the bound so a
-            # capital-loss year (Q_n < 0) stays feasible; tol=$1 matches the
-            # LTCG-consistency-loop tolerance in _scSolve. Two loss sources are covered:
+            # is otherwise unbounded above in loop mode). Without a loss the two rows make the
+            # partition an equality: the brackets hold exactly the year's gains. loss_buf widens
+            # the bound only so a capital-loss year (Q_n < 0) stays feasible, since q >= 0:
             #   - fixed-asset capital loss for year n is a known parameter, so cover it
             #     directly (this keeps iteration 0, where prevQ is None, safe);
             #   - any portfolio loss surfaces in the previous iteration's realized Q_n.
             # prevQ[n] already includes the fixed-asset component, so take the larger.
-            tol = 1.0
+            # No further tolerance: a dollar of room was taken whenever it cost nothing (gains in
+            # the 0% bracket) and inflated the MAGI built from the partition (niit_magi_def), so
+            # the reported MAGI sat a dollar above the income the ACA and IRMAA rows had priced.
             fixed_loss = max(0.0, -float(self.fixed_assets_capital_gains_n[n]))
             prevQ = getattr(self, "Q_n", None)
             prev_loss = 0.0 if prevQ is None else max(0.0, -float(prevQ[n]))
-            loss_buf = max(fixed_loss, prev_loss) + tol
+            loss_buf = max(fixed_loss, prev_loss)
             self.A.addNewRow(row_q, -np.inf, rhs_q + loss_buf, tag=("ltcg_partition_hi", n))
 
     @_fixedAcrossIterations
@@ -3780,17 +3782,15 @@ class Plan:
 
         Choosing the smaller branch gives J_n = 0.038*max(0, min(MAGI_n - T, NII_n)) over every
         income range, including T < MAGI_n < T + NII_n. With the AGI-basis MAGI = G_n + e_n + Q_n,
-        NII_n = I_n + Q_n = I_n + MAGI_n - G_n - e_n, so row (2) needs no capital-gains term
-        (I_n is a SC-loop parameter).
+        NII_n = I_n + Q_n = I_n + MAGI_n - G_n - e_n, so row (2) needs no capital-gains term.
+        I_n (interest and the taxed bond/cash returns of the taxable account, plus rent and trust
+        income) enters as the same LP expression _aggregateResults evaluates, not as the previous
+        iteration's value: sum_i fak_in*(b_i0n + d_in - w_i0n) + netinv_n.
         """
         if not self._niit_lp:
             return
 
-        # I_n from previous SC iteration (interest/div income); falls back to netinv_in only
-        # on the first iteration before _aggregateResults has run.
-        I_n_param = getattr(self, "I_n", None)
-        if I_n_param is None:
-            I_n_param = np.sum(self.netinv_in, axis=0)
+        fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
 
         for n in range(self.N_n):
             # Per-year filing status: couple switches to Single at n_d.
@@ -3818,9 +3818,18 @@ class Plan:
                 tag=("niit_excess", n),
             )
 
-            # (2) J_n >= 0.038*(I_n + MAGI_n - G_n - e_n) - M*(1-zj)
-            #   →  J_n - 0.038*magi_n + 0.038*G_n + 0.038*e_n - M*zj >= 0.038*I_n - M
+            # (2) J_n >= 0.038*(I_n + MAGI_n - G_n - e_n) - M*(1-zj), with I_n as an LP expression
+            #   →  J_n - 0.038*magi_n + 0.038*G_n + 0.038*e_n - 0.038*I_portfolio_n - M*zj
+            #        >= 0.038*netinv_n - M
             row2 = {Jn_idx: 1, magi_idx: -0.038, e_idx: 0.038, zj_idx: -M_niit}
+            for i in range(self.N_i):
+                fak = fak_in[i, n]
+                if fak == 0:
+                    continue
+                for idx, coef in ((self.vm["b"].idx(i, 0, n), -0.038 * fak),
+                                  (self.vm["d"].idx(i, n), -0.038 * fak),
+                                  (self.vm["w"].idx(i, 0, n), 0.038 * fak)):
+                    row2[idx] = row2.get(idx, 0) + coef
             if "gn" in self.vm:
                 g_idx = self.vm["gn"].idx(n)
                 row2[g_idx] = row2.get(g_idx, 0) + 0.038
@@ -3828,7 +3837,8 @@ class Plan:
                 for t in range(self.N_t):
                     f_idx = self.vm["f"].idx(t, n)
                     row2[f_idx] = row2.get(f_idx, 0) + 0.038
-            self.A.addNewRow(row2, 0.038 * float(I_n_param[n]) - M_niit, np.inf, tag=("niit_nii", n))
+            netinv_n = float(np.sum(self.netinv_in[:, n]))
+            self.A.addNewRow(row2, 0.038 * netinv_n - M_niit, np.inf, tag=("niit_nii", n))
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":

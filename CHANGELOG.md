@@ -1,3 +1,17 @@
+### Version 2026.10.7
+
+#### Fixed: phantom ACA and IRMAA inconsistencies with the capital-gains brackets solved as MILP
+
+With `withLTCG = "optimize"` and `withNIIT = "optimize"` (including local search), the split of a
+year's capital gains across the 0%, 15% and 20% brackets was allowed to hold a dollar more than the
+gains. The solver took that dollar whenever it cost nothing, with gains in the 0% bracket, and the
+reported MAGI then read a dollar high. A plan priced at exactly 400% of the poverty line, or at an
+IRMAA tier, was reported a dollar above it, and its fixed-point residual showed thousands of
+dollars of ACA or IRMAA inconsistency the plan did not have. The split now holds exactly the
+year's gains. The exact NIIT also uses the plan's own interest and dividend income rather than the
+previous iteration's, so NIIT no longer depends on the iteration. Plans with these options can
+change slightly; in the cases checked, the ACA, IRMAA and NIIT residuals are now zero.
+
 ### Version 2026.10.6
 
 #### New: local search for the tax breakpoints (expert)
