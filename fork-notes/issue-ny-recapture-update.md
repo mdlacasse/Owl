@@ -6,6 +6,7 @@ How it was checked (2026-10-06, stock `dev` `b4f1605`):
 - `git apply --check` on a clean checkout of `b4f1605`: applies.
 - Full upstream suite with the patch: 2720 passed, 1 skipped. flake8 (120 columns): only `localsearch.py:29`, which the patch does not touch.
 - Comparison script: `fork-notes/model-review/ny_recap_cmp.py` (run with `PYTHONPATH` set to each checkout).
+- Rechecked after the fork merged `b4f1605` (2026-10-06): the patch still applies to upstream's tip (`b4f1605`, unchanged), and the fork and the patched stock `dev` give identical plans in all four runs, and under local search ($2.5M: basis 154,484, lifetime recapture $10,552 in both; `fork-notes/model-review/ny_recap_ls.py`). Without the patch the local-search row was not run.
 - The 23 recapture tests (worksheet constants, worksheet 1 by hand, notch, continuity, monotonicity, data, plan-level worksheet tax, loop residual, cash flow, a move to NJ, replayed rows) pass.
 - The plans are identical to the fork's implementation, to the dollar, on the NY couple below (exact LP and default options, $1.5M and $2.5M).
 
@@ -28,6 +29,7 @@ Effect on a NY couple (born 1964, SS $3,000 and $2,400/month at 70, $300k taxabl
 | $1.5M | defaults | 122,609 | 122,597 | 81 |
 | $2.5M | Medicare off, SS 0.85 | 158,221 | 157,945 | 6,372 |
 | $2.5M | defaults | 154,211 | 153,952 | 5,955 |
+| $2.5M | defaults + `breakpointMethod = "local-search"` | — | 154,484 | 10,552 |
 
 Small for most households, as the issue said, but it is tax NY charges, in every year with NY AGI above $107,650, and it grows with income.
 

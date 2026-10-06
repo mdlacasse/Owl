@@ -10,7 +10,7 @@ Read these first, in this order:
 
 ## State (2026-10-06)
 
-- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `5006479` (2026.10.7; `main` is the same commit). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `b4f1605` (2026.10.7 plus five fixes; `main` is behind it). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params (`StateTaxParams`; `st_taxParams` and `st_schedule` return it, where upstream returns a tuple and a dict; flag fields use upstream's dict keys `conv_ok_n`, `tax_ss_n`, `pension_eligible_n`, `fed_sd_n`, `senior_bonus_n`);
   - SC-loop registry `_SC_PARAMS`;
@@ -33,8 +33,8 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 4 -q -p no:cacheprovider`. About 6 min on 4 cores. 2792 passed / 1 skipped on 2026-10-06 after the 2026.10.7 merge.
-- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`. Upstream's `localsearch.py:28` is 122 characters (their CI allows 127); leave it.
+- Tests: `.venv/bin/python -m pytest -n 4 -q -p no:cacheprovider`. About 6 min on 4 cores. 2807 passed / 1 skipped on 2026-10-06 after merging `b4f1605`.
+- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`. Upstream's own long line in `localsearch.py` (line 29, 135 characters on `b4f1605`) is theirs; leave it.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 
 ## Conventions

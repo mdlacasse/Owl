@@ -2,7 +2,7 @@
 
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
-Fork `fmateoc/Owl`, branch `claude/nifty-tesla-gbq1wt` (2026-10-06: merge of upstream 2026.10.7, NJ exclusion under local search, node cap, local-search tie rule), continued from `claude/project-thread-u0d9t0` (envelope model) and the branches before it (see `CLAUDE.md`), merged with upstream `dev` `5006479` (2026.10.7; `main` is the same commit) on 2026-10-06.
+Fork `fmateoc/Owl`, branch `claude/nifty-tesla-gbq1wt` (2026-10-06: merge of upstream 2026.10.7, NJ exclusion under local search, node cap, local-search tie rule), continued from `claude/project-thread-u0d9t0` (envelope model) and the branches before it (see `CLAUDE.md`), merged with upstream `dev` `5006479` (2026.10.7) and then `b4f1605` (five more fixes: partial-bequest weight 0.1% in the objective for couples with beneficiary fractions below 1, exact-NIIT cap row, local-search steps at a 0.01% gap, solve time in the Summary, lifespan-sampled copies) on 2026-10-06.
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream
@@ -13,7 +13,7 @@ Maintainer's responses as relayed by the user on 2026-10-06; issue states not re
 |---|---|
 | #147, #149, #155 | Fixed upstream earlier; our copies dropped |
 | #157 NY/NJ not indexed (+ NJ addendum) | Fixed upstream (`3c88ce1`, 2026.10.3); merged, theirs |
-| #158 NY benefit recapture missing | Filed; no response (the issue said our code would not apply as is). **2026-10-06: rebuilt on stock `dev` `b4f1605`** without our loop registry or typed params, on upstream's `st_schedule`: `fork-notes/issue-ny-recapture.patch` (4 files, +369/−6, 23 tests; full upstream suite 2720 passed, 1 skipped; plans identical to the fork's to the dollar). Follow-up comment drafted, **not posted**: `fork-notes/issue-ny-recapture-update.md`. Fork keeps its own version (locality surcharge on it, credits, Summary line) |
+| #158 NY benefit recapture missing | Filed; no response (the issue said our code would not apply as is). **2026-10-06: rebuilt on stock `dev` `b4f1605`** without our loop registry or typed params, on upstream's `st_schedule`: `fork-notes/issue-ny-recapture.patch` (4 files, +369/−6, 23 tests; full upstream suite 2720 passed, 1 skipped; plans identical to the fork's to the dollar, also under local search and after the fork merged `b4f1605`). Follow-up comment drafted, **not posted**: `fork-notes/issue-ny-recapture-update.md`. Fork keeps its own version (locality surcharge on it, credits, Summary line) |
 | #159 Moves + local tax (design) | **Implemented upstream as one move** (`f5820c0`, `a3897b2`, 2026.10.6), no local tax. Maintainer: wants equivalence of all variables between states and no lookup between years (e.g. IRMAA) before folding more in; "consider PA". **Merged 2026-10-06**: Plan names, `_states_n()`, the UI toggle and `basic_info.moves` follow upstream; the fork keeps several moves, a locality per move, and typed `StateTaxParams` (`st_schedule` under upstream's name). Three upstream asserts adapted (3-tuples), two `st_schedule` tests read fields. PA not looked at (its local earned-income taxes are wage taxes, which `taxes_local.toml` excludes by design; not verified this session) |
 | #160 NJ retirement-income exclusion | Answered 2026-10-04: upstream keeps state taxes a pure LP. Our reply posted. Fork keeps its MILP |
 | #161 ACA optimize infeasible | **Fixed upstream** (`bf817dd`, 2026.10.5), crossing found on the sliding scale; merged, theirs |
@@ -146,6 +146,6 @@ Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would l
 
 ## Test status
 
-2026-10-06, after merging upstream 2026.10.7: 2791 passed, 1 skipped, 1 failed (upstream's new UTF-8 check caught two fork `open()`s; fixed, then that test passed), so 2792 passed. flake8 clean except upstream's `localsearch.py:28` (122 > 120; their CI allows 127). After the local-search fixes and the node cap: 2795 passed, 1 skipped.
+2026-10-06, after merging upstream 2026.10.7: 2791 passed, 1 skipped, 1 failed (upstream's new UTF-8 check caught two fork `open()`s; fixed, then that test passed), so 2792 passed. flake8 clean except upstream's `localsearch.py:28` (122 > 120; their CI allows 127). After the local-search fixes and the node cap: 2795 passed, 1 skipped. After merging `b4f1605`: 2807 passed, 1 skipped (one conflict, in `tests/plan/test_local_search.py`, where both sides appended a test; both kept). The local-search benchmark in `fork-notes/local-search/` was run on `5006479`, before upstream tightened the step gap; not rerun.
 
 Merge notes (2026-10-06): `tax_federal.py` and `socialsecurity.py` are now identical to upstream. Per-year state flags carry upstream's names. Upstream's explanation omits years without a state income tax and reports the state on every row; the fork follows. Earlier merge notes: NJ's $1,000 exemption per filer aged 65+ came from upstream 2026.10.3; fork-only amounts follow upstream's indexing flags (NY recapture thresholds with `brackets_indexed`, NJ exclusion ceilings/cap with `exemptions_indexed`).
