@@ -109,6 +109,52 @@ dataclass with named fields, which also carries the fork's recapture and exclusi
 fields carry upstream's dict keys (`conv_ok_n`, `tax_ss_n`, ...).
 ### Version 2026.10.7
 
+#### Fixed: exact NIIT could charge far more than the law allows, emptying the partial bequest
+
+With `withNIIT = "optimize"`, including local search, the tax was bounded only from below and
+relied on being minimized. Where the plan's money was worth nothing to the objective, typically
+a first spouse's assets left to non-spouse heirs while only the final bequest counts, the
+optimizer could pay it out as NIIT instead. One couple's plan charged $190,000 to $290,000 of
+NIIT a year on under $3,000 of investment income and left a partial bequest of $98,000; with the
+tax capped, the same plan leaves $2.2M for an identical final bequest. NIIT is now capped at 3.8%
+of net investment income.
+
+#### Changed: money left at the first death to non-spouse heirs counts a little
+
+When beneficiary fractions are below 1, part of the first spouse's accounts goes to other heirs.
+Neither objective counted it, so wherever the household did not need that money, any amount of it
+was equally optimal and the partial bequest was arbitrary. The objective now counts each dollar
+left to those heirs as 0.1% of a dollar of spending or final bequest. In the cases measured this
+gives up no final bequest and leaves cases with fractions of 28% unchanged; it only breaks the tie.
+The weight can be set with the solver option `partialBequestWeight`. Local search now solves its
+small restricted problems to a 0.01% gap whatever the case's gap: at the 0.3% gap applied when
+Medicare is solved exactly, they stopped before the weight counted, and one couple's plan left
+$1.08M to the first spouse's heirs instead of $2.20M, with a final bequest $3,250 lower.
+
+#### Fixed: Graphs lost its images after a visit to Reports
+
+After the fix in 2026.10.6 that stopped a visit to Reports from forcing Graphs to solve the case
+again, coming back to Graphs showed no images: Reports refreshed the plan's Financial Profile
+tables, which marked the plan itself as changed, and a plan marked changed draws nothing. The plan
+now stays solved when the tables are the same; an edit still marks it changed.
+
+#### New: solve time in the Summary
+
+The Summary has a *Solve time* row: how long the last solve took on the clock, with the CPU time
+it used in parentheses. Solve times now range from under a second with the default iteration to
+minutes with branch-and-bound, so compared cases show what each one cost. The clock time depends
+on the machine and on what else it is doing; the CPU time much less so, though with MOSEK on
+several cores it can exceed the clock time.
+
+#### Fixed: Spending Optimization with lifespan sampling left out debts and fixed assets
+
+With lifespan sampling on, Spending Optimization solves a copy of the case for each sampled
+lifespan. In the app, those copies were rebuilt without the case's debts and fixed assets, so
+their payments and sale proceeds were missing from every sampled plan. The copies now carry the
+household tables as they stand, including edits made in the Financial Profile. The log also no
+longer reports the Debts and Fixed Assets tables as missing each time the app syncs the Financial
+Profile.
+
 #### Fixed: phantom ACA and IRMAA inconsistencies with the capital-gains brackets solved as MILP
 
 With `withLTCG = "optimize"` and `withNIIT = "optimize"` (including local search), the split of a

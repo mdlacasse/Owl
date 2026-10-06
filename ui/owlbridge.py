@@ -1220,13 +1220,16 @@ def _setContributions(plan, action):
             original_houseLists[key] = conditionDebtsAndFixedAssetsDF(None, key)
 
     original_filename = kz.getCaseKey("hfpFileName")
+    # readHFP marks the plan modified. Kept to restore it when the tables turn out unchanged.
+    original_status = plan.caseStatus
 
     dicDf = {kz.getCaseKey("iname0"): kz.getCaseKey("timeList0")}
     if kz.getCaseKey("status") == "married":
         dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
 
     try:
-        plan.readHFP(dicDf)
+        # The tables here are the per-person ones; the household tables follow in syncHouseLists.
+        plan.readHFP(dicDf, houseTables=False)
     except Exception as e:
         # These tables came from the editor, so they always parse. What can fail here
         # is a value rule -- a QCD before age 70½, say -- and calling that a parse
@@ -1277,6 +1280,11 @@ def _setContributions(plan, action):
         kz.setCaseKey("hfpFileName", marked)
         plan.hfpFileName = marked
     elif action == "set":
+        if not data_changed:
+            # Same tables as the plan was solved with: its results still stand. Reports syncs on
+            # every visit; leaving the plan marked modified made its plotting methods refuse to
+            # run, so Graphs showed no images while the case still read as solved.
+            plan.caseStatus = original_status
         if data_changed:
             if original_filename and original_filename != "None" and not original_filename.endswith(" *"):
                 marked = original_filename + " *"

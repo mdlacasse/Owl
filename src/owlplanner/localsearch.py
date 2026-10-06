@@ -25,8 +25,8 @@ optimum, chiefly on the unrestricted problem, which has the most freedom.
 
 Each step is capped by branch-and-bound nodes (`STEP_NODES`, so that the answer does not depend on
 machine speed or load), with a time backstop (`stepTime`); the whole search has a budget
-(`totalTime`). A capped step keeps the best plan it found. Withdrawal-ordering gates (withdrawalOrder="taxable_first") and
-claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
+(`totalTime`). A capped step keeps the best plan it found. Withdrawal-ordering gates
+(withdrawalOrder="taxable_first") and claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
 branch-and-bound.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
@@ -64,6 +64,12 @@ STEP_TIME = 60.0  # seconds per restricted solve: a backstop; the node limit bel
 # answer on any machine and under any load. The solvers count nodes differently; measured on the
 # shipped examples, no step that finished needed more than ~2,000 (HiGHS) or ~11,000 (MOSEK).
 STEP_NODES = {"HiGHS": 3000, "MOSEK": 20000}
+# Relative MIP gap of each restricted solve. A loose gap suits a full branch-and-bound, where it
+# saves real time; here the problems are small and the gap costs nothing, while a loose one stops
+# them before small preferences in the objective count (the partial-bequest weight, 0.1%, under
+# the 0.3% gap applied when Medicare is solved as MILP) and leaves money the household does not
+# need to be spent to no purpose.
+STEP_GAP = 1e-4
 TOTAL_TIME = 300.0  # seconds for the whole search, per plan solve
 RADIUS = 4  # local-branching radius on the SS-taxability binaries
 _IMPROVE = 1e-7  # relative objective improvement that counts as a move
@@ -128,6 +134,7 @@ class LocalSearch:
         opts = dict(options)
         opts["maxTime"] = min(float(options.get("maxTime", self.step_time)), self.step_time)
         opts["mipMaxNodes"] = self.step_nodes or STEP_NODES["MOSEK" if self.use_mosek else "HiGHS"]
+        opts["gap"] = min(float(options.get("gap", STEP_GAP)), STEP_GAP)
         p._mip_warm_start = warm
         # _scSolve infers the backend from the solve method, which is this search's: say it here.
         p._use_mosek = self.use_mosek

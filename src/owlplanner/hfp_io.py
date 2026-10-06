@@ -128,7 +128,7 @@ def _asBoolColumn(col):
     return (numeric.notna() & (numeric != 0)) | (numeric.isna() & text)
 
 
-def read(finput, inames, horizons, mylog, filename=None):
+def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
@@ -187,8 +187,12 @@ def read(finput, inames, horizons, mylog, filename=None):
     timeLists, absentCols = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
-    houseLists = _conditionHouseTables(dfDict, mylog)
-    mylog.vprint(f"Successfully read household tables from {streamName}.")
+    # houseTables=False reads the per-person sheets only (the UI hands over those alone, and
+    # keeps the Debts and Fixed Assets tables itself): return None rather than empty tables.
+    houseLists = None
+    if houseTables:
+        houseLists = _conditionHouseTables(dfDict, mylog)
+        mylog.vprint(f"Successfully read household tables from {streamName}.")
 
     return finput, timeLists, houseLists, dfDict, absentCols
 

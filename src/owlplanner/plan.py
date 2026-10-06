@@ -172,6 +172,10 @@ MIP_TIEBREAK = 1e-4
 # (morgan +1.5% spending, john+sally -4% bequest). EPSILON (5e-7) is too small: the reduced costs it
 # makes sit at HiGHS's dual feasibility tolerance and the fill stays.
 TAX_TIEBREAK = MIP_TIEBREAK
+# Value of a dollar left to non-spouse heirs at the first death, in final-objective dollars.
+# Small enough to trade no final bequest in the cases measured, large enough to stop the solver
+# from spending to no purpose money that would otherwise go to those heirs.
+PARTIAL_BEQUEST_WEIGHT = 0.001
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -300,6 +304,9 @@ def _timer(func):
         # per-solve figure with their own total.
         if func.__name__ == "solve":
             self.lastSolveWallTime = rt
+            # CPU time of the whole process, solver threads included: with MOSEK on several
+            # threads it can be several times the wall time.
+            self.lastSolveCPUTime = pt
         self.mylog.vprint(
             f"CPU time used: {int(pt / 60)}m{pt % 60:.1f}s, Wall time: {int(rt / 60)}m{rt % 60:.1f}s.", tag="INFO"
         )
@@ -592,6 +599,7 @@ class Plan:
         # Wall time of the most recent solve(), in seconds; None until one has run.
         # Used to turn a solve count into an estimated duration for this specific case.
         self.lastSolveWallTime = None
+        self.lastSolveCPUTime = None
         # Why the last solve produced no plan, in words; empty when it succeeded.
         self.solverMessage = ""
         # Whether the solver certified that no solution exists, as opposed to failing.
@@ -1915,7 +1923,7 @@ class Plan:
 
         self.mylog.vprint(f"Interpolating asset allocation ratios using '{self.interpMethod}' method.")
 
-    def readHFP(self, filename, filename_for_logging=None):
+    def readHFP(self, filename, filename_for_logging=None, houseTables=True):
         """
         Load the Household Financial Profile (HFP) from file.
 
@@ -1958,13 +1966,24 @@ class Plan:
         filename_for_logging : str, optional
             Explicit filename for logging purposes. If provided, this will be used
             in log messages instead of trying to extract it from filename.
+        houseTables : bool, optional
+            False reads the per-person sheets only and leaves the Debts and Fixed Assets
+            tables, and their raw sheets, as they are.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists, self.rawHFP, self.hfpAbsentCols = hfp_io.read(
-                filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
+            returned_filename, self.timeLists, houseLists, rawHFP, self.hfpAbsentCols = hfp_io.read(
+                filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging,
+                houseTables=houseTables,
             )
         except Exception as e:
             raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
+        if houseTables:
+            self.houseLists = houseLists
+            self.rawHFP = rawHFP
+        else:
+            # Keep the household sheets already held; replace the per-person ones.
+            kept = {k: v for k, v in (self.rawHFP or {}).items() if k in ("Debts", "Fixed Assets")}
+            self.rawHFP = {**kept, **rawHFP}
 
         # Use filename_for_logging if provided, otherwise use returned filename
         self.hfpFileName = filename_for_logging if filename_for_logging is not None else returned_filename
@@ -3965,6 +3984,7 @@ class Plan:
           (1) J_n >= 0.038*(MAGI_n - T) - M*zj      [zj=0: the excess over the threshold]
           (2) J_n >= 0.038*NII_n - M*(1-zj)         [zj=1: the investment income]
           (3) J_n >= 0                              [column bound]
+          (4) J_n <= 0.038*NII_n                    [cap: never more than 3.8% of NII]
 
         Choosing the smaller branch gives J_n = 0.038*max(0, min(MAGI_n - T, NII_n)) over every
         income range, including T < MAGI_n < T + NII_n. With the AGI-basis MAGI = G_n + e_n + Q_n,
@@ -4025,6 +4045,15 @@ class Plan:
                     row2[f_idx] = row2.get(f_idx, 0) + 0.038
             netinv_n = float(np.sum(self.netinv_in[:, n]))
             self.A.addNewRow(row2, 0.038 * netinv_n - M_niit, np.inf, tag=("niit_nii", n))
+
+            # (4) J_n <= 0.038*NII_n: the tax can never exceed 3.8% of investment income, whichever
+            # branch applies. Rows (1)-(3) only bound J_n from below and rely on its being minimized;
+            # where the plan's money is worth nothing to the objective (e.g. a first spouse's
+            # assets left to non-spouse heirs, when only the final bequest counts) the solver was
+            # free to overpay, and charged $190k-290k a year on under $3,000 of NII.
+            # Same terms as row (2), J_n - 0.038*(I_portfolio + MAGI - G - e), without the switch.
+            row4 = {k: v for k, v in row2.items() if k != zj_idx}
+            self.A.addNewRow(row4, -np.inf, 0.038 * netinv_n, tag=("niit_nii_cap", n))
 
     def _configure_Medicare_binary_variables(self, options):
         if options.get("withMedicare", "loop") != "optimize":
@@ -4291,6 +4320,8 @@ class Plan:
         else:
             raise RuntimeError("Internal error in objective function.")
 
+        self._add_partial_bequest_weight(c_arr, objective, options)
+
         if self._tax_tiebreak_on:
             c_arr += TAX_TIEBREAK * self._tax_cost_vector()
 
@@ -4369,6 +4400,39 @@ class Plan:
         for idx in np.flatnonzero(c_arr):
             c.setElem(idx, c_arr[idx])
         self.c = c
+
+    def _add_partial_bequest_weight(self, c_arr, objective, options):
+        """Value what the first spouse leaves to non-spouse heirs: w today's dollars per dollar.
+
+        With beneficiary fractions below 1, part of the first spouse's accounts leaves the
+        household at the first death. Neither objective counts it, so wherever that money is not
+        needed the solver is indifferent to how much of it remains, and the partial bequest is
+        arbitrary. The weight makes leaving it preferable to spending it to no purpose. The
+        partial bequest is the expression Plan._aggregateResults reports (after the heirs' tax on
+        tax-deferred and HSA money), in today's dollars of the year of the first death.
+        """
+        w = u.get_numeric_option(options, "partialBequestWeight", PARTIAL_BEQUEST_WEIGHT, min_value=0)
+        if w == 0 or self.N_i != 2 or self.n_d >= self.N_n or np.all(self.phi_j >= 1):
+            return
+        n_d, nx, i = self.n_d, self.n_d - 1, self.i_d
+        # Both objectives in the units of their own value: maxBequest maximizes final nominal
+        # balances, maxSpending today's-dollar spending.
+        scale = self.gamma_n[self.N_n] / self.gamma_n[n_d] if objective == "maxBequest" else 1.0 / self.gamma_n[n_d]
+        vm = self.vm
+        for j in range(self.N_j):
+            frac = (1 - self.phi_j[j]) * ((1 - self.nu) if j in (1, 3) else 1.0)
+            if frac <= 0:
+                continue
+            Tau1 = 1 + np.sum(self.alpha_ijkn[i, j, :, nx] * self.tau_kn[:, nx])
+            coef = -w * scale * frac * Tau1  # objective is minimized
+            c_arr[vm["b"].idx(i, j, nx)] += coef
+            c_arr[vm["w"].idx(i, j, nx)] -= coef
+            if j == 0:
+                c_arr[vm["d"].idx(i, nx)] += coef
+            elif j == 1:
+                c_arr[vm["x"].idx(i, nx)] -= coef
+            elif j == 2:
+                c_arr[vm["x"].idx(i, nx)] += coef
 
     def _tax_cost_vector(self):
         """Tax each bracket variable charges per dollar, in today's dollars, as a dense vector.
@@ -4802,6 +4866,7 @@ class Plan:
             "localSearchStepTime",  # local search: time cap per restricted solve (s)
             "localSearchRadius",  # local search: flips allowed on the SS-taxability binaries
             "localSearchStepNodes",  # local search: node limit per restricted solve
+            "partialBequestWeight",  # value of a dollar left at the first death (fraction of a dollar)
         ]
         options = {} if options is None else options
 
