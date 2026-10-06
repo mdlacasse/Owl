@@ -155,6 +155,16 @@ def test_optimizer_holds_income_at_the_ceiling_and_the_tax_is_statutory(monkeypa
     assert np.sum(p.st_T_n / p.gamma_n[:-1]) < np.sum(without.st_T_n / without.gamma_n[:-1]) - 10_000
 
 
+def test_local_search_keeps_the_tiers_integral():
+    """breakpointMethod="local-search" (upstream 2026.10.6) pins and searches the tier binaries like its
+    other families. Its LP start used to relax them, and the plan it returned held fractional tiers,
+    with a tax that differed from the statute's in most years."""
+    p = _couple(breakpointMethod="local-search", localSearchTime=1)
+    assert p.breakpointMethodUsed.startswith("local search")
+    for n in range(p.N_n):
+        assert p.st_T_n[n] == pytest.approx(_statutory_tax(p, n), abs=1.0)
+
+
 def test_move_to_new_jersey_excludes_only_there():
     p = _pension_plan([5000, 4000], moves=[(THISYEAR + 3, "FL")])
     assert np.all(p.st_rx_n[:3] > 0) and np.all(p.st_rx_n[3:] == 0)
@@ -199,6 +209,19 @@ def test_time_limit_keeps_the_tiers_and_reports_the_gap():
     assert p.solverGap >= p._rx_fixed[2] > 1e-4
     for n in range(p.N_n):
         assert p.st_T_n[n] == pytest.approx(_statutory_tax(p, n), abs=1.0)
+
+
+def test_node_limit_keeps_the_tiers_and_gives_the_same_plan_every_time(monkeypatch):
+    """Without maxTime the MILP stops at RX_NODE_LIMIT nodes, not at a time: the plan does not depend on
+    machine speed or load. Later iterations keep its tiers, as with a time limit."""
+    from owlplanner import plan as plan_module
+
+    monkeypatch.setattr(plan_module, "RX_NODE_LIMIT", 200)
+    a, b = (_couple(tax_deferred=(1500, 1000)) for _ in range(2))
+    assert a._rx_fixed is not None and a.solverGap >= a._rx_fixed[2] > 1e-4
+    assert a.basis == b.basis and np.array_equal(a.st_rx_n, b.st_rx_n)
+    for n in range(a.N_n):
+        assert a.st_T_n[n] == pytest.approx(_statutory_tax(a, n), abs=1.0)
 
 
 @pytest.mark.parametrize(

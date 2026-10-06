@@ -51,9 +51,13 @@ import time
 import numpy as np
 
 # Binary families the search moves, and the fixed-point residual family that measures each.
-FAMILIES = ("zm", "zs", "za", "zl", "zj")
+# Fork: "zx", the tier binaries of a state's income-tiered retirement exclusion (NJ), is a family
+# too. Left out, the LP start relaxed it to fractional tiers, and no later step could match that
+# start, so the search returned a plan claiming part of a tier above its ceiling. It has no
+# fixed-point residual: the exclusion is exact within each solve.
+FAMILIES = ("zm", "zs", "za", "zl", "zj", "zx")
 RESIDUAL_FAMILY = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zj": "NIIT", "zl": "LTCG"}
-FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NIIT"}
+FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NIIT", "zx": "state exclusion"}
 
 STEP_TIME = 60.0  # seconds per restricted solve: a backstop; the node limit below is the real cap
 # Branch-and-bound nodes per restricted solve. A node limit, unlike a time limit, gives the same
@@ -182,7 +186,7 @@ class LocalSearch:
         res = p._fixedPointResidualByYear(includeMedicare="zm" in p.vm._blocks)
         free, where = set(), {}
         for f in self._families():
-            arr = res.get(RESIDUAL_FAMILY[f])
+            arr = res.get(RESIDUAL_FAMILY.get(f))
             if arr is None:
                 continue
             years = np.where(np.abs(arr) > 1.0)[0]

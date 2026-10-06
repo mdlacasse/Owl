@@ -133,9 +133,14 @@ TIME_LIMIT = 900
 # The NJ exclusion's tier binaries are free only in years whose state income, in the previous
 # iterate, was at most this multiple of the top tier ceiling; elsewhere the exclusion is off.
 RX_WINDOW = 1.5
-# Default time cap (s) on a MILP that carries exclusion tier binaries, when maxTime is not given:
-# large-balance cases can take far longer to prove optimal, so the plan is returned with its gap.
-RX_TIME_LIMIT = 60
+# Default cap, in branch-and-bound nodes, on a HiGHS MILP that carries free exclusion tier binaries,
+# when neither maxTime nor mipMaxNodes is given: large-balance cases can take far longer to prove
+# optimal, so the plan is returned with its gap. A node cap, like upstream's local search steps,
+# gives the same plan on any machine; it replaced a 60 s time cap (2026-10-06), which the $1.5M+$1.0M
+# couple reached at 20,809 nodes on the 4-core container. TIME_LIMIT stays the backstop.
+RX_NODE_LIMIT = 20_000
+# MOSEK counts nodes differently and was not recalibrated: it keeps the former 60 s time cap.
+RX_MOSEK_TIME_LIMIT = 60
 # Lexicographic weight on Roth conversions, and the loop's main conditioning term. At 1e-8 it
 # breaks ties only nominally: the conversion schedule stays free to migrate between near-equivalent
 # years, and since a conversion moves provisional income directly, each move can flip a Social
@@ -5043,6 +5048,10 @@ class Plan:
             return False
         return True
 
+    def _residualTotal(self):
+        """Fixed-point residual of the solved plan, summed over families (today's $)."""
+        return sum(v["abs_sum"] for v in (getattr(self, "fixedPointResidual", None) or {}).values())
+
     def _objectiveValue(self, objective):
         return float(self.g_n[0]) if objective == "maxSpending" else float(self.bequest)
 
@@ -5078,6 +5087,7 @@ class Plan:
             self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions, fallback=True)
             return None
         floor = self._objectiveValue(objective)
+        floor_resid = self._residualTotal()
         # The loop's plan is the floor. Keep it as solved, rather than re-solving on fallback: a
         # second solve starts from state the first one left behind and can settle elsewhere.
         skip = ("mylog",)
@@ -5095,7 +5105,12 @@ class Plan:
         self._localSearchSeeding = True  # the search itself must not recurse
         try:
             self.solve(objective, options=dict(myoptions))
-            found = self.caseStatus == "solved" and self._objectiveValue(objective) > floor * (1 + 1e-9)
+            # Fork: on a tie, keep the search's plan when it is more self-consistent. Case_cameron's loop
+            # plan carries a $29k Social Security residual, and the search finds the same objective
+            # with none.
+            value = self._objectiveValue(objective)
+            tie_but_consistent = value >= floor * (1 - 1e-9) and self._residualTotal() < floor_resid - 1.0
+            found = self.caseStatus == "solved" and (value > floor * (1 + 1e-9) or tie_but_consistent)
         except NoIncumbent:
             self.mylog.print("Local search: no feasible starting plan; keeping the loop's plan.")
         finally:
@@ -6051,8 +6066,9 @@ class Plan:
         h.setOptionValue("mip_rel_gap", float(mygap))
         h.setOptionValue("time_limit", float(time_limit))
         # mipMaxNodes is internal: local search caps each restricted solve by nodes, not time,
-        # so that its answer does not depend on machine speed or load.
-        h.setOptionValue("mip_max_nodes", int(options.get("mipMaxNodes", 1_000_000)))
+        # so that its answer does not depend on machine speed or load (fork: so does RX_NODE_LIMIT).
+        node_limit = self._node_limit(options)
+        h.setOptionValue("mip_max_nodes", node_limit)
         h.setOptionValue("presolve", "on")
 
         inf = highspy.kHighsInf
@@ -6097,16 +6113,20 @@ class Plan:
         # may well be solvable, and must not be reported as an impossible plan.
         self._infeasible = ms == highspy.HighsModelStatus.kInfeasible
         timed_out = success and ms == highspy.HighsModelStatus.kTimeLimit
+        node_capped = success and integrality.any() and self._lastMipNodes >= node_limit
         if timed_out:
             self._warn_time_limit(time_limit, h.getInfoValue("mip_gap")[1], mygap)
+        elif node_capped and "mipMaxNodes" not in options:
+            self._warn_node_limit(node_limit, h.getInfoValue("mip_gap")[1], mygap)
 
         if success:
             sol = h.getSolution()
             xx = np.array(sol.col_value, dtype=np.float64)
             obj_val = float(h.getObjectiveValue())
-            if timed_out and "zx" in self.vm and self._rx_fixed is None:
-                # Later iterations keep these exclusion tiers instead of paying the time limit again: the
-                # loop then re-solves only the continuous part, and the tax stays statutory for the tiers.
+            if (timed_out or node_capped) and "zx" in self.vm and self._rx_fixed is None and not self._localSearch:
+                # Later iterations keep these exclusion tiers instead of paying the limit again: the loop
+                # then re-solves only the continuous part, and the tax stays statutory for the tiers.
+                # Not inside local search, whose steps are capped by design and pin or search the tiers.
                 gap_capped = float(h.getInfoValue("mip_gap")[1])
                 self._rx_fixed = (np.round(self.vm["zx"].extract(xx)), self.RXF_n >= 0.5, gap_capped)
                 self.mylog.vprint("Keeping the exclusion tiers of this MILP for the remaining iterations.")
@@ -6439,13 +6459,28 @@ class Plan:
         return result
 
     def _time_limit(self, options):
-        """Solver time limit: maxTime when given; otherwise RX_TIME_LIMIT when the MILP carries free
-        tier binaries of the income-tiered exclusion (see RX_TIME_LIMIT), else TIME_LIMIT."""
-        if "maxTime" in options:
-            return u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
-        if "zx" in self.vm and np.any(self.RXF_n >= 0.5):
-            return RX_TIME_LIMIT
-        return TIME_LIMIT
+        """Solver time limit: maxTime when given, else TIME_LIMIT."""
+        return u.get_numeric_option(options, "maxTime", TIME_LIMIT, min_value=0)
+
+    def _node_limit(self, options):
+        """HiGHS node limit: mipMaxNodes when given (local search); otherwise RX_NODE_LIMIT when the
+        MILP carries free tier binaries of the income-tiered exclusion and no maxTime is given (see
+        RX_NODE_LIMIT); else none in practice."""
+        if "mipMaxNodes" in options:
+            return int(options["mipMaxNodes"])
+        if "maxTime" not in options and "zx" in self.vm and np.any(self.RXF_n >= 0.5):
+            return RX_NODE_LIMIT
+        return 1_000_000
+
+    def _warn_node_limit(self, node_limit, gap, target):
+        """Say that a MILP stopped at its node limit and how far its plan may be from optimal."""
+        if gap > target:
+            self.mylog.print(
+                f"MILP stopped at its {node_limit:,} node limit with a gap of {100 * gap:.2f}% "
+                f"(target {100 * target:.2g}%): the plan is feasible but may not be optimal. "
+                "Set maxTime to search longer.",
+                tag="WARNING",
+            )
 
     def _warn_time_limit(self, time_limit, gap, target):
         """Say that a MILP stopped on its time limit and how far its plan may be from optimal."""
@@ -6487,6 +6522,8 @@ class Plan:
 
         self._buildConstraints(objective, options)
         time_limit = self._time_limit(options)
+        if "maxTime" not in options and "zx" in self.vm and np.any(self.RXF_n >= 0.5):
+            time_limit = RX_MOSEK_TIME_LIMIT
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
         int_vars = self.B.integralityList()

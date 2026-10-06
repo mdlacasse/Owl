@@ -170,3 +170,18 @@ def test_ui_round_trip():
     diconf["solver_options"].pop("mipStrategy")
     out = ui_to_config(config_to_ui(diconf))["solver_options"]
     assert "mipStrategy" not in out and "breakpointMethod" not in out
+
+
+@pytest.mark.toml
+def test_a_tie_keeps_the_more_consistent_plan():
+    """Fork: Case_cameron's loop ends on a 2-cycle whose plan charges $29k more taxable Social Security
+    than its income implies. The search finds the same objective with no residual; on that tie the
+    search's plan is kept rather than the loop's."""
+    loop = _load("Case_cameron.toml")
+    loop.solve(loop.objective, options=_loop_options(loop))
+    assert loop._residualTotal() > 10_000
+    p = _load("Case_cameron.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert _value(p) == pytest.approx(_value(loop), rel=1e-6)
+    assert p.breakpointMethodUsed.startswith("local search (")
+    assert p._residualTotal() < 1.0

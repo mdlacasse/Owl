@@ -20,10 +20,11 @@ Two limits keep the solve bounded. First, the tier binaries are free only in yea
 income, in the previous iteration, was at most 1.5 times the top ceiling (\$225,000); the first
 iteration is solved without the exclusion, and the set only grows, so at convergence every year left
 out is far above the ceilings, where the statute excludes nothing anyway. Second, without a `maxTime`
-a MILP carrying these binaries stops after 60 seconds: Owl warns with the gap, keeps that MILP's
-tiers for the remaining iterations, and reports its gap as the plan's. A \$2.5M couple, which did not
-prove optimal in ten minutes, now returns in about a minute with a 0.2% gap; give it more `maxTime`
-to narrow that. A
+a HiGHS MILP carrying these binaries stops after 20,000 branch-and-bound nodes (MOSEK: 60 seconds):
+Owl warns with the gap, keeps that MILP's tiers for the remaining iterations, and reports its gap as
+the plan's. A \$2.5M couple, which did not prove optimal in ten minutes, now returns in about a
+minute with a 0.2% gap; give it a `maxTime` to search longer. The cap was 60 seconds until
+2026-10-06; a node cap gives the same plan on any machine, as upstream's local search does. A
 self-consistent-loop version was tried first and rejected: on the same couple it settled into a
 2-cycle and returned a plan whose own income implied \$13,900 more lifetime New Jersey tax than it
 charged. The data fields (`retirement_exclusion_tiers`, `_cap`, `_age`, `_earned_limit`) are
@@ -59,6 +60,24 @@ state-tax figures, and `Plan.lt_T_n` gives the local part. Localities are data i
 two brackets. Wage-only local taxes do not belong there. The NYC rates and thresholds and the Yonkers
 rate were checked against the 2025 IT-201-I (2026 not yet published; the Yonkers rate is unchanged in
 the 2026 withholding tables).
+
+#### Changed: local search keeps the more consistent plan on a tie
+
+`breakpointMethod = "local-search"` keeps the self-consistent loop's plan unless the search beats
+its objective. On a tie it now keeps the search's plan when that plan's fixed-point residual is
+lower. *cameron*'s loop ends on a 2-cycle whose plan charges \$29,429 more taxable Social Security
+than its income implies; the search reaches the same 18,996 a year with no residual, and that plan
+is now the one returned (branch-and-bound returns the same). Proposed upstream in our reply on #171.
+
+#### Fixed: local search with the New Jersey exclusion
+
+Upstream's `breakpointMethod = "local-search"` (2026.10.6) pins and searches its own binary families
+only. The exclusion's tier binaries were not among them, so its starting LP relaxed them, no later
+step could match that relaxed start, and the plan it returned held fractional tiers (up to 0.08)
+and a New Jersey tax that differed from the statute's (in the new test's couple, \$1,645 charged in a
+year that owes \$7,290). They are now a family of their own: pinned with the others, freed in their
+own step. On the \$1.5M couple of `nj_stakes.py`, local search now returns 123,636 a year with integral
+tiers in 186 s, against 124,702 with fractional tiers in 431 s before.
 
 #### Changed: several moves and a locality on top of upstream's change of state (#159)
 
