@@ -1226,7 +1226,8 @@ def _setContributions(plan, action):
         dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
 
     try:
-        plan.readHFP(dicDf)
+        # The tables here are the per-person ones; the household tables follow in syncHouseLists.
+        plan.readHFP(dicDf, houseTables=False)
     except Exception as e:
         # These tables came from the editor, so they always parse. What can fail here
         # is a value rule -- a QCD before age 70½, say -- and calling that a parse

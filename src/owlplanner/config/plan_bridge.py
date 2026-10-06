@@ -614,7 +614,10 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         newplan = config_to_plan(diconf, verbose=verbose, logstreams=eff_logstreams, loadHFP=False)
         # Re-apply HFP from in-memory raw data (no file I/O; HFP timeLists re-conditioned for new horizon)
         if getattr(plan, "rawHFP", None):
-            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.hfpFileName)
+            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.hfpFileName, houseTables=False)
+        # Debts and fixed assets are dated by calendar year, not by horizon: copy the plan's own
+        # tables, which carry any edits made since the workbook was read (the UI edits them in place).
+        newplan.houseLists = copy.deepcopy(getattr(plan, "houseLists", {}) or {})
 
     if newname is None:
         # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning

@@ -25,8 +25,8 @@ optimum, chiefly on the unrestricted problem, which has the most freedom.
 
 Each step is capped by branch-and-bound nodes (`STEP_NODES`, so that the answer does not depend on
 machine speed or load), with a time backstop (`stepTime`); the whole search has a budget
-(`totalTime`). A capped step keeps the best plan it found. Withdrawal-ordering gates (withdrawalOrder="taxable_first") and
-claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
+(`totalTime`). A capped step keeps the best plan it found. Withdrawal-ordering gates
+(withdrawalOrder="taxable_first") and claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
 branch-and-bound.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors

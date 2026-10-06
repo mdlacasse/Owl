@@ -1876,7 +1876,7 @@ class Plan:
 
         self.mylog.vprint(f"Interpolating asset allocation ratios using '{self.interpMethod}' method.")
 
-    def readHFP(self, filename, filename_for_logging=None):
+    def readHFP(self, filename, filename_for_logging=None, houseTables=True):
         """
         Load the Household Financial Profile (HFP) from file.
 
@@ -1919,13 +1919,24 @@ class Plan:
         filename_for_logging : str, optional
             Explicit filename for logging purposes. If provided, this will be used
             in log messages instead of trying to extract it from filename.
+        houseTables : bool, optional
+            False reads the per-person sheets only and leaves the Debts and Fixed Assets
+            tables, and their raw sheets, as they are.
         """
         try:
-            returned_filename, self.timeLists, self.houseLists, self.rawHFP, self.hfpAbsentCols = hfp_io.read(
-                filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging
+            returned_filename, self.timeLists, houseLists, rawHFP, self.hfpAbsentCols = hfp_io.read(
+                filename, self.inames, self.horizons, self.mylog, filename=filename_for_logging,
+                houseTables=houseTables,
             )
         except Exception as e:
             raise Exception(f"Unsuccessful read of Household Financial Profile: {e}") from e
+        if houseTables:
+            self.houseLists = houseLists
+            self.rawHFP = rawHFP
+        else:
+            # Keep the household sheets already held; replace the per-person ones.
+            kept = {k: v for k, v in (self.rawHFP or {}).items() if k in ("Debts", "Fixed Assets")}
+            self.rawHFP = {**kept, **rawHFP}
 
         # Use filename_for_logging if provided, otherwise use returned filename
         self.hfpFileName = filename_for_logging if filename_for_logging is not None else returned_filename

@@ -1,5 +1,14 @@
 ### Version 2026.10.7
 
+#### Fixed: Spending Optimization with lifespan sampling left out debts and fixed assets
+
+With lifespan sampling on, Spending Optimization solves a copy of the case for each sampled
+lifespan. In the app, those copies were rebuilt without the case's debts and fixed assets, so
+their payments and sale proceeds were missing from every sampled plan. The copies now carry the
+household tables as they stand, including edits made in the Financial Profile. The log also no
+longer reports the Debts and Fixed Assets tables as missing each time the app syncs the Financial
+Profile.
+
 #### Fixed: phantom ACA and IRMAA inconsistencies with the capital-gains brackets solved as MILP
 
 With `withLTCG = "optimize"` and `withNIIT = "optimize"` (including local search), the split of a
