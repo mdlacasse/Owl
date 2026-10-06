@@ -17,7 +17,10 @@ Neither objective counted it, so wherever the household did not need that money,
 was equally optimal and the partial bequest was arbitrary. The objective now counts each dollar
 left to those heirs as 0.1% of a dollar of spending or final bequest. In the cases measured this
 gives up no final bequest and leaves cases with fractions of 28% unchanged; it only breaks the tie.
-The weight can be set with the solver option `partialBequestWeight`.
+The weight can be set with the solver option `partialBequestWeight`. Local search now solves its
+small restricted problems to a 0.01% gap whatever the case's gap: at the 0.3% gap applied when
+Medicare is solved exactly, they stopped before the weight counted, and one couple's plan left
+$1.08M to the first spouse's heirs instead of $2.20M, with a final bequest $3,250 lower.
 
 #### Fixed: Graphs lost its images after a visit to Reports
 

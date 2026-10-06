@@ -170,3 +170,33 @@ def test_ui_round_trip():
     diconf["solver_options"].pop("mipStrategy")
     out = ui_to_config(config_to_ui(diconf))["solver_options"]
     assert "mipStrategy" not in out and "breakpointMethod" not in out
+
+
+def test_restricted_solves_use_a_tight_gap(monkeypatch):
+    """A loose solve gap (0.3%, as applied when Medicare is MILP) must not reach the restricted
+    solves: it stopped them before the 0.1% partial-bequest weight counted, and money the household
+    did not need was spent to no purpose."""
+    from datetime import date
+
+    from owlplanner import plan as P
+
+    gaps = []
+    orig = P.Plan._run_mip
+
+    def spy(self, A, B, c_obj, options, *args, **kwargs):
+        gaps.append(float(options.get("gap", -1)))
+        return orig(self, A, B, c_obj, options, *args, **kwargs)
+
+    monkeypatch.setattr(P.Plan, "_run_mip", spy)
+    thisyear = date.today().year
+    p = owl.Plan(["Jack", "Jill"], [f"{thisyear - 66}-01-15", f"{thisyear - 63}-01-16"], [72, 72], "gap",
+                 verbose=False, logstreams=[io.StringIO()])
+    p.setSpendingProfile("flat", 60)
+    p.setAccountBalances(taxable=[1500, 1000], taxDeferred=[3000, 2000], taxFree=[50, 50], startDate="1-1")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setSocialSecurity([2000, 1500], [67, 67])
+    p.setRates("historical", 2000)
+    p.solve("maxSpending", {"breakpointMethod": "local-search", "gap": 0.003, "maxIter": 3})
+    assert p.caseStatus == "solved"
+    assert gaps, "local search made no restricted solve"
+    assert max(gaps) <= 1e-4, max(gaps)
