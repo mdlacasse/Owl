@@ -3,6 +3,7 @@
 Fork-only file, like `CLAUDE.md`; not for upstream. Keep it current at the end of each work session.
 
 Fork `fmateoc/Owl`, branch `claude/nifty-tesla-gbq1wt` (2026-10-06: merge of upstream 2026.10.7, NJ exclusion under local search, node cap, local-search tie rule), continued from `claude/project-thread-u0d9t0` (envelope model) and the branches before it (see `CLAUDE.md`), merged with upstream `dev` `5006479` (2026.10.7) and then `b4f1605` (five more fixes: partial-bequest weight 0.1% in the objective for couples with beneficiary fractions below 1, exact-NIIT cap row, local-search steps at a 0.01% gap, solve time in the Summary, lifespan-sampled copies) on 2026-10-06, then `5dd1623` on 2026-10-07 (`785217c`: our local-search tie rule adopted, an unchanged problem not searched again, IRMAA/ACA brackets $2 above their thresholds, partial-bequest weight max(1%, 2 x gap), HiGHS retries a MIP it calls infeasible, new example avery+quinn; `5dd1623`: a loop stopped early no longer returns iteration 0).
+Phase 1 closed 2026-10-07: the fork's `main` was fast-forwarded to this branch (`7551d75`).
 Plan details: `fork-notes/phase1-revised.md`. Scenario commands: `fork-notes/phase0/phase0-scenarios.md`.
 
 ## Upstream

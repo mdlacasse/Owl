@@ -10,7 +10,7 @@ Read these first, in this order:
 
 ## State (2026-10-07)
 
-- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06/07), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `5dd1623` (2026.10.8 plus one fix; `main` is behind it). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06/07), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `5dd1623` (2026.10.8 plus one fix; `main` is behind it). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. Since 2026-10-07 (Phase 1 done) the fork's own `main` carries all of this work (fast-forwarded to the branch); a new session usually gets its own branch name: start it from `origin/main`, or from a later `claude/...` branch if `main` is behind it.
 - Fork work beyond upstream:
   - typed state params (`StateTaxParams`; `st_taxParams` and `st_schedule` return it, where upstream returns a tuple and a dict; flag fields use upstream's dict keys `conv_ok_n`, `tax_ss_n`, `pension_eligible_n`, `fed_sd_n`, `senior_bonus_n`);
   - SC-loop registry `_SC_PARAMS`;
