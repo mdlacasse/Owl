@@ -141,7 +141,7 @@ When upstream lands #158, merge `dev` and drop our duplicate, as with #149, #155
 
 2 housing ledger (rent vs buy, property tax) · 3 itemized deductions · 4 healthcare cost model · 5 part-time work and SS earnings test · 6 scenario sweep and report · 7 NJ specifics (exclusion done; 65+ exemption done upstream in 2026.10.3; left: property tax deduction/credit up to $15k, which belongs with Phase 2)
 
-Next: Phase 2, housing ledger and property tax. NJ's property tax deduction (line 41) or credit (line 56) attaches there.
+Next: Phase 2, housing ledger and property tax. **Plan written 2026-10-07: `fork-notes/phase2-plan.md`** (a `Housing` HFP sheet shaped like `Debts`; costs subtracted in the cash flow; NJ line 41 property tax deduction as a bounded LP variable, no binaries). NJ rule verified this session against the 2025 and 2020 NJ-1040 instructions: deduction up to $15,000 after line 39, tenants 18% of rent, $50 credit as the alternative, amounts not indexed. Three decisions for the user at the end of the plan. No code yet.
 
 Phase 5 now has a concrete case to serve: scenario 4b. The earnings test would let `withSSAges` optimize the working spouse too; a per-scenario PIA (or recomputing it from extra work years) would remove the manual PIA step. Medicare past 65 with employer coverage (delayed Part B) only matters if the worker goes past 65.
 
