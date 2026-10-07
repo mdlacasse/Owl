@@ -24,8 +24,10 @@ worse one: the search only descends. It carries no certificate, and it can stop 
 optimum, chiefly on the unrestricted problem, which has the most freedom.
 
 Each step is capped by branch-and-bound nodes (`STEP_NODES`, so that the answer does not depend on
-machine speed or load), with a time backstop (`stepTime`); the whole search has a budget
-(`totalTime`). A capped step keeps the best plan it found. Withdrawal-ordering gates
+machine speed or load), with a time backstop (`stepTime`), and solved to a relative gap of at most
+`STEP_GAP`, whatever the case's gap; the whole search has a budget (`totalTime`). A capped step
+keeps the best plan it found. When the loop rebuilds the problem of the previous iteration, that
+iteration's plan is returned without searching again. Withdrawal-ordering gates
 (withdrawalOrder="taxable_first") and claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
 branch-and-bound.
 
@@ -46,6 +48,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import copy
+import hashlib
 import time
 
 import numpy as np
@@ -62,7 +65,8 @@ FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NII
 STEP_TIME = 60.0  # seconds per restricted solve: a backstop; the node limit below is the real cap
 # Branch-and-bound nodes per restricted solve. A node limit, unlike a time limit, gives the same
 # answer on any machine and under any load. The solvers count nodes differently; measured on the
-# shipped examples, no step that finished needed more than ~2,000 (HiGHS) or ~11,000 (MOSEK).
+# shipped examples at STEP_GAP, finished steps need up to ~3,000 (HiGHS) or ~19,500 (MOSEK). The
+# caps favour speed: lifting them changes results by 0.07% at most, for up to 3.3x the time.
 STEP_NODES = {"HiGHS": 3000, "MOSEK": 20000}
 # Relative MIP gap of each restricted solve. A loose gap suits a full branch-and-bound, where it
 # saves real time; here the problems are small and the gap costs nothing, while a loose one stops
@@ -100,6 +104,7 @@ class LocalSearch:
         self.deadline = time.time() + float(total_time)
         self.use_mosek = False  # set by Plan.solve() from the solver asked for
         self.prev = None  # the previous loop iteration's plan
+        self._last = None  # (problem fingerprint, objective, plan) of the previous loop iteration
         self.iteration = 0
         self.log = []  # one entry per loop iteration: {"steps": [...], "time": s}
 
@@ -147,6 +152,15 @@ class LocalSearch:
         finally:
             p._mip_warm_start = None
         return res, time.time() - t
+
+    def _fingerprint(self):
+        """Digest of the problem as built: equal digests mean the same restricted problems."""
+        p = self.plan
+        h = hashlib.sha1()
+        for arr in (*p.A.to_csr(), np.asarray(p.A.lb, dtype=float), np.asarray(p.A.ub, dtype=float),
+                    *p.B.arrays(), p.B.integralityArray(), p.c.arrays()):
+            h.update(np.ascontiguousarray(arr).tobytes())
+        return h.digest()
 
     def _step(self, steps, label, res, dt):
         steps.append({"step": label, "ok": bool(res[2]), "objective": res[0] if res[2] else None,
@@ -230,6 +244,15 @@ class LocalSearch:
         p._buildConstraints(objective, options)
         steps = []
         t0 = time.time()
+        # The loop's last iteration often rebuilds the previous problem: reuse that plan.
+        fp = self._fingerprint()
+        if self._last is not None and self._last[0] == fp:
+            p.mylog.vprint(f"Local search, iteration {self.iteration}: same problem as the last; reusing its plan.")
+            self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
+            self.iteration += 1
+            _, obj, x = self._last
+            p._highs_warm_start = x.copy()
+            return obj, x.copy(), True, "Local search", -1.0
         try:
             best = self._incumbent(options, steps)
         except NoIncumbent:
@@ -289,6 +312,7 @@ class LocalSearch:
 
         self.prev = best[1].copy()
         p._highs_warm_start = best[1].copy()
+        self._last = (fp, best[0], best[1].copy())
         self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
         self.iteration += 1
         # No certificate: report the gap as unknown.

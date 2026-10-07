@@ -129,6 +129,10 @@ REL_TOL = 5e-5
 # households. Calibrated over the shipped cases -- anything from $25 to $200 a year behaves the
 # same on all seventeen, so this sits in the middle of a flat region rather than on an edge.
 RESIDUAL_TOL = 50.0
+# IRMAA and ACA brackets apply above their thresholds, not at them: in the binary formulations each
+# higher bracket starts this many dollars above its threshold, so a MAGI on a threshold cannot be
+# charged the higher bracket. More than the residual's $1 of slack at a threshold.
+BRACKET_MARGIN = 2.0
 TIME_LIMIT = 900
 # The NJ exclusion's tier binaries are free only in years whose state income, in the previous
 # iterate, was at most this multiple of the top tier ceiling; elsewhere the exclusion is off.
@@ -172,10 +176,16 @@ MIP_TIEBREAK = 1e-4
 # (morgan +1.5% spending, john+sally -4% bequest). EPSILON (5e-7) is too small: the reduced costs it
 # makes sit at HiGHS's dual feasibility tolerance and the fill stays.
 TAX_TIEBREAK = MIP_TIEBREAK
-# Value of a dollar left to non-spouse heirs at the first death, in final-objective dollars.
-# Small enough to trade no final bequest in the cases measured, large enough to stop the solver
-# from spending to no purpose money that would otherwise go to those heirs.
-PARTIAL_BEQUEST_WEIGHT = 0.001
+# Value of a dollar left to non-spouse heirs at the first death, in final-objective dollars. Default
+# max(PARTIAL_BEQUEST_WEIGHT, 2 x gap): below the gap that money is invisible to the solver, which
+# can then spend it on taxes not owed.
+PARTIAL_BEQUEST_WEIGHT = 0.01
+# Retries when HiGHS reports a MIP infeasible, cheapest first. Presolve rule bit 12 is HiGHS's own
+# numbering and may change between versions; presolve off is the backstop.
+_HIGHS_INFEASIBLE_RETRIES = (
+    ("presolve_rule_off", 1 << 12, "presolve rule 12 off"),
+    ("presolve", "off", "presolve off"),
+)
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -4139,13 +4149,15 @@ class Plan:
 
             self.A.addRow(row, rhs, rhs, tag=("irmaa_magi_def", nn))
 
-        # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q.
+        # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q, the lower one raised by BRACKET_MARGIN
+        # except in the first two years, whose bracket is pinned from the known MAGI above.
         for nn in range(Nmed):
+            margin = BRACKET_MARGIN if self.nm + nn >= 2 else 0.0
             for q in range(self.N_irmaa):
                 mg_idx = self.vm["h"].idx(nn, q)
                 zm_idx = self.vm["zm"].idx(nn, q)
 
-                lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1]
+                lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1] + margin
                 if lower > 0:
                     self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf, tag=("irmaa_bracket_lb", nn, q))
 
@@ -4245,13 +4257,14 @@ class Plan:
 
             self.A.addNewRow(row_magi, rhs_magi, rhs_magi, tag=("aca_magi_def", nn))
 
-        # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r].
+        # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r], the lower one
+        # raised by BRACKET_MARGIN.
         for nn in range(self.n_aca):
             for r in range(tx.N_ACA_R):
                 haca_idx = self.vm["haca"].idx(nn, r)
                 za_idx = self.vm["za"].idx(nn, r)
 
-                lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1]
+                lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1] + BRACKET_MARGIN
                 if lower > 0:
                     self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf, tag=("aca_bracket_lb", nn, r))
 
@@ -4411,7 +4424,8 @@ class Plan:
         partial bequest is the expression Plan._aggregateResults reports (after the heirs' tax on
         tax-deferred and HSA money), in today's dollars of the year of the first death.
         """
-        w = u.get_numeric_option(options, "partialBequestWeight", PARTIAL_BEQUEST_WEIGHT, min_value=0)
+        gap = u.get_numeric_option(options, "gap", GAP, min_value=0)
+        w = u.get_numeric_option(options, "partialBequestWeight", max(PARTIAL_BEQUEST_WEIGHT, 2 * gap), min_value=0)
         if w == 0 or self.N_i != 2 or self.n_d >= self.N_n or np.all(self.phi_j >= 1):
             return
         n_d, nx, i = self.n_d, self.n_d - 1, self.i_d
@@ -5113,12 +5127,12 @@ class Plan:
             return False
         return True
 
-    def _residualTotal(self):
-        """Fixed-point residual of the solved plan, summed over families (today's $)."""
-        return sum(v["abs_sum"] for v in (getattr(self, "fixedPointResidual", None) or {}).values())
-
     def _objectiveValue(self, objective):
         return float(self.g_n[0]) if objective == "maxSpending" else float(self.bequest)
+
+    def _fixedPointResidualTotal(self):
+        """Sum over families of the plan's absolute fixed-point residual (today's $)."""
+        return sum(v["abs_sum"] for v in (getattr(self, "fixedPointResidual", None) or {}).values())
 
     def _localSearchSolve(self, objective, myoptions):
         """mipStrategy="local-search": solve the loop first, search from its plan, keep the better.
@@ -5152,7 +5166,7 @@ class Plan:
             self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions, fallback=True)
             return None
         floor = self._objectiveValue(objective)
-        floor_resid = self._residualTotal()
+        floor_resid = self._fixedPointResidualTotal()
         # The loop's plan is the floor. Keep it as solved, rather than re-solving on fallback: a
         # second solve starts from state the first one left behind and can settle elsewhere.
         skip = ("mylog",)
@@ -5170,12 +5184,10 @@ class Plan:
         self._localSearchSeeding = True  # the search itself must not recurse
         try:
             self.solve(objective, options=dict(myoptions))
-            # Fork: on a tie, keep the search's plan when it is more self-consistent. Case_cameron's loop
-            # plan carries a $29k Social Security residual, and the search finds the same objective
-            # with none.
+            # On a tie, keep the more consistent plan (smaller fixed-point residual).
             value = self._objectiveValue(objective)
-            tie_but_consistent = value >= floor * (1 - 1e-9) and self._residualTotal() < floor_resid - 1.0
-            found = self.caseStatus == "solved" and (value > floor * (1 + 1e-9) or tie_but_consistent)
+            consistent_tie = value >= floor * (1 - 1e-9) and self._fixedPointResidualTotal() < floor_resid - 1.0
+            found = self.caseStatus == "solved" and (value > floor * (1 + 1e-9) or consistent_tie)
         except NoIncumbent:
             self.mylog.print("Local search: no feasible starting plan; keeping the loop's plan.")
         finally:
@@ -5237,13 +5249,16 @@ class Plan:
         return trace
 
     def _valid_history_start(self, includeMedicare):
-        return 1 if includeMedicare else 0
+        # Iteration 0 is built from initial guesses (no premiums, LTCG bracket room with no
+        # ordinary income, ...), so it undercharges and its objective looks best.
+        return 1
 
     def _pick_best_valid_index(self, scaled_obj_history, includeMedicare):
         start = self._valid_history_start(includeMedicare)
         valid = scaled_obj_history[start:]
         if not valid:
-            return None
+            # Only iteration 0 solved: a plan still, unless it was built without Medicare premiums.
+            return 0 if scaled_obj_history and not includeMedicare else None
         return start + int(np.argmax(valid))
 
     def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history, residual=0.0):
@@ -6165,9 +6180,22 @@ class Plan:
             h.setSolution(len(c), all_idx, warm_x.astype(np.float64))
 
         h.run()
+        ms = h.getModelStatus()
+        # HiGHS's MIP presolve can call a feasible model infeasible when big-M coefficients are
+        # large. Retry before believing it.
+        if ms == highspy.HighsModelStatus.kInfeasible and integrality.any():
+            for option, value, label in _HIGHS_INFEASIBLE_RETRIES:
+                self.mylog.vprint(f"HiGHS reported the MIP infeasible; retrying with {label}.")
+                h.clearSolver()
+                h.setOptionValue(option, value)
+                if warm_x is not None:
+                    h.setSolution(len(c), np.arange(len(c), dtype=np.int32), warm_x.astype(np.float64))
+                h.run()
+                ms = h.getModelStatus()
+                if ms != highspy.HighsModelStatus.kInfeasible:
+                    break
         self._lastMipNodes = int(h.getInfoValue("mip_node_count")[1] or 0)
 
-        ms = h.getModelStatus()
         _, pstatus = h.getInfoValue("primal_solution_status")
         success = (
             ms in (highspy.HighsModelStatus.kOptimal, highspy.HighsModelStatus.kObjectiveBound)

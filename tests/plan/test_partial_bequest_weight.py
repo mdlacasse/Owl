@@ -1,5 +1,5 @@
 """
-The partial bequest is weighted in the objective (partialBequestWeight, default 0.001).
+The partial bequest is weighted in the objective (partialBequestWeight, default max(0.01, 2 x gap)).
 
 Without a weight, money the first spouse leaves to non-spouse heirs is worth nothing to the
 objective, so wherever the household does not need it the solver is indifferent to how much
@@ -64,7 +64,19 @@ def test_no_weight_without_a_partial_bequest_or_when_turned_off(fractions, opts)
 
 
 def test_default_weight():
-    assert P.PARTIAL_BEQUEST_WEIGHT == 0.001
+    assert P.PARTIAL_BEQUEST_WEIGHT == 0.01
+
+
+@pytest.mark.parametrize("gap, expected", [(1e-4, 0.01), (3e-3, 0.01), (3e-2, 0.06)])
+def test_default_weight_is_at_least_twice_the_gap(gap, expected):
+    """A weight below the gap leaves the partial bequest invisible to the solver."""
+    def coef(opts):
+        p = _couple([0, 0, 1, 1])
+        p.solve("maxSpending", {"bequest": 0, "maxIter": 1, **opts})
+        c_ind, c_val = p.c.lists()
+        return dict(zip(c_ind, c_val))[p.vm["b"].idx(p.i_d, 0, p.n_d - 1)]
+
+    assert coef({"gap": gap}) == pytest.approx(coef({"gap": gap, "partialBequestWeight": expected}))
 
 
 @pytest.mark.toml

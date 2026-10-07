@@ -52,6 +52,12 @@ def _loadHFPExample(file):
             owb.readHFP(mybytesio, file=hfp_name)
 
 
+def _deleteCase():
+    kz.deleteCurrentCase()
+    # Close the popover so a second click cannot delete the next case.
+    st.session_state["delete_case_popover"] = False
+
+
 def _render_case_loader():
     st.markdown(
         "##### Select a tab below to load one of the available case examples,"
@@ -356,11 +362,9 @@ Then, click on the `Create case` button once all parameters on this page are set
 
     with col3:
         helpmsg = "`Delete case` removes all parameters associated with the case."
-        with st.popover("Delete case :material/delete:", help=helpmsg):
+        with st.popover("Delete case :material/delete:", help=helpmsg, key="delete_case_popover", on_change="rerun"):
             st.warning("This cannot be undone.", icon=":material/warning:")
-            if st.button("Confirm delete", type="primary"):
-                kz.deleteCurrentCase()
-                st.rerun()
+            st.button("Confirm delete", type="primary", on_click=_deleteCase)
 
 # Show progress bar at bottom (only when a case is selected)
 if ret is not None:

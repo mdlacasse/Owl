@@ -61,14 +61,6 @@ two brackets. Wage-only local taxes do not belong there. The NYC rates and thres
 rate were checked against the 2025 IT-201-I (2026 not yet published; the Yonkers rate is unchanged in
 the 2026 withholding tables).
 
-#### Changed: local search keeps the more consistent plan on a tie
-
-`breakpointMethod = "local-search"` keeps the self-consistent loop's plan unless the search beats
-its objective. On a tie it now keeps the search's plan when that plan's fixed-point residual is
-lower. *cameron*'s loop ends on a 2-cycle whose plan charges \$29,429 more taxable Social Security
-than its income implies; the search reaches the same 18,996 a year with no residual, and that plan
-is now the one returned (branch-and-bound returns the same). Proposed upstream in our reply on #171.
-
 #### Fixed: local search with the New Jersey exclusion
 
 Upstream's `breakpointMethod = "local-search"` (2026.10.6) pins and searches its own binary families
@@ -107,6 +99,83 @@ takes the new state's credits from its year.
 Upstream's nine-element tuple (`st_taxParams`) and dict (`st_schedule`) are replaced by a frozen
 dataclass with named fields, which also carries the fork's recapture and exclusion arrays. Its flag
 fields carry upstream's dict keys (`conv_ok_n`, `tax_ss_n`, ...).
+### Version 2026.10.8
+
+#### Documentation: what to add back for a start date after January 1
+
+With a start date after January 1, the first year counts again the spending already done. The
+documentation now says how to offset it: add to the balances the spending and taxes paid since
+January 1 minus the wages, benefits and pensions received since then. Wages and benefits stay at
+their full-year amounts, so the income received so far is counted again as well, and adding the
+gross spending would overstate the balance by that income. Thanks to Florin Mateoc for the
+suggestion (#167).
+
+#### Fixed: *Delete case* closes its confirmation after deleting
+
+On the *Create Case* page, the *Delete case* popover stayed open after *Confirm delete*, so a
+second click deleted the next case as well. The popover now closes once the case is deleted.
+
+#### Fixed: the UI dropped `partialBequestWeight` from a case file
+
+A case that set the solver option `partialBequestWeight` lost it when loaded in the UI: the
+UI solved it with the default weight and saved it back without the setting. The option now
+passes through like the other solver options.
+
+#### Fixed: a loop that stopped early could return its first, undercharged iterate
+
+When the loop reached its iteration limit or stalled, it returned the best iterate so far,
+including the first one unless Medicare was in loop mode. The first iterate is built from
+initial guesses: among others, ordinary income of zero, so every capital gain fits in the 0%
+bracket. Its objective therefore looks best and was chosen. With Medicare exact, one example
+returned a plan charging no capital-gains tax on $20,000 to $28,000 of gains a year, its spending
+0.8% too high. The first iterate is now chosen only when nothing else solved.
+
+#### Fixed: exact IRMAA and ACA could charge a bracket the MAGI does not reach
+
+With `withMedicare` or `withACA` set to `"optimize"`, including local search, a MAGI sitting
+exactly on a threshold could be charged the higher bracket: the formulation admitted the
+threshold in both. Where the money was worth almost nothing to the objective the solver had no
+reason to choose the cheaper one, and one example was charged $622 of IRMAA its MAGI did not owe,
+another $21,812. Each higher bracket now starts $2 above its threshold.
+
+#### New: `Case_avery+quinn`, a partial bequest that floats
+
+A married couple whose first spouse leaves every account to the children rather than to the
+survivor, with the final bequest maximized. The money left at the first death counts toward the
+objective only through `partialBequestWeight`, so plans with nearly the same final bequest can
+leave very different amounts to the children. At the default weight, below the case's 0.3% gap,
+the optimizer could spend that money on taxes the household does not owe. The case sets the
+weight to 0.5%, just above its gap, which makes it a test of that edge. It also covers an RMD starting in the first
+plan year, QCDs that stop mid-plan, an annuity bought before the plan, and Social Security
+taxability through the survivor's years.
+
+#### Changed: the partial-bequest weight defaults to max(1%, twice the gap)
+
+The weight introduced in 2026.10.7, 0.1% of a dollar, was smaller than the 0.3% gap Owl applies
+when Medicare is solved exactly. A plan within the gap counts as optimal, so the money left to
+non-spouse heirs at the first death was invisible to the solver, which could spend it on taxes
+the household did not owe: $586,494 in one example with Medicare exact, $68,038 with local
+search. The default is now twice the gap, and at least 1%. In that example it removes the
+overpayment; the two examples with fractions of 28% give up no final bequest.
+
+#### Fixed: local search could return the loop's inconsistent plan on a tie
+
+Local search keeps the self-consistent loop's plan unless it finds a better one. When the loop
+ended on a cycle, the search could find a plan worth exactly as much whose income implies the
+costs it is charged, and the loop's plan was still returned. In one example, it charged $29,703
+more taxable Social Security than its income implied, for the same spending. On a tie, the plan
+with the smaller fixed-point residual is now kept. Reported by Florin Mateoc (#171).
+
+#### Changed: local search does not repeat its last iteration
+
+The loop stops when two iterations agree, so its last iteration usually rebuilds the problem it
+has just solved, and the search repeated itself step for step: 26 of 99 seconds on one example.
+When the problem is unchanged, the previous iteration's plan is now returned directly. Results
+are unchanged. Reported by Florin Mateoc (#171).
+
+Branch-and-bound still uses the case's gap, 0.3% by default when Medicare is solved exactly, so
+there the 0.1% weight on the partial bequest introduced in 2026.10.7 may not count.
+
 ### Version 2026.10.7
 
 #### Fixed: exact NIIT could charge far more than the law allows, emptying the partial bequest

@@ -55,7 +55,9 @@ else:
             "growth only, and the first year is a full calendar year, so flows already made this year "
             "are counted again. Use January 1 balances when you have them; otherwise enter only the "
             "contributions, QCDs and big-ticket items still to come this year in the Wages and "
-            "Contributions table, keeping wages at their full-year amount. See Documentation."
+            "Contributions table, keeping wages at their full-year amount. To offset the spending "
+            "already done, add to the taxable balance the spending and taxes paid since January 1 "
+            "minus the wages, benefits and pensions received since then. See Documentation."
         )
         ret = st.date_input(
             "Account balance date",

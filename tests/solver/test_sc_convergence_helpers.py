@@ -51,6 +51,16 @@ def test_pick_best_valid_index_respects_medicare_gate():
     assert p._pick_best_valid_index([100.0], includeMedicare=True) is None
 
 
+def test_pick_best_valid_index_skips_iteration_zero():
+    """Iteration 0 undercharges (no LTCG room taken, no premiums), so its objective looks best;
+    it is never chosen while another iterate exists."""
+    p = _make_plan()
+    vals = [110.0, 99.0, 105.0, 103.0]
+    assert p._pick_best_valid_index(vals, includeMedicare=False) == 2
+    assert p._pick_best_valid_index(vals, includeMedicare=True) == 2
+    assert p._pick_best_valid_index([100.0], includeMedicare=False) == 0
+
+
 def test_obj_convergence_detects_monotonic_and_oscillatory():
     p = _make_plan()
 
@@ -93,9 +103,10 @@ def test_cycle_and_stagnation_checks(monkeypatch):
     assert cycle["cycleLength"] == 3
     assert cycle["cycleOffset"] == 1
 
-    values = [10.0, 9.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
-    gaps = [0.1, np.inf, np.inf, np.inf, 0.1, 0.1, 0.1, 0.1, 0.1]
-    stagnation = p._check_stagnation(it=8, scaled_obj_history=values, gap_history=gaps, includeMedicare=False)
+    # Iteration 0 never counts (it undercharges), so the best before the window is iteration 1.
+    values = [12.0, 10.0, 9.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
+    gaps = [0.1, 0.1, np.inf, np.inf, np.inf, 0.1, 0.1, 0.1, 0.1, 0.1]
+    stagnation = p._check_stagnation(it=9, scaled_obj_history=values, gap_history=gaps, includeMedicare=False)
     assert stagnation["reason"] == "stagnation"
 
 
