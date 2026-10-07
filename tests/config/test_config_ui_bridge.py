@@ -593,6 +593,19 @@ def test_ui_translated_solver_options_are_accepted_by_solve():
     assert not unknown, f"UI emits options solve() does not accept: {sorted(unknown)}"
 
 
+def test_partial_bequest_weight_survives_ui_roundtrip():
+    """A case-file partialBequestWeight must reach the UI and come back: dropped, a case loaded
+    and solved in the UI silently used the default weight instead of the case's own."""
+    import pathlib
+
+    case = pathlib.Path(__file__).resolve().parents[2] / "examples" / "Case_avery+quinn.toml"
+    diconf, _, _ = load_toml(str(case))
+    assert diconf["solver_options"]["partialBequestWeight"] == 0.005
+    uidic = config_to_ui(diconf)
+    assert uidic["partialBequestWeight"] == 0.005
+    assert ui_to_config(uidic)["solver_options"]["partialBequestWeight"] == 0.005
+
+
 @pytest.mark.parametrize("method", CONSTRAIN_MEAN_METHODS)
 def test_rate_bool_optional_params_survive_ui_roundtrip(method):
     """All bool optional_parameters survive config → ui → config for each constrain-mean method.

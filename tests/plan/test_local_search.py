@@ -200,3 +200,33 @@ def test_restricted_solves_use_a_tight_gap(monkeypatch):
     assert p.caseStatus == "solved"
     assert gaps, "local search made no restricted solve"
     assert max(gaps) <= 1e-4, max(gaps)
+
+
+def _residual(p):
+    return sum(v["abs_sum"] for v in p.fixedPointResidual.values())
+
+
+@pytest.mark.toml
+def test_tie_keeps_the_consistent_plan():
+    """cameron's loop ends on a 2-cycle whose plan charges ~$30k of taxable Social Security its
+    income does not imply. The search ties its objective with a consistent plan; the tie must not
+    hand back the inconsistent one."""
+    loop = _load("Case_cameron.toml")
+    loop.solve(loop.objective, options=_loop_options(loop))
+    ls = _load("Case_cameron.toml")
+    ls.solve(ls.objective, options={**ls.solverOptions, "breakpointMethod": "local-search"})
+    assert _residual(loop) > 1000.0, _residual(loop)
+    assert _value(ls) >= _value(loop) - 1.0
+    assert _residual(ls) < 10.0, _residual(ls)
+    assert "->" not in ls.breakpointMethodUsed, ls.breakpointMethodUsed
+
+
+@pytest.mark.toml
+def test_repeated_problem_is_not_searched_again():
+    """The loop stops when two iterations agree, so its last one rebuilds the problem it just
+    solved: the search returns that iteration's plan without running a single restricted solve."""
+    p = _load("Case_cameron.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    log = p.localSearchLog
+    assert len(log) >= 2 and log[0]["steps"], log
+    assert log[-1]["steps"] == [], log[-1]

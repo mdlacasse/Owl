@@ -880,6 +880,13 @@ To keep this small:
   so far is what offsets the spending already paid.
 - Spending is the one flow that cannot be split this way: it is an annual target, so the part of
   it already spent this year, net of that income, is counted again.
+- To offset that, add it back to your balances, most naturally to the taxable account: the
+  spending and taxes paid since January 1, minus the wages, Social Security and pensions received
+  since January 1. Because those incomes stay at their full-year amounts, the year-to-date income
+  is counted again too, so the amount to add is the net, not the spending alone. For a retiree
+  drawing down savings it is positive; for someone still working and saving it is usually
+  negative, and adding the gross spending would overstate the balance by the income received so
+  far.
 
 Graphs and worksheets show the whole first year, as for every other year. The *Summary* shows the
 `Net spending remaining in year`: the first year's net spending times the fraction of the year

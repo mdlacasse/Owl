@@ -78,6 +78,7 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "noLateSurplus",
     "noRothConversions",
     "oppCostX",
+    "partialBequestWeight",
     "relTol",
     "solver",
     "spendingSlack",
