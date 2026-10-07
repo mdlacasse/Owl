@@ -80,8 +80,10 @@ def freeze_year():
     covers both owlplanner source modules and test modules without needing a
     hardcoded list of names.
     """
+    # Iterate over a copy: since Streamlit 1.65, getattr(streamlit, "date") imports
+    # streamlit.command_suggestions, which adds to sys.modules during the loop.
     target_modules = [
-        mod for mod in sys.modules.values() if mod is not None and getattr(mod, "date", None) is _REAL_DATE
+        mod for mod in list(sys.modules.values()) if mod is not None and getattr(mod, "date", None) is _REAL_DATE
     ]
     patches = [patch.object(mod, "date", _FixedDate) for mod in target_modules]
     for p in patches:
