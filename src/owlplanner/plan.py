@@ -5039,13 +5039,16 @@ class Plan:
         }
 
     def _valid_history_start(self, includeMedicare):
-        return 1 if includeMedicare else 0
+        # Iteration 0 is built from initial guesses (no premiums, LTCG bracket room with no
+        # ordinary income, ...), so it undercharges and its objective looks best.
+        return 1
 
     def _pick_best_valid_index(self, scaled_obj_history, includeMedicare):
         start = self._valid_history_start(includeMedicare)
         valid = scaled_obj_history[start:]
         if not valid:
-            return None
+            # Only iteration 0 solved: a plan still, unless it was built without Medicare premiums.
+            return 0 if scaled_obj_history and not includeMedicare else None
         return start + int(np.argmax(valid))
 
     def _check_obj_convergence(self, it, abs_obj_diff, tol, includeMedicare, scaled_obj_history, residual=0.0):

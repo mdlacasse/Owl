@@ -20,6 +20,15 @@ A case that set the solver option `partialBequestWeight` lost it when loaded in 
 UI solved it with the default weight and saved it back without the setting. The option now
 passes through like the other solver options.
 
+#### Fixed: a loop that stopped early could return its first, undercharged iterate
+
+When the loop reached its iteration limit or stalled, it returned the best iterate so far,
+including the first one unless Medicare was in loop mode. The first iterate is built from
+initial guesses: among others, ordinary income of zero, so every capital gain fits in the 0%
+bracket. Its objective therefore looks best and was chosen. With Medicare exact, one example
+returned a plan charging no capital-gains tax on $20,000 to $28,000 of gains a year, its spending
+0.8% too high. The first iterate is now chosen only when nothing else solved.
+
 #### Fixed: exact IRMAA and ACA could charge a bracket the MAGI does not reach
 
 With `withMedicare` or `withACA` set to `"optimize"`, including local search, a MAGI sitting
