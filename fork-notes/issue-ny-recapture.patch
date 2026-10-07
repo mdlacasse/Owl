@@ -39,10 +39,10 @@ index 325faa0..38d8992 100644
  [ND_Single]
  # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted
 diff --git a/src/owlplanner/plan.py b/src/owlplanner/plan.py
-index 8be18f7..b30a865 100644
+index b2f0bd8..f99407f 100644
 --- a/src/owlplanner/plan.py
 +++ b/src/owlplanner/plan.py
-@@ -433,6 +433,9 @@ class Plan:
+@@ -443,6 +443,9 @@ class Plan:
          self.state = ""  # Two-letter US state for state income tax ("" = none)
          self.state_moves = []  # At most one (year, state): the state of residence from that year on
          self.st_T_n = np.zeros(self.N_n)  # State income tax per year (N_n,)
@@ -52,7 +52,7 @@ index 8be18f7..b30a865 100644
          self.st_credit_n = np.zeros(self.N_n)  # State personal credit available per year (N_n,)
          self._st_lp = False  # True when state income tax LP is active
          self.N_st = 0  # Number of state tax brackets (0 when no state set)
-@@ -3242,6 +3245,7 @@ class Plan:
+@@ -3252,6 +3255,7 @@ class Plan:
              rhs = -self.M_n[n] - self.ACA_n[n]
              if not getattr(self, "_niit_lp", False):
                  rhs -= self.J_n[n]
@@ -60,7 +60,7 @@ index 8be18f7..b30a865 100644
              # Add fixed assets proceeds (positive cash flow)
              rhs += (
                  self.fixed_assets_tax_free_n[n]
-@@ -4787,6 +4791,10 @@ class Plan:
+@@ -4801,6 +4805,10 @@ class Plan:
              self.st_fed_sd_n = sched["fed_sd_n"]
              self.st_senior_bonus_n = sched["senior_bonus_n"]
              self.st_pension_eligible_n = sched["pension_eligible_n"]
@@ -71,7 +71,7 @@ index 8be18f7..b30a865 100644
  
          # _adjustParameters reads the Part D options from solverOptions: give it this solve's
          # options, not the previous solve's (or those loaded with the case).
-@@ -5014,6 +5022,7 @@ class Plan:
+@@ -5036,6 +5044,7 @@ class Plan:
              "ACA_n_lp": [],  # ACA_n parameter used by each iteration's LP
              "J_n_lp": [],  # J_n parameter used by each iteration's LP
              "Psi_n_lp": [],  # Psi_n parameter used by each iteration's LP
@@ -79,7 +79,7 @@ index 8be18f7..b30a865 100644
          }
  
      def _valid_history_start(self, includeMedicare):
-@@ -5271,6 +5280,7 @@ class Plan:
+@@ -5296,6 +5305,7 @@ class Plan:
          M_n_lp = self.M_n.copy()
          ACA_n_lp = self.ACA_n.copy()
          Psi_n_lp = self.Psi_n.copy()
@@ -87,7 +87,7 @@ index 8be18f7..b30a865 100644
          while True:
              # Snapshot the NL parameters actually embedded in this iteration's LP constraints.
              # _buildConstraints runs inside the solver call below, so these are the values it
-@@ -5280,6 +5290,7 @@ class Plan:
+@@ -5305,6 +5315,7 @@ class Plan:
              ACA_n_lp = self.ACA_n.copy()
              J_n_lp = self.J_n.copy()
              Psi_n_lp = self.Psi_n.copy()
@@ -95,7 +95,7 @@ index 8be18f7..b30a865 100644
              objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
              # self.A/B/c now describe the LP that produced this xx. Accepting an earlier
              # iterate below breaks that correspondence, which post-processing relies on.
-@@ -5297,14 +5308,16 @@ class Plan:
+@@ -5322,14 +5333,16 @@ class Plan:
                  # outcome is chaotic in the weight (0.4 and 0.7 break a case that 0.3, 0.5, 0.6
                  # and 0.8 all solve), because a weight only changes which cases land in the hole.
                  # Retrying only on failure costs nothing on the cases that never fail.
@@ -115,7 +115,7 @@ index 8be18f7..b30a865 100644
                      objfn, xx, solverSuccess, solverMsg, solgap = solverMethod(objective, options)
                      if solverSuccess and objfn is not None:
                          self.solverGap = solgap
-@@ -5315,7 +5328,7 @@ class Plan:
+@@ -5340,7 +5353,7 @@ class Plan:
                          )
                          break
                  else:
@@ -124,7 +124,7 @@ index 8be18f7..b30a865 100644
  
              if not solverSuccess or objfn is None:
                  # A parameter update can hand the solver a problem it cannot take - most often
-@@ -5344,6 +5357,7 @@ class Plan:
+@@ -5369,6 +5382,7 @@ class Plan:
                  ACA_n_lp = trace["ACA_n_lp"][best_idx]
                  J_n_lp = trace["J_n_lp"][best_idx]
                  Psi_n_lp = trace["Psi_n_lp"][best_idx]
@@ -132,7 +132,7 @@ index 8be18f7..b30a865 100644
                  self.solverGap = trace["gaps"][best_idx]
                  matricesMatchSolution = False
                  self.convergenceType = "unsolvable iterate"
-@@ -5374,6 +5388,7 @@ class Plan:
+@@ -5399,6 +5413,7 @@ class Plan:
              trace["ACA_n_lp"].append(ACA_n_lp)
              trace["J_n_lp"].append(J_n_lp)
              trace["Psi_n_lp"].append(Psi_n_lp)
@@ -140,7 +140,7 @@ index 8be18f7..b30a865 100644
  
              # How far this iterate's own income moves the quantities its LP was built with. The
              # parameters were snapshotted before the solve; _computeNLstuff has just recomputed them.
-@@ -5387,7 +5402,8 @@ class Plan:
+@@ -5412,7 +5427,8 @@ class Plan:
                  else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
              )
              moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today),
@@ -150,7 +150,7 @@ index 8be18f7..b30a865 100644
              if includeMedicare:
                  moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
              if self.slcsp_annual > 0:
-@@ -5450,6 +5466,7 @@ class Plan:
+@@ -5475,6 +5491,7 @@ class Plan:
                      ACA_n_lp = trace["ACA_n_lp"][best_idx]
                      J_n_lp = trace["J_n_lp"][best_idx]
                      Psi_n_lp = trace["Psi_n_lp"][best_idx]
@@ -158,7 +158,7 @@ index 8be18f7..b30a865 100644
                      self.solverGap = trace["gaps"][best_idx]
                      matricesMatchSolution = False
                      self.mylog.print("Accepting best solution from cycle and terminating.")
-@@ -5463,6 +5480,7 @@ class Plan:
+@@ -5488,6 +5505,7 @@ class Plan:
                          ACA_n_lp = trace["ACA_n_lp"][best_idx]
                          J_n_lp = trace["J_n_lp"][best_idx]
                          Psi_n_lp = trace["Psi_n_lp"][best_idx]
@@ -166,7 +166,7 @@ index 8be18f7..b30a865 100644
                          self.solverGap = trace["gaps"][best_idx]
                          matricesMatchSolution = False
                  else:
-@@ -5483,6 +5501,7 @@ class Plan:
+@@ -5508,6 +5526,7 @@ class Plan:
                          ACA_n_lp = self.ACA_n.copy()
                          J_n_lp = self.J_n.copy()
                          Psi_n_lp = self.Psi_n.copy()
@@ -174,7 +174,7 @@ index 8be18f7..b30a865 100644
                          _, xx_fix, fix_ok, _, _ = solverMethod(objective, options)
                          if not fix_ok or xx_fix is None:
                              break
-@@ -5511,6 +5530,7 @@ class Plan:
+@@ -5536,6 +5555,7 @@ class Plan:
              # the tss variable during aggregation and is consistent already, so leave it.
              if "tss" not in self.vm:
                  self.Psi_n = Psi_n_lp
@@ -182,7 +182,7 @@ index 8be18f7..b30a865 100644
              self._aggregateResults(xx)
              # Restore the NL parameters to what was actually embedded in the final LP
              # constraints. _computeNLstuff runs after every LP solve (for convergence
-@@ -5542,6 +5562,31 @@ class Plan:
+@@ -5567,6 +5587,31 @@ class Plan:
  
          return None
  
@@ -214,7 +214,7 @@ index 8be18f7..b30a865 100644
      def _ltcg_tax_implied(self):
          """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly."""
          Nn = self.N_n
-@@ -5580,6 +5625,8 @@ class Plan:
+@@ -5605,6 +5650,8 @@ class Plan:
          res["deduction"] = (self.sigmaBar_n - sigma_true) / g
  
          res["LTCG"] = (self.U_n - self._ltcg_tax_implied()) / g
@@ -223,7 +223,7 @@ index 8be18f7..b30a865 100644
          return res
  
      def _computeFixedPointResidual(self, includeMedicare):
-@@ -6269,6 +6316,7 @@ class Plan:
+@@ -6307,6 +6354,7 @@ class Plan:
              self.MAGI_n = np.zeros(self.N_n)
              self.G_n = np.zeros(self.N_n)
              self.J_n = np.zeros(self.N_n)
@@ -231,7 +231,7 @@ index 8be18f7..b30a865 100644
              self.M_n = np.zeros(self.N_n)
              self.ACA_n = np.zeros(self.N_n)
              # Seed I_n for first NIIT LP iteration: portfolio part is zero before first solve.
-@@ -6277,6 +6325,7 @@ class Plan:
+@@ -6315,6 +6363,7 @@ class Plan:
              return
  
          self._aggregateResults(x, short=True)
@@ -239,7 +239,7 @@ index 8be18f7..b30a865 100644
          # Psi_n is derived directly from the tss_n LP variable in _aggregateResults
          # when withSSTaxability=="optimize"; skip the SC-loop update in that case.
          # Also skip when fixedPsi is set (numeric withSSTaxability).
-@@ -6476,8 +6525,12 @@ class Plan:
+@@ -6514,8 +6563,12 @@ class Plan:
              self.st_T_n = np.sum(self.st_T_tn, axis=0)
              if "st_c" in vm:
                  self.st_T_n = self.st_T_n - vm["st_c"].extract(x)  # net of the personal credit

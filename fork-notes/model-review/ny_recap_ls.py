@@ -11,4 +11,4 @@ p.setStateTax("NY")
 p.solve("maxSpending", options={"bequest": 0, "breakpointMethod": "local-search"})
 g = p.gamma_n[:p.N_n]
 r = p.fixedPointResidual.get("state recapture", {}).get("abs_sum")
-print(f"{sys.argv[1]:5} LS basis {p.basis:,.0f} used {p.breakpointMethodUsed} recapture {np.sum(p.st_recap_n/g):,.0f} residual {r}")
+print(f"{sys.argv[1]:5} LS basis {p.basis:,.0f} used {p.breakpointMethodUsed} recapture {np.sum(getattr(p, 'st_recap_n', np.zeros(p.N_n))/g):,.0f} residual {r}")

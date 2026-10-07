@@ -1,4 +1,4 @@
-# Draft follow-up comment on mdlacasse/Owl#158 (NY benefit recapture), not posted
+# Follow-up comment on mdlacasse/Owl#158 (NY benefit recapture), posted by the user
 
 Status: drafted 2026-10-06 for the user. When we filed #158 we said our implementation "sits on our SC-loop refactor and on a per-year state layer that upstream does not have, so it will not apply as is". Since then upstream has the per-year layer (#159, `st_schedule`, 2026.10.6). This comment offers a patch made on stock `dev` that needs neither of our layers. Patch: `fork-notes/issue-ny-recapture.patch`.
 
@@ -7,6 +7,16 @@ How it was checked (2026-10-06, stock `dev` `b4f1605`):
 - Full upstream suite with the patch: 2720 passed, 1 skipped. flake8 (120 columns): only `localsearch.py:29`, which the patch does not touch.
 - Comparison script: `fork-notes/model-review/ny_recap_cmp.py` (run with `PYTHONPATH` set to each checkout).
 - Rechecked after the fork merged `b4f1605` (2026-10-06): the patch still applies to upstream's tip (`b4f1605`, unchanged), and the fork and the patched stock `dev` give identical plans in all four runs, and under local search ($2.5M: basis 154,484, lifetime recapture $10,552 in both; `fork-notes/model-review/ny_recap_ls.py`). Without the patch the local-search row was not run.
+- Rechecked 2026-10-07 on upstream `5dd1623` (after the comment was posted): the patch applied with line offsets only; `issue-ny-recapture.patch` was regenerated on `5dd1623` and applies without offsets. Upstream suite with it: 2732 passed, 1 skipped. Fork and patched stock still identical; all versions moved by $3-14/yr from upstream's own changes (not isolated):
+
+  | Tax-deferred | Options | Stock | Patched | Fork | Lifetime recapture |
+  |---|---|---:|---:|---:|---:|
+  | $1.5M | Medicare off, SS 0.85 | 125,056 | 125,053 | 125,053 | 81 |
+  | $1.5M | defaults | 122,600 | 122,597 | 122,597 | 81 |
+  | $2.5M | Medicare off, SS 0.85 | 158,208 | 157,931 | 157,931 | 6,372 |
+  | $2.5M | defaults | 154,198 | 153,938 | 153,938 | 5,955 |
+  | $2.5M | defaults + local search | 154,929 | 154,471 | 154,471 | 10,552 |
+
 - The 23 recapture tests (worksheet constants, worksheet 1 by hand, notch, continuity, monotonicity, data, plan-level worksheet tax, loop residual, cash flow, a move to NJ, replayed rows) pass.
 - The plans are identical to the fork's implementation, to the dollar, on the NY couple below (exact LP and default options, $1.5M and $2.5M).
 

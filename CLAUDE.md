@@ -8,9 +8,9 @@ Read these first, in this order:
 2. `fork-notes/phase0/phase0-scenarios.md` — how the household's scenarios are run (`owlcli run` / `owlcli compare`).
 3. `PROGRESS.md` (repo root, fork-only like this file): the running log of what is done, filed and next. Update it at the end of every work session and commit it with the work.
 
-## State (2026-10-06)
+## State (2026-10-07)
 
-- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `b4f1605` (2026.10.7 plus five fixes; `main` is behind it). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
+- Branch `claude/nifty-tesla-gbq1wt` (2026-10-06/07), continued from `claude/project-thread-u0d9t0` (envelope model), from `claude/project-thread-qx5fy0` and earlier (`-v39073`, `optimistic-darwin-n5xykl`, `relaxed-turing-xzrv89`, `inspiring-rubin-f0a0p9`), merged with upstream `dev` at `5dd1623` (2026.10.8 plus one fix; `main` is behind it). Upstream sometimes lands a fix on `main` before `dev`: check both when syncing. A new session usually gets its own branch name: start it from the latest of these.
 - Fork work beyond upstream:
   - typed state params (`StateTaxParams`; `st_taxParams` and `st_schedule` return it, where upstream returns a tuple and a dict; flag fields use upstream's dict keys `conv_ok_n`, `tax_ss_n`, `pension_eligible_n`, `fed_sd_n`, `senior_bonus_n`);
   - SC-loop registry `_SC_PARAMS`;
@@ -18,9 +18,8 @@ Read these first, in this order:
   - local tax (`basic_info.locality`, `tax_local.py`, `data/taxes_local.toml`: NYC, Yonkers);
   - NY benefit recapture, loop mode (`tax_state.state_recapture`);
   - NJ retirement-income exclusion (lines 28a-28c) as a MILP: tier binaries `zx` with disaggregated income copies `rxl`/`rxb` (`Plan._add_state_tiered_exclusion`), free only near the ceilings, capped at `RX_NODE_LIMIT` (20,000 HiGHS nodes; MOSEK 60 s) without `maxTime`; a local-search family (`localsearch.FAMILIES`); data `retirement_exclusion_*` in `taxes_state.toml`;
-  - local search: a tie with the loop keeps the plan with the lower residual (cameron), proposed upstream in the #171 reply;
   - summary and Taxes-sheet breakdown; MCP explain adapted.
-- Upstream (maintainer responses as of 2026-10-06): fixed upstream and merged, taking theirs: #161, #164, #165 (also Medicaid at no premium up to 138% FPL), #166, #168, #169; #159 implemented as one move, no local tax (fork keeps its extension). #167 (partial first year) documented upstream (`22ec12f`), left open for a short first period; our reply posted (`fork-notes/issue-partial-first-year-reply.md`). #163 (cycle selection) on hold. #170 (envelope model) and #171 (pinned loop), one conversation, declined in favor of `breakpointMethod = "local-search"` (2026.10.6); our findings `fork-notes/local-search/README.md`, reply posted (`fork-notes/issue-local-search-reply.md`). Still open from before: #158 (NY recapture; a stock-`dev` patch now exists, `fork-notes/issue-ny-recapture.patch`, with a follow-up comment draft `issue-ny-recapture-update.md`, not posted), #160 (NJ exclusion; upstream keeps state taxes a pure LP). Earlier fixes upstream: #147, #149, #155, #157, #162. Drafts are in `fork-notes/issue-*.md`.
+- Upstream (maintainer responses as of 2026-10-07): fixed upstream and merged, taking theirs: #161, #164, #165 (also Medicaid at no premium up to 138% FPL), #166, #168, #169; #159 implemented as one move, no local tax (fork keeps its extension). #167 (partial first year) documented upstream (`22ec12f`), left open for a short first period; our reply posted (`fork-notes/issue-partial-first-year-reply.md`). #163 (cycle selection) on hold. #170 (envelope model) and #171 (pinned loop), one conversation, declined in favor of `breakpointMethod = "local-search"` (2026.10.6); our findings `fork-notes/local-search/README.md`, reply posted (`fork-notes/issue-local-search-reply.md`); all three points adopted in `785217c` (tie keeps the consistent plan, which was the fork's rule and is now theirs; an unchanged problem is not searched again; morgan's measure acknowledged). Still open from before: #158 (NY recapture; stock-`dev` patch `fork-notes/issue-ny-recapture.patch`, refreshed on `5dd1623`; follow-up comment posted 2026-10-06, `issue-ny-recapture-update.md`; no reply on #158 yet), #160 (NJ exclusion; upstream keeps state taxes a pure LP). Earlier fixes upstream: #147, #149, #155, #157, #162. Drafts are in `fork-notes/issue-*.md`.
 - Dropped by decision: recapture optimize mode (conversion-cap grid showed zero regret; lifetime recapture $81–6.4k); the envelope model as an upstream feature (#171 declined; it stays a fork-notes screen).
 - Not filed: docs/paper drift (`fork-notes/issue-docs-loop-and-paper.md`); upstream rewrote parts of `papers/owl.tex` in 2026.10.6-7, so recheck it before filing.
 - **Next:** Phase 2, housing ledger and property tax (NJ property tax deduction up to $15,000 / credit attaches there). NJ-1040 instructions: `https://www.nj.gov/treasury/taxation/pdf/current/1040i.pdf`, past years under `pdf/other_forms/tgi-ee/<year>/1040i.pdf` (`www.state.nj.us` is blocked by the proxy).
@@ -33,8 +32,8 @@ git remote add upstream https://github.com/mdlacasse/Owl.git; git fetch upstream
 uv pip install --python .venv/bin/python pypdf   # only for reading tax PDFs
 ```
 
-- Tests: `.venv/bin/python -m pytest -n 4 -q -p no:cacheprovider`. About 6 min on 4 cores. 2807 passed / 1 skipped on 2026-10-06 after merging `b4f1605`.
-- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`. Upstream's own long line in `localsearch.py` (line 29, 135 characters on `b4f1605`) is theirs; leave it.
+- Tests: `.venv/bin/python -m pytest -n 4 -q -p no:cacheprovider`. About 6 min on 4 cores. 2818 passed / 1 skipped on 2026-10-07 after merging `5dd1623`.
+- Lint: `.venv/bin/python -m flake8 src tests ui --max-line-length=120`. Upstream's own long lines (`localsearch.py:31`, `config/schema.py:388` on `5dd1623`) are theirs; leave them.
 - To keep editing while the suite runs, run it in a `git worktree` with `.venv` symlinked in.
 
 ## Conventions
