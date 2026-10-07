@@ -169,7 +169,7 @@ plan with those amounts entered as negative big-ticket items.
 - NY STAR and senior exemptions: enter the property tax net of them.
 - Reverse mortgages, spending home equity, choosing rent vs buy or the sale year inside the LP.
 
-## Decisions for the user
+## Decisions (agreed by the user 2026-10-07: all three as recommended)
 
 1. A new `Housing` sheet (recommended) rather than more big-ticket cells or a property-tax column on
    `Fixed Assets` (which would change an upstream sheet and leave rent nowhere).
