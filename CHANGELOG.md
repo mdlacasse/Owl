@@ -1,4 +1,8 @@
-### Version WIP
+### Version 2026.10.9
+
+#### Maint: Updating dependecies and increment version
+
+Updates MOSEK, pyparser, pydantic, anthropic, json5, and a few others.
 
 #### New: a loan can be paid off by the sale of the property it finances
 
