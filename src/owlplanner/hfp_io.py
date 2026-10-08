@@ -174,6 +174,7 @@ def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
         dfDict = finput
         finput = "dictionary of DataFrames"
         streamName = "dictionary of DataFrames"
+        pctCells = {}
     else:
         if filename is not None:
             streamName = f"file '{filename}'"
@@ -188,6 +189,7 @@ def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
             raise Exception(f"Could not read file {streamName}: {e}.") from e
+        pctCells = _percentFormattedCells(finput) if houseTables else {}
 
     timeLists, absentCols = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
@@ -196,7 +198,7 @@ def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
     # keeps the Debts and Fixed Assets tables itself): return None rather than empty tables.
     houseLists = None
     if houseTables:
-        houseLists = _conditionHouseTables(dfDict, mylog)
+        houseLists = _conditionHouseTables(dfDict, mylog, pctCells)
         mylog.vprint(f"Successfully read household tables from {streamName}.")
 
     return finput, timeLists, houseLists, dfDict, absentCols
@@ -372,9 +374,83 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
     return timeLists, absentCols
 
 
-def _conditionHouseTables(dfDict, mylog):
+def _percentFormattedCells(finput):
+    """
+    Rows of the Debts and Fixed Assets percent columns that the workbook formats as a percentage.
+
+    Those columns hold percent numbers (4.5 for 4.5%), but a cell formatted as a percentage
+    displays 4.50% and stores the fraction 0.045. Only such cells are converted: a value's size
+    says nothing, since 0.5 is a plausible real growth rate for a residence. Returns
+    {sheet: {column: {row_label: stored_value}}}, where row_label is the pandas row index
+    (sheet row minus 2, the header being row 1). A workbook openpyxl cannot read (xls, ods)
+    gives none, so its values are read as typed. A file-like input is rewound before and after.
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        return {}
+
+    if hasattr(finput, "seek"):
+        finput.seek(0)
+    try:
+        wb = openpyxl.load_workbook(finput, read_only=True, data_only=True)
+    except Exception:
+        return {}
+    finally:
+        if hasattr(finput, "seek"):
+            finput.seek(0)
+
+    cells = {}
+    try:
+        for sheet, cols in _pctCols.items():
+            if sheet not in wb.sheetnames:
+                continue
+            rows = wb[sheet].iter_rows()
+            header = next(rows, None)
+            if header is None:
+                continue
+            where = {cell.value: k for k, cell in enumerate(header) if cell.value in cols}
+            for r, row in enumerate(rows):
+                for col, k in where.items():
+                    if k >= len(row):
+                        continue
+                    cell = row[k]
+                    if isinstance(cell.value, (int, float)) and "%" in str(cell.number_format or ""):
+                        cells.setdefault(sheet, {}).setdefault(col, {})[r] = float(cell.value)
+    finally:
+        wb.close()
+    return cells
+
+
+def _convertPercentCells(df, page, cells, mylog):
+    """Multiply by 100 the percent-formatted cells found by _percentFormattedCells."""
+    for col, rows in cells.get(page, {}).items():
+        if col not in df.columns:
+            continue
+        converted = 0
+        for label, stored in rows.items():
+            # Match the row by its value as well as its position, so that a sheet whose rows
+            # pandas numbered differently is never converted on the wrong row.
+            if label in df.index and np.isclose(df.at[label, col], stored):
+                df.at[label, col] = stored * 100.0
+                converted += 1
+            else:
+                mylog.print(
+                    f"Cell {col!r} on row {label + 2} of {page} is formatted as a percentage but could "
+                    "not be matched to its row; read as typed.",
+                    tag="WARNING",
+                )
+        if converted:
+            mylog.vprint(f"Read {converted} percent-formatted {col} cell(s) in {page} as percent.")
+    return df
+
+
+def _conditionHouseTables(dfDict, mylog, pctCells=None):
     """
     Read debts and fixed assets from Household Financial Profile workbook.
+
+    Rates and commissions are percent numbers, read as typed, except cells the workbook
+    formats as a percentage (pctCells, from _percentFormattedCells), which hold fractions.
     """
     houseDic = {}
 
@@ -386,11 +462,16 @@ def _conditionHouseTables(dfDict, mylog):
             optional = _optionalHouseItems.get(page, [])
             required = [c for c in items[page] if c not in optional]
             df = _checkColumns(df, page, items[page], required_cols=required)
+            if pctCells:
+                for col in _pctCols[page]:
+                    if col in df.columns:
+                        df[col] = pd.to_numeric(df[col], errors="coerce")
+                df = _convertPercentCells(df, page, pctCells, mylog)
             # Check categorical variables.
             isInList = df["type"].isin(types[page])
             df = df[isInList]
 
-            houseDic[page] = conditionDebtsAndFixedAssetsDF(df, page, mylog=mylog, convert_decimal_pct=True)
+            houseDic[page] = conditionDebtsAndFixedAssetsDF(df, page, mylog=mylog)
         else:
             houseDic[page] = pd.DataFrame(columns=items[page])
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
@@ -404,7 +485,7 @@ _pctCols = {
 }
 
 
-def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pct=False):
+def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
     """
     Condition a DataFrame for Debts or Fixed Assets by:
     - Creating an empty DataFrame with proper columns if df is None or empty
@@ -419,9 +500,6 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
         Type of table: "Debts" or "Fixed Assets"
     mylog : logger, optional
         Logger instance for optional UI/log output
-    convert_decimal_pct : bool, optional
-        When True, percentage columns (see _pctCols) with values in (0, 1) are
-        multiplied by 100 to convert Excel decimal fractions to percent format.
 
     Returns
     -------
@@ -487,18 +565,6 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
             elif col in float_cols:
                 # Float columns: convert to float64, fill NaN with 0.0
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype("float64")
-
-    # Convert decimal percentages to percent format if requested (e.g. 0.045 → 4.5)
-    if convert_decimal_pct and len(df) > 0 and tableType in _pctCols:
-        for col in _pctCols[tableType]:
-            if col in df.columns:
-                mask = (df[col] > 0) & (df[col] < 1)
-                if mask.any():
-                    df.loc[mask, col] = df.loc[mask, col] * 100.0
-                    if mylog is not None:
-                        mylog.vprint(
-                            f"Converted {mask.sum()} {col} value(s) from decimal to percentage in {tableType} table."
-                        )
 
     # For Fixed Assets, validate and reset "year" column if in the past
     if tableType == "Fixed Assets" and "year" in df.columns and len(df) > 0:

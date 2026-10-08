@@ -14,6 +14,16 @@ column is a dropdown of the residences and real estate in *Fixed Assets*, and a 
 or deleted property stays visible with a warning. The example workbooks carry the column. Thanks
 to Florin Mateoc for the original suggestion (#173).
 
+#### Fixed: a rate below 1% in Debts or Fixed Assets read as 50 times more after a reload
+
+Reading a workbook multiplied every `rate` and `commission` between 0 and 1 by 100 in the *Debts*
+and *Fixed Assets* sheets, taking it for a fraction such as 0.045 for 4.5%. These columns hold
+percent numbers, and small ones are expected: 0.5% of real growth for a residence became 50%, a
+0.9% loan 90%. A plan saved and opened again, in the UI, the CLI or through `save_case`, changed.
+Values are now read as typed. Only a cell the spreadsheet formats as a percentage (4.50%, which
+stores 0.045) is converted. The example workbooks hold whole percents and read as before. Thanks
+to Florin Mateoc for reporting the bug and proposing the fix (#176).
+
 #### Fixed: a solver option with a value Owl does not know is refused
 
 `withMedicare`, `withACA`, `withLTCG`, `withNIIT`, `withSSTaxability` and `withdrawalOrder`
