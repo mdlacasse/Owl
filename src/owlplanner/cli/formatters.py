@@ -184,6 +184,10 @@ def plan_to_dict(plan) -> dict:
 
     # ---- top-level document ---------------------------------------------
     state = plan.state if plan.state else "none"
+    # What passes to non-spouse heirs at the first death (beneficiary fractions below 1), after
+    # the heirs' tax, in today's dollars; year_n[n_d - 1] is the decedent's last year.
+    partial = float(getattr(plan, "partialBequest", 0.0) or 0.0)
+    partial_year = int(plan.year_n[max(0, plan.n_d - 1)]) if partial > 0 and plan.n_d < N else None
     return {
         "engine": engine_provenance(),
         "status": plan.caseStatus,
@@ -199,6 +203,8 @@ def plan_to_dict(plan) -> dict:
         "spending_year1_today_dollars": _round(spending[0]),
         "total_bequest_nominal": summary["final_bequest_nominal"],
         "total_bequest_today_dollars": summary["final_bequest_today_dollars"],
+        "partial_bequest_today_dollars": _round(partial),
+        "partial_bequest_year": partial_year,
         "summary": summary,
         "roth_conversions": {
             "total_nominal": summary["roth_conversions_nominal"],

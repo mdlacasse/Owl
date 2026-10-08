@@ -194,8 +194,12 @@ def test_plan_to_dict_top_level_keys(solved_single):
         "time_horizon_years",
         "convergence",
         "fixed_point_residual_today_dollars",
+        "partial_bequest_today_dollars",
+        "partial_bequest_year",
     ):
         assert key in d, f"Missing top-level key: {key}"
+    # A single filer leaves nothing at a first death.
+    assert d["partial_bequest_today_dollars"] == 0 and d["partial_bequest_year"] is None
 
 
 def test_plan_to_dict_status_solved(solved_single):

@@ -1905,3 +1905,34 @@ def test_explanation_downgrade_drops_the_breakpoint_preset():
     assert "breakpointMethod" not in opts and "mipStrategy" not in opts
     assert opts["withNIIT"] == "loop"
     assert set(downgraded) == {"withNIIT", "breakpointMethod"}
+
+
+def test_explanation_downgrade_reads_mode_names_in_any_case():
+    """A case file may spell a mode "Optimize", or withMedicare as true: still downgraded."""
+    from owlplanner.assistant.tools import _downgrade_milp_tax_modes
+
+    opts = {"withMedicare": "Optimize", "withSSTaxability": "OPTIMIZE", "withLTCG": True and "loop"}
+    downgraded = _downgrade_milp_tax_modes(opts)
+    assert opts["withMedicare"] == "loop" and opts["withSSTaxability"] == "loop"
+    assert set(downgraded) == {"withMedicare", "withSSTaxability"}
+    legacy = {"withMedicare": True}
+    assert _downgrade_milp_tax_modes(legacy) == [] and legacy["withMedicare"] == "loop"
+
+
+def test_debt_linked_to_a_property_is_paid_off_at_the_sale():
+    """debts "property" names a fixed asset: no balance is left after the year it is sold."""
+    sale = THISYEAR + 8
+    fa = [{"label": "home", "type": "residence", "value": 800000, "basis": 400000, "sell_year": sale}]
+    db = [{"label": "mtg", "type": "mortgage", "balance": 500000, "rate": 6.5, "years_remaining": 25}]
+    base = dict(names=["Alice", "Bob"], birth_dates=["1963-07-01", "1961-07-01"], life_expectancy=[90, 87],
+                taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000], state="TX",
+                rate_method="conservative", fixed_assets=fa)
+    runs = {}
+    for tag, debts in (("term", db), ("linked", [dict(db[0], property="home")])):
+        data = json.loads(_run(run_from_params(**base, debts=debts)))
+        assert data["status"] == "solved", data
+        runs[tag] = {y["year"]: y["debt"] for y in data["by_year"]}
+    assert runs["linked"][sale] == runs["term"][sale] > 0  # still owed that January
+    assert runs["linked"][sale + 1] == 0 < runs["term"][sale + 1]
+    bad = json.loads(_run(run_from_params(**base, debts=[dict(db[0], property="cottage")])))
+    assert "cottage" in bad["error"]
