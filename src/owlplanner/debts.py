@@ -27,14 +27,87 @@ from datetime import date
 from . import utils as u
 
 
-def _active_loans(debts_df):
-    """Yield (start_year, term, end_year, principal, rate) for each active loan row."""
-    for _, debt in debts_df.iterrows():
+# Fixed-asset types whose sale can pay off a loan (the Debts `property` column).
+PROPERTY_TYPES = ("residence", "real estate")
+
+
+def _active_loans(debts_df, payoffs=None):
+    """Yield (start_year, term, end_year, principal, rate, payoff) for each active loan row.
+
+    Regular payments run for start_year <= year < end_year. A loan paid off before its term
+    (payoffs, keyed by row index: see resolve_payoff_years) has end_year = payoff, the year in
+    which the balance left after the regular payments is paid instead (payoff_amount).
+    """
+    payoffs = payoffs or {}
+    for idx, debt in debts_df.iterrows():
         if not u.is_row_active(debt):
             continue
         start_year = int(debt["year"])
         term = int(debt["term"])
-        yield start_year, term, start_year + term, float(debt["amount"]), float(debt["rate"])
+        payoff = payoffs.get(idx)
+        end_year = payoff if payoff is not None else start_year + term
+        yield start_year, term, end_year, float(debt["amount"]), float(debt["rate"]), payoff
+
+
+def payoff_amount(principal, annual_rate, term_years, start_year, payoff):
+    """Balance paid in the payoff year: what is left after the regular payments before it."""
+    return calculate_remaining_balance(principal, annual_rate, term_years, payoff - start_year)
+
+
+def resolve_payoff_years(debts_df, fixed_assets_df, N_n, thisyear=None):
+    """
+    Year in which each loan linked to a property is paid off: the year that property is sold.
+
+    A Debts row whose `property` names a residence or real estate in Fixed Assets is paid off
+    when that property is sold within the plan: the balance owed at the start of the sale year
+    is paid that year, the year the proceeds arrive, and nothing after. A link that cannot be
+    honored is an error, never a loan quietly run to term: a name that is not a residence or
+    real estate in Fixed Assets, a name used by more than one of them, an inactive property, or
+    a sale before the loan starts. A property not sold within the plan, or sold after the loan's
+    term, leaves the loan as it is. Inactive loans are not checked.
+
+    Returns {row index: payoff year} for the loans that end early.
+    """
+    from . import fixedassets as fxasst
+
+    if thisyear is None:
+        thisyear = date.today().year
+    if u.is_dataframe_empty(debts_df) or "property" not in debts_df.columns:
+        return {}
+
+    assets = {}
+    if not u.is_dataframe_empty(fixed_assets_df):
+        for _, asset in fixed_assets_df.iterrows():
+            if str(asset["type"]).lower() in PROPERTY_TYPES:
+                assets.setdefault(str(asset["name"]).strip(), []).append(asset)
+
+    payoffs = {}
+    for idx, debt in debts_df.iterrows():
+        prop = debt["property"]
+        prop = "" if prop is None or (isinstance(prop, float) and np.isnan(prop)) else str(prop).strip()
+        if not prop or not u.is_row_active(debt):
+            continue
+        loan = f"Debt '{debt['name']}'"
+        matches = assets.get(prop, [])
+        if not matches:
+            raise ValueError(f"{loan} is paid off by the sale of '{prop}', which is not a residence or "
+                             "real estate in Fixed Assets.")
+        if len(matches) > 1:
+            raise ValueError(f"{loan} is paid off by the sale of '{prop}', but {len(matches)} fixed "
+                             "assets have that name.")
+        asset = matches[0]
+        if not u.is_row_active(asset):
+            raise ValueError(f"{loan} is paid off by the sale of '{prop}', which is not active. "
+                             "Make both active, or neither.")
+        sale = fxasst.sale_year_in_plan(asset, N_n, thisyear)
+        start_year, term = int(debt["year"]), int(debt["term"])
+        if sale is None or sale >= start_year + term:
+            continue
+        if sale < start_year:
+            raise ValueError(f"{loan} starts in {start_year}, after '{prop}' is sold in {sale}.")
+        payoffs[idx] = sale
+
+    return payoffs
 
 
 def calculate_monthly_payment(principal, annual_rate, term_years):
@@ -137,14 +210,14 @@ def calculate_remaining_balance(principal, annual_rate, term_years, years_elapse
     return max(0.0, remaining)
 
 
-def get_debt_payments_for_year(debts_df, year):
+def get_debt_payments_for_year(debts_df, year, payoffs=None):
     """
     Calculate total debt payments (principal + interest) for a given year.
 
     Parameters:
     -----------
     debts_df : pd.DataFrame
-        DataFrame with columns: name, type, year, term, amount, rate
+        DataFrame with columns: name, type, year, term, amount, rate (and optional property)
     year : int
         Year for which to calculate payments
 
@@ -158,21 +231,23 @@ def get_debt_payments_for_year(debts_df, year):
 
     total_payments = 0.0
 
-    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
+    for start_year, term, end_year, principal, rate, payoff in _active_loans(debts_df, payoffs):
         if start_year <= year < end_year:
             total_payments += calculate_annual_payment(principal, rate, term)
+        elif year == payoff:
+            total_payments += payoff_amount(principal, rate, term, start_year, payoff)
 
     return total_payments
 
 
-def get_debt_balances_for_year(debts_df, year):
+def get_debt_balances_for_year(debts_df, year, payoffs=None):
     """
     Calculate total remaining debt balances at the end of a given year.
 
     Parameters:
     -----------
     debts_df : pd.DataFrame
-        DataFrame with columns: name, type, year, term, amount, rate
+        DataFrame with columns: name, type, year, term, amount, rate (and optional property)
     year : int
         Year for which to calculate balances
 
@@ -186,7 +261,7 @@ def get_debt_balances_for_year(debts_df, year):
 
     total_balance = 0.0
 
-    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
+    for start_year, term, end_year, principal, rate, _payoff in _active_loans(debts_df, payoffs):
         if start_year <= year < end_year:
             years_elapsed = year - start_year + 1
             total_balance += calculate_remaining_balance(principal, rate, term, years_elapsed)
@@ -194,7 +269,7 @@ def get_debt_balances_for_year(debts_df, year):
     return total_balance
 
 
-def get_debt_payments_array(debts_df, N_n, thisyear=None):
+def get_debt_payments_array(debts_df, N_n, thisyear=None, payoffs=None):
     """
     Process debts_df to provide a single array of length N_n containing
     all annual payments made for each year of the plan.
@@ -202,7 +277,7 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
     Parameters:
     -----------
     debts_df : pd.DataFrame
-        DataFrame with columns: name, type, year, term, amount, rate
+        DataFrame with columns: name, type, year, term, amount, rate (and optional property)
     N_n : int
         Number of years in the plan (length of output array)
     thisyear : int, optional
@@ -224,16 +299,18 @@ def get_debt_payments_array(debts_df, N_n, thisyear=None):
 
     payments_n = np.zeros(N_n)
 
-    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
+    for start_year, term, end_year, principal, rate, payoff in _active_loans(debts_df, payoffs):
         annual_payment = calculate_annual_payment(principal, rate, term)
         for n in range(N_n):
             if start_year <= thisyear + n < end_year:
                 payments_n[n] += annual_payment
+            elif thisyear + n == payoff:
+                payments_n[n] += payoff_amount(principal, rate, term, start_year, payoff)
 
     return payments_n
 
 
-def get_debt_balances_array(debts_df, N_n, thisyear=None):
+def get_debt_balances_array(debts_df, N_n, thisyear=None, payoffs=None):
     """
     Process debts_df to provide a single array of length N_n containing
     the remaining debt balance at the start of each year of the plan.
@@ -241,7 +318,7 @@ def get_debt_balances_array(debts_df, N_n, thisyear=None):
     Parameters:
     -----------
     debts_df : pd.DataFrame
-        DataFrame with columns: name, type, year, term, amount, rate
+        DataFrame with columns: name, type, year, term, amount, rate (and optional property)
     N_n : int
         Number of years in the plan (length of output array)
     thisyear : int, optional
@@ -263,17 +340,18 @@ def get_debt_balances_array(debts_df, N_n, thisyear=None):
 
     balances_n = np.zeros(N_n)
 
-    for start_year, term, end_year, principal, rate in _active_loans(debts_df):
+    for start_year, term, end_year, principal, rate, payoff in _active_loans(debts_df, payoffs):
         for n in range(N_n):
             year = thisyear + n
-            if start_year <= year < end_year:
+            # The balance is still owed at the start of the payoff year.
+            if start_year <= year < end_year or year == payoff:
                 years_elapsed = year - start_year
                 balances_n[n] += calculate_remaining_balance(principal, rate, term, years_elapsed)
 
     return balances_n
 
 
-def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
+def get_remaining_debt_balance(debts_df, N_n, thisyear=None, payoffs=None):
     """
     Calculate total remaining debt balance at the end of the plan horizon.
     Returns the sum of all remaining balances for loans that haven't been
@@ -282,7 +360,7 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     Parameters:
     -----------
     debts_df : pd.DataFrame
-        DataFrame with columns: name, type, year, term, amount, rate
+        DataFrame with columns: name, type, year, term, amount, rate (and optional property)
     N_n : int
         Number of years in the plan
     thisyear : int, optional
@@ -303,7 +381,7 @@ def get_remaining_debt_balance(debts_df, N_n, thisyear=None):
     end_year = thisyear + N_n - 1
     total_balance = 0.0
 
-    for start_year, term, loan_end_year, principal, rate in _active_loans(debts_df):
+    for start_year, term, loan_end_year, principal, rate, _payoff in _active_loans(debts_df, payoffs):
         if start_year <= end_year < loan_end_year:
             years_elapsed = end_year - start_year + 1
             total_balance += calculate_remaining_balance(principal, rate, term, years_elapsed)

@@ -194,7 +194,8 @@ from a recognized one only by capitalization, spacing, or punctuation: that is r
 rather than dropped, so a misspelled column never silently becomes zeros.
 
 Two optional **worksheets** (separate tabs) extend the workbook:
-- **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`.
+- **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`,
+  and optional `property` (the home or real estate whose sale pays off the loan).
 - **`Fixed Assets`** — columns `active`, `name`, `type`, `year`, `basis`, `value`, `rate`, `yod`, `commission`
   (allowed `type` values are listed under *Financial Profile → Debts and Fixed Assets*).
 
@@ -545,7 +546,11 @@ The *Debts* table is used to track mortgage and loan payments which are not incl
 in the net spending amount.
 *Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
-to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
+to pay the remaining debts.
+A loan can be tied to the home or real estate it finances by choosing that property
+in the *property* column: the loan is then paid off in the year the property is sold,
+out of the sale proceeds, and nothing is paid after. The property must be active
+whenever the loan is. Mortgage interest is not deducted for income tax purposes,
 as **Owl** assumes taking the standard tax deduction. Be mindful that selling a house near
 the end of the plan while leaving a zero bequest may lead to infeasible solutions.
 

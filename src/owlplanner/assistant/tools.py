@@ -1116,6 +1116,7 @@ def _build_plan_from_params(
                 "term": int(_get_field(d, "years_remaining")),
                 "amount": float(_get_field(d, "balance")),
                 "rate": float(d["rate"]),
+                "property": d.get("property", ""),
             }
             for d in debts
         ]
@@ -1541,7 +1542,9 @@ async def run_from_params(
         debts:          Amortizing loans.  Each entry: {"label": "mortgage", "type": "mortgage",
                         "balance": 350000, "rate": 3.5, "years_remaining": 20}.
                         type is "mortgage" or "loan".  balance = remaining principal today;
-                        rate = annual interest rate in percent.
+                        rate = annual interest rate in percent.  Optional "property": the label
+                        of a residence or real estate in fixed_assets whose sale pays off the
+                        loan (the balance is paid in the sale year, nothing after).
         fixed_assets:   Assets to be sold during or after the plan.  Each entry:
                         {"label": "house", "type": "residence", "value": 800000,
                         "basis": 400000, "rate": 0.0, "sell_year": 2035, "commission": 3.0}.
@@ -3113,7 +3116,8 @@ async def run_stochastic(
         qcds:                 Qualified charitable distributions, same shape. IRA-to-charity:
                               excluded from AGI and credited against the RMD.
         debts:                Debts: [{"label":"mortgage","type":"mortgage","balance":300000,
-                              "rate":3.5,"years_remaining":20}].
+                              "rate":3.5,"years_remaining":20,"property":"house"}].
+                              property (optional): the fixed asset whose sale pays it off.
         fixed_assets:         Assets: [{"label":"house","type":"residence","value":800000,
                               "basis":400000,"sell_year":2040}].
                               Tax treatment: residence applies IRC §121 exclusion ($250k

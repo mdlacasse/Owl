@@ -111,7 +111,7 @@ See `examples/Case_jordan+taylor-qcd.toml`, which is `Case_jordan+taylor` with a
 
 #### Optional sheet `Debts`
 
-Columns: `active`, `name`, `type`, `year`, `term`, `amount`, `rate`. Allowed `type` values: `loan`, `mortgage`.
+Columns: `active`, `name`, `type`, `year`, `term`, `amount`, `rate`, and optional `property`. Allowed `type` values: `loan`, `mortgage`. `property` names a `residence` or `real estate` in `Fixed Assets` whose sale pays off the loan: the balance owed at the start of the sale year is paid that year, and nothing after. Blank (or no column) means the loan runs to term. An active loan linked to a name that is missing, used twice, inactive, or sold before the loan starts is an error.
 
 #### Optional sheet `Fixed Assets`
 

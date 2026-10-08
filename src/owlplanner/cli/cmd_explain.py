@@ -123,15 +123,17 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         for _, row in debt_df.iterrows():
             if not _active(row):
                 continue
-            debts.append(
-                {
-                    "name": str(row["name"]),
-                    "type": str(row["type"]),
-                    "balance": int(round(float(row["amount"]))),
-                    "rate_pct": round(float(row["rate"]), 4),
-                    "years_remaining": int(row["term"]),
-                }
-            )
+            debt = {
+                "name": str(row["name"]),
+                "type": str(row["type"]),
+                "balance": int(round(float(row["amount"]))),
+                "rate_pct": round(float(row["rate"]), 4),
+                "years_remaining": int(row["term"]),
+            }
+            prop = str(row.get("property", "") or "").strip()
+            if prop:
+                debt["paid_off_by_sale_of"] = prop
+            debts.append(debt)
 
     # Opening balance sheet (reference-year dollars): savings + fixed assets - debts.
     savings_total = int(sum(account_balances["total"].values())) if account_balances else 0

@@ -47,6 +47,24 @@ def _get_reference_year(asset, thisyear):
     return thisyear
 
 
+def sale_year_in_plan(asset, N_n, thisyear):
+    """
+    Year an asset is sold within the plan, or None when it is not sold within the plan.
+
+    Applies the rules get_fixed_assets_arrays uses to place the sale proceeds: a yod of zero or
+    less counts back from the plan's last year, and a sale before the reference year, before the
+    plan starts or after it ends is not a sale within the plan.
+    """
+    end_year = thisyear + N_n - 1
+    reference_year = _get_reference_year(asset, thisyear)
+    yod = int(asset["yod"])
+    if yod <= 0:
+        yod = end_year + yod + 1
+    if reference_year > end_year or yod < reference_year or not thisyear <= yod <= end_year:
+        return None
+    return yod
+
+
 def calculate_future_value(current_value, annual_rate, years):
     """
     Calculate future value of an asset after a given number of years.

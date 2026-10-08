@@ -24,6 +24,7 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
+from owlplanner.debts import PROPERTY_TYPES
 from owlplanner.hfp_io import getTableTypes
 
 import sskeys as kz
@@ -284,6 +285,15 @@ The second table starts at the current year and covers the rest of the plan.""")
         # Get existing debts or create empty DataFrame
         debtdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListDebts"), "Debts")
 
+        # Properties a loan can be paid off with: the residences and real estate in Fixed Assets.
+        assetdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
+        propertyNames = sorted(
+            {str(n) for n, t in zip(assetdf["name"], assetdf["type"]) if t in PROPERTY_TYPES and n}
+        )
+        # A link to a name no longer among them (renamed or deleted) stays a choice, so that the
+        # editor shows it rather than clearing it, and the warning below names it.
+        staleNames = sorted({prop for prop in debtdf["property"] if prop and prop not in propertyNames})
+
         thisyear = date.today().year
         debtconf = {
             "active": st.column_config.CheckboxColumn(
@@ -333,18 +343,35 @@ The second table starts at the current year and covers the rest of the plan.""")
                 min_value=0.0,
                 step=0.01,
             ),
+            "property": st.column_config.SelectboxColumn(
+                "property",
+                help="Home or real estate (from Fixed Assets) whose sale pays off this loan: the balance "
+                "is paid in the year it is sold, nothing after. Leave empty (Delete key) for a loan that "
+                "runs to term.",
+                options=propertyNames + staleNames,
+                required=False,
+            ),
         }
 
+        # The editor shows an empty cell for no property (None); the table stores "".
+        debtview = debtdf.copy()
+        debtview["property"] = [prop or None for prop in debtview["property"]]
         edited_debtdf = st.data_editor(
-            debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
+            debtview, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
         )
         debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and pressing the *Delete* key."""
         st.caption(debtsCaption)
+        unknown = [f"*{name}* ({prop})" for name, prop in zip(debtdf["name"], debtdf["property"]) if prop in staleNames]
+        if unknown:
+            st.warning(
+                "Loans paid off by the sale of a property that is not a residence or real estate in "
+                f"*Fixed Assets*: {', '.join(unknown)}. Choose one of those, or leave the cell empty."
+            )
 
         # Store edited debts if changed
-        if not debtdf.equals(edited_debtdf):
+        if not debtview.equals(edited_debtdf):
             edited_debtdf = owb.conditionDebtsAndFixedAssetsDF(edited_debtdf, "Debts")
             kz.setCaseKey("houseListDebts", edited_debtdf)
             if kz.getCaseKey("stHFP") is not None:
