@@ -2010,3 +2010,39 @@ def test_save_case_writes_the_estate_options(tmp_path):
     assert conf["savings_assets"]["beneficiary_fractions"] == [0, 0, 0, 1]
     assert conf["savings_assets"]["spousal_surplus_deposit_fraction"] == 0.0
     assert conf["solver_options"]["partialBequestWeight"] == 0.02
+
+
+def test_stress_tools_drop_the_breakpoint_preset():
+    """Local search is for one plan; scenario solves use the loop and say so."""
+    from owlplanner.assistant.tools import _drop_breakpoint_preset
+
+    opts = {"breakpointMethod": "local-search", "withMedicare": "optimize"}
+    note = _drop_breakpoint_preset(opts)
+    assert "breakpointMethod" not in opts and "local-search" in note
+    assert opts["withMedicare"] == "optimize"  # explicit per-family modes are left as given
+    for quiet in ({}, {"breakpointMethod": "loop"}, {"breakpointMethod": " Loop "}):
+        assert _drop_breakpoint_preset(quiet) is None and "breakpointMethod" not in quiet
+
+
+@pytest.mark.toml
+def test_run_historical_solves_scenarios_with_the_loop():
+    data = json.loads(
+        _run(
+            run_historical(
+                names=["Martin"],
+                birth_dates=["1960-07-01"],
+                life_expectancy=[80],
+                taxable=[200_000],
+                tax_deferred=[800_000],
+                roth=[100_000],
+                ss_monthly_pias=[2500],
+                ss_ages=[67],
+                state="TX",
+                breakpoint_method="local-search",
+                ystart=1990,
+                yend=1991,
+            )
+        )
+    )
+    assert data["n_scenarios_solved"] == 2
+    assert "local-search" in data["breakpoint_method_note"]

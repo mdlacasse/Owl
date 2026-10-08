@@ -85,6 +85,8 @@ SERVER_INSTRUCTIONS = (
     "goals and rules, Roth conversion rationale, bracket fill, withdrawal ordering), "
     "run_from_params to solve directly from user-provided "
     "numbers without a TOML file, save_case to persist those parameters, "
+    "and breakpoint_method='local-search' on run_from_params for a more accurate plan "
+    "the user will act on (seconds to minutes; the stress tools solve their scenarios with the loop), "
     "run_stochastic to compute an efficient spending frontier across historical "
     "or Monte Carlo scenarios and answer probability-of-success questions, "
     "run_year1_robustness to report how the first year's decisions (Roth "
@@ -305,6 +307,22 @@ def _downgrade_milp_tax_modes(opts):
     opts.pop("breakpointMethod", None)
     opts.pop("mipStrategy", None)
     return downgraded
+
+
+def _drop_breakpoint_preset(opts):
+    """Solve the scenarios of a stress test with the loop, whatever breakpointMethod asked.
+
+    Local search and branch-and-bound take seconds to minutes per solve: worth it for the one
+    plan the user acts on, not for each of hundreds of scenarios. Explicit per-family modes
+    (withMedicare="optimize", ...) are left as given. Returns a note for the response, or None.
+    """
+    method = opts.pop("breakpointMethod", None)
+    if method is None or str(method).strip().lower() == "loop":
+        return None
+    return (
+        f"breakpoint_method {method!r} applies to a single plan; the scenario solves used the loop. "
+        "Solve the chosen plan with run_from_params to apply it."
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1735,6 +1753,8 @@ async def run_from_params(
                         "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
                         plan; never worse than the loop, not a proven optimum). Sets every
                         applicable family to MILP and overrides a fixed SS taxable fraction.
+                        Use "local-search" for the plan the user will act on: a more accurate
+                        answer for seconds to a few minutes of solving.
         aca_start_year: Calendar year ACA coverage begins (e.g. 2028 if retiring that year).
                         Omit or 0 to start from the plan's first year.
         with_medicare:  Medicare IRMAA modeling mode: "none" (disable), "loop" (iterative
@@ -3407,6 +3427,7 @@ async def run_stochastic(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -3435,6 +3456,8 @@ async def run_stochastic(
             "Use scenario_method='mc' to control the scenario count via n_scenarios."
         )
 
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -3836,6 +3859,7 @@ async def run_spending_bequest_frontier(
     opts.pop("bequest", None)
     opts["units"] = "1"
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
 
     if bequest_grid is None:
         grid = await asyncio.get_running_loop().run_in_executor(None, _default_bequest_grid, plan, opts)
@@ -3872,6 +3896,8 @@ async def run_spending_bequest_frontier(
             "start year at each bequest level (controlled by ystart/yend). Use "
             "scenario_method='mc' to control the scenario count."
         )
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -4612,6 +4638,7 @@ async def run_longevity_stochastic(
         swap_roth_converters_year=swap_roth_converters_year,
         inames=names,
     )
+    bp_note = _drop_breakpoint_preset(opts)
 
     assumed: list[dict] = []
     try:
@@ -4690,6 +4717,8 @@ async def run_longevity_stochastic(
 
     out["mortality_table"] = mortality_table
     out["sexes"] = list(sexes)
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -4851,10 +4880,9 @@ async def run_historical(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         How ACA premiums are solved: "loop" or "optimize". Modeled whenever slcsp > 0.
-        breakpoint_method: How tax breakpoints are solved: "loop" (default),
-                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
-                          plan; never worse than the loop, not a proven optimum). Sets every
-                          applicable family to MILP and overrides a fixed SS taxable fraction.
+        breakpoint_method: Accepted but not applied: every scenario is solved with the loop,
+                          since local search or branch-and-bound would take seconds to minutes
+                          per scenario (reported in breakpoint_method_note).
         aca_start_year:   Calendar year ACA coverage begins.
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
@@ -4997,6 +5025,7 @@ async def run_historical(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, n_attempted, results, ystart_actual, yend_actual = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -5020,6 +5049,8 @@ async def run_historical(
     out["ystart_used"] = ystart_actual
     out["yend_used"] = yend_actual
     out["augmented"] = augmented
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -5192,10 +5223,9 @@ async def run_monte_carlo(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         How ACA premiums are solved: "loop" or "optimize". Modeled whenever slcsp > 0.
-        breakpoint_method: How tax breakpoints are solved: "loop" (default),
-                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
-                          plan; never worse than the loop, not a proven optimum). Sets every
-                          applicable family to MILP and overrides a fixed SS taxable fraction.
+        breakpoint_method: Accepted but not applied: every scenario is solved with the loop,
+                          since local search or branch-and-bound would take seconds to minutes
+                          per scenario (reported in breakpoint_method_note).
         aca_start_year:   Calendar year ACA coverage begins.
         constrain_mean:   If True, pin each scenario's mean returns to historical averages,
                           isolating sequence-of-returns risk.
@@ -5338,6 +5368,7 @@ async def run_monte_carlo(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -5356,6 +5387,8 @@ async def run_monte_carlo(
 
     out = _build_distribution_json(plan, results, objective, "mc", n_attempted)
     out["rate_method"] = plan.rateMethod if hasattr(plan, "rateMethod") else rate_method
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)

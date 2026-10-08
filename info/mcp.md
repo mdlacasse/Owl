@@ -142,7 +142,7 @@ as commands and lets you attach resources to the conversation):
 | | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
 | | `with_aca` | How ACA premiums are solved: `"loop"` (default) or `"optimize"`; ACA is modeled whenever `slcsp` > 0 |
-| | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum) |
+| | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum). Use `"local-search"` for the plan the user will act on: more accurate, for seconds to a few minutes of solving. The stress tools (`run_stochastic`, the frontiers, `run_historical`, `run_monte_carlo`) solve every scenario with the loop and say so in `breakpoint_method_note` |
 | | `partial_bequest_weight` | Value of a dollar left to other heirs at the first death, as a fraction of a dollar (default max(1%, twice the solver gap)) |
 | | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
 | | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |

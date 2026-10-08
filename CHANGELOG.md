@@ -39,6 +39,13 @@ loop. The MCP documentation lists the parameters added since September (`state_m
 `breakpoint_method`, `qcds`, a debt's `property`), gives `residualTol`'s default as 50, and the
 modeling-capabilities table gives the current default for `partialBequestWeight`.
 
+The stress-test tools (`run_stochastic`, `run_spending_bequest_frontier`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now solve their scenarios with
+the loop whatever `breakpoint_method` asks, and say so in `breakpoint_method_note`: local search
+takes seconds to minutes per solve, which is worth it for the one plan the user acts on, not for
+hundreds of scenarios. `run_year1_robustness` already did. The tool descriptions recommend
+`breakpoint_method = "local-search"` with `run_from_params` for that one plan.
+
 ### Version 2026.10.8
 
 #### Documentation: what to add back for a start date after January 1
