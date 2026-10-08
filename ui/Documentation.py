@@ -549,8 +549,11 @@ A bequest of zero will therefore leave sufficient money from the savings account
 to pay the remaining debts.
 A loan can be tied to the home or real estate it finances by choosing that property
 in the *property* column: the loan is then paid off in the year the property is sold,
-out of the sale proceeds, and nothing is paid after. The property must be active
-whenever the loan is. Mortgage interest is not deducted for income tax purposes,
+out of the sale proceeds, and nothing is paid after. The dropdown lists the *residence*
+and *real estate* items of the *Fixed Assets* table; leave the cell empty for a loan
+that runs to its term. The property must be active whenever the loan is. If a linked
+property is renamed or deleted, the loan keeps the old name and a warning names it
+until another property is chosen. Mortgage interest is not deducted for income tax purposes,
 as **Owl** assumes taking the standard tax deduction. Be mindful that selling a house near
 the end of the plan while leaving a zero bequest may lead to infeasible solutions.
 
