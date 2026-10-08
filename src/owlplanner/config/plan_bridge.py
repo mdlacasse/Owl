@@ -257,13 +257,7 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
         plan.solverOptions["withLTCG"] = "loop"
     if "withNIIT" not in plan.solverOptions:
         plan.solverOptions["withNIIT"] = "loop"
-    with_medicare = plan.solverOptions.get("withMedicare")
-    if isinstance(with_medicare, bool):
-        # Legacy TOML compat: pre-2025 files used withMedicare = true/false.
-        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "none"
-    elif with_medicare == "None":
-        # Legacy TOML compat: old files used capital "None".
-        plan.solverOptions["withMedicare"] = "none"
+    # Old withMedicare spellings (true/false, "None") are read by parse_solver_options.
     name_opt = plan.solverOptions.get("noRothConversions", "none")
     if name_opt == "None":
         # Legacy TOML compat: old files used capital "None".

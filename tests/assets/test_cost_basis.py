@@ -180,7 +180,7 @@ class TestCostBasisConvergence:
         # the fed-back quantities settle. Under MOSEK they do not here, which the residual reports.
         p = _make_plan("convergence", taxable_k=1500, tax_deferred_k=500, tax_free_k=200)
         p.setCostBasis([300])  # 80% gain fraction
-        p.solve("maxSpending", {"withMedicare": "IRMAA", "residualTol": float("inf")})
+        p.solve("maxSpending", {"withMedicare": "loop", "residualTol": float("inf")})
         assert p.caseStatus == "solved"
         assert p.convergenceType in ("monotonic", "oscillatory", "stagnation"), (
             f"Unexpected convergence type: {p.convergenceType}"

@@ -4713,6 +4713,9 @@ class Plan:
         if objective not in knownObjectives:
             raise ValueError(f"Objective '{objective}' is not one of {knownObjectives}.")
 
+        # Canonical mode names; a value that is none of them is refused, not solved as another.
+        u.normalize_mode_options(myoptions)
+
         self._applyBreakpointOptions(myoptions)
         if self._useLocalSearch(myoptions):
             return self._localSearchSolve(objective, myoptions)

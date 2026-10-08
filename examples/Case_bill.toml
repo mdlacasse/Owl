@@ -61,9 +61,9 @@ spendingSlack = 0
 timePreference = 0.0
 noLateSurplus = false
 withMedicare = "none"
-withACA = "none"
-withLTCG = "none"
-withNIIT = "none"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
 withSSTaxability = "loop"
 withSSAges = "fixed"
 

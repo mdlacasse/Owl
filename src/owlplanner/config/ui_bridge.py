@@ -35,7 +35,7 @@ from owlplanner.config.defaults import (
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.socialsecurity import validate_survivor_claim_age
 from owlplanner.rates import FROM, get_fixed_rate_values
-from owlplanner.utils import derive_swap_roth_converters, parse_swap_roth_converters
+from owlplanner.utils import derive_swap_roth_converters, normalize_mode_options, parse_swap_roth_converters
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     FIXED_TYPE_UI,
@@ -165,7 +165,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     rs = known.get("rates_selection", {})
     aa = known.get("asset_allocation", {})
     op = known.get("optimization_parameters", {})
-    so = known.get("solver_options", {})
+    so = normalize_mode_options(dict(known.get("solver_options", {})))
     res = known.get("results", {})
 
     names = bi.get("names", [])
@@ -335,7 +335,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
             dic[key] = so[key]
 
     with_med = so.get("withMedicare", "loop")
-    dic["computeMedicare"] = with_med not in ("none", "None")
+    dic["computeMedicare"] = with_med != "none"
     dic["optimizeMedicare"] = with_med == "optimize"
     dic["includeMedicarePartD"] = so.get("includeMedicarePartD", True)
     dic["medicarePartDBasePremium"] = so.get("medicarePartDBasePremium")
