@@ -25,6 +25,20 @@ fraction (in [0, 1]), `true`/`false` from older case files still read as `"loop"
 any other value is refused with the valid choices named. Thanks to Florin Mateoc for reporting the
 bug (#174).
 
+#### Changed: the MCP tools take beneficiary fractions and report the solve time
+
+The tools that build a plan from parameters (`run_from_params`, `save_case`, `compare_to_baseline`,
+`explain_results` and the stress tests) take `beneficiary_fractions`, `spousal_deposit_fraction`
+and `partial_bequest_weight`. Without the first, a couple's partial bequest could only be modeled
+from a case file: with every fraction at 1 nothing passes to other heirs at the first death.
+Results report `solve_time_seconds` (wall clock and CPU), as the Summary's *Solve time* row does,
+and `run_historical`, `run_monte_carlo` and `explain_results` now return the `engine` entry like
+the other tools. With local search or branch-and-bound, the explanation tools' note said the
+breakpoints were downgraded "from 'optimize'"; it now says only that they were downgraded to the
+loop. The MCP documentation lists the parameters added since September (`state_move`,
+`breakpoint_method`, `qcds`, a debt's `property`), gives `residualTol`'s default as 50, and the
+modeling-capabilities table gives the current default for `partialBequestWeight`.
+
 ### Version 2026.10.8
 
 #### Documentation: what to add back for a start date after January 1
