@@ -10,7 +10,11 @@ millions put coefficients near a billion beside coefficients near one, and HiGHS
 feasible plans infeasible: 196 times over two sweeps of historical start years with
 `withdrawalOrder = "taxable_first"`, and none in thousands. Plans solved as pure linear programs
 are untouched. On the example cases with mixed-integer options, results agree with the dollar
-solves within the solver gap (#178).
+solves within 0.3%, as the self-consistent loop stops at slightly different plans. Solve times
+moved both ways: local search and exact Medicare ran two to ten times faster, while
+`withdrawalOrder = "taxable_first"` ran 1.4 to 5 times slower. The expert solver option
+`mipScaleOrder` sets the unit as a power of ten (default 3, thousands); `0` solves in dollars, so
+that every number the solver sees can be checked against other calculations (#178).
 
 ### Version 2026.10.9
 

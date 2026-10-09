@@ -1,5 +1,5 @@
 """
-Tests for the money scaling of MIP solves (MIP_MONEY_SCALE, _MoneyScaling, #178).
+Tests for the money scaling of MIP solves (mipScaleOrder, _MoneyScaling, #178).
 
 A MIP is handed to the solver with every amount in thousands of dollars: continuous columns and
 the rows holding them are divided by the scale, binaries and rows of binaries only are left as
@@ -25,7 +25,6 @@ import numpy as np
 import pytest
 
 import owlplanner as owl
-import owlplanner.plan as plan_module
 from owlplanner.plan import _MoneyScaling
 
 
@@ -56,7 +55,7 @@ def _matvec(a_start, a_index, a_value, x):
 
 def test_scaled_model_is_the_same_model():
     integrality, a_start, a_index, a_value, x, c = _random_mip()
-    sc = _MoneyScaling(integrality, a_start, a_index, scale=1000.0)
+    sc = _MoneyScaling(1000.0, integrality, a_start, a_index)
     xs = sc.col_values(x)
     # Each row's activity, in its scaled units.
     np.testing.assert_allclose(
@@ -73,10 +72,28 @@ def test_scaled_model_is_the_same_model():
         assert sc.row_t[r] == (1.0 if only_int else 1e-3)
 
 
-def test_an_lp_is_not_scaled():
+def test_an_lp_or_a_scale_of_one_is_the_identity():
+    integrality, a_start, a_index, a_value, x, c = _random_mip()
+    assert _MoneyScaling.for_mip(np.zeros_like(integrality), a_start, a_index).identity
+    assert _MoneyScaling.for_mip(integrality, a_start, a_index, {"mipScaleOrder": 0}).identity
+    sc = _MoneyScaling.for_mip(integrality, a_start, a_index)
+    assert not sc.identity and sc.scale == 1000.0
+    ident = _MoneyScaling()
+    assert ident.coefficients(a_index, a_value) is a_value and ident.col_values(x) is x
+    assert ident.solution(x) is x and ident.objective(np.arange(len(c)), c) is c and ident.objective_value(3.5) == 3.5
+
+
+@pytest.mark.parametrize("order,scale", [(0, 1.0), (3, 1e3), (3.0, 1e3), (6, 1e6)])
+def test_scale_order_is_a_power_of_ten(order, scale):
     integrality, a_start, a_index, *_ = _random_mip()
-    assert _MoneyScaling.for_mip(np.zeros_like(integrality), a_start, a_index) is None
-    assert _MoneyScaling.for_mip(integrality, a_start, a_index) is not None
+    assert _MoneyScaling.for_mip(integrality, a_start, a_index, {"mipScaleOrder": order}).scale == scale
+
+
+@pytest.mark.parametrize("order", [-1, 7, 2.5])
+def test_scale_order_out_of_range_is_refused(order):
+    integrality, a_start, a_index, *_ = _random_mip()
+    with pytest.raises(ValueError, match="mipScaleOrder"):
+        _MoneyScaling.for_mip(integrality, a_start, a_index, {"mipScaleOrder": order})
 
 
 def _gated_plan():
@@ -95,24 +112,23 @@ def _gated_plan():
     return p
 
 
-def test_highs_answer_does_not_depend_on_the_units(monkeypatch):
+def test_highs_answer_does_not_depend_on_the_units():
     opts = {"netSpending": 105, "withdrawalOrder": "taxable_first", "solver": "HiGHS"}
     results = {}
-    for scale in (1.0, 1000.0):
-        monkeypatch.setattr(plan_module, "MIP_MONEY_SCALE", scale)
+    for order in (0, 3):
         p = _gated_plan()
-        p.solve("maxBequest", dict(opts))
+        p.solve("maxBequest", dict(opts, mipScaleOrder=order))
         assert p.caseStatus == "solved"
-        results[scale] = (p.bequest, p.b_ijn.copy())
-    assert results[1000.0][0] == pytest.approx(results[1.0][0], rel=1e-3)
+        results[order] = (p.bequest, p.b_ijn.copy())
+    assert results[3][0] == pytest.approx(results[0][0], rel=1e-3)
 
 
 def test_mosek_task_holds_the_scaled_model():
     mosek = pytest.importorskip("mosek")
     p = _gated_plan()
     p.solve("maxBequest", {"netSpending": 105, "withdrawalOrder": "taxable_first", "solver": "HiGHS", "maxIter": 1})
-    sc = p._mosekMoneyScaling(p.A, p.B)
-    assert sc is not None
+    sc = p._mosekMoneyScaling(p.A, p.B, {})
+    assert not sc.identity
     try:
         task, ncons, nvars = p._build_mosek_task(p.A, p.B, p.c, int_vars=p.B.integralityList(), scaling=sc)
     except mosek.Error as e:  # no license: the task cannot even be created

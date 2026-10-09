@@ -74,6 +74,7 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "maxIter",
     "maxRothConversion",
     "maxTime",
+    "mipScaleOrder",
     "netSpending",
     "noLateSurplus",
     "noRothConversions",
