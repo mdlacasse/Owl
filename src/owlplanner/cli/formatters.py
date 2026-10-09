@@ -35,6 +35,11 @@ def _round(val, decimals=0):
     return round(float(val), decimals)
 
 
+def _round_opt(val, decimals=2):
+    """Round to *decimals*, passing None through."""
+    return None if val is None else round(float(val), decimals)
+
+
 def _metrics_to_summary(m: dict) -> dict:
     """
     Translate plan_metrics() snake_case float dict to the JSON summary block.
@@ -103,6 +108,11 @@ def plan_convergence(plan) -> dict:
         # or "local search -> loop" when the search kept the loop's plan.
         "breakpoint_method": getattr(plan, "breakpointMethodUsed", "loop"),
         "fixed_point_residual_today_dollars": residual,
+        # Last solve's wall-clock and CPU seconds (machine- and load-dependent), as in the Summary.
+        "solve_time_seconds": {
+            "wall": _round_opt(getattr(plan, "lastSolveWallTime", None)),
+            "cpu": _round_opt(getattr(plan, "lastSolveCPUTime", None)),
+        },
     }
 
 

@@ -1936,3 +1936,113 @@ def test_debt_linked_to_a_property_is_paid_off_at_the_sale():
     assert runs["linked"][sale + 1] == 0 < runs["term"][sale + 1]
     bad = json.loads(_run(run_from_params(**base, debts=[dict(db[0], property="cottage")])))
     assert "cottage" in bad["error"]
+
+
+def test_beneficiary_fractions_and_deposit_fraction_reach_the_plan():
+    plan = _couple(beneficiary_fractions=[0, 0.5, 0, 1], spousal_deposit_fraction=1.0)
+    assert list(plan.phi_j) == [0, 0.5, 0, 1]
+    assert plan.eta == 1.0
+
+
+def test_beneficiary_fractions_refused_for_a_single():
+    with pytest.raises(ValueError, match="couples only"):
+        _single(beneficiary_fractions=[0, 0, 0, 1])
+
+
+def test_partial_bequest_weight_reaches_the_solver_options():
+    from owlplanner.assistant.tools import _build_mcp_opts
+
+    assert _build_mcp_opts(partial_bequest_weight=0.02)["partialBequestWeight"] == 0.02
+    assert "partialBequestWeight" not in _build_mcp_opts()
+
+
+@pytest.mark.toml
+def test_run_from_params_reports_a_partial_bequest_and_solve_time():
+    """Accounts left to other heirs at the first death show as the partial bequest."""
+    data = json.loads(
+        _run(
+            run_from_params(
+                names=["Alice", "Bob"],
+                birth_dates=["1962-03-15", "1963-07-04"],
+                life_expectancy=[78, 90],
+                taxable=[300_000, 100_000],
+                tax_deferred=[800_000, 400_000],
+                roth=[50_000, 20_000],
+                ss_monthly_pias=[2800, 2000],
+                ss_ages=[67, 67],
+                state="TX",
+                rate_method="conservative",
+                objective="maxBequest",
+                net_spending=60_000,
+                beneficiary_fractions=[0, 0, 0, 1],
+                spousal_deposit_fraction=1.0,
+                # Above a dollar of final bequest, so Alice's accounts are kept for her heirs.
+                partial_bequest_weight=1.5,
+            )
+        )
+    )
+    assert data["status"] == "solved"
+    assert data["partial_bequest_today_dollars"] > 0
+    assert data["partial_bequest_year"] == 1962 + 78
+    assert data["solve_time_seconds"]["wall"] is not None
+
+
+def test_save_case_writes_the_estate_options(tmp_path):
+    import tomllib
+
+    out = json.loads(
+        save_case(
+            names=["Alice", "Bob"],
+            birth_dates=["1963-07-01", "1961-07-01"],
+            life_expectancy=[90, 87],
+            taxable=[150_000, 150_000],
+            tax_deferred=[600_000, 600_000],
+            roth=[75_000, 75_000],
+            state="TX",
+            beneficiary_fractions=[0, 0, 0, 1],
+            spousal_deposit_fraction=0.0,
+            partial_bequest_weight=0.02,
+            output_dir=str(tmp_path),
+        )
+    )
+    with open(out["toml_file"], "rb") as f:
+        conf = tomllib.load(f)
+    assert conf["savings_assets"]["beneficiary_fractions"] == [0, 0, 0, 1]
+    assert conf["savings_assets"]["spousal_surplus_deposit_fraction"] == 0.0
+    assert conf["solver_options"]["partialBequestWeight"] == 0.02
+
+
+def test_stress_tools_drop_the_breakpoint_preset():
+    """Local search is for one plan; scenario solves use the loop and say so."""
+    from owlplanner.assistant.tools import _drop_breakpoint_preset
+
+    opts = {"breakpointMethod": "local-search", "withMedicare": "optimize"}
+    note = _drop_breakpoint_preset(opts)
+    assert "breakpointMethod" not in opts and "local-search" in note
+    assert opts["withMedicare"] == "optimize"  # explicit per-family modes are left as given
+    for quiet in ({}, {"breakpointMethod": "loop"}, {"breakpointMethod": " Loop "}):
+        assert _drop_breakpoint_preset(quiet) is None and "breakpointMethod" not in quiet
+
+
+@pytest.mark.toml
+def test_run_historical_solves_scenarios_with_the_loop():
+    data = json.loads(
+        _run(
+            run_historical(
+                names=["Martin"],
+                birth_dates=["1960-07-01"],
+                life_expectancy=[80],
+                taxable=[200_000],
+                tax_deferred=[800_000],
+                roth=[100_000],
+                ss_monthly_pias=[2500],
+                ss_ages=[67],
+                state="TX",
+                breakpoint_method="local-search",
+                ystart=1990,
+                yend=1991,
+            )
+        )
+    )
+    assert data["n_scenarios_solved"] == 2
+    assert "local-search" in data["breakpoint_method_note"]

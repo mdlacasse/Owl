@@ -21,6 +21,7 @@ Tools implemented:
   run_from_params          — build and solve from structured parameters (no TOML needed)
   save_case                — save structured parameters to TOML + HFP Excel for reproducibility
   run_stochastic           — spending frontier over historical or Monte Carlo scenarios
+  run_year1_robustness     — distribution of first-year decisions across scenarios
   run_spending_bequest_frontier — trade-off curve between net spending and bequest
   run_longevity_stochastic — frontier with joint market + lifespan sampling
   run_historical           — backtest across historical sequences, return outcome distribution
@@ -84,6 +85,8 @@ SERVER_INSTRUCTIONS = (
     "goals and rules, Roth conversion rationale, bracket fill, withdrawal ordering), "
     "run_from_params to solve directly from user-provided "
     "numbers without a TOML file, save_case to persist those parameters, "
+    "and breakpoint_method='local-search' on run_from_params for a more accurate plan "
+    "the user will act on (seconds to minutes; the stress tools solve their scenarios with the loop), "
     "run_stochastic to compute an efficient spending frontier across historical "
     "or Monte Carlo scenarios and answer probability-of-success questions, "
     "run_year1_robustness to report how the first year's decisions (Roth "
@@ -191,6 +194,7 @@ def _build_mcp_opts(
     with_medicare=None,
     with_aca=None,
     breakpoint_method=None,
+    partial_bequest_weight=None,
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
     withdrawal_order=None,
@@ -227,6 +231,8 @@ def _build_mcp_opts(
         opts["withACA"] = with_aca
     if breakpoint_method is not None:
         opts["breakpointMethod"] = breakpoint_method
+    if partial_bequest_weight is not None:
+        opts["partialBequestWeight"] = float(partial_bequest_weight)
     if withdrawal_order is not None:
         opts["withdrawalOrder"] = withdrawal_order
     _swap = _swap_roth_converters_value(inames, swap_roth_converters_first, swap_roth_converters_year)
@@ -301,6 +307,22 @@ def _downgrade_milp_tax_modes(opts):
     opts.pop("breakpointMethod", None)
     opts.pop("mipStrategy", None)
     return downgraded
+
+
+def _drop_breakpoint_preset(opts):
+    """Solve the scenarios of a stress test with the loop, whatever breakpointMethod asked.
+
+    Local search and branch-and-bound take seconds to minutes per solve: worth it for the one
+    plan the user acts on, not for each of hundreds of scenarios. Explicit per-family modes
+    (withMedicare="optimize", ...) are left as given. Returns a note for the response, or None.
+    """
+    method = opts.pop("breakpointMethod", None)
+    if method is None or str(method).strip().lower() == "loop":
+        return None
+    return (
+        f"breakpoint_method {method!r} applies to a single plan; the scenario solves used the loop. "
+        "Solve the chosen plan with run_from_params to apply it."
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -882,6 +904,8 @@ def _build_plan_from_params(
     assumed=None,
     reproducible_seed=None,
     state_move=None,
+    beneficiary_fractions=None,
+    spousal_deposit_fraction=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
@@ -1016,6 +1040,13 @@ def _build_plan_from_params(
     )
     if state or state_move:
         plan.setStateTax(state, [state_move] if state_move else None)
+    if beneficiary_fractions is not None or spousal_deposit_fraction is not None:
+        if N_i != 2:
+            raise ValueError("beneficiary_fractions and spousal_deposit_fraction apply to couples only.")
+        if beneficiary_fractions is not None:
+            plan.setBeneficiaryFractions([float(f) for f in beneficiary_fractions])
+        if spousal_deposit_fraction is not None:
+            plan.setSpousalDepositFraction(float(spousal_deposit_fraction))
     plan.setSpendingProfile(
         spending_profile,
         percent=int(survivor_fraction),
@@ -1269,6 +1300,9 @@ def _run_from_params_blocking(
     liquidation_capgains_rate=None,
     assumed=None,
     state_move=None,
+    beneficiary_fractions=None,
+    spousal_deposit_fraction=None,
+    partial_bequest_weight=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1323,6 +1357,8 @@ def _run_from_params_blocking(
         liquidation_capgains_rate=liquidation_capgains_rate,
         assumed=assumed,
         state_move=state_move,
+        beneficiary_fractions=beneficiary_fractions,
+        spousal_deposit_fraction=spousal_deposit_fraction,
     )
     if (
         assumed is not None
@@ -1352,6 +1388,7 @@ def _run_from_params_blocking(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -1404,6 +1441,28 @@ async def run_from_params(
             description='One change of state during the plan, e.g. {"year": 2031, "state": "FL"}: the '
             "new state taxes that year and every year after (the December 31 residence taxes the whole "
             'year). "state" may be "" for no state income tax. At most one move.'
+        ),
+    ] = None,
+    beneficiary_fractions: Annotated[
+        list[float] | None,
+        Field(
+            description="Couples only: fraction of the first spouse's [taxable, tax_deferred, roth, hsa] "
+            "accounts left to the surviving spouse (default [1, 1, 1, 1]). The rest passes to other "
+            "heirs at the first death, reported as partial_bequest_today_dollars."
+        ),
+    ] = None,
+    spousal_deposit_fraction: Annotated[
+        float | None,
+        Field(
+            description="Couples only: fraction (0-1) of a yearly surplus deposited to the second person's "
+            "taxable account, the rest to the first's (default 0.5)."
+        ),
+    ] = None,
+    partial_bequest_weight: Annotated[
+        float | None,
+        Field(
+            description="Value of a dollar left to other heirs at the first death, as a fraction of a dollar of "
+            "spending or final bequest (default max(1%, twice the solver gap))."
         ),
     ] = None,
     objective: Annotated[str, Field(description="maxSpending (default) or maxBequest.")] = "maxSpending",
@@ -1578,6 +1637,18 @@ async def run_from_params(
                         omitted, TX (no state tax) is assumed and flagged in assumed_defaults.
         state_move:     One change of state during the plan, e.g. {"year": 2031, "state": "FL"}:
                         the new state taxes that year and every year after. At most one move.
+        beneficiary_fractions: Couples only.  Fractions of the first spouse to die's
+                        [taxable, tax_deferred, roth, hsa] accounts left to the survivor
+                        (default [1, 1, 1, 1]).  The rest passes to other heirs at the first
+                        death and is reported as partial_bequest_today_dollars and
+                        partial_bequest_year.
+        spousal_deposit_fraction: Couples only.  Fraction (0-1) of a yearly surplus deposited
+                        to the second person's taxable account, the rest to the first's
+                        (default 0.5).
+        partial_bequest_weight: Value of a dollar left to other heirs at the first death, as a
+                        fraction of a dollar of spending or final bequest.  Default
+                        max(1%, twice the solver gap): enough to break ties, not a
+                        valuation; raise it to value those heirs for real.
         objective:      Optimization objective: "maxSpending" (default) or "maxBequest".
         rate_method:    Return model name (use list_rate_models to see options).  Use "user"
                         together with rate_values to specify custom fixed rates; use
@@ -1682,6 +1753,8 @@ async def run_from_params(
                         "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
                         plan; never worse than the loop, not a proven optimum). Sets every
                         applicable family to MILP and overrides a fixed SS taxable fraction.
+                        Use "local-search" for the plan the user will act on: a more accurate
+                        answer for seconds to a few minutes of solving.
         aca_start_year: Calendar year ACA coverage begins (e.g. 2028 if retiring that year).
                         Omit or 0 to start from the plan's first year.
         with_medicare:  Medicare IRMAA modeling mode: "none" (disable), "loop" (iterative
@@ -1820,6 +1893,9 @@ async def run_from_params(
             liquidation_capgains_rate,
             assumed,
             state_move,
+            beneficiary_fractions,
+            spousal_deposit_fraction,
+            partial_bequest_weight,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -1871,6 +1947,9 @@ def save_case(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -1984,6 +2063,8 @@ def save_case(
             liquidation_capgains_rate=liquidation_capgains_rate,
             assumed=assumed,
             state_move=state_move,
+            beneficiary_fractions=beneficiary_fractions,
+            spousal_deposit_fraction=spousal_deposit_fraction,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -1997,6 +2078,8 @@ def save_case(
         plan.solverOptions["withACA"] = with_aca
     if breakpoint_method is not None:
         plan.solverOptions["breakpointMethod"] = breakpoint_method
+    if partial_bequest_weight is not None:
+        plan.solverOptions["partialBequestWeight"] = float(partial_bequest_weight)
     if net_spending is not None:
         plan.solverOptions["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -2216,6 +2299,9 @@ async def compare_to_baseline(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
     rate_values: list[float] | None = None,
@@ -2409,6 +2495,8 @@ async def compare_to_baseline(
             liquidation_capgains_rate=liquidation_capgains_rate,
             reproducible_seed=seed_used,
             state_move=state_move,
+            beneficiary_fractions=beneficiary_fractions,
+            spousal_deposit_fraction=spousal_deposit_fraction,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2425,6 +2513,7 @@ async def compare_to_baseline(
             with_medicare=with_medicare,
             with_aca=with_aca,
             breakpoint_method=breakpoint_method,
+            partial_bequest_weight=partial_bequest_weight,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2499,6 +2588,9 @@ async def explain_results(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
     rate_values: list[float] | None = None,
@@ -2687,6 +2779,8 @@ async def explain_results(
             liquidation_tax_rate=liquidation_tax_rate,
             liquidation_capgains_rate=liquidation_capgains_rate,
             state_move=state_move,
+            beneficiary_fractions=beneficiary_fractions,
+            spousal_deposit_fraction=spousal_deposit_fraction,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2703,6 +2797,7 @@ async def explain_results(
             with_medicare=with_medicare,
             with_aca=with_aca,
             breakpoint_method=breakpoint_method,
+            partial_bequest_weight=partial_bequest_weight,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2732,12 +2827,13 @@ async def explain_results(
     explanation = build_explanation(plan)
     if downgraded and "caveats" in explanation:
         explanation["caveats"].append(
-            f"{', '.join(downgraded)} downgraded from 'optimize' to 'loop' for this explanation: "
+            f"{', '.join(downgraded)} downgraded to 'loop' for this explanation: "
             "shadow prices come from an LP with discrete choices fixed either way, and threshold "
             "effects are reported as headroom in this_year rather than as marginal prices."
         )
     metrics = plan_metrics(plan)
     result = {
+        "engine": engine_provenance(),
         "explanation": explanation,
         "key_metrics": {
             k: round(metrics[k], 2)
@@ -2907,6 +3003,7 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
     }
 
     out = {
+        "engine": engine_provenance(),
         "status": "completed",
         "case_name": plan._name,
         "objective": objective,
@@ -3033,6 +3130,9 @@ async def run_stochastic(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -3297,6 +3397,8 @@ async def run_stochastic(
                 assumed=assumed,
                 reproducible_seed=seed,
                 state_move=state_move,
+                beneficiary_fractions=beneficiary_fractions,
+                spousal_deposit_fraction=spousal_deposit_fraction,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3316,6 +3418,7 @@ async def run_stochastic(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3324,6 +3427,7 @@ async def run_stochastic(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -3352,6 +3456,8 @@ async def run_stochastic(
             "Use scenario_method='mc' to control the scenario count via n_scenarios."
         )
 
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -3484,6 +3590,9 @@ async def run_spending_bequest_frontier(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
     rate_frm: int | None = None,
@@ -3720,6 +3829,8 @@ async def run_spending_bequest_frontier(
                 assumed=assumed,
                 reproducible_seed=seed,
                 state_move=state_move,
+                beneficiary_fractions=beneficiary_fractions,
+                spousal_deposit_fraction=spousal_deposit_fraction,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3737,6 +3848,7 @@ async def run_spending_bequest_frontier(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3747,6 +3859,7 @@ async def run_spending_bequest_frontier(
     opts.pop("bequest", None)
     opts["units"] = "1"
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
 
     if bequest_grid is None:
         grid = await asyncio.get_running_loop().run_in_executor(None, _default_bequest_grid, plan, opts)
@@ -3783,6 +3896,8 @@ async def run_spending_bequest_frontier(
             "start year at each bequest level (controlled by ystart/yend). Use "
             "scenario_method='mc' to control the scenario count."
         )
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -3894,6 +4009,9 @@ async def run_year1_robustness(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -4058,6 +4176,8 @@ async def run_year1_robustness(
                 assumed=assumed,
                 reproducible_seed=seed,
                 state_move=state_move,
+                beneficiary_fractions=beneficiary_fractions,
+                spousal_deposit_fraction=spousal_deposit_fraction,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4077,6 +4197,7 @@ async def run_year1_robustness(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4108,7 +4229,7 @@ async def run_year1_robustness(
 
     if downgraded:
         out["notes"].append(
-            f"{', '.join(downgraded)} downgraded from 'optimize' to 'loop' for the scenario solves."
+            f"{', '.join(downgraded)} downgraded to 'loop' for the scenario solves."
         )
     if scenario_method == "historical" and n_scenarios != 200:
         out["notes"].append(
@@ -4186,6 +4307,8 @@ def _longevity_stochastic_blocking(
     dividend_rate=None,
     assumed=None,
     state_move=None,
+    beneficiary_fractions=None,
+    spousal_deposit_fraction=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4244,6 +4367,8 @@ def _longevity_stochastic_blocking(
         assumed=assumed,
         reproducible_seed=seed,
         state_move=state_move,
+        beneficiary_fractions=beneficiary_fractions,
+        spousal_deposit_fraction=spousal_deposit_fraction,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4317,6 +4442,9 @@ async def run_longevity_stochastic(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -4505,10 +4633,12 @@ async def run_longevity_stochastic(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=names,
     )
+    bp_note = _drop_breakpoint_preset(opts)
 
     assumed: list[dict] = []
     try:
@@ -4574,6 +4704,8 @@ async def run_longevity_stochastic(
             dividend_rate,
             assumed,
             state_move,
+            beneficiary_fractions,
+            spousal_deposit_fraction,
         )
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
@@ -4585,6 +4717,8 @@ async def run_longevity_stochastic(
 
     out["mortality_table"] = mortality_table
     out["sexes"] = list(sexes)
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -4617,6 +4751,9 @@ async def run_historical(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -4743,10 +4880,9 @@ async def run_historical(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         How ACA premiums are solved: "loop" or "optimize". Modeled whenever slcsp > 0.
-        breakpoint_method: How tax breakpoints are solved: "loop" (default),
-                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
-                          plan; never worse than the loop, not a proven optimum). Sets every
-                          applicable family to MILP and overrides a fixed SS taxable fraction.
+        breakpoint_method: Accepted but not applied: every scenario is solved with the loop,
+                          since local search or branch-and-bound would take seconds to minutes
+                          per scenario (reported in breakpoint_method_note).
         aca_start_year:   Calendar year ACA coverage begins.
         ss_trim_pct:      SS trust fund haircut — percent reduction in SS benefits (0–100).
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
@@ -4859,6 +4995,8 @@ async def run_historical(
                 dividend_rate=dividend_rate,
                 assumed=assumed,
                 state_move=state_move,
+                beneficiary_fractions=beneficiary_fractions,
+                spousal_deposit_fraction=spousal_deposit_fraction,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4878,6 +5016,7 @@ async def run_historical(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4886,6 +5025,7 @@ async def run_historical(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, n_attempted, results, ystart_actual, yend_actual = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -4909,6 +5049,8 @@ async def run_historical(
     out["ystart_used"] = ystart_actual
     out["yend_used"] = yend_actual
     out["augmented"] = augmented
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)
@@ -4941,6 +5083,9 @@ async def run_monte_carlo(
     spias: list[dict] | None = None,
     state: str | None = None,
     state_move: dict | None = None,
+    beneficiary_fractions: list[float] | None = None,
+    spousal_deposit_fraction: float | None = None,
+    partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "gmm",
     rate_values: list[float] | None = None,
@@ -5078,10 +5223,9 @@ async def run_monte_carlo(
         with_medicare:    Medicare IRMAA mode: "none", "loop", or "optimize".
         slcsp:            Annual ACA Silver benchmark premium in $/year for pre-65 individuals.
         with_aca:         How ACA premiums are solved: "loop" or "optimize". Modeled whenever slcsp > 0.
-        breakpoint_method: How tax breakpoints are solved: "loop" (default),
-                          "branch-and-bound", or "local-search" (fix-and-optimize around the loop's
-                          plan; never worse than the loop, not a proven optimum). Sets every
-                          applicable family to MILP and overrides a fixed SS taxable fraction.
+        breakpoint_method: Accepted but not applied: every scenario is solved with the loop,
+                          since local search or branch-and-bound would take seconds to minutes
+                          per scenario (reported in breakpoint_method_note).
         aca_start_year:   Calendar year ACA coverage begins.
         constrain_mean:   If True, pin each scenario's mean returns to historical averages,
                           isolating sequence-of-returns risk.
@@ -5194,6 +5338,8 @@ async def run_monte_carlo(
                 dividend_rate=dividend_rate,
                 assumed=assumed,
                 state_move=state_move,
+                beneficiary_fractions=beneficiary_fractions,
+                spousal_deposit_fraction=spousal_deposit_fraction,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5213,6 +5359,7 @@ async def run_monte_carlo(
         with_medicare=with_medicare,
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
+        partial_bequest_weight=partial_bequest_weight,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -5221,6 +5368,7 @@ async def run_monte_carlo(
         opts = _merge_case_opts(plan, opts)
 
     _scrub_optimized_ss_ages(assumed, opts)
+    bp_note = _drop_breakpoint_preset(opts)
     try:
         plan, n_attempted, results = await asyncio.get_running_loop().run_in_executor(
             None,
@@ -5239,6 +5387,8 @@ async def run_monte_carlo(
 
     out = _build_distribution_json(plan, results, objective, "mc", n_attempted)
     out["rate_method"] = plan.rateMethod if hasattr(plan, "rateMethod") else rate_method
+    if bp_note:
+        out["breakpoint_method_note"] = bp_note
     if assumed:
         out["assumed_defaults"] = assumed
     return json.dumps(out, indent=2, cls=_NumpyEncoder)

@@ -101,14 +101,18 @@ as commands and lets you attach resources to the conversation):
 | **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
 | | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa`. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
 | | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
-| **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
+| | `qcds` | Qualified charitable distributions from the tax-deferred account: `[{"person","annual_amount","start_year","end_year"}]`. Excluded from AGI and counted toward the RMD; donor must be 70½ or older |
+| **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining","property"}`. Optional `property` names a residence or real estate in `fixed_assets` (by its `label`) whose sale pays the loan off; a link to a missing or ineligible property is an error |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
 | | `spias` | SPIAs: `{"person","buy_year","premium","monthly_income","indexed","survivor_fraction"}` |
 | **Plan settings** | `state` | Two-letter US state code for income tax. Strongly recommended; if omitted, TX (no state tax) is assumed and flagged in `assumed_defaults` |
+| | `state_move` | One change of state during the plan, e.g. `{"year": 2031, "state": "FL"}`: the new state taxes that year and every year after; `"state": ""` stops state tax |
 | | `objective` | `"maxSpending"` (default) or `"maxBequest"` |
 | | `survivor_fraction` | Surviving-spouse spending as % of couple spending (default 60) |
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
+| | `beneficiary_fractions` | Couples only: fractions of the first decedent's `[taxable, tax_deferred, roth, hsa]` left to the survivor (default `[1,1,1,1]`); the rest is the partial bequest to other heirs |
+| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5) |
 | | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
 | | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
 | **Rate model** | `rate_method` | Return model name (use `list_rate_models`). If omitted, fixed `"conservative"` rates are assumed and flagged in `assumed_defaults` |
@@ -137,7 +141,9 @@ as commands and lets you attach resources to the conversation):
 | | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
 | | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
-| | `with_aca` | ACA premium mode: `"none"`, `"loop"` (default when `slcsp` set), or `"optimize"` |
+| | `with_aca` | How ACA premiums are solved: `"loop"` (default) or `"optimize"`; ACA is modeled whenever `slcsp` > 0 |
+| | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum). Use `"local-search"` for the plan the user will act on: more accurate, for seconds to a few minutes of solving. The stress tools (`run_stochastic`, the frontiers, `run_historical`, `run_monte_carlo`) solve every scenario with the loop and say so in `breakpoint_method_note` |
+| | `partial_bequest_weight` | Value of a dollar left to other heirs at the first death, as a fraction of a dollar (default max(1%, twice the solver gap)) |
 | | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
 | | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |
 | | `solver` | `"HiGHS"` or `"MOSEK"` (default: best available) |
@@ -182,8 +188,15 @@ self-consistent: the LP is built from the previous iterate's Medicare premiums, 
 Security taxable fraction, NIIT and ACA costs, so a plan whose own income would change
 those has not reached a fixed point. Values of a few dollars are ordinary rounding; values
 in the hundreds or more mean the plan is still moving and its tax figures should not be
-quoted precisely. The `residualTol` solver option (default `100`) is the bar the loop must
-clear before it declares convergence.
+quoted precisely. The `residualTol` solver option (default `50`) is the bar the loop must
+clear before it declares convergence. Beside them, `breakpoint_method` says how the tax
+breakpoints were solved (`loop`, `branch-and-bound (...)`, `local search (...)`), and
+`solve_time_seconds` gives the last solve's `wall` and `cpu` seconds (machine-dependent).
+
+**Other plan-level results:** `state_moves` lists the change of state, if any.
+`partial_bequest_today_dollars` and `partial_bequest_year` report what passes to
+non-spouse heirs at the first death when `beneficiary_fractions` are below 1, after the
+heirs' tax; it is reported apart from the final `total_bequest_*` figures.
 
 **Two strategy-analysis tools:**
 

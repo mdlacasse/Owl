@@ -18,6 +18,33 @@ column is a dropdown of the residences and real estate in *Fixed Assets*, and a 
 or deleted property stays visible with a warning. The example workbooks carry the column. Thanks
 to Florin Mateoc for the original suggestion (#173).
 
+#### Fixed: `withdrawalOrder = "taxable_first"` could close a gate no plan needs
+
+The gates of the taxable-first order used one big-M for every row: the whole portfolio
+compounded at the best return any account sees, each year. With accounts invested differently
+over a long plan it reached hundreds of times the real portfolio ($973M against $13M in one
+case), beyond what HiGHS resolves reliably. HiGHS then called feasible plans infeasible in
+presolve, or closed the last year's gate though nothing used it, forcing the taxable account to
+end at zero. The taxable money then had no value to the objective, and the solver could spend
+it on taxes: one plan sold its whole taxable account in the first year and bought most of it
+back, paying $500k of tax, for a bequest of $3.5M instead of $5.5M. Each gate row now has its
+own bound, the best growth path through the one-way order of the accounts (tax-deferred to Roth
+to taxable), 15 times tighter in that case. Over that case's first 40 Monte Carlo paths, presolve
+no longer calls any plan infeasible (24 times before) and no plan sells and buys back its
+taxable account. Long plans in strong markets still reach balances, and so bounds, of hundreds
+of millions of dollars, where HiGHS presolve can still misjudge a plan, though less often.
+Reported by @ravishahani (#178).
+
+#### Fixed: a rate below 1% in Debts or Fixed Assets read as 50 times more after a reload
+
+Reading a workbook multiplied every `rate` and `commission` between 0 and 1 by 100 in the *Debts*
+and *Fixed Assets* sheets, taking it for a fraction such as 0.045 for 4.5%. These columns hold
+percent numbers, and small ones are expected: 0.5% of real growth for a residence became 50%, a
+0.9% loan 90%. A plan saved and opened again, in the UI, the CLI or through `save_case`, changed.
+Values are now read as typed. Only a cell the spreadsheet formats as a percentage (4.50%, which
+stores 0.045) is converted. The example workbooks hold whole percents and read as before. Thanks
+to Florin Mateoc for reporting the bug and proposing the fix (#176).
+
 #### Fixed: a solver option with a value Owl does not know is refused
 
 `withMedicare`, `withACA`, `withLTCG`, `withNIIT`, `withSSTaxability` and `withdrawalOrder`
@@ -28,6 +55,27 @@ premiums from the plan. Names are now read in any case, numeric text pins the So
 fraction (in [0, 1]), `true`/`false` from older case files still read as `"loop"`/`"none"`, and
 any other value is refused with the valid choices named. Thanks to Florin Mateoc for reporting the
 bug (#174).
+
+#### Changed: the MCP tools take beneficiary fractions and report the solve time
+
+The tools that build a plan from parameters (`run_from_params`, `save_case`, `compare_to_baseline`,
+`explain_results` and the stress tests) take `beneficiary_fractions`, `spousal_deposit_fraction`
+and `partial_bequest_weight`. Without the first, a couple's partial bequest could only be modeled
+from a case file: with every fraction at 1 nothing passes to other heirs at the first death.
+Results report `solve_time_seconds` (wall clock and CPU), as the Summary's *Solve time* row does,
+and `run_historical`, `run_monte_carlo` and `explain_results` now return the `engine` entry like
+the other tools. With local search or branch-and-bound, the explanation tools' note said the
+breakpoints were downgraded "from 'optimize'"; it now says only that they were downgraded to the
+loop. The MCP documentation lists the parameters added since September (`state_move`,
+`breakpoint_method`, `qcds`, a debt's `property`), gives `residualTol`'s default as 50, and the
+modeling-capabilities table gives the current default for `partialBequestWeight`.
+
+The stress-test tools (`run_stochastic`, `run_spending_bequest_frontier`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now solve their scenarios with
+the loop whatever `breakpoint_method` asks, and say so in `breakpoint_method_note`: local search
+takes seconds to minutes per solve, which is worth it for the one plan the user acts on, not for
+hundreds of scenarios. `run_year1_robustness` already did. The tool descriptions recommend
+`breakpoint_method = "local-search"` with `run_from_params` for that one plan.
 
 ### Version 2026.10.8
 
