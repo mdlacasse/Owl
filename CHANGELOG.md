@@ -14,6 +14,23 @@ column is a dropdown of the residences and real estate in *Fixed Assets*, and a 
 or deleted property stays visible with a warning. The example workbooks carry the column. Thanks
 to Florin Mateoc for the original suggestion (#173).
 
+#### Fixed: `withdrawalOrder = "taxable_first"` could close a gate no plan needs
+
+The gates of the taxable-first order used one big-M for every row: the whole portfolio
+compounded at the best return any account sees, each year. With accounts invested differently
+over a long plan it reached hundreds of times the real portfolio ($973M against $13M in one
+case), beyond what HiGHS resolves reliably. HiGHS then called feasible plans infeasible in
+presolve, or closed the last year's gate though nothing used it, forcing the taxable account to
+end at zero. The taxable money then had no value to the objective, and the solver could spend
+it on taxes: one plan sold its whole taxable account in the first year and bought most of it
+back, paying $500k of tax, for a bequest of $3.5M instead of $5.5M. Each gate row now has its
+own bound, the best growth path through the one-way order of the accounts (tax-deferred to Roth
+to taxable), 15 times tighter in that case. Over that case's first 40 Monte Carlo paths, presolve
+no longer calls any plan infeasible (24 times before) and no plan sells and buys back its
+taxable account. Long plans in strong markets still reach balances, and so bounds, of hundreds
+of millions of dollars, where HiGHS presolve can still misjudge a plan, though less often.
+Reported by @ravishahani (#178).
+
 #### Fixed: a rate below 1% in Debts or Fixed Assets read as 50 times more after a reload
 
 Reading a workbook multiplied every `rate` and `commission` between 0 and 1 by 100 in the *Debts*

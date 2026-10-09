@@ -3051,6 +3051,102 @@ class Plan:
         ceiling[self.N_n] = wealth
         return 2.0 * np.maximum(ceiling, 1.0)
 
+    def _gateCeilings(self):
+        """Upper bounds on what each withdrawal-ordering gate switches off, per year.
+
+        _portfolioCeiling compounds the whole portfolio at the best return any account sees, each
+        year: money may hop every year to whichever account does best. Over a long plan with
+        accounts invested differently that bound runs to hundreds of times the real portfolio, and
+        a big-M that size next to dollar coefficients is beyond what HiGHS resolves reliably: it
+        can call the MIP infeasible in presolve, or settle on gates no plan needs (#178).
+
+        Money moves only one way between accounts: from tax-deferred to Roth (conversions), and
+        from any account to taxable (a withdrawal deposited as surplus). A dollar's best growth is
+        therefore the best path through that order, and each gate is bounded by the paths that
+        end in the account it gates:
+          tax[n]    bounds the household taxable balance at the start of year n (length N_n + 1);
+          td_bal[n] bounds the household tax-deferred balance at the start of year n (N_n + 1);
+          txdef[n]  bounds a year-n tax-deferred withdrawal;
+          roth[n]   bounds a year-n Roth withdrawal.
+        Sources are the starting balances, the contributions, and every fixed income that could
+        reach taxable as a surplus (wages, Social Security, pensions, annuities, windfalls, sale
+        proceeds), with no tax taken out. Each bound is doubled, as in _portfolioCeiling, so that
+        it stays a bound and never a constraint.
+        """
+        Nn = self.N_n
+        TX, TD, RO, HS = 0, 1, 2, 3
+        tau_ijn = np.einsum("ijkn,kn->ijn", self.alpha_ijkn[:, :, :, :Nn], self.tau_kn[:, :Nn])
+        g_jn = 1.0 + np.max(tau_ijn, axis=0)  # best growth of each account type, per year
+        # A contribution earns half the year's return (Tauh in the carryover rows), which beats the
+        # full return in a down year.
+        g_half_jn = np.maximum(g_jn, 1.0 + np.max(tau_ijn, axis=0) / 2)
+
+        ss_in = self.zetaBar_in
+        if "ssb" in self.vm:
+            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + np.max(self._ssa_B_own[:, :, :Nn], axis=1))
+        pos = lambda a: np.maximum(a, 0.0)  # noqa: E731
+        fixed_n = (
+            np.sum(pos(self.omega_in) + pos(self.other_inc_in) + pos(self.netinv_in), axis=0)
+            + np.sum(pos(self.piBar_in) + pos(self.spiaBar_in) + pos(ss_in) + pos(self.Lambda_in), axis=0)
+            + pos(self.fixed_assets_ordinary_income_n)
+            + pos(self.fixed_assets_capital_gains_n)
+            + pos(self.fixed_assets_tax_free_n)
+        )
+        kappa_jn = np.sum(self.kappa_ijn[:, :, :Nn], axis=0)
+
+        def step(v, g_j):
+            """Best value of a unit, by the account it is in, after a year of growth g_j."""
+            out = np.empty(4)
+            out[TD] = v[TD] * g_j[TD]
+            out[RO] = max(v[RO], v[TD]) * g_j[RO]
+            out[HS] = v[HS] * g_j[HS]
+            out[TX] = max(v[TX], v[TD], v[RO], v[HS]) * g_j[TX]
+            return out
+
+        # bal[j, n]: bound on the household balance of account j at the start of year n. Each
+        # source is followed on its own and the bounds added: a sum of best paths, never less
+        # than any plan's balance.
+        bal = np.zeros((4, Nn + 1))
+        # January 1 balances, back-projected from the start date as _add_initial_balances does:
+        # after a first-year loss they exceed the balances entered.
+        tau0_ij = np.einsum("ijk,k->ij", self.alpha_ijkn[:, :, :, 0], self.tau_kn[:, 0])
+        backTau_ij = 1 + (1 - self.yearFracLeft) * tau0_ij
+        start = np.sum(self.beta_ij / backTau_ij, axis=0).astype(float)
+        bal[:, 0] = start
+        sources = [(start, 0, g_jn[:, 0])]
+        for n in range(Nn):
+            # Year-n inflows: contributions to their own account, fixed income to taxable. They
+            # earn year n's return, half of it for a contribution (Tauh in the carryover rows).
+            src = kappa_jn[:, n].astype(float).copy()
+            src[TX] += fixed_n[n]
+            if np.any(src > 0):
+                sources.append((src, n, g_half_jn[:, n]))
+        for amounts, s, g_first in sources:
+            # step() follows one sum of money: amounts in different accounts can all reach
+            # taxable, which a max over accounts would undercount, so each is followed alone.
+            for j in range(4):
+                if amounts[j] <= 0:
+                    continue
+                v = np.zeros(4)
+                v[j] = amounts[j]
+                v = step(v, g_first)
+                bal[:, s + 1] += v
+                for n in range(s + 1, Nn):
+                    v = step(v, g_jn[:, n])
+                    bal[:, n + 1] += v
+
+        # A year's withdrawal can reach the start balance plus that year's contributions, which the
+        # carryover rows credit at Tauh/Tau1 of their value (more than 1 in a down year), and, for
+        # Roth, that year's conversion, bounded by the tax-deferred balance.
+        ratio_jn = np.maximum(1.0, g_half_jn / np.maximum(g_jn, 1e-6))
+        tax = 2.0 * np.maximum(bal[TX], 1.0)
+        td_bal = 2.0 * np.maximum(bal[TD], 1.0)
+        txdef = 2.0 * np.maximum(bal[TD, :Nn] + kappa_jn[TD] * ratio_jn[TD], 1.0)
+        roth = 2.0 * np.maximum(
+            bal[RO, :Nn] + bal[TD, :Nn] + kappa_jn[RO] * ratio_jn[RO] + kappa_jn[TD] * ratio_jn[TD], 1.0
+        )
+        return tax, td_bal, txdef, roth
+
     @_fixedAcrossIterations
     def _add_withdrawal_ordering(self, options):
         """
@@ -3072,13 +3168,12 @@ class Plan:
         """
         if "zo" not in self.vm:
             return
-        # Every quantity these gates switch off is a balance or a withdrawal, so the
-        # portfolio ceiling bounds them all. Sizing M to what the row actually gates keeps
-        # the gates honest: a solver's integer tolerance buys slack in proportion to M, so
-        # an oversized constant is hundreds of dollars of balance slipping past a closed gate.
-        ceiling_n = self._portfolioCeiling()
+        # Every quantity these gates switch off is a balance or a withdrawal. Sizing each M to
+        # what its row gates keeps the gates honest: a solver's integer tolerance buys slack in
+        # proportion to M, and an M hundreds of times the portfolio is beyond what HiGHS resolves
+        # reliably, so each family gets its own bound (see _gateCeilings).
+        M_tax, M_td, M_txdef, M_roth = self._gateCeilings()
         for n in range(self.N_n):
-            Mn = ceiling_n[n]
             z1 = self.vm["zo"].idx(0, n)
             z2 = self.vm["zo"].idx(1, n)
             for i in range(self.N_i):
@@ -3097,21 +3192,23 @@ class Plan:
                     {
                         self.vm["w"].idx(i, 1, n): 1,
                         self.vm["b"].idx(i, 1, n): -self.rho_in[i, n],
-                        z1: -Mn,
+                        z1: -M_txdef[n],
                     },
                     -np.inf,
                     0,
                     tag=("wdorder_txdef_gate", i, n),
                 )
                 # Roth withdrawals only once tax-deferred is also exhausted.
-                self.A.addNewRow({self.vm["w"].idx(i, 2, n): 1, z2: -Mn}, -np.inf, 0, tag=("wdorder_roth_gate", i, n))
+                self.A.addNewRow(
+                    {self.vm["w"].idx(i, 2, n): 1, z2: -M_roth[n]}, -np.inf, 0, tag=("wdorder_roth_gate", i, n)
+                )
             # Gate activation: sum_i b[i,j,n+1] + M*z <= M  (z=1 forces end balance ~ 0).
             rowDic = {self.vm["b"].idx(i, 0, n + 1): 1 for i in range(self.N_i)}
-            rowDic[z1] = Mn
-            self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_taxable_exhausted", n))
+            rowDic[z1] = M_tax[n + 1]
+            self.A.addNewRow(rowDic, -np.inf, M_tax[n + 1], tag=("wdorder_taxable_exhausted", n))
             rowDic = {self.vm["b"].idx(i, 1, n + 1): 1 for i in range(self.N_i)}
-            rowDic[z2] = Mn
-            self.A.addNewRow(rowDic, -np.inf, Mn, tag=("wdorder_txdef_exhausted", n))
+            rowDic[z2] = M_td[n + 1]
+            self.A.addNewRow(rowDic, -np.inf, M_td[n + 1], tag=("wdorder_txdef_exhausted", n))
             # Full ordering: the Roth gate implies the tax-deferred gate.
             self.A.addNewRow({z2: 1, z1: -1}, -np.inf, 0, tag=("wdorder_gate_monotone", n))
 
