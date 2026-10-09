@@ -167,15 +167,17 @@ TAX_TIEBREAK = MIP_TIEBREAK
 # max(PARTIAL_BEQUEST_WEIGHT, 2 x gap): below the gap that money is invisible to the solver, which
 # can then spend it on taxes not owed.
 PARTIAL_BEQUEST_WEIGHT = 0.01
-# Money units for MIP solves (10**MIP_SCALE_ORDER dollars): every continuous column (all of them amounts in dollars) and
-# every row holding one are divided by this before the solve, and the solution multiplied back.
-# A binary has no unit, so its big-M coefficient falls by the same factor while every coefficient
-# between dollar amounts keeps its size. In dollars, a gate on a balance of tens of millions puts
-# a coefficient near 1e9 beside coefficients near 1, and HiGHS presolve then calls feasible plans
-# infeasible (#178); in thousands it does not. HiGHS's absolute tolerances (1e-7) then stand for
-# $0.0001, still far below the cents results are rounded to. The solver option mipScaleOrder sets the
-# exponent: 0 solves in dollars, 6 in millions; beyond, the tolerances would stand for whole dollars.
-MIP_SCALE_ORDER = 3
+# Money units for MIP solves (10**MIP_SCALE_ORDER dollars): every continuous column (all of them
+# amounts in dollars) and every row holding one are divided by this before the solve, and the
+# solution multiplied back. A binary has no unit, so its big-M coefficient falls by the same factor
+# while every coefficient between dollar amounts keeps its size. In dollars, a gate on a balance of
+# tens of millions puts a coefficient near 1e9 beside coefficients near 1, and HiGHS presolve then
+# calls feasible plans infeasible (#178); from tens of dollars up it did not. Larger units sped up
+# the optimize modes (exact Medicare, local search) and slowed withdrawalOrder="taxable_first";
+# hundreds were fastest over the example cases. The solver option mipScaleOrder sets the exponent:
+# 0 solves in dollars, 6 in millions; beyond, HiGHS's absolute tolerances (1e-7) would stand for
+# whole dollars.
+MIP_SCALE_ORDER = 2
 MIP_SCALE_ORDER_MAX = 6
 # Retries when HiGHS reports a MIP infeasible, cheapest first. Presolve rule bit 12 is HiGHS's own
 # numbering and may change between versions; presolve off is the backstop.
@@ -4873,7 +4875,7 @@ class Plan:
             "localSearchRadius",  # local search: flips allowed on the SS-taxability binaries
             "localSearchStepNodes",  # local search: node limit per restricted solve
             "partialBequestWeight",  # value of a dollar left at the first death (fraction of a dollar)
-            "mipScaleOrder",  # money unit inside a MIP solve: 10**order dollars (default 3; 0 = dollars)
+            "mipScaleOrder",  # money unit inside a MIP solve: 10**order dollars (default 2; 0 = dollars)
         ]
         options = {} if options is None else options
 
@@ -5991,7 +5993,7 @@ class Plan:
         h.setOptionValue("mip_max_nodes", int(options.get("mipMaxNodes", 1_000_000)))
         h.setOptionValue("presolve", "on")
 
-        # A MIP is solved in thousands of dollars (see MIP_SCALE_ORDER); an LP is passed as is.
+        # A MIP is solved in hundreds of dollars (see MIP_SCALE_ORDER); an LP is passed as is.
         scaling = _MoneyScaling.for_mip(integrality, a_start, a_index, options)
         c = scaling.objective(np.arange(len(c)), c)
         Lb, Ub = scaling.col_values(Lb), scaling.col_values(Ub)

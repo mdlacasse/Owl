@@ -390,7 +390,7 @@ class SolverOptions(BaseModel):
         default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
     )
     mipScaleOrder: Optional[int] = Field(
-        default=None, ge=0, le=6, description="Money unit in a MIP solve: 10**order dollars (default 3; 0 = dollars)."
+        default=None, ge=0, le=6, description="Money unit in a MIP solve: 10**order dollars (default 2; 0 = dollars)."
     )
 
     # Other

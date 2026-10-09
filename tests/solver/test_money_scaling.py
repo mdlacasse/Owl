@@ -1,9 +1,10 @@
 """
 Tests for the money scaling of MIP solves (mipScaleOrder, _MoneyScaling, #178).
 
-A MIP is handed to the solver with every amount in thousands of dollars: continuous columns and
-the rows holding them are divided by the scale, binaries and rows of binaries only are left as
-they are. The scaled model must be the same model, and the solution must come back in dollars.
+A MIP is handed to the solver with every amount in units of 10**mipScaleOrder dollars (hundreds by
+default): continuous columns and the rows holding them are divided by the scale, binaries and rows
+of binaries only are left as they are. The scaled model must be the same model, and the solution
+must come back in dollars.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -77,7 +78,7 @@ def test_an_lp_or_a_scale_of_one_is_the_identity():
     assert _MoneyScaling.for_mip(np.zeros_like(integrality), a_start, a_index).identity
     assert _MoneyScaling.for_mip(integrality, a_start, a_index, {"mipScaleOrder": 0}).identity
     sc = _MoneyScaling.for_mip(integrality, a_start, a_index)
-    assert not sc.identity and sc.scale == 1000.0
+    assert not sc.identity and sc.scale == 100.0  # default order 2
     ident = _MoneyScaling()
     assert ident.coefficients(a_index, a_value) is a_value and ident.col_values(x) is x
     assert ident.solution(x) is x and ident.objective(np.arange(len(c)), c) is c and ident.objective_value(3.5) == 3.5

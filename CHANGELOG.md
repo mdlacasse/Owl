@@ -1,24 +1,26 @@
 ### Version WIP
 
-#### Changed: mixed-integer solves run in thousands of dollars
+#### Changed: mixed-integer solves run in hundreds of dollars
 
-Every mixed-integer solve, with HiGHS or MOSEK, now hands the solver its amounts in thousands of
+Every mixed-integer solve, with HiGHS or MOSEK, now hands the solver its amounts in hundreds of
 dollars and converts the answer back; plans and results stay in dollars. A binary choice has no
-unit, so the large coefficients that switch a dollar amount on or off shrink a thousandfold while
+unit, so the large coefficients that switch a dollar amount on or off shrink a hundredfold while
 every other coefficient keeps its size. In dollars, a long plan whose balances reach tens of
 millions put coefficients near a billion beside coefficients near one, and HiGHS presolve called
 feasible plans infeasible: 196 times over two sweeps of historical start years with
-`withdrawalOrder = "taxable_first"`, and none in thousands. Plans solved as pure linear programs
-are untouched. On the example cases with mixed-integer options, results agree with the dollar
-solves within 0.3%, as the self-consistent loop stops at slightly different plans. Solve times
-moved both ways: local search and exact Medicare ran two to ten times faster, while
-`withdrawalOrder = "taxable_first"` ran 1.4 to 5 times slower. The expert solver option
-`mipScaleOrder` sets the unit as a power of ten (default 3, thousands); `0` solves in dollars, so
-that every number the solver sees can be checked against other calculations (#178).
+`withdrawalOrder = "taxable_first"`, and none in tens, hundreds or thousands. Plans solved as pure
+linear programs are untouched. On the example cases with mixed-integer options, results agree with
+the dollar solves within 0.3%, as the self-consistent loop stops at slightly different plans.
+Larger units made exact Medicare and local search faster and `withdrawalOrder = "taxable_first"`
+slower; over the example cases, hundreds were the fastest overall, with exact Medicare 4.6 times
+and local search 1.3 times faster than in dollars, and `taxable_first` 1.6 times slower. The
+expert solver option `mipScaleOrder` sets the unit as a power of ten (default 2, hundreds); `0`
+solves in dollars, so that every number the solver sees can be checked against other
+calculations (#178).
 
 ### Version 2026.10.9
 
-#### Maint: Updating dependecies and increment version
+#### Maint: Updating dependencies and increment version
 
 Updates MOSEK, pyparser, pydantic, anthropic, json5, and a few others.
 
@@ -977,12 +979,12 @@ of its 27 years, still solves as a pure linear program, and still exercises the 
 a zero marginal rate creates. New York widens that: its retirement income exclusion is another
 variable free to move when there is no income to shelter.
 
-#### Maintenance: Updated dependecies (again) to silence GitHub's dependabot.
+#### Maintenance: Updated dependencies (again) to silence GitHub's dependabot.
 Upgrade to Streamlit 1.62.
 
 ### Version 2026.8.18
 
-#### Maintenance: Updated dependecies to silence GitHub's dependabot.
+#### Maintenance: Updated dependencies to silence GitHub's dependabot.
 
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
 Issue #140. Set below what a plan can afford, it produced ordinary tax above the top statutory
