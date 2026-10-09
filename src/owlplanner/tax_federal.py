@@ -228,6 +228,8 @@ niitRate = 0.038
 # Bonus decreases by $6 per $100 of MAGI above threshold; fully phased out
 # at threshold + $100,000 (i.e., $175k single / $250k MFJ).
 bonusThreshold = np.array([75_000, 150_000])
+SENIOR_BONUS = 6000.0  # per individual aged 65 or older, not indexed
+SENIOR_BONUS_PHASEOUT_RATE = 0.06  # $6 per $100 of MAGI above the threshold
 
 # IRS Social Security taxability thresholds (frozen since 1983/1994 — not inflation-indexed).
 # Provisional income formula: PI = MAGI - 0.5*SS. Below lo: 0% taxable; lo-hi: 50% ramp;
@@ -796,7 +798,8 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
                 if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
-                    sigmaBar[n] += max(0, 6000 - 0.06 * max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
+                    excess = max(0, MAGI_n[n] - bonusThreshold[filingStatus])
+                    sigmaBar[n] += max(0, SENIOR_BONUS - SENIOR_BONUS_PHASEOUT_RATE * excess)
 
         # Fill in future tax rates for year n.
         if thisyear + n < yOBBBA:
@@ -809,6 +812,30 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
 
     # Return series unadjusted for inflation, except for sigmaBar, in STD order.
     return sigmaBar, theta, Delta
+
+
+def seniorBonusSchedule(yobs, i_d, n_d, N_n):
+    """
+    The OBBBA 65+ bonus deduction by plan year, as taxParams applies it.
+
+    Returns (count_n, threshold_n): the number of individuals who receive the bonus in year n
+    (0 outside the bonus years, or when nobody is 65 or older), and the MAGI threshold of that
+    year's filing status, above which each individual's bonus shrinks by
+    SENIOR_BONUS_PHASEOUT_RATE per dollar, down to zero.
+    """
+    count_n = np.zeros(N_n, dtype=int)
+    threshold_n = np.zeros(N_n)
+    filingStatus = len(yobs) - 1
+    souls = list(range(len(yobs)))
+    thisyear = date.today().year
+    for n in range(N_n):
+        if n == n_d:
+            souls.remove(i_d)
+            filingStatus -= 1
+        threshold_n[n] = bonusThreshold[filingStatus]
+        if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
+            count_n[n] = sum(1 for i in souls if thisyear + n - yobs[i] >= 65)
+    return count_n, threshold_n
 
 
 def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):

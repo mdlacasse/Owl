@@ -55,6 +55,9 @@ import numpy as np
 
 # Binary families the search moves, and the fixed-point residual family that measures each.
 FAMILIES = ("zm", "zs", "za", "zl", "zj")
+# Binaries the search never pins: the senior-bonus phase-out has one per bonus year, two or three
+# in all, so every restricted problem keeps them free. Only an LP solve, which relaxes them, pins them.
+ALWAYS_FREE = ("zsb",)
 RESIDUAL_FAMILY = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zj": "NIIT", "zl": "LTCG"}
 FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NIIT"}
 
@@ -173,7 +176,8 @@ class LocalSearch:
         p = self.plan
         have_prev = self.prev is not None and len(self.prev) == p.nvars
         if have_prev:
-            res, dt = self._mip(options, overrides=self._pin(self.prev, self._families()), lp=True)
+            free = [f for f in ALWAYS_FREE if f in p.vm._blocks]
+            res, dt = self._mip(options, overrides=self._pin(self.prev, self._families() + free), lp=True)
             self._step(steps, "start: previous binaries (LP)", res, dt)
             if res[2]:
                 return res

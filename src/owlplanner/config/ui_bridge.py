@@ -87,6 +87,7 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "timePreference",
     "units",
     "verbose",
+    "withSeniorBonus",
 ]
 
 

@@ -130,6 +130,7 @@ _MODE_OPTIONS = {
     "withLTCG": ("loop", "optimize"),
     "withNIIT": ("loop", "optimize"),
     "withSSTaxability": ("loop", "optimize"),
+    "withSeniorBonus": ("loop", "optimize"),
     "withdrawalOrder": ("optimal", "taxable_first"),
 }
 _MODE_ALIASES = {
@@ -138,6 +139,7 @@ _MODE_ALIASES = {
     "withLTCG": {"none": "loop"},
     "withNIIT": {"none": "loop"},
     "withSSTaxability": {"none": "loop"},
+    "withSeniorBonus": {"none": "loop"},
 }
 
 

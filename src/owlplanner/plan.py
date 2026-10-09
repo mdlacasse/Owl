@@ -524,6 +524,7 @@ class Plan:
         self.aca_start_year = 0  # Calendar year ACA coverage begins (0 = plan start)
         self.ACA_n = np.zeros(self.N_n)  # Net ACA cost (after subsidy) per year (plan $)
         self._aca_lp = False  # True when withACA="optimize" is active
+        self._sb_lp = False  # True when withSeniorBonus="optimize" is active
         self.maca_n = np.zeros(self.N_n)  # ACA LP cost variable extraction result
         self.state = ""  # Two-letter US state for state income tax ("" = none)
         self.state_moves = []  # At most one (year, state): the state of residence from that year on
@@ -2575,6 +2576,12 @@ class Plan:
         aca_lp = options.get("withACA", "loop") == "optimize"
         ltcg_lp = options.get("withLTCG", "loop") == "optimize"
         niit_lp = options.get("withNIIT", "loop") == "optimize"
+        # OBBBA 65+ bonus deduction: in optimize mode its MAGI phase-out is part of the LP, in the
+        # years where somebody receives it.
+        self._sb_count_n, self._sb_threshold_n = tx.seniorBonusSchedule(self.yobs, self.i_d, self.n_d, self.N_n)
+        self._sb_years = [n for n in range(self.N_n) if self._sb_count_n[n] > 0]
+        sb_lp = options.get("withSeniorBonus", "loop") == "optimize" and bool(self._sb_years)
+        self._sb_lp = sb_lp
         ordering = options.get("withdrawalOrder", "optimal") == "taxable_first"
         # withSSAges: "fixed"/"none" → no opt; "optimize" → all;
         # individual name or list of names → optimize only those individuals.
@@ -2687,9 +2694,10 @@ class Plan:
         vm.add_if(ss_lp, "pmin", self.N_n)  # p^{σ,min}_n = min(𝒫^hi−𝒫^lo, p^lo_n)
         vm.add_if(ss_lp, "tss", self.N_n)  # t^σ_n  = min(0.85·ζ̄_n, 0.5·p^{σ,min}_n + 0.85·p^hi_n)
         vm.add_if(ltcg_lp, "gn", self.N_n)  # G_n: ordinary taxable income (LTCG MILP)
-        vm.add_if(niit_lp, "magi", self.N_n)  # MAGI_n LP variable (NIIT MILP)
+        vm.add_if(niit_lp or sb_lp, "magi", self.N_n)  # MAGI_n LP variable (NIIT, senior bonus)
         vm.add_if(niit_lp, "Jn", self.N_n)  # J_n: NIIT tax LP variable (NIIT MILP)
         vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)  # SS own-benefit LP var (SS age optimize)
+        vm.add_if(sb_lp, "sbp", len(self._sb_years))  # senior-bonus reduction per person, bonus years
         # State income tax LP variables (continuous, before binary block).
         # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
         # identically zero regardless of st_f/st_e/st_re — skip these vars entirely.
@@ -2709,6 +2717,7 @@ class Plan:
         vm.add_if(niit_lp, "zj", self.N_n)  # N_n NIIT threshold binaries
         vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
         vm.add_if(ordering, "zo", 2, self.N_n)  # withdrawal-ordering gates (taxable_first)
+        vm.add_if(sb_lp, "zsb", len(self._sb_years))  # senior bonus fully phased out, bonus years
         self.vm = vm
 
         self.nvars = vm.nvars
@@ -2765,6 +2774,7 @@ class Plan:
         self._add_ACA_costs(options)
         self._add_magi_lp(options)
         self._configure_NIIT_binary_variables(options)
+        self._add_senior_bonus_lp()
         self._build_objective_vector(objective, options)
 
     @_fixedAcrossIterations
@@ -2801,8 +2811,16 @@ class Plan:
                 self.B.setRange(self.vm["f"].idx(t, n), 0, self.DeltaBar_tn[t, n])
 
     def _add_standard_exemption_bounds(self):
+        sigma_n = self.sigmaBar_n
+        if self._sb_lp:
+            # The deduction without the senior bonus; _add_senior_bonus_lp adds the bonus less its
+            # phase-out as LP terms, so the bound here is the most it can reach.
+            no_bonus = np.full(self.N_n, np.inf)
+            self._sb_base_n = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n, self.gamma_n, no_bonus,
+                                           self.yOBBBA)[0]
+            sigma_n = self._sb_base_n + tx.SENIOR_BONUS * self._sb_count_n
         for n in range(self.N_n):
-            self.B.setRange(self.vm["e"].idx(n), 0, self.sigmaBar_n[n])
+            self.B.setRange(self.vm["e"].idx(n), 0, sigma_n[n])
 
     def _add_state_tax_bounds(self):
         """Set variable bounds for state income tax LP variables.
@@ -3932,7 +3950,7 @@ class Plan:
     @_fixedAcrossIterations
     def _add_magi_lp(self, options):
         """
-        Add MAGI equality constraints when withNIIT='optimize'.
+        Add MAGI equality constraints when withNIIT or withSeniorBonus is 'optimize'.
 
         The "magi" LP variable is the AGI-basis MAGI used by NIIT (IRC §1411): taxable SS
         only, NOT the full-SS ACA MAGI. Since e_n + G_n already include the taxable SS
@@ -3946,8 +3964,11 @@ class Plan:
 
         Rewritten as equality constraint with all LP vars on LHS:
           magi_n - gn_n - e_n - q[0] - q[1] - q[2] = 0
+
+        The OBBBA 65+ bonus phases out on the same MAGI. It stays exact when the deduction is an
+        LP term: a larger deduction moves a dollar from G_n to e_n and leaves the sum alone.
         """
-        if not self._niit_lp:
+        if not (self._niit_lp or self._sb_lp):
             return
 
         for n in range(self.N_n):
@@ -3979,6 +4000,46 @@ class Plan:
 
             # No SS term: taxable SS is already embedded in e_n + G_n (AGI basis).
             self.A.addNewRow(row, 0.0, 0.0, tag=("niit_magi_def", n))
+
+    def _add_senior_bonus_lp(self):
+        """
+        The OBBBA 65+ bonus deduction with its MAGI phase-out, when withSeniorBonus='optimize'.
+
+        Each of the k_n individuals aged 65 or older in a bonus year deducts
+        SENIOR_BONUS - p_n, with p_n = min(SENIOR_BONUS, rate*max(0, MAGI_n - T_n)), the same for
+        all of them. In loop mode the deduction is a constant set from the previous iterate's
+        MAGI, so a solve cannot trade income against it and can settle on a plan that pays for
+        income the bonus would have sheltered. Here:
+
+          (1) e_n + k_n*p_n <= base_n + k_n*SENIOR_BONUS   [the deduction, base_n without the bonus]
+          (2) p_n >= rate*(MAGI_n - T_n) - M*z_n           [z_n=0: phasing out]
+          (3) p_n >= SENIOR_BONUS*z_n                       [z_n=1: fully phased out]
+          (4) 0 <= p_n <= SENIOR_BONUS                      [column bounds]
+
+        The reduction is a cost, so p_n settles on its largest lower bound. Below the end of the
+        phase-out, (2) with z_n=0 is the cheaper branch; above it, (2) would ask for more than
+        SENIOR_BONUS, which (4) forbids, and z_n=1 is the only feasible choice. A small objective
+        weight on p_n settles ties where the year's cash has no value.
+        """
+        if not self._sb_lp:
+            return
+        rate, bonus = tx.SENIOR_BONUS_PHASEOUT_RATE, tx.SENIOR_BONUS
+        for j, n in enumerate(self._sb_years):
+            k = float(self._sb_count_n[n])
+            T = float(self._sb_threshold_n[n])
+            p_idx = self.vm["sbp"].idx(j)
+            z_idx = self.vm["zsb"].idx(j)
+            magi_idx = self.vm["magi"].idx(n)
+            e_idx = self.vm["e"].idx(n)
+            self.B.setRange(p_idx, 0, bonus)
+            if not self._niit_lp:  # NIIT bounds MAGI itself
+                self.B.setRange(magi_idx, 0, max(self._ceiling_n[n], T))
+            M = rate * max(self._ceiling_n[n] - T, 0.0) + bonus
+            self.A.addNewRow({e_idx: 1, p_idx: k}, -np.inf, self._sb_base_n[n] + k * bonus,
+                             tag=("senior_bonus_deduction", n))
+            self.A.addNewRow({p_idx: 1, magi_idx: -rate, z_idx: M}, -rate * T, np.inf,
+                             tag=("senior_bonus_phaseout", n))
+            self.A.addNewRow({p_idx: 1, z_idx: -bonus}, 0.0, np.inf, tag=("senior_bonus_cap", n))
 
     def _configure_NIIT_binary_variables(self, options):
         """
@@ -4342,6 +4403,10 @@ class Plan:
         if "maca" in self.vm:
             for n in range(self.N_n):
                 c_arr[self.vm["maca"].idx(n)] += MIP_TIEBREAK / self.gamma_n[n]
+        # The senior-bonus reduction is only bounded below, the same way.
+        if "sbp" in self.vm:
+            for j, n in enumerate(self._sb_years):
+                c_arr[self.vm["sbp"].idx(j)] += MIP_TIEBREAK / self.gamma_n[n]
 
         # Turn on epsilon by default to reduce churn and frontload Roth conversions.
         default_epsilon = EPSILON
@@ -4863,6 +4928,7 @@ class Plan:
             "withACA",  # ACA handling: "loop" (default) or "optimize"
             "withLTCG",  # LTCG handling: "loop" (default) or "optimize"
             "withNIIT",  # NIIT handling: "loop" (default) or "optimize"
+            "withSeniorBonus",  # OBBBA 65+ bonus phase-out: "loop" (default) or "optimize"
             "withMedicare",
             "withSSTaxability",
             "withSSAges",  # SS claiming age: "fixed" (default) or "optimize"
@@ -4962,6 +5028,7 @@ class Plan:
         self._aca_lp = False  # Will be set to True in _buildOffsetMap when withACA="optimize"
         self._ltcg_lp = False  # Will be set to True in _buildOffsetMap when withLTCG="optimize"
         self._niit_lp = False  # Will be set to True in _buildOffsetMap when withNIIT="optimize"
+        self._sb_lp = False  # Will be set to True in _buildOffsetMap when withSeniorBonus="optimize"
         self._ssa_lp = False  # Will be set to True in _buildOffsetMap when withSSAges="optimize"
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
@@ -5044,6 +5111,10 @@ class Plan:
             fams.append("LTCG")
         if options.get("withNIIT", "loop") == "optimize":
             fams.append("NIIT")
+        if options.get("withSeniorBonus", "loop") == "optimize" and np.any(
+            tx.seniorBonusSchedule(self.yobs, self.i_d, self.n_d, self.N_n)[0]
+        ):
+            fams.append("senior bonus")
         return fams
 
     def _breakpointMethodLabel(self, options, fallback=False):
@@ -5077,6 +5148,7 @@ class Plan:
             options["withSSTaxability"] = "optimize"
             options["withLTCG"] = "optimize"
             options["withNIIT"] = "optimize"
+            options["withSeniorBonus"] = "optimize"
             if options.get("withMedicare", "loop") not in ("none", "None", False):
                 options["withMedicare"] = "optimize"
             if self.slcsp_annual > 0:
@@ -5124,7 +5196,7 @@ class Plan:
         loop_opts = {k: v for k, v in myoptions.items()
                      if k not in ("mipStrategy", "breakpointMethod", "localSearchTime",
                                   "localSearchStepTime", "localSearchRadius", "localSearchStepNodes")}
-        for opt in ("withSSTaxability", "withLTCG", "withNIIT", "withACA"):
+        for opt in ("withSSTaxability", "withLTCG", "withNIIT", "withACA", "withSeniorBonus"):
             if loop_opts.get(opt) == "optimize":
                 loop_opts[opt] = "loop"
         if loop_opts.get("withMedicare") == "optimize":
@@ -6706,6 +6778,13 @@ class Plan:
             self.MAGI_n = vm["magi"].extract(x)
         else:
             self.MAGI_n = self.G_n + self.e_n + self.Q_n
+        if "sbp" in vm:
+            # The deduction the LP allowed, bonus and phase-out included (the residual compares it
+            # with the one this MAGI implies).
+            p_j = vm["sbp"].extract(x)
+            self.sigmaBar_n = self._sb_base_n.copy()
+            for j, n in enumerate(self._sb_years):
+                self.sigmaBar_n[n] += self._sb_count_n[n] * (tx.SENIOR_BONUS - p_j[j])
         # Full-SS MAGI adds back the non-taxable SS portion (for ACA §36B and SS-taxability
         # provisional income). Equals AGI + (1-Psi)*zetaBar = AGI + (zetaBar - taxable SS).
         self.MAGI_aca_n = self.MAGI_n + np.sum((1 - self.Psi_n) * self.zetaBar_in, axis=0)
