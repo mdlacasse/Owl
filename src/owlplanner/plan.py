@@ -167,6 +167,14 @@ TAX_TIEBREAK = MIP_TIEBREAK
 # max(PARTIAL_BEQUEST_WEIGHT, 2 x gap): below the gap that money is invisible to the solver, which
 # can then spend it on taxes not owed.
 PARTIAL_BEQUEST_WEIGHT = 0.01
+# Money units for HiGHS MIP solves: every continuous column (all of them amounts in dollars) and
+# every row holding one are divided by this before the solve, and the solution multiplied back.
+# A binary has no unit, so its big-M coefficient falls by the same factor while every coefficient
+# between dollar amounts keeps its size. In dollars, a gate on a balance of tens of millions puts
+# a coefficient near 1e9 beside coefficients near 1, and HiGHS presolve then calls feasible plans
+# infeasible (#178); in thousands it does not. HiGHS's absolute tolerances (1e-7) then stand for
+# $0.0001, still far below the cents results are rounded to.
+MIP_MONEY_SCALE = 1000.0
 # Retries when HiGHS reports a MIP infeasible, cheapest first. Presolve rule bit 12 is HiGHS's own
 # numbering and may change between versions; presolve off is the backstop.
 _HIGHS_INFEASIBLE_RETRIES = (
@@ -175,6 +183,60 @@ _HIGHS_INFEASIBLE_RETRIES = (
 )
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
+
+
+############################################################################
+
+
+class _MoneyScaling:
+    """Express a MIP's money in units of *scale* dollars for the solver, and back.
+
+    Every continuous column is an amount in dollars, so its value becomes value / scale; an integer
+    column is left as is. Every row holding a continuous column is divided by scale; a row linking
+    binaries only is left as is. The objective is divided by scale too, so that money keeps its
+    weight in it. Used by both solvers (see MIP_MONEY_SCALE), on the row-wise sparse matrix
+    (a_start, a_index, a_value).
+    """
+
+    def __init__(self, integrality, a_start, a_index, scale=None):
+        self.scale = MIP_MONEY_SCALE if scale is None else float(scale)
+        cont = np.asarray(integrality) == 0
+        a_index = np.asarray(a_index, dtype=np.int64)
+        starts = np.asarray(a_start, dtype=np.int64)
+        self.row_of = np.repeat(np.arange(len(starts)), np.diff(np.append(starts, len(a_index))))
+        has_cont = np.zeros(len(starts), dtype=bool)
+        np.logical_or.at(has_cont, self.row_of, cont[a_index])
+        self.col_s = np.where(cont, self.scale, 1.0)  # a column's value is col_s times its scaled value
+        self.row_t = np.where(has_cont, 1.0 / self.scale, 1.0)
+
+    @classmethod
+    def for_mip(cls, integrality, a_start, a_index):
+        """The scaling for a MIP, or None for an LP (no big-M to shrink) or when the scale is 1."""
+        if MIP_MONEY_SCALE == 1.0 or not np.any(integrality):
+            return None
+        return cls(integrality, a_start, a_index)
+
+    def objective(self, cols, vals):
+        return np.asarray(vals, dtype=np.float64) * self.col_s[np.asarray(cols, dtype=np.int64)] / self.scale
+
+    def col_values(self, vec):
+        """Column bounds or a starting point, in scaled units."""
+        return np.asarray(vec, dtype=np.float64) / self.col_s
+
+    def row_values(self, vec):
+        """Row bounds, in scaled units."""
+        return np.asarray(vec, dtype=np.float64) * self.row_t
+
+    def coefficients(self, a_index, a_value):
+        """The matrix's nonzeros, in scaled units."""
+        a_index = np.asarray(a_index, dtype=np.int64)
+        return np.asarray(a_value, dtype=np.float64) * self.col_s[a_index] * self.row_t[self.row_of]
+
+    def solution(self, x):
+        return np.asarray(x, dtype=np.float64) * self.col_s
+
+    def objective_value(self, obj):
+        return obj * self.scale
 
 
 ############################################################################
@@ -5907,6 +5969,17 @@ class Plan:
         h.setOptionValue("mip_max_nodes", int(options.get("mipMaxNodes", 1_000_000)))
         h.setOptionValue("presolve", "on")
 
+        # A MIP is solved in thousands of dollars (see MIP_MONEY_SCALE); an LP has no big-M and is
+        # passed as is.
+        scaling = _MoneyScaling.for_mip(integrality, a_start, a_index)
+        if scaling is not None:
+            c = scaling.objective(np.arange(len(c)), c)
+            Lb, Ub = scaling.col_values(Lb), scaling.col_values(Ub)
+            lbvec, ubvec = scaling.row_values(lbvec), scaling.row_values(ubvec)
+            a_value = scaling.coefficients(a_index, a_value)
+            if warm_x is not None:
+                warm_x = scaling.col_values(warm_x)
+
         inf = highspy.kHighsInf
         col_lb = np.where(np.isneginf(Lb), -inf, Lb).astype(np.float64)
         col_ub = np.where(np.isposinf(Ub), inf, Ub).astype(np.float64)
@@ -5966,6 +6039,9 @@ class Plan:
             sol = h.getSolution()
             xx = np.array(sol.col_value, dtype=np.float64)
             obj_val = float(h.getObjectiveValue())
+            if scaling is not None:
+                xx = scaling.solution(xx)
+                obj_val = scaling.objective_value(obj_val)
             # mip_gap is meaningless on a pure LP; -1 is the convention for those solves.
             gap = h.getInfoValue("mip_gap")[1] if integrality.any() else -1.0
         else:
@@ -6049,10 +6125,11 @@ class Plan:
             return None, np.zeros(len(c)), np.zeros(len(lbvec)), np.zeros(len(c)), False
         return None, np.zeros(len(c)), np.zeros(len(lbvec)), False
 
-    def _build_mosek_task(self, A, B, c_obj, col_overrides=None, int_vars=None, verbose=False):
+    def _build_mosek_task(self, A, B, c_obj, col_overrides=None, int_vars=None, verbose=False, scaling=None):
         """
         Build and populate a MOSEK task from abcapi objects.
         Configures the objective, variable/constraint bounds, and constraint matrix.
+        With a _MoneyScaling, the task holds the model in its scaled units.
         Caller is responsible for setting solver parameters before calling task.optimize().
         Returns (task, ncons, nvars).
         """
@@ -6092,6 +6169,10 @@ class Plan:
         task.appendcons(ncons)
         task.appendvars(nvars)
 
+        if scaling is not None:
+            cval = scaling.objective(cind, cval)
+            vlb, vub = scaling.col_values(vlb), scaling.col_values(vub)
+            clb, cub = scaling.row_values(clb), scaling.row_values(cub)
         for ii in range(len(cind)):
             task.putcj(cind[ii], cval[ii])
         for ii in range(nvars):
@@ -6099,12 +6180,23 @@ class Plan:
         if int_vars:
             for ii in int_vars:
                 task.putvartype(int(ii), mosek.variabletype.type_int)
+        if scaling is not None:
+            lengths = [len(ind) for ind in Aind]
+            a_start = np.concatenate(([0], np.cumsum(lengths)[:-1])).astype(np.int64) if ncons else np.zeros(0)
+            flat = scaling.coefficients(np.concatenate(Aind), np.concatenate(Aval)) if ncons else np.zeros(0)
+            Aval = [flat[a_start[i]:a_start[i] + lengths[i]] for i in range(ncons)]
         for i in range(ncons):
             task.putarow(i, Aind[i], Aval[i])
             task.putconbound(i, bdic[ckeys[i]], float(clb[i]), float(cub[i]))
         task.putobjsense(mosek.objsense.minimize)
 
         return task, ncons, nvars
+
+    @staticmethod
+    def _mosekMoneyScaling(A, B):
+        """The _MoneyScaling of a MIP for MOSEK (None for an LP), on A's row order."""
+        a_start, a_index, _ = A.to_csr()
+        return _MoneyScaling.for_mip(B.integralityArray(), a_start, a_index)
 
     @staticmethod
     def _apply_mosek_threads(task, options):
@@ -6167,8 +6259,9 @@ class Plan:
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
         int_vars = [] if lp_relax else B.integralityList()
+        scaling = None if lp_relax else self._mosekMoneyScaling(A, B)
         task, ncons, nvars = self._build_mosek_task(
-            A, B, c_obj, col_overrides=col_overrides, int_vars=int_vars, verbose=verbose
+            A, B, c_obj, col_overrides=col_overrides, int_vars=int_vars, verbose=verbose, scaling=scaling
         )
         task.putdouparam(mosek.dparam.mio_max_time, float(time_limit))
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, float(mygap))
@@ -6179,6 +6272,8 @@ class Plan:
         # Warm start: an incumbent lets branch-and-bound prune every node that cannot beat it.
         warm = getattr(self, "_mip_warm_start", None)
         if int_vars and warm is not None and len(warm) == nvars:
+            if scaling is not None:
+                warm = scaling.col_values(warm)
             task.putxxslice(mosek.soltype.itg, 0, nvars, np.asarray(warm, dtype=float))
             task.putintparam(mosek.iparam.mio_construct_sol, mosek.onoffkey.on)
 
@@ -6202,13 +6297,10 @@ class Plan:
         self._infeasible = _mosekIsInfeasible(task, sol, mosek)
 
         if success:
-            return (
-                float(task.getprimalobj(sol)),
-                np.array(task.getxx(sol)),
-                True,
-                f"MOSEK: {solsta}",
-                float(gap),
-            )
+            obj, xx = float(task.getprimalobj(sol)), np.array(task.getxx(sol))
+            if scaling is not None:
+                obj, xx = scaling.objective_value(obj), scaling.solution(xx)
+            return obj, xx, True, f"MOSEK: {solsta}", float(gap)
         return None, np.zeros(nvars), False, f"MOSEK: {solsta}", -1.0
 
     def _run_lp_with_duals(self, A, B, c_obj, options, col_overrides=None):
@@ -6327,8 +6419,11 @@ class Plan:
         mygap = u.get_numeric_option(options, "gap", GAP, min_value=0)
         verbose = options.get("verbose", False)
         int_vars = self.B.integralityList()
+        scaling = self._mosekMoneyScaling(self.A, self.B)
 
-        task, ncons, nvars = self._build_mosek_task(self.A, self.B, self.c, int_vars=int_vars, verbose=verbose)
+        task, ncons, nvars = self._build_mosek_task(
+            self.A, self.B, self.c, int_vars=int_vars, verbose=verbose, scaling=scaling
+        )
         task.putdouparam(mosek.dparam.mio_max_time, time_limit)  # Default -1
         # task.putdouparam(mosek.dparam.mio_rel_gap_const, 1e-6)       # Default 1e-10
         task.putdouparam(mosek.dparam.mio_tol_rel_gap, mygap)  # Default 1e-4
@@ -6372,6 +6467,8 @@ class Plan:
 
         xx = np.array(task.getxx(soltype))
         solution = task.getprimalobj(soltype)
+        if scaling is not None:
+            xx, solution = scaling.solution(xx), scaling.objective_value(solution)
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 

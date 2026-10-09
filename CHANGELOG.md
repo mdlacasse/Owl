@@ -1,3 +1,17 @@
+### Version WIP
+
+#### Changed: mixed-integer solves run in thousands of dollars
+
+Every mixed-integer solve, with HiGHS or MOSEK, now hands the solver its amounts in thousands of
+dollars and converts the answer back; plans and results stay in dollars. A binary choice has no
+unit, so the large coefficients that switch a dollar amount on or off shrink a thousandfold while
+every other coefficient keeps its size. In dollars, a long plan whose balances reach tens of
+millions put coefficients near a billion beside coefficients near one, and HiGHS presolve called
+feasible plans infeasible: 196 times over two sweeps of historical start years with
+`withdrawalOrder = "taxable_first"`, and none in thousands. Plans solved as pure linear programs
+are untouched. On the example cases with mixed-integer options, results agree with the dollar
+solves within the solver gap (#178).
+
 ### Version 2026.10.9
 
 #### Maint: Updating dependecies and increment version
