@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.9
 
 #### Changed: mixed-integer solves run in hundreds of dollars
 
@@ -17,8 +17,6 @@ and local search 1.3 times faster than in dollars, and `taxable_first` 1.6 times
 expert solver option `mipScaleOrder` sets the unit as a power of ten (default 2, hundreds); `0`
 solves in dollars, so that every number the solver sees can be checked against other
 calculations (#178).
-
-### Version 2026.10.9
 
 #### Maint: Updating dependencies and increment version
 
