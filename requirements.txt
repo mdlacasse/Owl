@@ -51,7 +51,7 @@ highspy==1.15.1
     # via owlplanner
 httpcore2==2.13.1 ; sys_platform != 'emscripten'
     # via httpx2
-httptools==0.8.0
+httptools==0.9.0
     # via streamlit
 httpx2==2.13.1
     # via mcp
@@ -90,7 +90,7 @@ mcp-types==2.3.0
     # via mcp
 mosek==11.2.6
     # via owlplanner
-narwhals==2.26.0
+narwhals==2.27.1
     # via
     #   altair
     #   plotly
@@ -145,7 +145,7 @@ protobuf==7.36.2
     # via streamlit
 pyarrow==25.0.1
     # via streamlit
-pycparser==3.1 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+pycparser==3.11 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
 pydantic==2.14.0
     # via

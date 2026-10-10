@@ -1,4 +1,4 @@
-### Version 2026.10.9
+### Version 2026.10.10
 
 #### New: branch-and-bound nodes in the Summary, and the solver option `mipMaxNodes`
 
@@ -14,6 +14,20 @@ The expert solver option `mipMaxNodes` sets the cap on every branch-and-bound so
 cap different things: HiGHS caps nodes (default 1,000,000), MOSEK caps branchings (no cap by
 default). The local search's restricted solves keep their own cap, `localSearchStepNodes`. The
 option is not in the interface: enter it under the extra solver options, or set it in the case file.
+
+#### Fixed: the MCP tools described big-ticket items with the wrong sign
+
+The MCP tool descriptions, the guided intake prompt, and `info/mcp.md` said big-ticket items were
+expenses entered as positive amounts. The amount goes to the plan unchanged, where a positive amount
+is money coming in, as in the Household Financial Profile, so an expense entered as told was counted
+as income. The amounts are signed: negative for an expense, positive for an inflow (Refs #180).
+
+#### Changed: dependencies updated
+
+httptools 0.9.0, narwhals 2.27.1 and pycparser 3.11. The optional `assistant` extra moves to
+anthropic 1.13.0, and the `notebooks` extra to executing 2.3.0, json5 0.17.3 and soupsieve 3.0.
+
+### Version 2026.10.9
 
 #### New: the OBBBA senior bonus can be solved with the plan (`withSeniorBonus`)
 
