@@ -100,7 +100,7 @@ as commands and lets you attach resources to the conversation):
 | | `pension_survivor_fractions` | Survivor benefit fractions (0–1) per person, e.g. `[0.5, 0.0]` |
 | **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
 | | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa`. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
-| | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
+| | `big_ticket_items` | One-time or recurring cash flows outside the spending budget. `annual_amount` is signed: **negative for an expense**, positive for an inflow (inheritance, gift, sale proceeds): `[{"person":0,"annual_amount":-15_000,"start_year":2027,"end_year":2030}]` |
 | | `qcds` | Qualified charitable distributions from the tax-deferred account: `[{"person","annual_amount","start_year","end_year"}]`. Excluded from AGI and counted toward the RMD; donor must be 70½ or older |
 | **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining","property"}`. Optional `property` names a residence or real estate in `fixed_assets` (by its `label`) whose sale pays the loan off; a link to a missing or ineligible property is an error |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |

@@ -1103,7 +1103,8 @@ def _build_plan_from_params(
                 if start_yr <= thisyear + n < end_yr:
                     plan.kappa_ijn[i, j, n] += amount
 
-    # Time-series: big-ticket items → Lambda_in  (annual $/year, positive = extra expense)
+    # Time-series: big-ticket items → Lambda_in  (annual $/year, signed: negative = expense,
+    # positive = inflow).  Passed through unchanged, the same convention as the HFP column.
     if big_ticket_items:
         for bt in big_ticket_items:
             i = int(bt.get("person", 0))
@@ -1574,8 +1575,13 @@ async def run_from_params(
                         individuals in their 50s/60s, call list_contribution_limits
                         first to find the IRS max (including 50+ and 60-63 "super"
                         catch-up amounts) before filling in annual_amount.
-        big_ticket_items: One-time or recurring extra expenses that reduce the spending budget.
-                        Each entry: {"person": 0, "annual_amount": 15000, "start_year": 2026,
+        big_ticket_items: One-time or recurring cash flows outside the spending budget.
+                        annual_amount is SIGNED: a NEGATIVE amount is an expense (it must be
+                        funded, reducing the spending budget); a POSITIVE amount is an inflow
+                        (inheritance, gift received, sale proceeds) that adds to the cash flow,
+                        any surplus going to the taxable account.  Enter expenses as negative
+                        numbers -- a positive "expense" is modeled as income.  Each entry:
+                        {"person": 0, "annual_amount": -15000, "start_year": 2026,
                         "end_year": 2030, "label": "healthcare"}.  Use for planned large
                         purchases or recurring costs NOT covered by the spending floor.
                         Distinct from debts (which have an amortization schedule).
@@ -3215,7 +3221,8 @@ async def run_stochastic(
         wages:                Wage streams: [{"person":0,"annual_amount":90000,"end_year":2030}].
         contributions:        Contributions: [{"person":0,"account":"tax_deferred","annual_amount":23000}].
                               Use list_contribution_limits to find IRS max amounts (incl. catch-up).
-        big_ticket_items:     Extra annual expenses: [{"person":0,"annual_amount":5000,"start_year":2027}].
+        big_ticket_items:     Signed annual cash flows, negative = expense, positive = inflow:
+                              [{"person":0,"annual_amount":-5000,"start_year":2027}].
         qcds:                 Qualified charitable distributions, same shape. IRA-to-charity:
                               excluded from AGI and credited against the RMD.
         debts:                Debts: [{"label":"mortgage","type":"mortgage","balance":300000,
@@ -4536,7 +4543,7 @@ async def run_longevity_stochastic(
         pension_survivor_fractions: Survivor benefit fractions per person (0–1).
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
-        big_ticket_items: Extra annual expenses (see run_from_params).
+        big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -4833,7 +4840,7 @@ async def run_historical(
         pension_survivor_fractions: Survivor benefit fractions per person (0–1).
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
-        big_ticket_items: Extra annual expenses (see run_from_params).
+        big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5169,7 +5176,7 @@ async def run_monte_carlo(
         pension_survivor_fractions: Survivor benefit fractions per person (0–1).
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
-        big_ticket_items: Extra annual expenses (see run_from_params).
+        big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).

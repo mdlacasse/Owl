@@ -333,10 +333,11 @@ def test_contributions_per_person():
 
 def test_big_ticket_items_populate_lambda_in():
     plan = _single(
-        big_ticket_items=[{"person": 0, "annual_amount": 15_000, "start_year": THISYEAR, "end_year": THISYEAR + 3}]
+        big_ticket_items=[{"person": 0, "annual_amount": -15_000, "start_year": THISYEAR, "end_year": THISYEAR + 3}]
     )
-    assert plan.Lambda_in[0, 0] == pytest.approx(15_000)
-    assert plan.Lambda_in[0, 2] == pytest.approx(15_000)
+    # Signed pass-through: a negative amount is an expense, as in the HFP column.
+    assert plan.Lambda_in[0, 0] == pytest.approx(-15_000)
+    assert plan.Lambda_in[0, 2] == pytest.approx(-15_000)
     assert plan.Lambda_in[0, 3] == pytest.approx(0)
 
 

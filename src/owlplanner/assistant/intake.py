@@ -50,7 +50,9 @@ first solve, confirm a short summary of everything collected.
   collectibles: basis, value, planned sale year).  For each mortgage or home loan, ask
   which property it is on: a loan linked to a property (debts "property" = that fixed
   asset's label) is paid off from the proceeds when the property is sold.
-- Planned large expenses (big_ticket_items): weddings, cars, travel budgets.
+- Planned large expenses and windfalls (big_ticket_items): weddings, cars, travel
+  budgets; inheritances, gifts received.  Amounts are signed: enter an expense as a
+  NEGATIVE annual_amount and an inflow as a positive one.
 - Charitable giving, for anyone 70 or older: ask whether they already give, or would
   consider giving, from an IRA.  Routed as a qualified charitable distribution (qcds)
   rather than as cash, the same gift is excluded from AGI and counts toward the RMD —
