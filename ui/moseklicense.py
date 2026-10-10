@@ -48,14 +48,25 @@ def opener(path, flags):
     return os.open(path, flags, desired_permissions)
 
 
+def _useDefaultLicense():
+    """Point to MOSEK's own default license location (~/mosek/mosek.lic) if it exists."""
+    if os.environ.get(MOSEKLM_LICENSE_FILE):
+        return
+    default_path = os.path.join(os.path.expanduser("~"), "mosek", "mosek.lic")
+    if os.path.isfile(default_path):
+        os.environ[MOSEKLM_LICENSE_FILE] = default_path
+
+
 def createLicense():
     streamlit_d = _streamlit_dir()
     if not streamlit_d or not os.path.isfile(os.path.join(streamlit_d, "secrets.toml")):
+        _useDefaultLicense()
         return
 
     try:
         license = st.secrets["license"]
     except (KeyError, FileNotFoundError):
+        _useDefaultLicense()
         return
 
     license_path = os.path.join(streamlit_d, "mosek.lic")
