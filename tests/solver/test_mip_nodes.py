@@ -19,6 +19,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import owlplanner as owl
+from owlplanner import localsearch
+from owlplanner.export import _local_search_step_limit
 from owlplanner.plan import HIGHS_MAX_NODES, Plan
 
 NODES_ROW = "MIP nodes (accepted solution / whole solve)"
@@ -82,3 +84,23 @@ def test_a_new_solve_resets_the_tally():
     assert p.solverNodesTotal >= 0
     p.solve("maxBequest", {"netSpending": 105})
     assert p.solverNodes == -1 and p.solverNodesTotal == -1
+
+
+STEP_ROW = "Local search step node limit"
+
+
+def test_step_limit_reads_na_without_local_search():
+    p = _plan()
+    p.solve("maxBequest", {"netSpending": 105, "withdrawalOrder": "taxable_first"})
+    assert p.summaryDic()[STEP_ROW] == "n/a (no local search)"
+
+
+def test_step_limit_reports_default_and_option():
+    # The row reads only the solver options and the engine: no need for a (slow) local-search solve.
+    p = _plan()
+    for mosek, engine, unit in ((False, "HiGHS", "nodes"), (True, "MOSEK", "branches")):
+        p._use_mosek = mosek
+        p.solverOptions = {"mipStrategy": "local-search"}
+        assert _local_search_step_limit(p) == f"{localsearch.STEP_NODES[engine]:,} {unit} ({engine})"
+        p.solverOptions["localSearchStepNodes"] = 4321
+        assert _local_search_step_limit(p) == f"4,321 {unit} ({engine})"

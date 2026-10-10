@@ -15,6 +15,10 @@ cap different things: HiGHS caps nodes (default 1,000,000), MOSEK caps branching
 default). The local search's restricted solves keep their own cap, `localSearchStepNodes`. The
 option is not in the interface: enter it under the extra solver options, or set it in the case file.
 
+A third row, *Local search step node limit*, gives the cap on each of the local search's restricted
+solves: `localSearchStepNodes` when set, otherwise the engine's default (3,000 nodes with HiGHS,
+20,000 branchings with MOSEK). It reads n/a when the plan was not solved by local search.
+
 #### Fixed: the MCP tools described big-ticket items with the wrong sign
 
 The MCP tool descriptions, the guided intake prompt, and `info/mcp.md` said big-ticket items were

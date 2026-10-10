@@ -33,6 +33,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 from . import config
+from . import localsearch
 from . import utils as u
 from . import tax_federal as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
@@ -392,6 +393,17 @@ def _mip_node_limit(plan):
     return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
 
 
+def _local_search_step_limit(plan):
+    """Cap on each of the local search's restricted solves, in the engine's own unit."""
+    options = plan.solverOptions or {}
+    if options.get("mipStrategy") != "local-search":
+        return "n/a (no local search)"
+    mosek = getattr(plan, "_use_mosek", False)
+    engine = "MOSEK" if mosek else "HiGHS"
+    limit = int(u.get_numeric_option(options, "localSearchStepNodes", 0, min_value=0)) or localsearch.STEP_NODES[engine]
+    return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values.
 
@@ -659,6 +671,7 @@ def build_summary_dic(plan, N=None):
     dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
     dic["MIP nodes (accepted solution / whole solve)"] = _mip_nodes(plan)
     dic["MIP node limit"] = _mip_node_limit(plan)
+    dic["Local search step node limit"] = _local_search_step_limit(plan)
     dic["Case executed on"] = str(plan._timestamp)
     dic["Solve time"] = _solve_time(plan)
     # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.
