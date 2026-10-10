@@ -385,10 +385,15 @@ class SolverOptions(BaseModel):
     )
     localSearchRadius: Optional[int] = Field(default=None, ge=0, description="Local search: SS-taxability flips.")
     partialBequestWeight: Optional[float] = Field(
-        default=None, ge=0.0, description="Value of a dollar left to non-spouse heirs at the first death (max(0.01, 2 x gap))."
+        default=None,
+        ge=0.0,
+        description="Value of a dollar left to non-spouse heirs at the first death (max(0.01, 2 x gap)).",
     )
     localSearchStepNodes: Optional[int] = Field(
         default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
+    )
+    mipMaxNodes: Optional[int] = Field(
+        default=None, ge=0, description="Branch-and-bound cap: HiGHS nodes (default 1e6), MOSEK branchings (none)."
     )
     mipScaleOrder: Optional[int] = Field(
         default=None, ge=0, le=6, description="Money unit in a MIP solve: 10**order dollars (default 2; 0 = dollars)."

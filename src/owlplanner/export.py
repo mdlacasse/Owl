@@ -373,6 +373,25 @@ def _solve_time(plan):
     return f"{_duration(wall)} wall clock" + ("" if cpu is None else f" (CPU {_duration(cpu)})")
 
 
+def _mip_nodes(plan):
+    """Branch-and-bound nodes: of the accepted solution's solve / of the whole solve."""
+    total = plan.solverNodesTotal
+    if total < 0:
+        return "n/a (no mixed-integer solve)"
+    accepted = plan.solverNodes
+    return f"{accepted:,} / {total:,}" if accepted >= 0 else f"n/a / {total:,}"
+
+
+def _mip_node_limit(plan):
+    """Branch-and-bound cap in force, in the engine's own unit (HiGHS nodes, MOSEK branchings)."""
+    mosek = getattr(plan, "_use_mosek", False)
+    limit = type(plan)._mipNodeLimit(plan.solverOptions or {}, mosek=mosek)
+    engine = "MOSEK" if mosek else "HiGHS"
+    if limit < 0:
+        return f"unlimited ({engine})"
+    return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values.
 
@@ -638,6 +657,8 @@ def build_summary_dic(plan, N=None):
     half = plan.oscillationAbs / 2.0
     rel_half = plan.oscillationRel / 2.0
     dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
+    dic["MIP nodes (accepted solution / whole solve)"] = _mip_nodes(plan)
+    dic["MIP node limit"] = _mip_node_limit(plan)
     dic["Case executed on"] = str(plan._timestamp)
     dic["Solve time"] = _solve_time(plan)
     # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.

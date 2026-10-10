@@ -1,5 +1,20 @@
 ### Version 2026.10.9
 
+#### New: branch-and-bound nodes in the Summary, and the solver option `mipMaxNodes`
+
+The Summary has two new rows. *MIP nodes* gives the branch-and-bound nodes of the solve that produced
+the accepted plan, then those of the whole solve: every iteration of the self-consistent loop, its
+retries and repairs, and, under local search, the loop that seeds the search and every restricted
+solve. It reads n/a when the plan was solved as a pure linear program. *MIP node limit* gives the
+cap in force. With verbose output, each iteration of the loop logs its node count beside its gap.
+MOSEK counts the nodes it solved, as HiGHS does, so the two engines' counts can be compared; the
+local search's step log used to count MOSEK's branchings instead.
+
+The expert solver option `mipMaxNodes` sets the cap on every branch-and-bound solve. The engines
+cap different things: HiGHS caps nodes (default 1,000,000), MOSEK caps branchings (no cap by
+default). The local search's restricted solves keep their own cap, `localSearchStepNodes`. The
+option is not in the interface: enter it under the extra solver options, or set it in the case file.
+
 #### New: the OBBBA senior bonus can be solved with the plan (`withSeniorBonus`)
 
 The $6,000 deduction for each individual aged 65 or older (tax years through 2028) shrinks by $6
