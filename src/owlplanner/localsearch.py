@@ -49,6 +49,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import copy
 import hashlib
+import os
 import time
 
 import numpy as np
@@ -289,6 +290,14 @@ class LocalSearch:
                     best, improved = res, True
             if improved:
                 continue
+            # (a'') EXPERIMENT (env OWL_LS_JOINT_ZSZM=1): SS taxability and IRMAA freed jointly.
+            if os.environ.get("OWL_LS_JOINT_ZSZM") == "1" and "zs" in fams and "zm" in fams:
+                pinned = [f for f in fams if f not in ("zs", "zm")]
+                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), warm=best[1])
+                self._step(steps, f"round {rnd} (a''): SS, IRMAA free", res, dt)
+                if self._better(res, best):
+                    best = res
+                    continue
             # (a') nothing moved one family at a time: the others jointly, once.
             if len(others) > 1:
                 pinned = [f for f in fams if f not in others]
