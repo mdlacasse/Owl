@@ -29,6 +29,7 @@ from owlplanner.stresstests import (
     _build_regret_grid,
     _downgrade_milp_tax_modes,
     _select_regret_years,
+    _summarize_node_limit_hits,
 )
 from owlplanner.config import readConfig
 
@@ -85,6 +86,16 @@ def test_summarize_conversion_regret_pure():
     # Never-convert regret: [1500, 0]
     assert s["never_convert_regret"]["mean"] == 750.0
     assert s["never_convert_regret"]["max"] == 1500.0
+    # A result that predates the node-limit counts summarizes them as absent, not as zero.
+    assert s["node_limit_hits"] is None
+
+
+def test_summarize_node_limit_hits():
+    hits = np.array([[0, 20, 3, 40], [2, 21, 0, 0], [1, 22, 5, 45]])
+    assert _summarize_node_limit_hits(hits) == {
+        "main": {"at_limit": 3, "runs": 63, "n_windows_at_limit": 2},
+        "local_search_steps": {"at_limit": 8, "runs": 85},
+    }
 
 
 def test_rejects_bad_arguments(dana):
@@ -482,3 +493,20 @@ def test_auto_grid_end_to_end(dana):
     for g in s["regret_by_grid"]:
         if g["mean"] is not None:
             assert g["mean"] >= -s["resolution_floor"] - 1.0
+
+
+@pytest.mark.toml
+def test_node_limit_hits_cover_both_phases(dana):
+    """Every solve of a window is counted: the baseline's and each pinned solve's."""
+    opts = dict(dana.solverOptions)
+    opts.update(mipStrategy="local-search", withMedicare="optimize")  # fast, and mixed-integer
+    one = run_conversion_regret_sweep(dana, "maxSpending", opts, [0], 1966, 1966, include_never_convert=False)
+    two = run_conversion_regret_sweep(dana, "maxSpending", opts, [0, 60_000], 1966, 1966,
+                                      include_never_convert=False)
+    assert one["node_limit_hits"].shape == (1, 4)
+    steps_one, steps_two = one["node_limit_hits"][0, 3], two["node_limit_hits"][0, 3]
+    # The seeding loop solves only LPs; the steps are mixed-integer, and one more pinned solve adds some.
+    assert one["node_limit_hits"][0, 1] == 0 and 0 < steps_one < steps_two
+    s = summarize_conversion_regret(two)["node_limit_hits"]
+    assert s["local_search_steps"]["runs"] == steps_two
+    assert s["main"] == {"at_limit": 0, "runs": 0, "n_windows_at_limit": 0}

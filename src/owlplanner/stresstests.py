@@ -467,6 +467,15 @@ def _downgrade_milp_tax_modes(options):
     return opts, downgraded
 
 
+def _node_limit_hits(p, acc=(0, 0, 0, 0)):
+    """Add p's last solve to acc: (main runs at the node limit, main runs, local-search steps at it, steps).
+
+    Each solve resets its own tally, so summing over solves counts every engine run once.
+    """
+    hits = getattr(p, "solverNodeLimitHits", None)
+    return acc if hits is None else tuple(a + b for a, b in zip(acc, hits, strict=True))
+
+
 def _regret_baseline_worker(args):
     """
     Phase A: solve one scenario's unconstrained (clairvoyant) baseline.
@@ -499,6 +508,7 @@ def _regret_baseline_worker(args):
             "v_star_conv": conv,
             "max_gap": getattr(p, "solverGap", -1.0),
             "n_nonmonotonic": int(conv != "monotonic"),
+            "node_limit_hits": _node_limit_hits(p),
         }
 
 
@@ -526,10 +536,12 @@ def _regret_pin_worker(args):
         # where the fixed point is ambiguous and the result carries a genuine error bar.
         max_gap = -1.0
         n_nonmonotonic = 0
+        node_hits = (0, 0, 0, 0)
 
         def _note():
-            nonlocal n_nonmonotonic, max_gap
+            nonlocal n_nonmonotonic, max_gap, node_hits
             max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+            node_hits = _node_limit_hits(p, node_hits)
             if getattr(p, "convergenceType", "undefined") != "monotonic":
                 n_nonmonotonic += 1
 
@@ -578,6 +590,7 @@ def _regret_pin_worker(args):
             "v_noconv": v_noconv,
             "max_gap": max_gap,
             "n_nonmonotonic": n_nonmonotonic,
+            "node_limit_hits": node_hits,
         }
 
 
@@ -679,6 +692,10 @@ def run_conversion_regret_sweep(
       "max_gap"     - ndarray (S,) largest achieved MIP gap per scenario (-1 when no MIP
                       was involved; values above the requested gap flag solves whose
                       certificate was degraded by the time limit)
+      "node_limit_hits" - ndarray (S, 4) of mixed-integer engine runs per scenario, over both
+                      phases: (main runs stopped at the node limit, main runs, local-search
+                      steps stopped at their limit, local-search steps). Engine runs, not
+                      solves: each solve makes one per loop iteration, plus repairs and steps.
       "person"      - the pinned individual's index
       "seed", "n_scenarios_requested", "milp_downgraded", "solver_gap" - provenance of
                       the run; solver_gap is the tolerance actually used, which is capped
@@ -768,6 +785,7 @@ def run_conversion_regret_sweep(
     x_star = np.full(S, np.nan)
     max_gap = np.full(S, -1.0)
     n_nonmonotonic = np.zeros(S, dtype=int)
+    node_limit_hits = np.zeros((S, 4), dtype=int)
     v_star_conv = ["undefined"] * S
     v_star_osc = np.zeros(S)
     for i, year in enumerate(years):
@@ -780,6 +798,7 @@ def run_conversion_regret_sweep(
         v_star_conv[i] = r["v_star_conv"]
         max_gap[i] = r["max_gap"]
         n_nonmonotonic[i] = r["n_nonmonotonic"]
+        node_limit_hits[i] = r["node_limit_hits"]
 
     if grid is None:
         grid = _build_regret_grid(x_star, n_grid, grid_pad)
@@ -829,6 +848,7 @@ def run_conversion_regret_sweep(
                     v_noconv[i] = r["v_noconv"]
                 max_gap[i] = max(max_gap[i], r["max_gap"])
                 n_nonmonotonic[i] += r["n_nonmonotonic"]
+                node_limit_hits[i] += r["node_limit_hits"]
             # The partial mean is unbiased only because completion order is roughly random;
             # it is labelled "n of S" wherever it is drawn.
             partial = None
@@ -866,6 +886,7 @@ def run_conversion_regret_sweep(
         "v_noconv": v_noconv,
         "max_gap": max_gap,
         "n_nonmonotonic": n_nonmonotonic,
+        "node_limit_hits": node_limit_hits,
         "v_star_conv": v_star_conv,
         "v_star_osc": v_star_osc,
         "v_at_osc": v_at_osc,
@@ -996,6 +1017,7 @@ def summarize_conversion_regret(
         "n_scenarios": n_scenarios,
         "n_failed_baselines": int((~ok).sum()),
         "max_achieved_gap": None if gaps is None else float(np.max(gaps)),
+        "node_limit_hits": _summarize_node_limit_hits(result.get("node_limit_hits")),
         "convergence": convergence,
         "x_star": {
             "p10": float(np.round(np.percentile(x_star, 10), 2)),
@@ -1034,6 +1056,19 @@ def summarize_conversion_regret(
     nc_mean = out.get("never_convert_regret", {}).get("mean")
     out.update(_regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, bootstrap, bootstrap_seed, band_frac))
     return out
+
+
+def _summarize_node_limit_hits(hits):
+    """Sweep-wide totals of the engine runs stopped at the node limit; None for a sweep that predates them."""
+    if hits is None:
+        return None
+    hits = np.asarray(hits, dtype=int).reshape(-1, 4)
+    capped, runs, steps_capped, steps = (int(v) for v in hits.sum(axis=0))
+    return {
+        # A window whose baseline failed reports nothing (its worker returns no payload): zeros.
+        "main": {"at_limit": capped, "runs": runs, "n_windows_at_limit": int(np.sum(hits[:, 0] > 0))},
+        "local_search_steps": {"at_limit": steps_capped, "runs": steps},
+    }
 
 
 def _regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, n_boot, seed, band_frac):

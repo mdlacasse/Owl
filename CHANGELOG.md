@@ -28,6 +28,12 @@ a cap that MOSEK sets in branchings. Runs include HiGHS's retries of a MIP it re
 The row reads n/a when the plan was solved as a pure linear program; the main count reads `0 of 0`
 when the loop that seeds a local search solved only linear programs.
 
+The regret sweep carries the same counts. `run_conversion_regret_sweep` returns `node_limit_hits`,
+one row per scenario summed over all its solves, the baseline's and every pinned one's, and
+`summarize_conversion_regret` reports the sweep's totals, with the number of windows in which a
+main solve stopped at the limit. They count engine runs, not solves: a solve makes one per
+iteration of the loop, plus its repairs and local-search steps.
+
 #### Fixed: the MCP tools described big-ticket items with the wrong sign
 
 The MCP tool descriptions, the guided intake prompt, and `info/mcp.md` said big-ticket items were
