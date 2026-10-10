@@ -19,6 +19,15 @@ A third row, *Local search step node limit*, gives the cap on each of the local 
 solves: `localSearchStepNodes` when set, otherwise the engine's default (3,000 nodes with HiGHS,
 20,000 branchings with MOSEK). It reads n/a when the plan was not solved by local search.
 
+A fourth row, *MIP solves stopped at node limit*, counts the mixed-integer engine runs that stopped
+at the node limit, out of all of them, with the local search's restricted solves counted apart:
+their cap is small by design, so reaching it is routine there, while a main solve reaching
+`mipMaxNodes` means that solve was cut short. Each engine says when it stopped at the limit (MOSEK's
+termination code, HiGHS's model status), so the count does not depend on comparing node counts with
+a cap that MOSEK sets in branchings. Runs include HiGHS's retries of a MIP it reported infeasible.
+The row reads n/a when the plan was solved as a pure linear program; the main count reads `0 of 0`
+when the loop that seeds a local search solved only linear programs.
+
 #### Fixed: the MCP tools described big-ticket items with the wrong sign
 
 The MCP tool descriptions, the guided intake prompt, and `info/mcp.md` said big-ticket items were

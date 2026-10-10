@@ -675,6 +675,10 @@ class Plan:
         self.solverNodesTotal = -1
         self._mipNodeCount = 0
         self._mipRunCount = 0
+        # Engine runs that stopped at the node limit: (main runs at the limit, main runs, local-search
+        # steps at the limit, local-search steps), None when no mixed-integer program was solved.
+        self.solverNodeLimitHits = None
+        self._mipCapTally = (0, 0, 0)  # (main runs at the limit, steps, steps at the limit)
         # Relative amplitude (max-min)/max of the SC-loop oscillation cycle; 0 when
         # the loop converged monotonically (no fixed-point ambiguity)
         self.oscillationRel = 0.0
@@ -4907,8 +4911,10 @@ class Plan:
         if not getattr(self, "_localSearchSeeding", False):
             # The total covers the local search's own solves, which run nested in this one.
             self.solverNodesTotal = -1
+            self.solverNodeLimitHits = None
             self._mipNodeCount = 0
             self._mipRunCount = 0
+            self._mipCapTally = (0, 0, 0)
         self.oscillationRel = 0.0
         self.oscillationAbs = 0.0
 
@@ -5112,7 +5118,7 @@ class Plan:
         self._scSolve(objective, myoptions, solverMethod)
         # Every engine run of this solve, including the repairs after the loop and, under local
         # search, the loop that seeded it.
-        self.solverNodesTotal = self._mipNodeCount if self._mipRunCount else -1
+        self._publishNodeTally()
         if self._mipRunCount:
             self.mylog.vprint(
                 f"Branch-and-bound nodes: {self.solverNodes} for the accepted solution,"
@@ -5275,12 +5281,12 @@ class Plan:
         if not found:
             self.mylog.vprint("Local search: no better plan than the loop's; keeping the loop's plan.")
             log = self.localSearchLog
-            node_tally = (self._mipNodeCount, self._mipRunCount)
+            node_tally = (self._mipNodeCount, self._mipRunCount, self._mipCapTally)
             self.__dict__.update(loop_state)
             self.localSearchLog = log
             # The search's solves were run all the same: keep them in the total.
-            self._mipNodeCount, self._mipRunCount = node_tally
-            self.solverNodesTotal = self._mipNodeCount if self._mipRunCount else -1
+            self._mipNodeCount, self._mipRunCount, self._mipCapTally = node_tally
+            self._publishNodeTally()
         self.solverOptions = myoptions
         self.breakpointMethodUsed = self._breakpointMethodLabel(myoptions, fallback=not found)
         return None
@@ -5317,6 +5323,13 @@ class Plan:
             "relTol": rel_tol,
             "maxIter": max_iterations,
         }
+
+    def _publishNodeTally(self):
+        """Expose the solve's node tally: total nodes, and the engine runs stopped at the node limit."""
+        runs = self._mipRunCount
+        self.solverNodesTotal = self._mipNodeCount if runs else -1
+        capped, steps, steps_capped = self._mipCapTally
+        self.solverNodeLimitHits = (capped, runs - steps, steps_capped, steps) if runs else None
 
     def _mipNodeMark(self):
         return self._mipNodeCount, self._mipRunCount
@@ -6089,20 +6102,39 @@ class Plan:
             return int(u.get_numeric_option(options, "mipMaxNodes", 0, min_value=0))
         return -1 if mosek else HIGHS_MAX_NODES
 
-    def _countMipNodes(self, nodes):
-        """Add one engine run to the solve's node tally; nodes is None for a pure LP."""
+    def _countMipNodes(self, nodes, at_limit=False):
+        """Add one engine run to the solve's node tally; nodes is None for a pure LP.
+
+        at_limit says the run stopped at the node limit. A local-search step is tallied apart:
+        its cap is small by design, so reaching it is routine, unlike a main solve reaching it.
+        """
         if nodes is None:
             return 0
         nodes = max(int(nodes), 0)
         self._mipNodeCount += nodes
         self._mipRunCount += 1
+        step = bool(getattr(self, "_localSearchStep", False))
+        capped, steps, steps_capped = self._mipCapTally
+        self._mipCapTally = (capped + (at_limit and not step), steps + step, steps_capped + (at_limit and step))
         return nodes
 
-    def _countMosekNodes(self, task):
+    def _countHighsNodes(self, h, options, is_mip):
+        """Tally a HiGHS run. kSolutionLimit also ends other MIP limits Owl does not set: the count confirms it."""
+        import highspy
+
+        if not is_mip:
+            return self._countMipNodes(None)
+        nodes = h.getInfoValue("mip_node_count")[1]
+        at_limit = (h.getModelStatus() == highspy.HighsModelStatus.kSolutionLimit
+                    and nodes >= self._mipNodeLimit(options, mosek=False))
+        return self._countMipNodes(nodes, at_limit)
+
+    def _countMosekNodes(self, task, trmcode):
         """Tally a MOSEK MIP run. Solved nodes, not branchings, so the count means what HiGHS's does."""
         import mosek
 
-        return self._countMipNodes(task.getintinf(mosek.iinfitem.mio_num_solved_nodes))
+        at_limit = trmcode == mosek.rescode.trm_mio_num_branches
+        return self._countMipNodes(task.getintinf(mosek.iinfitem.mio_num_solved_nodes), at_limit)
 
     def _run_highs(self, c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=None):
         """
@@ -6174,7 +6206,7 @@ class Plan:
 
         is_mip = bool(integrality.any())
         h.run()
-        nodes = self._countMipNodes(h.getInfoValue("mip_node_count")[1] if is_mip else None)
+        nodes = self._countHighsNodes(h, options, is_mip)
         ms = h.getModelStatus()
         # HiGHS's MIP presolve can call a feasible model infeasible when big-M coefficients are
         # large. Retry before believing it.
@@ -6186,7 +6218,7 @@ class Plan:
                 if warm_x is not None:
                     h.setSolution(len(c), np.arange(len(c), dtype=np.int32), warm_x.astype(np.float64))
                 h.run()
-                nodes += self._countMipNodes(h.getInfoValue("mip_node_count")[1])
+                nodes += self._countHighsNodes(h, options, True)
                 ms = h.getModelStatus()
                 if ms != highspy.HighsModelStatus.kInfeasible:
                     break
@@ -6441,11 +6473,11 @@ class Plan:
             task.putintparam(mosek.iparam.mio_construct_sol, mosek.onoffkey.on)
 
         try:
-            task.optimize()
+            trmcode = task.optimize()
         except mosek.Error as e:
             self._infeasible = False
             return None, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1.0
-        self._lastMipNodes = self._countMosekNodes(task) if int_vars else self._countMipNodes(None)
+        self._lastMipNodes = self._countMosekNodes(task, trmcode) if int_vars else self._countMipNodes(None)
 
         if int_vars:
             sol = mosek.soltype.itg
@@ -6598,7 +6630,7 @@ class Plan:
         except mosek.Error as e:
             self._infeasible = False
             return 0.0, np.zeros(nvars), False, f"MOSEK: {e.msg}", -1
-        self._lastMipNodes = self._countMosekNodes(task) if int_vars else self._countMipNodes(None)
+        self._lastMipNodes = self._countMosekNodes(task, trmcode) if int_vars else self._countMipNodes(None)
 
         # The integer solution slot only exists when the problem actually has integer
         # variables. With every tax mode in loop mode the problem is a pure LP, so read

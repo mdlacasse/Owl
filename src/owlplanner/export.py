@@ -393,6 +393,16 @@ def _mip_node_limit(plan):
     return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
 
 
+def _node_limit_hits(plan):
+    """Engine runs stopped at the node limit: main solves, then the local search's steps apart."""
+    hits = getattr(plan, "solverNodeLimitHits", None)
+    if hits is None:
+        return "n/a (no mixed-integer solve)"
+    capped, runs, steps_capped, steps = hits
+    text = f"{capped:,} of {runs:,}"
+    return text + (f" (local search steps: {steps_capped:,} of {steps:,})" if steps else "")
+
+
 def _local_search_step_limit(plan):
     """Cap on each of the local search's restricted solves, in the engine's own unit."""
     options = plan.solverOptions or {}
@@ -672,6 +682,7 @@ def build_summary_dic(plan, N=None):
     dic["MIP nodes (accepted solution / whole solve)"] = _mip_nodes(plan)
     dic["MIP node limit"] = _mip_node_limit(plan)
     dic["Local search step node limit"] = _local_search_step_limit(plan)
+    dic["MIP solves stopped at node limit"] = _node_limit_hits(plan)
     dic["Case executed on"] = str(plan._timestamp)
     dic["Solve time"] = _solve_time(plan)
     # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.

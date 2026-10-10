@@ -1,6 +1,6 @@
 """
-Tests for the branch-and-bound node reporting (solverNodes, solverNodesTotal) and the mipMaxNodes
-solver option.
+Tests for the branch-and-bound node reporting (solverNodes, solverNodesTotal, solverNodeLimitHits) and the
+mipMaxNodes solver option.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -104,3 +104,42 @@ def test_step_limit_reports_default_and_option():
         assert _local_search_step_limit(p) == f"{localsearch.STEP_NODES[engine]:,} {unit} ({engine})"
         p.solverOptions["localSearchStepNodes"] = 4321
         assert _local_search_step_limit(p) == f"4,321 {unit} ({engine})"
+
+
+HITS_ROW = "MIP solves stopped at node limit"
+MIP_OPTS = {"netSpending": 105, "withdrawalOrder": "taxable_first"}
+
+
+def test_node_limit_hits_read_na_for_a_pure_lp():
+    p = _plan()
+    p.solve("maxBequest", {"netSpending": 105})
+    assert p.solverNodeLimitHits is None
+    assert p.summaryDic()[HITS_ROW] == "n/a (no mixed-integer solve)"
+
+
+def test_uncapped_solves_do_not_reach_the_limit():
+    p = _plan()
+    p.solve("maxBequest", dict(MIP_OPTS))
+    capped, runs, steps_capped, steps = p.solverNodeLimitHits
+    assert capped == 0 and runs > 0 and steps == steps_capped == 0
+    assert p.summaryDic()[HITS_ROW] == f"0 of {runs}"
+
+
+def test_capped_solves_are_counted_and_reset():
+    p = _plan()
+    p.solve("maxBequest", dict(MIP_OPTS, mipMaxNodes=1))
+    capped, runs, _, _ = p.solverNodeLimitHits
+    assert runs > 0 and capped == runs
+    p.solve("maxBequest", {"netSpending": 105})
+    assert p.solverNodeLimitHits is None
+
+
+def test_local_search_steps_are_counted_apart():
+    # A one-node step cap stops the steps, not the loop that seeds the search; the counts survive
+    # the search falling back to the loop's plan.
+    p = _plan()
+    p.solve("maxBequest", {"netSpending": 105, "mipStrategy": "local-search", "withMedicare": "optimize",
+                           "localSearchStepNodes": 1})
+    capped, runs, steps_capped, steps = p.solverNodeLimitHits
+    assert capped == 0 and steps > 0 and 0 < steps_capped <= steps
+    assert p.summaryDic()[HITS_ROW] == f"0 of {runs} (local search steps: {steps_capped} of {steps})"

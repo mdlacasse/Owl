@@ -140,6 +140,7 @@ class LocalSearch:
         opts["mipMaxNodes"] = self.step_nodes or STEP_NODES["MOSEK" if self.use_mosek else "HiGHS"]
         opts["gap"] = min(float(options.get("gap", STEP_GAP)), STEP_GAP)
         p._mip_warm_start = warm
+        p._localSearchStep = True  # tallies this run's node-limit stop apart from the main solves'
         # _scSolve infers the backend from the solve method, which is this search's: say it here.
         p._use_mosek = self.use_mosek
         t = time.time()
@@ -150,6 +151,7 @@ class LocalSearch:
             res = (None, None, False, str(e)[:120], -1.0)
         finally:
             p._mip_warm_start = None
+            p._localSearchStep = False
         return res, time.time() - t
 
     def _fingerprint(self):
