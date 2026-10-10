@@ -49,7 +49,7 @@ def _lower_bound_rows(p, tag_name, z_name):
         if isinstance(tag, tuple) and tag and tag[0] == tag_name:
             _, nn, q = tag
             zcol = p.vm[z_name].idx(nn, q)
-            coef = dict(zip(p.A.Aind[r], p.A.Aval[r]))[zcol]
+            coef = dict(zip(p.A.Aind[r], p.A.Aval[r], strict=True))[zcol]
             out[(nn, q)] = coef
     return out
 

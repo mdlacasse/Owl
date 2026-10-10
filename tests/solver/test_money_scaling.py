@@ -139,8 +139,9 @@ def test_mosek_task_holds_the_scaled_model():
     starts = np.append(a_start, len(a_index))
     for i in range(0, ncons, max(1, ncons // 200)):
         _, idx, val = task.getarow(i)
-        got = {int(j): v for j, v in zip(idx, val)}
-        want = {int(j): v for j, v in zip(a_index[starts[i]:starts[i + 1]], scaled[starts[i]:starts[i + 1]]) if v != 0}
+        got = {int(j): v for j, v in zip(idx, val, strict=True)}
+        row = slice(starts[i], starts[i + 1])
+        want = {int(j): v for j, v in zip(a_index[row], scaled[row], strict=True) if v != 0}
         assert got.keys() == want.keys()  # MOSEK keeps no explicit zeros
         for j in want:
             assert got[j] == pytest.approx(want[j], rel=1e-12)

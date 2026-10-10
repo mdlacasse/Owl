@@ -288,7 +288,7 @@ The second table starts at the current year and covers the rest of the plan.""")
         # Properties a loan can be paid off with: the residences and real estate in Fixed Assets.
         assetdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
         propertyNames = sorted(
-            {str(n) for n, t in zip(assetdf["name"], assetdf["type"]) if t in PROPERTY_TYPES and n}
+            {str(n) for n, t in zip(assetdf["name"], assetdf["type"], strict=True) if t in PROPERTY_TYPES and n}
         )
         # A link to a name no longer among them (renamed or deleted) stays a choice, so that the
         # editor shows it rather than clearing it, and the warning below names it.
@@ -363,7 +363,11 @@ The second table starts at the current year and covers the rest of the plan.""")
 in the table by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and pressing the *Delete* key."""
         st.caption(debtsCaption)
-        unknown = [f"*{name}* ({prop})" for name, prop in zip(debtdf["name"], debtdf["property"]) if prop in staleNames]
+        unknown = [
+            f"*{name}* ({prop})"
+            for name, prop in zip(debtdf["name"], debtdf["property"], strict=True)
+            if prop in staleNames
+        ]
         if unknown:
             st.warning(
                 "Loans paid off by the sale of a property that is not a residence or real estate in "

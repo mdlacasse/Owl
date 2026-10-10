@@ -464,7 +464,7 @@ def _schedule_tax(income, brackets):
 def _lp_bracket_tax(income, theta, delta):
     """Tax from filling the LP brackets (rates, widths) in order."""
     tax, left = 0.0, income
-    for rate, width in zip(theta, delta):
+    for rate, width in zip(theta, delta, strict=True):
         filled = min(left, width)
         tax += filled * rate
         left -= filled

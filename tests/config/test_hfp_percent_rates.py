@@ -108,7 +108,7 @@ def test_a_blank_row_inside_the_table_keeps_cells_on_their_rows(tmp_path):
     header = [c.value for c in ws[1]]
     first = [c.value for c in ws[2]]
     ws.insert_rows(2)  # blank row 2; the first loan moves to row 3
-    second = dict(zip(header, first))
+    second = dict(zip(header, first, strict=True))
     second.update(name="car", type="loan", amount=20000.0, rate=0.07)
     for k, col in enumerate(header, start=1):
         ws.cell(row=4, column=k, value=second[col])
@@ -116,7 +116,7 @@ def test_a_blank_row_inside_the_table_keeps_cells_on_their_rows(tmp_path):
     wb.save(path)
 
     _, debts = _read(str(path))
-    rates = dict(zip(debts["name"], debts["rate"]))
+    rates = dict(zip(debts["name"], debts["rate"], strict=True))
     assert rates["mtg"] == pytest.approx(0.9)
     assert rates["car"] == pytest.approx(7.0)
 

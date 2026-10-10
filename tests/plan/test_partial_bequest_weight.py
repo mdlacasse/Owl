@@ -44,7 +44,7 @@ def _weighted_columns(p):
     nx = p.n_d - 1
     cols = [p.vm["b"].idx(p.i_d, j, nx) for j in range(p.N_j)]
     c_ind, c_val = p.c.lists()
-    coef = dict(zip(c_ind, c_val))
+    coef = dict(zip(c_ind, c_val, strict=True))
     return [j for j, col in enumerate(cols) if coef.get(col, 0) < 0]
 
 
@@ -74,7 +74,7 @@ def test_default_weight_is_at_least_twice_the_gap(gap, expected):
         p = _couple([0, 0, 1, 1])
         p.solve("maxSpending", {"bequest": 0, "maxIter": 1, **opts})
         c_ind, c_val = p.c.lists()
-        return dict(zip(c_ind, c_val))[p.vm["b"].idx(p.i_d, 0, p.n_d - 1)]
+        return dict(zip(c_ind, c_val, strict=True))[p.vm["b"].idx(p.i_d, 0, p.n_d - 1)]
 
     assert coef({"gap": gap}) == pytest.approx(coef({"gap": gap, "partialBequestWeight": expected}))
 
