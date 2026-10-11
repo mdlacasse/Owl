@@ -2047,3 +2047,89 @@ def test_run_historical_solves_scenarios_with_the_loop():
     )
     assert data["n_scenarios_solved"] == 2
     assert "local-search" in data["breakpoint_method_note"]
+
+
+def test_medical_settings_reach_the_plan():
+    plan = _single(other_medical_expenses=4_000, medical_inflation_excess=1.5)
+    assert plan.other_medical_k == 4_000
+    assert plan.medical_excess == pytest.approx(0.015)
+
+
+def test_medical_inflation_out_of_range_is_refused():
+    with pytest.raises(ValueError, match="between 0% and 10%"):
+        _single(medical_inflation_excess=12)
+
+
+def test_hsa_without_medical_expenses_is_disclosed():
+    assumed = []
+    _single(hsa=[50_000], assumed=assumed)
+    assert "other_medical_expenses" in {a["parameter"] for a in assumed}
+    assumed = []
+    _single(hsa=[50_000], other_medical_expenses=3_000, assumed=assumed)
+    assert "other_medical_expenses" not in {a["parameter"] for a in assumed}
+    assumed = []
+    _single(assumed=assumed)
+    assert "other_medical_expenses" not in {a["parameter"] for a in assumed}
+
+
+def test_part_d_options_reach_the_solver_options():
+    from owlplanner.assistant.tools import _build_mcp_opts
+
+    opts = _build_mcp_opts(include_medicare_part_d=False, medicare_part_d_base_premium=40)
+    assert opts["includeMedicarePartD"] is False
+    assert opts["medicarePartDBasePremium"] == 40.0
+    assert "includeMedicarePartD" not in _build_mcp_opts()
+    assert "medicarePartDBasePremium" not in _build_mcp_opts()
+
+
+def test_run_from_params_charges_dearer_health_care():
+    """Faster medical inflation raises Medicare premiums and lowers spending."""
+    base = dict(
+        names=["Pat"],
+        birth_dates=["1958-03-15"],
+        life_expectancy=[90],
+        taxable=[300_000],
+        tax_deferred=[700_000],
+        roth=[100_000],
+        hsa=[60_000],
+        ss_monthly_pias=[2500],
+        ss_ages=[70],
+        state="TX",
+        rate_method="conservative",
+        spending_profile="flat",
+        other_medical_expenses=4_000,
+    )
+    runs = [json.loads(_run(run_from_params(**base, medical_inflation_excess=x))) for x in (0, 3)]
+    assert all(r["status"] == "solved" for r in runs)
+    assert "other_medical_expenses" not in {a["parameter"] for a in runs[0].get("assumed_defaults", [])}
+    m0, m1 = (r["summary"]["medicare_nominal"] for r in runs)
+    s0, s1 = (r["summary"]["spending_basis_today_dollars"] for r in runs)
+    assert m1 > m0 and s1 < s0
+
+
+def test_save_case_writes_the_medical_settings(tmp_path):
+    import tomllib
+
+    out = json.loads(
+        save_case(
+            names=["Pat"],
+            birth_dates=["1958-03-15"],
+            life_expectancy=[90],
+            taxable=[300_000],
+            tax_deferred=[700_000],
+            roth=[100_000],
+            hsa=[60_000],
+            state="TX",
+            other_medical_expenses=4_000,
+            medical_inflation_excess=1.5,
+            include_medicare_part_d=False,
+            medicare_part_d_base_premium=40,
+            output_dir=str(tmp_path),
+        )
+    )
+    with open(out["toml_file"], "rb") as f:
+        conf = tomllib.load(f)
+    assert conf["optimization_parameters"]["other_medical_expenses"] == 4.0
+    assert conf["optimization_parameters"]["medical_inflation_excess"] == 1.5
+    assert conf["solver_options"]["includeMedicarePartD"] is False
+    assert conf["solver_options"]["medicarePartDBasePremium"] == 40.0

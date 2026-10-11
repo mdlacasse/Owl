@@ -175,13 +175,15 @@ def build_explanation(plan) -> dict:
         "tax_brackets": _bracket_analysis(plan),
         "state_tax_brackets": _state_bracket_analysis(plan),
         "account_depletion": _depletion(plan),
+        "health_care": _health_care(plan),
         "caveats": [
             "Only the first year's decisions are executed. Later years are projections under "
             "current tax law and the assumed return path; they will change when the plan is "
             "re-solved next year, so present them as trajectory context, not recommendations.",
             "Shadow prices are marginal (valid for small changes) and hold any discrete choices "
             "(an optimized Social Security claiming age, a prescribed withdrawal order) and the "
-            "self-consistent quantities (SS taxability, IRMAA premiums) fixed at their solved values.",
+            "self-consistent quantities (SS taxability, Medicare IRMAA and ACA premiums) fixed at their "
+            "solved values.",
             "Large parameter changes can move the plan into a different tax bracket or flip one of "
             "those choices; re-solve to evaluate them.",
         ],
@@ -407,6 +409,9 @@ def _year0_thresholds(plan):
             }
             if tier < len(thresholds):
                 entry["headroom_to_next_tier"] = _round(float(thresholds[tier]) - magi0)
+                entry["next_tier_premium_increase_today"] = _round(
+                    _irmaa_step(plan, float(thresholds[tier]) + 1.0, n_prem)
+                )
             prox["irmaa"] = entry
 
     # ACA: current-year MAGI drives this year's subsidy when pre-Medicare years exist.
@@ -417,12 +422,96 @@ def _year0_thresholds(plan):
             "note": "ACA subsidies depend on current-year MAGI; extra income this year raises "
             "this year's premium.",
         }
+        prox["aca"].update(_aca_cliffs(plan))
 
     # SS taxability tier actually reached this year.
     if float(np.sum(plan.zetaBar_in[:, 0])) > 0:
         prox["social_security"] = {"taxable_fraction_pct": _round(float(plan.Psi_n[0]) * 100, 1)}
 
     return prox
+
+
+def _irmaa_step(plan, magi_year0, n_prem):
+    """Household Medicare premium change in year n_prem (today's $) if year-0 MAGI were magi_year0."""
+    N = plan.N_n
+    g = plan.gamma_n[:N]
+    kw = dict(
+        include_part_d=getattr(plan, "_include_medicare_part_d", True),
+        part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
+        medical_n=plan._medical_n(g),
+    )
+    magi = np.array(plan.MAGI_n[:N], dtype=float)
+    now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
+    magi[0] = magi_year0
+    then = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
+    return (then - now) / float(g[n_prem])
+
+
+def _aca_cliffs(plan):
+    """First-year ACA MAGI against the Medicaid line and the 400% FPL cliff (today's $).
+
+    ACA uses the full-SS MAGI (IRC 36B), not the AGI-basis MAGI of NIIT and IRMAA. Empty when
+    nobody is on the marketplace in the first year (coverage starting later)."""
+    thisyear = int(plan.year_n[0])
+    n_start = max(0, plan.aca_start_year - thisyear) if plan.aca_start_year > 0 else 0
+    eligible = [i for i in range(plan.N_i) if thisyear - plan.yobs[i] < 65 and plan.horizons[i] > 0]
+    if n_start > 0 or not eligible:
+        return {}
+    fpl_year = thisyear if thisyear in tx._ACA_FPL else max(tx._ACA_FPL)
+    fpl = float(tx._ACA_FPL[fpl_year][min(len(eligible), 2) - 1])
+    magi = float(plan.MAGI_aca_n[0])
+    medicaid, cliff = tx._ACA_MEDICAID_RATIO * fpl, 4.0 * fpl
+
+    def cost(m):
+        g = plan.gamma_n[:1]
+        return float(
+            tx.acaCosts(plan.yobs, plan.horizons, np.array([m]), g, plan.slcsp_annual, 1,
+                        thisyear=thisyear, medical_n=plan._medical_n(g))[0]
+        )
+
+    out = {
+        "aca_magi": _round(magi),
+        "fpl_pct": _round(100 * magi / fpl, 1),
+        "medicaid_line": _round(medicaid),
+        "subsidy_cliff": _round(cliff),
+    }
+    if magi <= medicaid:
+        out["covered_by_medicaid"] = True
+    if magi < cliff:
+        out["headroom_to_subsidy_cliff"] = _round(cliff - magi)
+        out["premium_jump_at_cliff"] = _round(cost(cliff + 1.0) - cost(cliff - 1.0))
+    else:
+        out["above_subsidy_cliff_by"] = _round(magi - cliff)
+        out["premium_saved_below_cliff"] = _round(cost(magi) - cost(cliff - 1.0))
+    return out
+
+
+def _health_care(plan):
+    """Lifetime health-care costs (today's $) and how they grow."""
+    N = plan.N_n
+    g = plan.gamma_n[:N]
+    out = {
+        "medicare_premiums_total": _round(float(np.sum(plan.medicare_n / g))),
+        "aca_net_premiums_total": _round(float(np.sum(plan.aca_costs_n / g))),
+        "other_medical_expenses_total": _round(float(np.sum(plan.other_medical_n[:N] / g))),
+        "hsa_withdrawals_total": _round(float(np.sum(plan.w_ijn[:, 3, :N] / g))),
+        "medical_inflation_excess_pct": _round(float(plan.medical_excess) * 100, 4),
+        "note": "Premiums and other medical expenses grow with inflation compounded with "
+        "medical_inflation_excess_pct; IRMAA thresholds and the poverty line follow inflation alone, "
+        "so a positive excess raises premiums in today's dollars year after year. Other medical "
+        "expenses sit inside net spending; they only cap tax-free HSA withdrawals.",
+    }
+    if np.any(plan.medicare_n > 0):
+        base = tx.mediCosts(
+            plan.yobs, plan.horizons, np.zeros(N), np.zeros(2), g, N,
+            include_part_d=getattr(plan, "_include_medicare_part_d", True),
+            part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
+            medical_n=plan._medical_n(g),
+        )
+        surcharge = np.maximum(plan.medicare_n - base, 0) / g
+        out["irmaa_surcharges_total"] = _round(float(np.sum(surcharge)))
+        out["irmaa_years"] = [int(plan.year_n[n]) for n in range(N) if surcharge[n] > 1.0]
+    return out
 
 
 def _this_year(plan, dd, cols):

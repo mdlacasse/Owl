@@ -214,6 +214,25 @@ class AccountDepletion(BaseModel):
     note: str = Field(description="Interpretation guidance.")
 
 
+class HealthCare(BaseModel):
+    """Lifetime health-care costs and their growth (today's dollars)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    medicare_premiums_total: float = Field(description="Medicare Part B and D premiums, IRMAA included.")
+    irmaa_surcharges_total: Optional[float] = Field(
+        default=None, description="Part of the Medicare premiums due to IRMAA surcharges."
+    )
+    irmaa_years: Optional[List[int]] = Field(default=None, description="Years with an IRMAA surcharge.")
+    aca_net_premiums_total: float = Field(description="ACA marketplace premiums after the Premium Tax Credit.")
+    other_medical_expenses_total: float = Field(
+        description="Out-of-pocket qualified medical expenses (inside net spending; they cap HSA withdrawals)."
+    )
+    hsa_withdrawals_total: float = Field(description="Tax-free HSA withdrawals.")
+    medical_inflation_excess_pct: float = Field(description="Yearly growth of medical prices above inflation (%).")
+    note: str = Field(description="How these costs grow and what they cover.")
+
+
 class ShadowPrices(BaseModel):
     """Marginal values of active goals and rules, in the reported-objective units.
 
@@ -263,6 +282,9 @@ class PlanExplanation(BaseModel):
         default=None, description="Per-year state tax and bracket fill (income-tax states only)."
     )
     account_depletion: AccountDepletion = Field(description="Withdrawal sequencing.")
+    health_care: Optional[HealthCare] = Field(
+        default=None, description="Lifetime Medicare, ACA, and out-of-pocket medical costs."
+    )
     caveats: List[str] = Field(description="Scope-of-validity notes the narration must respect.")
 
 

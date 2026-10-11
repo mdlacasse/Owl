@@ -44,6 +44,48 @@ def _runs(values, first_year):
     return runs
 
 
+def _health_care(plan) -> dict:
+    """Health-care settings: Medicare, ACA, out-of-pocket expenses, and medical inflation (today's $)."""
+    so = plan.solverOptions
+    first_year = int(plan.year_n[0])
+    medicare_mode = so.get("withMedicare", "loop")
+    medicare_on = medicare_mode not in ("none", "None", False)
+    starts = []
+    for i in range(plan.N_i):
+        year = int(plan.yobs[i]) + 65
+        last = first_year + int(plan.horizons[i]) - 1
+        starts.append({"name": plan.inames[i], "year": max(year, first_year) if year <= last else None})
+    medicare = {"modeled": bool(medicare_on), "start_years": starts}
+    if medicare_on:
+        part_d_base = so.get("medicarePartDBasePremium")
+        medicare.update(
+            {
+                "mode": medicare_mode,
+                "include_part_d": bool(so.get("includeMedicarePartD", True)),
+                "part_d_base_premium_monthly_per_person": float(part_d_base) if part_d_base else 0.0,
+            }
+        )
+
+    aca = None
+    if plan.slcsp_annual > 0:
+        aca = {
+            "slcsp_annual": int(round(plan.slcsp_annual)),
+            "start_year": int(plan.aca_start_year) if plan.aca_start_year > 0 else first_year,
+            "mode": so.get("withACA", "loop"),
+        }
+
+    return {
+        "medicare": medicare,
+        "aca": aca,
+        "other_medical_expenses_annual": int(round(plan.other_medical_k)),
+        "medical_inflation_excess_pct": round(float(plan.medical_excess) * 100, 4),
+        "note": "Amounts in today's $. Medicare premiums, the ACA benchmark premium, and other medical "
+        "expenses grow with inflation plus medical_inflation_excess_pct; tax brackets, IRMAA thresholds, "
+        "and the poverty line follow inflation alone. HSA withdrawals are tax-free up to Medicare "
+        "premiums plus other medical expenses.",
+    }
+
+
 def _plan_to_explain(plan, filename, set_overrides) -> dict:
     current_year = datetime.date.today().year
     N_i = plan.N_i
@@ -193,6 +235,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "liquidation_capgains_rate": round(float(plan.liquidationCapGainsRate), 4),
         "social_security": social_security,
         "pensions": pensions,
+        "health_care": _health_care(plan),
         "solver_options": plan.solverOptions,
         "overrides_applied": list(set_overrides),
     }

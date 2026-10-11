@@ -5,6 +5,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio
+import datetime
 import json
 
 import pytest
@@ -14,6 +15,7 @@ from owlplanner.assistant.explain_schema import SCHEMA_VERSION, PlanExplanation
 from owlplanner.assistant.tools import _build_plan_from_params, explain_results
 
 BILL_TOML = "examples/Case_bill.toml"
+THISYEAR = datetime.date.today().year
 
 
 def _run(coro):
@@ -297,3 +299,63 @@ def test_build_explanation_omits_state_tax_without_income_tax():
     ex = build_explanation(_solved_plan(state="TX"))
     assert "state_tax" not in ex["this_year"]
     assert "state_tax_brackets" not in ex
+
+
+@pytest.mark.toml
+def test_health_care_section_totals_match_the_plan():
+    plan = _solved_plan(state="TX")
+    hc = build_explanation(plan)["health_care"]
+    g = plan.gamma_n[: plan.N_n]
+    assert hc["medicare_premiums_total"] == pytest.approx(float((plan.medicare_n / g).sum()), abs=0.01)
+    assert hc["aca_net_premiums_total"] == 0
+    assert hc["medical_inflation_excess_pct"] == 0
+    assert 0 <= hc["irmaa_surcharges_total"] <= hc["medicare_premiums_total"]
+
+
+@pytest.mark.toml
+def test_irmaa_next_tier_cost_is_one_tier_of_surcharges():
+    """Pat is on Medicare in year 2; crossing tier 0 adds one tier of Part B and D surcharges."""
+    import owlplanner.tax_federal as tx
+
+    plan = _solved_plan(state="TX")
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    if irmaa["current_tier"] == 0:
+        step = (tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1]) * plan._medical_n(plan.gamma_n)[2] / plan.gamma_n[2]
+        assert irmaa["next_tier_premium_increase_today"] == pytest.approx(step, abs=0.01)
+    assert irmaa["next_tier_premium_increase_today"] > 0
+
+
+@pytest.mark.toml
+def test_aca_cliffs_use_the_aca_magi():
+    import owlplanner.tax_federal as tx
+
+    plan = _build_plan_from_params(
+        names=["Morgan"],
+        birth_dates=[f"{THISYEAR - 55}-03-01"],
+        life_expectancy=[88],
+        state="TX",
+        taxable=[300_000],
+        tax_deferred=[600_000],
+        roth=[100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500],
+        ss_ages=[67],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+        slcsp=14_000,
+    )
+    plan.solve("maxSpending", {"units": "1", "withDuals": True})
+    aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
+    fpl_year = THISYEAR if THISYEAR in tx._ACA_FPL else max(tx._ACA_FPL)
+    fpl = float(tx._ACA_FPL[fpl_year][0])
+    assert aca["aca_magi"] == pytest.approx(float(plan.MAGI_aca_n[0]), abs=0.01)
+    assert aca["subsidy_cliff"] == pytest.approx(4 * fpl, abs=0.01)
+    assert aca["medicaid_line"] == pytest.approx(tx._ACA_MEDICAID_RATIO * fpl, abs=0.01)
+    assert ("headroom_to_subsidy_cliff" in aca) != ("above_subsidy_cliff_by" in aca)
+
+
+def test_caveat_names_aca_premiums():
+    plan = _solved_plan(state="TX")
+    assert any("ACA premiums" in c for c in build_explanation(plan)["caveats"])

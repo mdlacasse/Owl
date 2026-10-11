@@ -16,7 +16,7 @@ optimizations, and compare scenarios through natural conversation.
 | Tool | Description | Solves? |
 |------|-------------|---------|
 | `list_cases(directory)` | Enumerate `.toml` case files in a directory | No |
-| `explain_case(filename, overrides)` | Describe a case: individuals, balances, fixed assets, debts, opening balance sheet, income, options | No |
+| `explain_case(filename, overrides)` | Describe a case: individuals, balances, fixed assets, debts, opening balance sheet, income, health care (Medicare, ACA, medical expenses and inflation), options | No |
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
 | `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
 | `convert_ss_benefit(birth_year, claiming_age, ...)` | Convert between SS PIA and actual benefit at a claiming age | No |
@@ -24,7 +24,7 @@ optimizations, and compare scenarios through natural conversation.
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `compare_to_baseline(filename or params, baseline_policies)` | Quantify the dollar value of optimization vs a conventional baseline (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) | Yes (×2) |
-| `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, account depletion order | Yes |
+| `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, IRMAA and ACA cliffs, lifetime health-care costs, account depletion order | Yes |
 | `run_from_params(names, birth_dates, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
 | `save_case(names, birth_dates, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
 | `run_stochastic(scenario_method, ...)` | Spending efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
@@ -90,6 +90,7 @@ as commands and lets you attach resources to the conversation):
 | | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in \$ per person |
 | | `roth` * | Roth account balances in \$ per person |
 | **Balances** | `hsa` | HSA balances in \$ per person |
+| | `other_medical_expenses` | Yearly out-of-pocket qualified medical expenses in \$ (today's \$): dental, vision, co-pays, deductibles. HSA withdrawals are tax-free up to Medicare premiums plus this amount (only this amount before Medicare). HSA balances without it are flagged in `assumed_defaults` |
 | | `cost_basis` | Taxable cost basis in \$ per person. If omitted, realized gains are modeled from current-year appreciation only (flagged in `assumed_defaults`) |
 | **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement (\$ per month) |
 | | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
@@ -146,9 +147,12 @@ as commands and lets you attach resources to the conversation):
 | | `partial_bequest_weight` | Value of a dollar left to other heirs at the first death, as a fraction of a dollar (default max(1%, twice the solver gap)) |
 | | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
 | | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |
+| | `include_medicare_part_d` | Include Part D premiums and IRMAA surcharges (default `true`); `false` for drug coverage from elsewhere (employer, VA) |
+| | `medicare_part_d_base_premium` | Part D base premium in $/month per person (default `0`: IRMAA surcharges only) |
 | | `solver` | `"HiGHS"` or `"MOSEK"` (default: best available) |
 | | `max_time` | Solver time limit in seconds |
 | **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in $/year for pre-65 individuals |
+| | `medical_inflation_excess` | How much faster than inflation medical prices grow, in %/year (0–10, default `0`): Medicare premiums, the ACA benchmark premium, and `other_medical_expenses`. Tax brackets, IRMAA thresholds, and the poverty line keep following inflation |
 | | `ss_trim_pct` | SS trust fund haircut in % (e.g. `23` for SSA trustees baseline) |
 | | `ss_trim_year` | Year SS benefit reduction begins (e.g. `2033`) |
 | | `obbba_expiration_year` | Year OBBBA tax rates sunset to pre-TCJA levels (default `2032`) |
@@ -213,7 +217,13 @@ dual extraction and returns LP shadow prices — the lifetime-spending cost per 
 of bequest floor, the value of an extra dollar of income in each year, the cost of
 each forced RMD dollar — plus the Roth conversion schedule with binding-cap values,
 per-year federal bracket fill and headroom, and the account depletion order.
-Sensitivities are marginal and hold bracket selections fixed.
+For this year's income it gives the distance to the next IRMAA tier and what crossing it
+adds to Medicare premiums two years later, and the ACA MAGI against the Medicaid line and
+the 400% FPL subsidy cliff with the premium at stake. A `health_care` section totals
+lifetime Medicare premiums (with the IRMAA part and its years), ACA net premiums,
+out-of-pocket medical expenses, HSA withdrawals, and the medical inflation excess.
+Sensitivities are marginal and hold bracket selections and the self-consistent premiums
+(IRMAA, ACA) fixed.
 
 **Three distinct stress-test tools:**
 

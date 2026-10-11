@@ -198,6 +198,8 @@ def _build_mcp_opts(
     swap_roth_converters_first=None,
     swap_roth_converters_year=None,
     withdrawal_order=None,
+    include_medicare_part_d=None,
+    medicare_part_d_base_premium=None,
     inames=None,
 ):
     """Build solver opts dict for MCP tools (always full-dollar units)."""
@@ -235,6 +237,10 @@ def _build_mcp_opts(
         opts["partialBequestWeight"] = float(partial_bequest_weight)
     if withdrawal_order is not None:
         opts["withdrawalOrder"] = withdrawal_order
+    if include_medicare_part_d is not None:
+        opts["includeMedicarePartD"] = bool(include_medicare_part_d)
+    if medicare_part_d_base_premium is not None:
+        opts["medicarePartDBasePremium"] = float(medicare_part_d_base_premium)
     _swap = _swap_roth_converters_value(inames, swap_roth_converters_first, swap_roth_converters_year)
     if _swap is not None:
         opts["swapRothConverters"] = _swap
@@ -906,6 +912,8 @@ def _build_plan_from_params(
     state_move=None,
     beneficiary_fractions=None,
     spousal_deposit_fraction=None,
+    other_medical_expenses=None,
+    medical_inflation_excess=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
@@ -1216,6 +1224,20 @@ def _build_plan_from_params(
             "otherwise provide slcsp (annual Silver benchmark premium).",
         )
 
+    if other_medical_expenses is not None and float(other_medical_expenses) > 0:
+        plan.setMedicalExpenses(float(other_medical_expenses), units="1")
+    elif hsa and any(hsa):
+        _assume(
+            "other_medical_expenses",
+            0,
+            "HSA balances given but no other_medical_expenses, so HSA withdrawals are capped at zero "
+            "before Medicare and at Medicare premiums after: most of the HSA stays locked. Provide the "
+            "household's yearly out-of-pocket qualified medical expenses (dental, vision, co-pays, "
+            "deductibles) in today's $.",
+        )
+    if medical_inflation_excess is not None:
+        plan.setMedicalInflation(float(medical_inflation_excess))
+
     if obbba_expiration_year is not None:
         plan.setExpirationYearOBBBA(int(obbba_expiration_year))
     if dividend_rate is not None:
@@ -1304,6 +1326,10 @@ def _run_from_params_blocking(
     beneficiary_fractions=None,
     spousal_deposit_fraction=None,
     partial_bequest_weight=None,
+    other_medical_expenses=None,
+    medical_inflation_excess=None,
+    include_medicare_part_d=None,
+    medicare_part_d_base_premium=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1360,6 +1386,8 @@ def _run_from_params_blocking(
         state_move=state_move,
         beneficiary_fractions=beneficiary_fractions,
         spousal_deposit_fraction=spousal_deposit_fraction,
+        other_medical_expenses=other_medical_expenses,
+        medical_inflation_excess=medical_inflation_excess,
     )
     if (
         assumed is not None
@@ -1390,6 +1418,8 @@ def _run_from_params_blocking(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -1465,6 +1495,33 @@ async def run_from_params(
             description="Value of a dollar left to other heirs at the first death, as a fraction of a dollar of "
             "spending or final bequest (default max(1%, twice the solver gap))."
         ),
+    ] = None,
+    other_medical_expenses: Annotated[
+        float | None,
+        Field(
+            description="Household's yearly out-of-pocket qualified medical expenses in $ (today's $): dental, "
+            "vision, co-pays, deductibles. Caps tax-free HSA withdrawals together with Medicare premiums; "
+            "without it an HSA can be drawn only for Medicare premiums."
+        ),
+    ] = None,
+    medical_inflation_excess: Annotated[
+        float | None,
+        Field(
+            description="How much faster than inflation medical prices grow, in percent a year (0-10, default "
+            "0). Applies to Medicare premiums, the ACA benchmark premium, and other_medical_expenses; tax "
+            "brackets, IRMAA thresholds, and the poverty line keep following inflation."
+        ),
+    ] = None,
+    include_medicare_part_d: Annotated[
+        bool | None,
+        Field(
+            description="Include Medicare Part D premiums and IRMAA surcharges (default true). False when "
+            "drug coverage comes from elsewhere (employer, VA)."
+        ),
+    ] = None,
+    medicare_part_d_base_premium: Annotated[
+        float | None,
+        Field(description="Part D base premium in $/month per person (default 0: IRMAA surcharges only)."),
     ] = None,
     objective: Annotated[str, Field(description="maxSpending (default) or maxBequest.")] = "maxSpending",
     rate_method: Annotated[
@@ -1655,6 +1712,19 @@ async def run_from_params(
                         fraction of a dollar of spending or final bequest.  Default
                         max(1%, twice the solver gap): enough to break ties, not a
                         valuation; raise it to value those heirs for real.
+        other_medical_expenses: Yearly out-of-pocket qualified medical expenses in $ (today's
+                        $): dental, vision, co-pays, deductibles.  HSA withdrawals are tax-free
+                        up to Medicare premiums plus this amount; before Medicare, only this
+                        amount.  Ask for it whenever the household has an HSA.
+        medical_inflation_excess: How much faster than inflation medical prices grow, in
+                        percent a year (0-10, default 0).  Medicare premiums, the ACA
+                        benchmark premium, and other_medical_expenses grow by inflation
+                        compounded with it; tax brackets, IRMAA thresholds, and the poverty
+                        line keep following inflation.
+        include_medicare_part_d: Include Medicare Part D premiums and IRMAA surcharges
+                        (default True).  False when drug coverage comes from elsewhere.
+        medicare_part_d_base_premium: Part D base premium in $/month per person (default 0:
+                        IRMAA surcharges only).
         objective:      Optimization objective: "maxSpending" (default) or "maxBequest".
         rate_method:    Return model name (use list_rate_models to see options).  Use "user"
                         together with rate_values to specify custom fixed rates; use
@@ -1902,6 +1972,10 @@ async def run_from_params(
             beneficiary_fractions,
             spousal_deposit_fraction,
             partial_bequest_weight,
+            other_medical_expenses,
+            medical_inflation_excess,
+            include_medicare_part_d,
+            medicare_part_d_base_premium,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build/solve error: {e}"})
@@ -1955,6 +2029,10 @@ def save_case(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
@@ -2071,6 +2149,8 @@ def save_case(
             state_move=state_move,
             beneficiary_fractions=beneficiary_fractions,
             spousal_deposit_fraction=spousal_deposit_fraction,
+            other_medical_expenses=other_medical_expenses,
+            medical_inflation_excess=medical_inflation_excess,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -2086,6 +2166,10 @@ def save_case(
         plan.solverOptions["breakpointMethod"] = breakpoint_method
     if partial_bequest_weight is not None:
         plan.solverOptions["partialBequestWeight"] = float(partial_bequest_weight)
+    if include_medicare_part_d is not None:
+        plan.solverOptions["includeMedicarePartD"] = bool(include_medicare_part_d)
+    if medicare_part_d_base_premium is not None:
+        plan.solverOptions["medicarePartDBasePremium"] = float(medicare_part_d_base_premium)
     if net_spending is not None:
         plan.solverOptions["netSpending"] = net_spending
     if min_taxable_balance is not None:
@@ -2307,6 +2391,10 @@ async def compare_to_baseline(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
@@ -2503,6 +2591,8 @@ async def compare_to_baseline(
             state_move=state_move,
             beneficiary_fractions=beneficiary_fractions,
             spousal_deposit_fraction=spousal_deposit_fraction,
+            other_medical_expenses=other_medical_expenses,
+            medical_inflation_excess=medical_inflation_excess,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2520,6 +2610,8 @@ async def compare_to_baseline(
             with_aca=with_aca,
             breakpoint_method=breakpoint_method,
             partial_bequest_weight=partial_bequest_weight,
+            include_medicare_part_d=include_medicare_part_d,
+            medicare_part_d_base_premium=medicare_part_d_base_premium,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -2596,6 +2688,10 @@ async def explain_results(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str | None = None,
@@ -2787,6 +2883,8 @@ async def explain_results(
             state_move=state_move,
             beneficiary_fractions=beneficiary_fractions,
             spousal_deposit_fraction=spousal_deposit_fraction,
+            other_medical_expenses=other_medical_expenses,
+            medical_inflation_excess=medical_inflation_excess,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2804,6 +2902,8 @@ async def explain_results(
             with_aca=with_aca,
             breakpoint_method=breakpoint_method,
             partial_bequest_weight=partial_bequest_weight,
+            include_medicare_part_d=include_medicare_part_d,
+            medicare_part_d_base_premium=medicare_part_d_base_premium,
             swap_roth_converters_first=swap_roth_converters_first,
             swap_roth_converters_year=swap_roth_converters_year,
         )
@@ -3138,6 +3238,10 @@ async def run_stochastic(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
@@ -3406,6 +3510,8 @@ async def run_stochastic(
                 state_move=state_move,
                 beneficiary_fractions=beneficiary_fractions,
                 spousal_deposit_fraction=spousal_deposit_fraction,
+                other_medical_expenses=other_medical_expenses,
+                medical_inflation_excess=medical_inflation_excess,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3426,6 +3532,8 @@ async def run_stochastic(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -3599,6 +3707,10 @@ async def run_spending_bequest_frontier(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     rate_method: str = "conservative",
     rate_values: list[float] | None = None,
@@ -3838,6 +3950,8 @@ async def run_spending_bequest_frontier(
                 state_move=state_move,
                 beneficiary_fractions=beneficiary_fractions,
                 spousal_deposit_fraction=spousal_deposit_fraction,
+                other_medical_expenses=other_medical_expenses,
+                medical_inflation_excess=medical_inflation_excess,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3856,6 +3970,8 @@ async def run_spending_bequest_frontier(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4018,6 +4134,10 @@ async def run_year1_robustness(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
@@ -4185,6 +4305,8 @@ async def run_year1_robustness(
                 state_move=state_move,
                 beneficiary_fractions=beneficiary_fractions,
                 spousal_deposit_fraction=spousal_deposit_fraction,
+                other_medical_expenses=other_medical_expenses,
+                medical_inflation_excess=medical_inflation_excess,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4205,6 +4327,8 @@ async def run_year1_robustness(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -4316,6 +4440,8 @@ def _longevity_stochastic_blocking(
     state_move=None,
     beneficiary_fractions=None,
     spousal_deposit_fraction=None,
+    other_medical_expenses=None,
+    medical_inflation_excess=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4376,6 +4502,8 @@ def _longevity_stochastic_blocking(
         state_move=state_move,
         beneficiary_fractions=beneficiary_fractions,
         spousal_deposit_fraction=spousal_deposit_fraction,
+        other_medical_expenses=other_medical_expenses,
+        medical_inflation_excess=medical_inflation_excess,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4451,6 +4579,10 @@ async def run_longevity_stochastic(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
@@ -4641,6 +4773,8 @@ async def run_longevity_stochastic(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=names,
@@ -4713,6 +4847,8 @@ async def run_longevity_stochastic(
             state_move,
             beneficiary_fractions,
             spousal_deposit_fraction,
+            other_medical_expenses,
+            medical_inflation_excess,
         )
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
@@ -4760,6 +4896,10 @@ async def run_historical(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "conservative",
@@ -5004,6 +5144,8 @@ async def run_historical(
                 state_move=state_move,
                 beneficiary_fractions=beneficiary_fractions,
                 spousal_deposit_fraction=spousal_deposit_fraction,
+                other_medical_expenses=other_medical_expenses,
+                medical_inflation_excess=medical_inflation_excess,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5024,6 +5166,8 @@ async def run_historical(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,
@@ -5092,6 +5236,10 @@ async def run_monte_carlo(
     state_move: dict | None = None,
     beneficiary_fractions: list[float] | None = None,
     spousal_deposit_fraction: float | None = None,
+    other_medical_expenses: float | None = None,
+    medical_inflation_excess: float | None = None,
+    include_medicare_part_d: bool | None = None,
+    medicare_part_d_base_premium: float | None = None,
     partial_bequest_weight: float | None = None,
     objective: str = "maxSpending",
     rate_method: str = "gmm",
@@ -5347,6 +5495,8 @@ async def run_monte_carlo(
                 state_move=state_move,
                 beneficiary_fractions=beneficiary_fractions,
                 spousal_deposit_fraction=spousal_deposit_fraction,
+                other_medical_expenses=other_medical_expenses,
+                medical_inflation_excess=medical_inflation_excess,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5367,6 +5517,8 @@ async def run_monte_carlo(
         with_aca=with_aca,
         breakpoint_method=breakpoint_method,
         partial_bequest_weight=partial_bequest_weight,
+        include_medicare_part_d=include_medicare_part_d,
+        medicare_part_d_base_premium=medicare_part_d_base_premium,
         swap_roth_converters_first=swap_roth_converters_first,
         swap_roth_converters_year=swap_roth_converters_year,
         inames=plan.inames,

@@ -62,11 +62,18 @@ first solve, confirm a short summary of everything collected.
 - Prior two years' MAGI — sets Medicare IRMAA for the first two plan years; ask when
   anyone is 63 or older.
 - Roth conversion preferences: annual cap, start year, per-person exclusions, or none.
+- HSA: when anyone has an HSA balance, ask for the household's yearly out-of-pocket
+  qualified medical expenses (other_medical_expenses: dental, vision, co-pays,
+  deductibles).  Without them the HSA can pay only Medicare premiums and is mostly locked.
+- Medicare drug coverage, for anyone 63 or older: Part D through Medicare, or coverage
+  from elsewhere (employer, VA → include_medicare_part_d=False)?  A Part D base premium
+  (medicare_part_d_base_premium, $/month per person) can be added; default is 0.
 
 ## Tier 3 — assume with disclosure (fine to start with defaults)
 Return model ('conservative' fixed rates), asset allocation (60/40 gliding to 40/60),
 spending profile ('smile' vs 'flat'), survivor spending fraction (60%), heirs' tax
-rate (30%).  Solve responses echo every applied default in assumed_defaults — relay
+rate (30%), medical prices growing with inflation (medical_inflation_excess=0; raise it
+to let health-care costs outpace inflation).  Solve responses echo every applied default in assumed_defaults — relay
 those entries to the user and refine the ones that could change their decisions.
 
 ## Units and conventions

@@ -436,3 +436,19 @@ def test_mcp_compare_cases_delta():
         assert data["convergence"][side]["convergence"]
         assert isinstance(data["convergence"][side]["fixed_point_residual_today_dollars"], dict)
     assert data["engine"]["version"]
+
+
+def test_explain_reports_health_care():
+    r = _invoke("explain", JACK_TOML, "--set", "optimization_parameters.medical_inflation_excess=1.5")
+    hc = json.loads(r.output)["health_care"]
+    assert hc["medical_inflation_excess_pct"] == 1.5
+    assert hc["medicare"]["modeled"] is True
+    assert {s["name"] for s in hc["medicare"]["start_years"]} == {"Jack", "Jill"}
+    assert hc["medicare"]["include_part_d"] is True
+
+
+def test_explain_reports_aca_settings():
+    r = _invoke("explain", "examples/Case_morgan.toml")
+    aca = json.loads(r.output)["health_care"]["aca"]
+    assert aca["slcsp_annual"] == 14_000
+    assert aca["mode"] in ("loop", "optimize")
