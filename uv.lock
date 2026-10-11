@@ -2437,7 +2437,7 @@ wheels = [
 
 [[package]]
 name = "owlplanner"
-version = "2026.10.10"
+version = "2026.10.11"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
