@@ -35,6 +35,7 @@ kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("acaStartYear", 0)
 kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("otherMedical", 0)
+kz.initCaseKey("medicalExcess", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
 kz.initCaseKey("localSearch", False)
@@ -136,6 +137,22 @@ else:
             "Ignore if plan has no HSA."
         )
         kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
+    with cols[1]:
+        helpmsg_excess = (
+            "How much faster than inflation medical prices grow each year, in percent. "
+            "Applies to Medicare premiums, the ACA benchmark premium, and other medical expenses. "
+            "Tax brackets, IRMAA thresholds, and the poverty line still follow inflation. "
+            "Set to 0 to keep medical prices in step with inflation."
+        )
+        kz.getNum(
+            "Medical prices above inflation (%/year)",
+            "medicalExcess",
+            step=0.5,
+            min_value=-5.0,
+            max_value=10.0,
+            format="%.2f",
+            help=helpmsg_excess,
+        )
 
     st.markdown("##### ACA Marketplace (Pre-65)")
     helpmsg = (

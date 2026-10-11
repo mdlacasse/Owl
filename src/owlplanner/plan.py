@@ -548,6 +548,7 @@ class Plan:
         self.n_aca = 0  # Number of ACA-eligible plan years (LP mode)
         self.other_medical_k = 0.0  # Annual non-Medicare QMEs in today's dollars ($)
         self.other_medical_n = np.zeros(self.N_n)  # Inflation-adjusted per-year version (nominal $)
+        self.medical_excess = 0.0  # Yearly growth of medical prices above inflation (decimal)
         self.smileDip = 15  # Percent to reduce smile profile
         self.smileIncrease = 12  # Percent to increse profile over time span
 
@@ -1739,6 +1740,32 @@ class Plan:
         self.other_medical_k = float(amount) * fac
         self.mylog.vprint(f"Annual non-Medicare medical expenses set to ${float(amount):.1f}{units}/year (today's $).")
 
+    def setMedicalInflation(self, excess):
+        """
+        Let medical prices grow faster than general inflation.
+
+        Medicare Part B and D premiums (base and IRMAA surcharges), the ACA benchmark premium,
+        and other medical expenses then grow each year by inflation plus this excess. Tax
+        brackets, IRMAA thresholds, and the poverty line keep following inflation alone.
+
+        Parameters
+        ----------
+        excess : float
+            Yearly growth above inflation, in percent (e.g. 1.5). Default 0 keeps medical
+            prices in step with inflation.
+        """
+        excess = float(excess)
+        if excess <= -100:
+            raise ValueError(f"setMedicalInflation: excess={excess}% must be above -100%.")
+        self.medical_excess = excess / 100
+        self.mylog.vprint(f"Medical prices grow {excess:.2f}% a year above inflation.")
+        self.caseStatus = "modified"
+
+    def _medical_n(self, gamma_n):
+        """Growth factors of medical prices: inflation compounded with the excess of setMedicalInflation."""
+        gamma_n = np.asarray(gamma_n, dtype=float)
+        return gamma_n * (1 + self.medical_excess) ** np.arange(len(gamma_n))
+
     def setACA(self, slcsp, units="k", start_year=None):
         """
         Configure ACA marketplace health insurance premium for pre-Medicare years.
@@ -2567,12 +2594,14 @@ class Plan:
                 self.N_irmaa,
                 include_part_d=self._include_medicare_part_d,
                 part_d_base_annual_per_person=self._medicare_part_d_base_annual_per_person,
+                medical_n=self._medical_n(gamma_n),
             )
 
             if self.slcsp_annual > 0:
                 n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
                 self.n_aca, self.Lbar_aca_nr, self.tangents_aca_nrk, self.slcsp_aca_n = tx.acaVals(
-                    self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n, n_aca_start=n_aca_start
+                    self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n, n_aca_start=n_aca_start,
+                    medical_n=self._medical_n(gamma_n),
                 )
             else:
                 self.n_aca = 0
@@ -2754,7 +2783,7 @@ class Plan:
         # Ensure parameters are adjusted for inflation and MAGI.
         # OBBBA 65+ senior-deduction phaseout uses the AGI-basis MAGI (taxable SS only).
         self._adjustParameters(self.gamma_n, self.MAGI_n)
-        self.other_medical_n = self.other_medical_k * self.gamma_n[:-1]
+        self.other_medical_n = self.other_medical_k * self._medical_n(self.gamma_n)[:-1]
 
         self.A = abc.ConstraintMatrix(self.nvars)
         self.B = abc.Bounds(self.nvars, self.nbins)
@@ -5911,6 +5940,7 @@ class Plan:
                 self.yobs, self.horizons, self.MAGI_n - 1.0, self.prevMAGI, g, Nn,
                 include_part_d=getattr(self, "_include_medicare_part_d", True),
                 part_d_base_annual_per_person=getattr(self, "_medicare_part_d_base_annual_per_person", 0.0),
+                medical_n=self._medical_n(g),
             )
             res["IRMAA"] = (self.medicare_n - M_true) / g
 
@@ -5918,7 +5948,7 @@ class Plan:
             # Same dollar of slack: an optimizer parks income at the 400% cliff or the 138% line.
             n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
             ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n - 1.0, g, self.slcsp_annual, Nn,
-                                   n_aca_start=n_aca_start)
+                                   n_aca_start=n_aca_start, medical_n=self._medical_n(g))
             res["ACA"] = (self.aca_costs_n - ACA_true) / g
 
         res["NIIT"] = (self.J_n - tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, Nn)) / g
@@ -6760,6 +6790,7 @@ class Plan:
                 self.N_n,
                 include_part_d=include_part_d,
                 part_d_base_annual_per_person=part_d_base,
+                medical_n=self._medical_n(self.gamma_n[:-1]),
             )
         # Compute ACA costs through self-consistent loop (uses current-year MAGI, no 2-year lag).
         # In optimize mode (withACA="optimize"), ACA_n stays zero; maca_n carries the cost.
@@ -6773,6 +6804,7 @@ class Plan:
                 self.slcsp_annual,
                 self.N_n,
                 n_aca_start=n_aca_start,
+                medical_n=self._medical_n(self.gamma_n[:-1]),
             )
 
         return None

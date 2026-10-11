@@ -265,6 +265,10 @@ class OptimizationParameters(BaseModel):
         default=0.0,
         description="Annual non-Medicare qualified medical expenses for HSA withdrawal cap ($k, today's $)",
     )
+    medical_inflation_excess: float = Field(
+        default=0.0,
+        description="Yearly growth of medical premiums and expenses above inflation (%)",
+    )
 
 
 class ACASettings(BaseModel):

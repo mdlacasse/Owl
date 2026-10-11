@@ -314,7 +314,8 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     return new_Psi_n
 
 
-def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0):
+def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0,
+             medical_n=None):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
@@ -323,7 +324,12 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
 
     Part B and Part D use the same MAGI brackets (two-year lookback). Part D base
     is added per eligible person; Part D IRMAA uses CMS 2026 amounts.
+
+    Bracket thresholds follow gamma_n (they are indexed to CPI). Premiums follow medical_n,
+    which defaults to gamma_n; pass a faster series when medical prices outgrow inflation.
     """
+    if medical_n is None:
+        medical_n = gamma_n
     thisyear = date.today().year
     assert Nq == len(partB_irmaa_costs), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
@@ -354,9 +360,9 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
             else:
                 status = 1  # married filing jointly
             Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
-            Cbar[nn] = imed * gamma_n[n] * costs_per_person
+            Cbar[nn] = imed * medical_n[n] * costs_per_person
             if include_part_d and part_d_base_annual_per_person != 0:
-                Cbar[nn] += imed * gamma_n[n] * part_d_base_annual_per_person
+                Cbar[nn] += imed * medical_n[n] * part_d_base_annual_per_person
         else:
             # Nobody is on Medicare this year (e.g. a drawn longevity horizon lands
             # before age 65, or there is a gap between one spouse dying before 65
@@ -444,13 +450,17 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     return cgTax_n
 
 
-def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0):
+def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0,
+              medical_n=None):
     """
     Compute Medicare costs directly (Part B + Part D when include_part_d is True).
 
     Uses the same MAGI brackets and two-year lookback for both Part B and Part D.
     Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
+    Thresholds follow gamma_n and premiums follow medical_n (default gamma_n), as in mediVals.
     """
+    if medical_n is None:
+        medical_n = gamma_n
     thisyear = date.today().year
     Ni = len(yobs)
     fees_b = partB_irmaa_fees
@@ -461,16 +471,16 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 # Part B basic premium
-                costs[n] += gamma_n[n] * fees_b[0]
+                costs[n] += medical_n[n] * fees_b[0]
                 if include_part_d and part_d_base_annual_per_person != 0:
-                    costs[n] += gamma_n[n] * part_d_base_annual_per_person
+                    costs[n] += medical_n[n] * part_d_base_annual_per_person
                 if n < 2:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
                     if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
-                        costs[n] += gamma_n[n] * (fees_b[q] + fees_d[q])
+                        costs[n] += medical_n[n] * (fees_b[q] + fees_d[q])
 
     return costs
 
@@ -489,7 +499,7 @@ def _aca_contrib_pct(ratio, breakpoints, contrib_pct, initial_pct=None):
     return start + t * (contrib_pct[idx + 1] - start)
 
 
-def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0):
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0, medical_n=None):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
@@ -533,6 +543,9 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     n_aca_start : int, optional
         Plan year index when ACA coverage begins (default 0 = plan start).
         Years before this index are set to zero regardless of eligibility.
+    medical_n : array, optional
+        Growth factors for the SLCSP premium, length >= N_n. Defaults to gamma_n; pass a
+        faster series when medical prices outgrow inflation. FPL always follows gamma_n.
 
     Returns
     -------
@@ -542,6 +555,8 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     """
     if slcsp_annual <= 0:
         return np.zeros(N_n)
+    if medical_n is None:
+        medical_n = gamma_n
 
     if thisyear is None:
         thisyear = date.today().year
@@ -569,7 +584,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
             slcsp_scale = couple_to_individual_fraction(age_remaining)
         else:
             slcsp_scale = 1.0
-        slcsp = slcsp_annual * slcsp_scale * gamma_n[n]
+        slcsp = slcsp_annual * slcsp_scale * medical_n[n]
         magi = magi_n[n]
 
         # Up to 138% FPL (133% plus the 5% income disregard): Medicaid, no premium.
@@ -661,7 +676,7 @@ def _aca_capped_limits(fpl, slcsp):
     return limits
 
 
-def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None):
     """
     Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
@@ -691,6 +706,8 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     n_aca_start : int, optional
         Plan-year index at which ACA coverage begins. Years before this index are zeroed
         (e.g. still on employer coverage). Default 0 = coverage from plan start.
+    medical_n : array, optional
+        Growth factors for the SLCSP premium, length >= Nn. Defaults to gamma_n.
 
     Returns
     -------
@@ -708,6 +725,8 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     empty = (0, np.zeros((0, N_ACA_R - 1)), np.zeros((0, N_ACA_R, _ACA_LP_TANGENTS, 2)), np.zeros(0))
     if slcsp_annual <= 0:
         return empty
+    if medical_n is None:
+        medical_n = gamma_n
 
     thisyear = date.today().year
     Ni = len(yobs)
@@ -743,7 +762,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
             slcsp_scale = couple_to_individual_fraction(age_remaining)
         else:
             slcsp_scale = 1.0
-        slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * gamma_n[n]
+        slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * medical_n[n]
         Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn])
         tangents[nn] = _aca_tangents(fpl)
 

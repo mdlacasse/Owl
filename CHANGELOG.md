@@ -1,5 +1,15 @@
 ### Version 2026.10.10
 
+#### New: medical prices can grow faster than inflation, with `setMedicalInflation`
+
+Medical prices have long outpaced general inflation, yet every health cost in a plan followed it. The
+new optimization parameter `medical_inflation_excess` (percent a year, default `0`) and the method
+`plan.setMedicalInflation()` let them grow faster. Medicare Part B and D premiums, base and IRMAA
+surcharges alike, the ACA benchmark premium, and `other_medical_expenses` then grow each year by
+inflation compounded with the excess. Tax brackets, IRMAA thresholds, and the poverty line that sets
+ACA subsidies keep following inflation, as the law indexes them. The setting is on the Run Options
+page beside the other medical expenses. At the default of `0`, plans solve exactly as before.
+
 #### New: branch-and-bound nodes in the Summary, and the solver option `mipMaxNodes`
 
 The Summary has two new rows. *MIP nodes* gives the branch-and-bound nodes of the solve that produced

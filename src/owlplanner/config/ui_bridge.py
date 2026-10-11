@@ -346,6 +346,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["acaStartYear"] = int(aca.get("aca_start_year", 0) or 0)
     dic["otherMedical"] = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
+    dic["medicalExcess"] = float(known.get("optimization_parameters", {}).get("medical_inflation_excess", 0.0))
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
@@ -517,6 +518,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
             "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
             "other_medical_expenses": _get_ui(uidic, "otherMedical", 0.0, float),
+            "medical_inflation_excess": _get_ui(uidic, "medicalExcess", 0.0, float),
         },
         "solver_options": {},
         "results": {

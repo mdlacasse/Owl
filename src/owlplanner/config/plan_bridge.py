@@ -275,6 +275,9 @@ def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
     other_med = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
     if other_med > 0:
         plan.setMedicalExpenses(other_med, units="k")
+    excess = float(known.get("optimization_parameters", {}).get("medical_inflation_excess", 0.0))
+    if excess != 0:
+        plan.setMedicalInflation(excess)
     aca = known.get("aca_settings")
     if aca is None:
         return
@@ -544,6 +547,8 @@ def plan_to_config(myplan: "Plan") -> dict:
             diconf["aca_settings"]["aca_start_year"] = myplan.aca_start_year
     if myplan.other_medical_k > 0:
         diconf["optimization_parameters"]["other_medical_expenses"] = round(myplan.other_medical_k / 1000, 4)
+    if getattr(myplan, "medical_excess", 0.0) != 0:
+        diconf["optimization_parameters"]["medical_inflation_excess"] = round(myplan.medical_excess * 100, 4)
 
     # Merge user-defined sections for round-trip
     extra = getattr(myplan, "_config_extra", None)

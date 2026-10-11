@@ -2072,6 +2072,7 @@ def genDic(plan):
 
     dic["slcspAnnual"] = getattr(plan, "slcsp_annual", 0.0) / 1000
     dic["otherMedical"] = getattr(plan, "other_medical_k", 0.0) / 1000
+    dic["medicalExcess"] = getattr(plan, "medical_excess", 0.0) * 100
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = plan.solverOptions.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
