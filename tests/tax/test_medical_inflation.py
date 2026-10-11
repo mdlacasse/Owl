@@ -115,7 +115,10 @@ def test_medical_n_compounds_on_gamma():
 
 def test_set_medical_inflation_rejects_nonsense():
     with pytest.raises(ValueError):
-        _plan().setMedicalInflation(-100)
+        _plan().setMedicalInflation(-0.5)
+    with pytest.raises(ValueError):
+        _plan().setMedicalInflation(10.5)
+    _plan().setMedicalInflation(10)
 
 
 def test_solved_plan_pays_more_for_health_care():
@@ -145,3 +148,23 @@ def test_config_roundtrip():
 def test_config_default_omitted():
     out = plan_to_config(_plan())
     assert "medical_inflation_excess" not in out["optimization_parameters"]
+
+
+def test_setters_flag_case_modified():
+    for setter, arg in (("setMedicalInflation", 1.5), ("setMedicalExpenses", 5.0)):
+        p = _plan()
+        p.caseStatus = "solved"
+        getattr(p, setter)(arg)
+        assert p.caseStatus == "modified", f"{setter} must flag the case as modified."
+
+
+def test_schema_bounds_excess_to_ui_range():
+    from pydantic import ValidationError
+
+    from owlplanner.config.schema import OptimizationParameters
+
+    assert OptimizationParameters(medical_inflation_excess=0).medical_inflation_excess == 0
+    with pytest.raises(ValidationError):
+        OptimizationParameters(medical_inflation_excess=-0.5)
+    with pytest.raises(ValidationError):
+        OptimizationParameters(medical_inflation_excess=10.5)

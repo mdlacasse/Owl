@@ -708,6 +708,7 @@ is treated and where Owl's model diverges from the actual law:
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
 | ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
+| Medicare premiums, ACA benchmark premium, other medical expenses | Inflation-adjusted, plus the optional *Medical prices above inflation* excess | Medical care CPI, premium growth | Medical prices have historically outpaced CPI; set the excess to model it |
 | SS taxability thresholds (\\$25k/\\$32k, \\$34k/\\$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
 
 The most significant real-world deviation is for the Federal Employee Retirement System (FERS)
@@ -1464,7 +1465,7 @@ choosing an exclusion disables the swap toggle, and turning the swap on disables
 
 The **Health Insurance** section groups three related subsections:
 
-**Qualified Medical Expenses** holds the *Other medical expenses (\\$k/year)* field, which sets
+**Qualified Medical Expenses** holds two fields. The *Other medical expenses (\\$k/year)* field sets
 annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.)
 in today's dollars. Like most fields in the interface, it is **in thousands**.
 IRS rules allow HSA withdrawals only up to total qualified medical expenses (QMEs).
@@ -1474,6 +1475,18 @@ Field is ignored if plan has no HSA.
 Note: these expenses are treated as part of general living costs in the cash flow — they do not
 appear separately in the *Healthcare* slice of the spending pie chart, which covers insurance
 premiums only.
+
+The *Medical prices above inflation (%/year)* field sets how much faster than inflation medical
+prices grow each year (e.g. 1.5), from 0 to 10. Medicare Part B and Part D premiums (base premiums and IRMAA
+surcharges), the ACA benchmark premium, and the other medical expenses above then grow each year by
+inflation compounded with this excess. Tax brackets, IRMAA thresholds, and the Federal Poverty Level
+that sets ACA subsidies keep following inflation alone, as the law indexes them.
+Leave it at 0 to keep medical prices in step with inflation.
+Past values can be compared on FRED by plotting the
+[medical care CPI](https://fred.stlouisfed.org/series/CPIMEDSL) against the
+[all-items CPI](https://fred.stlouisfed.org/series/CPIAUCSL) as percent change from a year ago.
+A *smile* spending profile, whose late-life increase already stands in for rising medical costs,
+may then count part of that growth twice.
 
 **ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan premium in the
 *Benchmark Silver plan premium (SLCSP) (\\$k/year)* field, in thousands, for years before Medicare.

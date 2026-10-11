@@ -299,7 +299,7 @@ Parameters controlling the optimization objective and spending profile.
 | `surviving_spouse_spending_percent` | integer | Percentage of spending amount for the surviving spouse (0-100). Default is `60` |
 | `objective` | string | Optimization objective. Valid values: `"maxSpending"`, `"maxBequest"` |
 | `other_medical_expenses` | float | *(Optional)* Annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.) in today's dollars ($k). HSA withdrawals are capped by Medicare + this amount each year. Pre-Medicare years: only this amount is eligible (Medicare costs are zero). Default `0.0`. Corresponds to `plan.setMedicalExpenses()` |
-| `medical_inflation_excess` | float | *(Optional)* How much faster than inflation medical prices grow each year, in percent (e.g. `1.5`). Medicare Part B and D premiums (base and IRMAA surcharges), the ACA benchmark premium (`slcsp_annual`), and `other_medical_expenses` grow by inflation compounded with this excess. Tax brackets, IRMAA thresholds, and the poverty line keep following inflation. Default `0.0`. Corresponds to `plan.setMedicalInflation()` |
+| `medical_inflation_excess` | float | *(Optional)* How much faster than inflation medical prices grow each year, in percent (e.g. `1.5`), from `0` to `10`. Medicare Part B and D premiums (base and IRMAA surcharges), the ACA benchmark premium (`slcsp_annual`), and `other_medical_expenses` grow by inflation compounded with this excess. Tax brackets, IRMAA thresholds, and the poverty line keep following inflation. Default `0.0`. Corresponds to `plan.setMedicalInflation()` |
 
 ### :orange[Conditional parameters for spending_profile = "smile"]
 | Parameter | Type | Description |

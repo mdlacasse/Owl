@@ -267,6 +267,8 @@ class OptimizationParameters(BaseModel):
     )
     medical_inflation_excess: float = Field(
         default=0.0,
+        ge=0.0,
+        le=10.0,
         description="Yearly growth of medical premiums and expenses above inflation (%)",
     )
 

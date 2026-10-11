@@ -1727,7 +1727,8 @@ class Plan:
         Post-Medicare years: this amount plus Medicare costs are both eligible.
         Without this call, HSA withdrawals in pre-Medicare years are capped at zero.
 
-        The amount is in today's dollars and is inflation-adjusted each plan year.
+        The amount is in today's dollars and is inflation-adjusted each plan year, plus any
+        excess set by setMedicalInflation().
 
         Parameters
         ----------
@@ -1739,6 +1740,7 @@ class Plan:
         fac = u.getUnits(units)
         self.other_medical_k = float(amount) * fac
         self.mylog.vprint(f"Annual non-Medicare medical expenses set to ${float(amount):.1f}{units}/year (today's $).")
+        self.caseStatus = "modified"
 
     def setMedicalInflation(self, excess):
         """
@@ -1751,12 +1753,12 @@ class Plan:
         Parameters
         ----------
         excess : float
-            Yearly growth above inflation, in percent (e.g. 1.5). Default 0 keeps medical
-            prices in step with inflation.
+            Yearly growth above inflation, in percent (e.g. 1.5), from 0 to 10.
+            Default 0 keeps medical prices in step with inflation.
         """
         excess = float(excess)
-        if excess <= -100:
-            raise ValueError(f"setMedicalInflation: excess={excess}% must be above -100%.")
+        if not 0 <= excess <= 10:
+            raise ValueError(f"setMedicalInflation: excess={excess}% must be between 0% and 10%.")
         self.medical_excess = excess / 100
         self.mylog.vprint(f"Medical prices grow {excess:.2f}% a year above inflation.")
         self.caseStatus = "modified"

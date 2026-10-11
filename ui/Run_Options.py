@@ -148,7 +148,7 @@ else:
             "Medical prices above inflation (%/year)",
             "medicalExcess",
             step=0.5,
-            min_value=-5.0,
+            min_value=0.0,
             max_value=10.0,
             format="%.2f",
             help=helpmsg_excess,
