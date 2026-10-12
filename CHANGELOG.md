@@ -1,4 +1,4 @@
-### Version 2026.10.11
+### Version TBD
 
 #### Fixed: a plan that cannot be paid for is reported as infeasible, not as a solver error
 
@@ -12,6 +12,8 @@ way, and the log says so. On a set of historical market sequences that hit this,
 plan is infeasible, as MOSEK does on the same case. An LP stopped by a time or iteration limit is
 not solved again, and plans the default solves, including those it ends with a feasible point but
 no verdict, are untouched.
+
+### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it
 
