@@ -231,3 +231,30 @@ def test_part_d_options_passed_to_solve_take_effect():
     plan.solve("maxSpending", {**plan.solverOptions})  # re-solve with the stored options
     assert plan._include_medicare_part_d is False
     assert float(plan.M_n.sum()) == pytest.approx(without_d)
+
+
+def test_mediVals_plan_ending_before_medicare():
+    """A plan can end before anyone reaches 65; Medicare then never starts within it."""
+    thisyear = date.today().year
+    yobs = np.array([thisyear - 50])  # 65 in 15 years
+    Nn = 10
+    nm, Lbar, Cbar = tx.mediVals(yobs, np.array([Nn]), np.ones(Nn + 1), Nn, 6)
+    assert nm == Nn
+    assert Lbar.shape == (0, 5)
+    assert Cbar.shape == (0, 6)
+
+
+def test_plan_ending_before_medicare_solves():
+    """A plan that ends before anyone reaches 65 solves, with no Medicare premiums."""
+    from pathlib import Path
+
+    from owlplanner.config import readConfig
+    from owlplanner.config.plan_bridge import clone
+
+    case = Path(__file__).resolve().parents[2] / "examples" / "Case_joe.toml"
+    plan = readConfig(str(case), verbose=False)
+    age = date.today().year - int(plan.yobs[0])
+    short = clone(plan, expectancy=[age + 3], verbose=False)  # ends well before 65
+    short.solve(short.objective, dict(short.solverOptions, solver="HiGHS"))
+    assert short.caseStatus == "solved"
+    assert float(np.sum(short.medicare_n)) == 0.0

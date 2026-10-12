@@ -1,5 +1,13 @@
 ### Version 2026.10.11
 
+#### Fixed: a plan that ends before anyone reaches 65
+
+Such a plan stopped with "negative dimensions are not allowed": the Medicare setup took the year
+Medicare starts to lie within the plan, and when it did not, sized its tables with a negative
+number of years. Medicare now simply does not start within the plan, and it solves with no
+premiums. This comes up when a plan is cut short, for example to find the last year a plan can
+still pay for everything on a hard market sequence.
+
 #### Fixed: a plan that cannot be paid for is reported as infeasible, not as a solver error
 
 HiGHS's default LP path, presolve followed by the dual simplex, can break down numerically on a
