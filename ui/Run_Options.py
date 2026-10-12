@@ -136,7 +136,7 @@ else:
             "These expenses are treated as part of general living costs, not as separate healthcare costs. "
             "Ignore if plan has no HSA."
         )
-        kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
+        kz.getNum("Other medical expenses (\\$k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
     with cols[1]:
         helpmsg_excess = (
             "How much faster than inflation medical prices grow each year, in percent. "
@@ -163,7 +163,7 @@ else:
     )
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
-        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0.0, help=helpmsg)
+        kz.getNum("Benchmark Silver plan premium (SLCSP) (\\$k/year)", "slcspAnnual", min_value=0.0, help=helpmsg)
     with cols[1]:
         acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
         helpmsg_start = (
@@ -197,7 +197,7 @@ else:
             kz.initCaseKey("MAGI" + str(ii), 0)
             if years[ii] > 0:
                 with cols[1 + ii]:
-                    ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+                    ret = kz.getNum(f"MAGI for {years[ii]} (\\$k)", "MAGI" + str(ii), help=helpmsg)
 
         cols = st.columns(3, gap="large", vertical_alignment="top")
         with cols[0]:
@@ -211,10 +211,10 @@ else:
             kz.initCaseKey("medicarePartDBasePremium", None)
             helpmsg_partd_base = (
                 "Optional monthly Part D base premium per person (today's \\$). "
-                "Set to 0 to omit. National average ~\\$$39–47$ per month."
+                "Set to 0 to omit. National average ~\\$39–47 per month."
             )
             kz.getNum(
-                "Part D base premium ($/month per person)",
+                "Part D base premium (\\$/month per person)",
                 "medicarePartDBasePremium",
                 min_value=0.0,
                 help=helpmsg_partd_base,

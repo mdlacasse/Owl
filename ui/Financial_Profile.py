@@ -38,32 +38,32 @@ import case_progress as cp
 timetableHelp = {
     "year": "Calendar year of this row",
     "anticipated wages": (
-        "Employment income you anticipate this year (nominal $), entered net of every "
+        "Employment income you anticipate this year (nominal \\$), entered net of every "
         "contribution column to the right. Employer contributions were never part of your "
         "wages, so do not subtract those."
     ),
     "other inc": (
-        "Other ordinary income that is not wages, pension, or Social Security (nominal $) — "
+        "Other ordinary income that is not wages, pension, or Social Security (nominal \\$) — "
         "e.g. consulting income, alimony, or rents you treat as ordinary."
     ),
     "net inv": (
-        "Net investment income such as rent or trust distributions (nominal $). Taxed as "
+        "Net investment income such as rent or trust distributions (nominal \\$). Taxed as "
         "ordinary income and also counted toward the Net Investment Income Tax."
     ),
-    "taxable ctrb": "Contributions to your taxable savings account (nominal $)",
+    "taxable ctrb": "Contributions to your taxable savings account (nominal \\$)",
     "401k ctrb": (
         "Contributions to 401k, 403b, and any other tax-deferred account other than an IRA "
-        "(nominal $). Include your employer's contributions."
+        "(nominal \\$). Include your employer's contributions."
     ),
-    "Roth 401k ctrb": "Contributions to your Roth 401k or Roth 403b account (nominal $)",
-    "IRA ctrb": "Contributions to your traditional IRA (nominal $), treated as pre-tax",
-    "Roth IRA ctrb": "Contributions to your Roth IRA (nominal $)",
+    "Roth 401k ctrb": "Contributions to your Roth 401k or Roth 403b account (nominal \\$)",
+    "IRA ctrb": "Contributions to your traditional IRA (nominal \\$), treated as pre-tax",
+    "Roth IRA ctrb": "Contributions to your Roth IRA (nominal \\$)",
     "HSA ctrb": (
-        "Contributions to your health savings account (nominal $). Zeroed automatically at "
+        "Contributions to your health savings account (nominal \\$). Zeroed automatically at "
         "Medicare enrollment (~age 65)."
     ),
     "Roth conv": (
-        "Roth conversion amount for this year (nominal $), never negative. Documentation only "
+        "Roth conversion amount for this year (nominal \\$), never negative. Documentation only "
         "unless the year is ticked in the next column."
     ),
     "Roth conv fixed": (
@@ -72,12 +72,12 @@ timetableHelp = {
         "Unticked, Owl optimizes the year."
     ),
     "QCD": (
-        "Qualified Charitable Distribution (nominal $): money sent from your tax-deferred "
+        "Qualified Charitable Distribution (nominal \\$): money sent from your tax-deferred "
         "account straight to a charity. Never enters taxable income and counts toward your RMD, "
         "but does not fund spending. Requires age 70½ and is capped per person per year."
     ),
     "big-ticket items": (
-        "A major one-time amount (nominal $): the sign matters. Positive is money received, "
+        "A major one-time amount (nominal \\$): the sign matters. Positive is money received, "
         "such as an inheritance or the sale of a house; negative is a major expense."
     ),
 }
@@ -85,7 +85,7 @@ timetableHelp = {
 # The five lead-in rows record what already happened, so two columns mean something else there.
 timetableHelpPast = dict(timetableHelp)
 timetableHelpPast["Roth conv"] = (
-    "A Roth conversion you already performed that year (nominal $). This is what the IRS "
+    "A Roth conversion you already performed that year (nominal \\$). This is what the IRS "
     "five-year maturation rule needs, and is the only column read from this table."
 )
 timetableHelpPast["Roth conv fixed"] = (
@@ -330,7 +330,7 @@ The second table starts at the current year and covers the rest of the plan.""")
             ),
             "amount": st.column_config.NumberColumn(
                 "amount",
-                help="Enter original loan amount ($)",
+                help="Enter original loan amount (\\$)",
                 format="dollar",
                 required=True,
                 min_value=0,
@@ -359,7 +359,7 @@ The second table starts at the current year and covers the rest of the plan.""")
         edited_debtdf = st.data_editor(
             debtview, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
         )
-        debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
+        debtsCaption = """Amounts are in nominal \\$. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and pressing the *Delete* key."""
         st.caption(debtsCaption)
@@ -428,7 +428,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
             "value": st.column_config.NumberColumn(
                 "value",
-                help="Enter value at reference year ($)",
+                help="Enter value at reference year (\\$)",
                 min_value=0,
                 required=True,
                 format="dollar",
@@ -469,7 +469,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
         edited_fixeddf = st.data_editor(
             fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=kz.genCaseKey("fixed_assets")
         )
-        fixedCaption = """Value is in reference-year $ (at the start of the reference year). \
+        fixedCaption = """Value is in reference-year \\$ (at the start of the reference year). \
 Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
 Additional items can be directly entered in the table by clicking :material/add:
 on the last row. Items can be deleted by selecting rows in the left margin and

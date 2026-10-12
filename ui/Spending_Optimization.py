@@ -281,7 +281,7 @@ optimizer maximizes; the summary states both.
             _floor_opts = ["hsf", "custom"]
             _floor_labels = {
                 "hsf": "HSF (min historical spending)",
-                "custom": "Custom ($/yr)",
+                "custom": "Custom (\\$/yr)",
             }
             _default_floor = "hsf"
             _cur_floor = kz.getCaseKey("stoch_res_floor_method") or _default_floor
@@ -302,7 +302,7 @@ optimizer maximizes; the summary states both.
             if kz.getCaseKey("stoch_res_floor_method") == "custom":
                 with col2:
                     kz.getIntNum(
-                        "Floor ($/yr)",
+                        "Floor (\\$/yr)",
                         "stoch_res_floor_value",
                         min_value=0,
                         step=1000,

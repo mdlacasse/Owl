@@ -1445,17 +1445,17 @@ def plotSummaryMetrics(plan):
     fa_bequest = plan.fixed_assets_bequest_value / plan.gamma_n[-1]
 
     if plan.objective == "maxBequest":
-        spending_label = "Spending target (today's $)"
-        estate_label = "Liquid bequest (today's $)"
+        spending_label = "Spending target (today's \\$)"
+        estate_label = "Liquid bequest (today's \\$)"
     else:
-        spending_label = "Yearly spending (today's $)"
-        estate_label = "Target liquid estate (today's $)"
+        spending_label = "Yearly spending (today's \\$)"
+        estate_label = "Target liquid estate (today's \\$)"
     partial_bequest = getattr(plan, "partialBequest", 0)
     show_partial = plan.N_i == 2 and plan.n_d < plan.N_n and any(plan.phi_j < 1)
     n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if show_partial else 0)
     cols = st.columns(n_cols, gap="large")
     col = 0
-    cols[col].metric(spending_label, f"${spending:,.0f}")
+    cols[col].metric(spending_label, f"\\${spending:,.0f}")
     col += 1
     if show_partial:
         # n_d - 1 is the decedent's last year: passings are assumed at the end of it
@@ -1463,12 +1463,12 @@ def plotSummaryMetrics(plan):
         # by gamma_n[n_d], the multiplier at the beginning of n_d -- the same instant.
         # year_n[n_d] named the year after the death, disagreeing with the summary.
         partial_year = int(plan.year_n[plan.n_d - 1])
-        cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
+        cols[col].metric(f"Partial bequest {partial_year} (today's \\$)", f"\\${partial_bequest:,.0f}")
         col += 1
-    cols[col].metric(estate_label, f"${bequest:,.0f}")
+    cols[col].metric(estate_label, f"\\${bequest:,.0f}")
     col += 1
     if fa_bequest > 0:
-        cols[col].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+        cols[col].metric("Fixed assets bequest (today's \\$)", f"\\${fa_bequest:,.0f}")
         col += 1
     cols[col].metric("Planning horizon", horizon)
 
@@ -1798,7 +1798,7 @@ def showWorkbook(plan):
                     placeholder="-",
                 )
 
-            dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
+            dollar_label = "real (today's) \\$" if getattr(plan, "worksheetRealDollars", False) else "nominal \\$"
             age_note = (
                 (" Ages are as of December 31 of each row's calendar year; blank after an individual's plan horizon.")
                 if plan.worksheetShowAges

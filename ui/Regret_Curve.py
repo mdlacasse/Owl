@@ -138,7 +138,7 @@ all.
                 kz.storeCaseKey("regret_person", idx)
         with col2:
             kz.getIntNum(
-                "Grid headroom ($k)",
+                "Grid headroom (\\$k)",
                 "regret_grid_pad",
                 min_value=0,
                 step=5,

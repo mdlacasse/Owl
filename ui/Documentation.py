@@ -1530,7 +1530,7 @@ use it to add a monthly base (e.g. national average ~\\$39–47).
 A **self-consistent loop** is an iterative method used for values that depend on the
 solution itself and are therefore difficult to integrate directly into the linear program.
 These include: the net investment income tax (NIIT, a 3.8% surtax on investment income
-above $200k/$250k single/MFJ); the long-term capital gains rate (0%, 15%, or 20%,
+above \\$200k/\\$250k single/MFJ); the long-term capital gains rate (0%, 15%, or 20%,
 determined by ordinary taxable income); the phase-out of the additional standard
 deduction for seniors; the taxable fraction of Social Security benefits — which depends
 on *provisional income* (PI), defined as adjusted gross income plus half of SS benefits

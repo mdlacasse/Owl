@@ -54,7 +54,7 @@ else:
             st.markdown("#### :orange[Histogram]")
             help_log_x = (
                 "Use log-spaced bins and a log-scale x-axis for the result histogram (log-normal style). "
-                "Values below $1k are excluded when on."
+                "Values below \\$1k are excluded when on."
             )
             kz.getToggle("Log scale (x-axis)", "histogram_log_x_mc", callback=kz.setpull, help=help_log_x)
 

@@ -45,7 +45,7 @@ else:
         for key in accounts:
             nkey = key + str(0)
             kz.initCaseKey(nkey, 0)
-            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
+            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts (\\$k)", nkey, help=hdetails[key] + kz.help1000)
 
         today = date.today()
         thisyear = today.year
@@ -76,12 +76,12 @@ else:
             for key in accounts:
                 nkey = key + str(1)
                 kz.initCaseKey(nkey, 0)
-                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
+                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts (\\$k)", nkey, help=hdetails[key] + kz.help1000)
 
     st.divider()
     st.markdown("#### :orange[Taxable Account Cost Basis] *(optional)*")
     basis_help = (
-        "Current cost basis of the taxable account for this person ($k). "
+        "Current cost basis of the taxable account for this person (\\$k). "
         "When provided, capital gains on withdrawals are computed from the actual "
         "unrealized-gain fraction (average-cost method) rather than only this year's "
         "price appreciation. Leave at 0 if unknown — the legacy approximation will be used."
@@ -91,13 +91,13 @@ else:
         iname = kz.getCaseKey("iname0")
         nkey = "txblBasis0"
         kz.initCaseKey(nkey, 0.0)
-        kz.getNum(f"{iname}'s taxable cost basis ($k)", nkey, help=basis_help)
+        kz.getNum(f"{iname}'s taxable cost basis (\\$k)", nkey, help=basis_help)
     with col2:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
             nkey = "txblBasis1"
             kz.initCaseKey(nkey, 0.0)
-            kz.getNum(f"{iname1}'s taxable cost basis ($k)", nkey, help=basis_help)
+            kz.getNum(f"{iname1}'s taxable cost basis (\\$k)", nkey, help=basis_help)
 
     inames = [kz.getCaseKey("iname0")]
     if kz.getCaseKey("status") == "married":
