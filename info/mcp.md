@@ -59,7 +59,7 @@ in percent. Fixed user rates (`rate_method="user"`) use
 **Social Security PIA vs. actual benefit:** `ss_monthly_pias` must be the Primary
 Insurance Amount (the benefit at Full Retirement Age, from the SSA statement) — NOT
 the check amount someone describes receiving if they claimed before or after FRA
-(e.g. "I'm 65 and I get $2,800/month"). If the user only knows their actual benefit
+(e.g. "I'm 65 and I get \$2,800/month"). If the user only knows their actual benefit
 at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 
 **Assumed defaults:** the solve tools report material assumptions made for omitted
@@ -131,13 +131,13 @@ as commands and lets you attach resources to the conversation):
 | | `smile_dip` | Slow-go spending dip as % below go-go peak (default 15) |
 | | `smile_increase` | No-go medical cost growth over full horizon in % (default 12) |
 | | `smile_delay` | Go-go years to hold flat before smile dip begins (default 0) |
-| **Optimization** | `net_spending` | Annual spending floor in $/year when `objective="maxBequest"` |
+| **Optimization** | `net_spending` | Annual spending floor in \$/year when `objective="maxBequest"` |
 | | `min_taxable_balance` | Emergency-fund floor in \$ per person, e.g. `[15_000]` |
 | | `bequest` | Target estate in today's \$ for `maxSpending` objective |
 | | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
 | | `stop_roth_year` | 4-digit year from which Roth conversions are disabled |
 | | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
-| | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
+| | `max_roth_conversion` | Annual per-person Roth conversion cap in \$/year |
 | | `roth_conversions` | Conversions held fixed `[{"person","year","amount"}]`; listing a year pins it to that amount, `0` pins no conversion, unlisted years stay optimized |
 | | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
 | | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
@@ -146,12 +146,12 @@ as commands and lets you attach resources to the conversation):
 | | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum). Use `"local-search"` for the plan the user will act on: more accurate, for seconds to a few minutes of solving. The stress tools (`run_stochastic`, the frontiers, `run_historical`, `run_monte_carlo`) solve every scenario with the loop and say so in `breakpoint_method_note` |
 | | `partial_bequest_weight` | Value of a dollar left to other heirs at the first death, as a fraction of a dollar (default max(1%, twice the solver gap)) |
 | | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
-| | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |
+| | `previous_magis` | Prior-year MAGI per person in \$ for Medicare IRMAA (first 2 plan years) |
 | | `include_medicare_part_d` | Include Part D premiums and IRMAA surcharges (default `true`); `false` for drug coverage from elsewhere (employer, VA) |
-| | `medicare_part_d_base_premium` | Part D base premium in $/month per person (default `0`: IRMAA surcharges only) |
+| | `medicare_part_d_base_premium` | Part D base premium in \$/month per person (default `0`: IRMAA surcharges only) |
 | | `solver` | `"HiGHS"` or `"MOSEK"` (default: best available) |
 | | `max_time` | Solver time limit in seconds |
-| **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in $/year for pre-65 individuals |
+| **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in \$/year for pre-65 individuals |
 | | `medical_inflation_excess` | How much faster than inflation medical prices grow, in %/year (0–10, default `0`): Medicare premiums, the ACA benchmark premium, and `other_medical_expenses`. Tax brackets, IRMAA thresholds, and the poverty line keep following inflation |
 | | `ss_trim_pct` | SS trust fund haircut in % (e.g. `23` for SSA trustees baseline) |
 | | `ss_trim_year` | Year SS benefit reduction begins (e.g. `2033`) |
@@ -564,11 +564,11 @@ what it tells you. Approximate Anthropic list prices per million input/output to
 a typical chat turn with a couple of tool calls costs cents (the system prompt is
 cache-marked, so repeat turns are cheaper):
 
-| Model (`OWL_ASSISTANT_MODEL`) | $/MTok in/out | Notes |
+| Model (`OWL_ASSISTANT_MODEL`) | \$/MTok in/out | Notes |
 |---|---|---|
-| `claude-opus-4-8` (default) | $5 / $25 | Most capable; best tool use and explanations |
-| `claude-sonnet-5` | $3 / $15 | Near-Opus on tool-driven work; the value pick |
-| `claude-haiku-4-5` | $1 / $5 | Cheapest; fine for casual Q&A, weaker on long tool chains |
+| `claude-opus-4-8` (default) | \$5 / \$25 | Most capable; best tool use and explanations |
+| `claude-sonnet-5` | \$3 / \$15 | Near-Opus on tool-driven work; the value pick |
+| `claude-haiku-4-5` | \$1 / \$5 | Cheapest; fine for casual Q&A, weaker on long tool chains |
 
 ### Using other or local models
 

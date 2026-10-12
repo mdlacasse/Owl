@@ -86,7 +86,7 @@ Bequest is excluded since it is a lump-sum event rather than an annual flow.
 plan.showCashFlowMix()
 ```
 
-By default, all other plots are in nominal dollars. To get values in today's $, a call to
+By default, all other plots are in nominal dollars. To get values in today's \$, a call to
 ```python
 plan.setDefaultPlots('today')
 ```
@@ -136,7 +136,7 @@ For the case at hand, recall that asset allocations were selected above through
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
 ```
 gliding from a 60%/40% stocks/bonds portfolio to 70%/30% for Jack, and 50%/50% -> 70%/30% for Jill.
-Assets distribution in all accounts in today's $ over time can be displayed from
+Assets distribution in all accounts in today's \$ over time can be displayed from
 ```python
 plan.showAssetComposition(value='today')
 ```
