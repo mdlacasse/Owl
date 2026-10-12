@@ -31,13 +31,20 @@ import owlplanner as owl
 
 
 class _BreaksOnce(highspy.Highs):
-    """A HiGHS whose first run reports the given status, as the dual simplex sometimes does."""
+    """A HiGHS whose first run reports the given status, as the dual simplex sometimes does, with
+    or without a feasible point."""
 
     first_status = highspy.HighsModelStatus.kSolveError
+    first_has_point = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._broken = True
+        self.runs = 0
+
+    def run(self):
+        self.runs += 1
+        return super().run()
 
     def clearSolver(self):
         self._broken = False
@@ -46,28 +53,76 @@ class _BreaksOnce(highspy.Highs):
     def getModelStatus(self):
         return self.first_status if self._broken else super().getModelStatus()
 
+    def getInfoValue(self, name):
+        if self._broken and name == "primal_solution_status" and not self.first_has_point:
+            return highspy.HighsStatus.kOk, highspy.kSolutionStatusNone
+        return super().getInfoValue(name)
 
-def _solve(monkeypatch, row_lb, row_ub, status):
+
+def _solve(monkeypatch, row_lb, row_ub, status, has_point=False):
     """One continuous variable x in [0, 10] and one row, row_lb <= x <= row_ub."""
-    monkeypatch.setattr(highspy, "Highs", type("H", (_BreaksOnce,), {"first_status": status}))
+    made = []
+
+    class H(_BreaksOnce):
+        first_status = status
+        first_has_point = has_point
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            made.append(self)
+
+    monkeypatch.setattr(highspy, "Highs", H)
     plan = owl.Plan(["Joe"], ["1961-01-15"], [80], "fallback")
-    return plan, plan._run_highs(
+    result = plan._run_highs(
         np.array([1.0]), np.array([0.0]), np.array([10.0]), np.array([row_lb]), np.array([row_ub]),
         np.array([0]), np.array([0]), np.array([1.0]), np.array([0]), {},
     )
+    return plan, result, made[0].runs
 
 
-@pytest.mark.parametrize("status", [highspy.HighsModelStatus.kSolveError, highspy.HighsModelStatus.kUnknown])
+NO_VERDICT = [
+    highspy.HighsModelStatus.kSolveError,
+    highspy.HighsModelStatus.kUnknown,
+    highspy.HighsModelStatus.kPresolveError,
+    highspy.HighsModelStatus.kPostsolveError,
+    highspy.HighsModelStatus.kUnboundedOrInfeasible,
+]
+
+
+@pytest.mark.parametrize("status", NO_VERDICT)
 def test_infeasible_lp_is_reported_infeasible(monkeypatch, status):
-    plan, (obj, _, success, msg, _) = _solve(monkeypatch, 20.0, 30.0, status)
+    plan, (obj, _, success, msg, _), runs = _solve(monkeypatch, 20.0, 30.0, status)
     assert not success
     assert plan._infeasible
     assert msg == "Infeasible"
+    assert runs == 2
 
 
-@pytest.mark.parametrize("status", [highspy.HighsModelStatus.kSolveError, highspy.HighsModelStatus.kUnknown])
+@pytest.mark.parametrize("status", NO_VERDICT)
 def test_feasible_lp_is_solved(monkeypatch, status):
-    plan, (obj, xx, success, msg, _) = _solve(monkeypatch, 2.0, 30.0, status)
+    plan, (obj, xx, success, msg, _), runs = _solve(monkeypatch, 2.0, 30.0, status)
     assert success
     assert not plan._infeasible
     assert xx[0] == pytest.approx(2.0)
+    assert runs == 2
+
+
+def test_lp_with_a_feasible_point_is_not_solved_again(monkeypatch):
+    """A feasible point already counts as success; solving again could only change an answer."""
+    plan, (obj, xx, success, msg, _), runs = _solve(
+        monkeypatch, 2.0, 30.0, highspy.HighsModelStatus.kUnknown, has_point=True
+    )
+    assert success
+    assert xx[0] == pytest.approx(2.0)
+    assert runs == 1
+
+
+@pytest.mark.parametrize(
+    "status", [highspy.HighsModelStatus.kTimeLimit, highspy.HighsModelStatus.kIterationLimit]
+)
+def test_lp_stopped_by_a_limit_is_not_solved_again(monkeypatch, status):
+    """Solving again after a limit would only spend the budget twice more."""
+    plan, (obj, _, success, msg, _), runs = _solve(monkeypatch, 20.0, 30.0, status)
+    assert not success
+    assert not plan._infeasible
+    assert runs == 1
