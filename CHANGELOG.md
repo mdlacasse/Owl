@@ -3,7 +3,7 @@
 #### Fixed: a plan that cannot be paid for is reported as infeasible, not as a solver error
 
 HiGHS's default LP path, presolve followed by the dual simplex, can break down numerically on a
-model with no feasible point and end with "Solve error" or "Unknown" instead of infeasible.
+model with no feasible point and end with "Solve error", "Unknown" or "Not Set" instead of infeasible.
 Whether it does can turn on rounding in the last digits, so the same case could fail or not after a
 change too small to matter. Owl then reported a failure of the solver, when the plan simply could
 not be paid for. An LP that ends without a verdict and without a feasible point is now solved
