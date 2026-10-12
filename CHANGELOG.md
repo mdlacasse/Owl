@@ -15,6 +15,17 @@ Medicaid line and the 400% FPL subsidy cliff with the premium at stake, and a `h
 with lifetime Medicare premiums (IRMAA part and years), ACA net premiums, out-of-pocket expenses,
 and HSA withdrawals. Its caveat now names ACA premiums among the quantities held fixed.
 
+#### Fixed: `explain_results` on a plan that parks income on an IRMAA or ACA threshold
+
+With `withMedicare` or `withACA` set to `"optimize"`, the optimizer can place MAGI exactly on a
+threshold, such as the 400% FPL subsidy cliff, and the solver returns it a fraction of a cent
+above. The explanation compared it exactly and read such a plan as past the threshold. The IRMAA
+tier and the next-tier cost, and the ACA Medicaid line and cliff, now allow a dollar of slack, as
+the convergence check does: the bracket formulations start each higher bracket $2 above its
+threshold, so no MAGI lies in between. The ACA net premium for the first year, reported before
+this release too, read a quantity that is zero in optimize mode and showed $0; it now shows the
+premium paid in either mode.
+
 #### New: medical prices can grow faster than inflation, with `setMedicalInflation`
 
 Medical prices have long outpaced general inflation, yet every health cost in a plan followed it. The
