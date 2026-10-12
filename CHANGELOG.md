@@ -1,18 +1,3 @@
-### Version TBD
-
-#### Fixed: a plan that cannot be paid for is reported as infeasible, not as a solver error
-
-HiGHS's default LP path, presolve followed by the dual simplex, can break down numerically on a
-model with no feasible point and end with "Solve error" or "Unknown" instead of infeasible.
-Whether it does can turn on rounding in the last digits, so the same case could fail or not after a
-change too small to matter. Owl then reported a failure of the solver, when the plan simply could
-not be paid for. An LP that ends without a verdict and without a feasible point is now solved
-again with the interior-point method, then the primal simplex, which settle such a model either
-way, and the log says so. On a set of historical market sequences that hit this, both agree the
-plan is infeasible, as MOSEK does on the same case. An LP stopped by a time or iteration limit is
-not solved again, and plans the default solves, including those it ends with a feasible point but
-no verdict, are untouched.
-
 ### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it
