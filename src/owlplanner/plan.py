@@ -196,7 +196,10 @@ _HIGHS_INFEASIBLE_RETRIES = (
 # primal simplex settle such a model either way, so an LP that ends with one of these statuses
 # and no feasible point is solved again with them before it is reported as a failure of the
 # solver. Limits and interrupts are not among them: solving again would only spend more time.
+# "Not Set" belongs with the others: the dual simplex can stop on an infeasible LP without setting
+# a status at all.
 _HIGHS_LP_NO_VERDICT = (
+    "kNotset",
     "kSolveError",
     "kUnknown",
     "kPresolveError",

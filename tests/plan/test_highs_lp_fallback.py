@@ -81,6 +81,7 @@ def _solve(monkeypatch, row_lb, row_ub, status, has_point=False):
 
 
 NO_VERDICT = [
+    highspy.HighsModelStatus.kNotset,
     highspy.HighsModelStatus.kSolveError,
     highspy.HighsModelStatus.kUnknown,
     highspy.HighsModelStatus.kPresolveError,
