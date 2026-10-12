@@ -325,10 +325,7 @@ def test_irmaa_next_tier_cost_is_one_tier_of_surcharges():
     assert irmaa["next_tier_premium_increase_today"] > 0
 
 
-@pytest.mark.toml
-def test_aca_cliffs_use_the_aca_magi():
-    import owlplanner.tax_federal as tx
-
+def _aca_plan():
     plan = _build_plan_from_params(
         names=["Morgan"],
         birth_dates=[f"{THISYEAR - 55}-03-01"],
@@ -347,6 +344,14 @@ def test_aca_cliffs_use_the_aca_magi():
         slcsp=14_000,
     )
     plan.solve("maxSpending", {"units": "1", "withDuals": True})
+    return plan
+
+
+@pytest.mark.toml
+def test_aca_cliffs_use_the_aca_magi():
+    import owlplanner.tax_federal as tx
+
+    plan = _aca_plan()
     aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
     fpl_year = THISYEAR if THISYEAR in tx._ACA_FPL else max(tx._ACA_FPL)
     fpl = float(tx._ACA_FPL[fpl_year][0])
@@ -359,3 +364,50 @@ def test_aca_cliffs_use_the_aca_magi():
 def test_caveat_names_aca_premiums():
     plan = _solved_plan(state="TX")
     assert any("ACA premiums" in c for c in build_explanation(plan)["caveats"])
+
+
+@pytest.mark.toml
+def test_aca_magi_parked_on_an_edge_reads_as_on_it():
+    """The solver returns a MAGI parked on an edge a fraction of a cent above it."""
+    from owlplanner.assistant.explain import _aca_cliffs
+
+    plan = _aca_plan()
+    edges = _aca_cliffs(plan)
+    plan.MAGI_aca_n[0] = edges["subsidy_cliff"] + 0.0008
+    on_cliff = _aca_cliffs(plan)
+    assert "above_subsidy_cliff_by" not in on_cliff
+    assert on_cliff["headroom_to_subsidy_cliff"] == 0
+    assert on_cliff["premium_jump_at_cliff"] > 0
+    plan.MAGI_aca_n[0] = edges["medicaid_line"] + 0.0008
+    assert _aca_cliffs(plan).get("covered_by_medicaid") is True
+    # Past the $2 margin is past the edge.
+    plan.MAGI_aca_n[0] = edges["subsidy_cliff"] + 2.0
+    assert _aca_cliffs(plan)["above_subsidy_cliff_by"] == pytest.approx(2.0)
+
+
+@pytest.mark.toml
+def test_irmaa_magi_parked_on_a_threshold_reads_as_below_it():
+    import owlplanner.tax_federal as tx
+
+    plan = _solved_plan(state="TX")
+    status = 1 if (plan.N_i == 2 and plan.n_d > 2) else 0
+    first = float(plan.gamma_n[2] * tx.irmaaBrackets[status][1])
+    plan.MAGI_n[0] = first + 0.0008
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    assert irmaa["current_tier"] == 0
+    assert irmaa["headroom_to_next_tier"] == 0
+    step = (tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1]) * plan._medical_n(plan.gamma_n)[2] / plan.gamma_n[2]
+    assert irmaa["next_tier_premium_increase_today"] == pytest.approx(step, abs=0.01)
+
+
+@pytest.mark.toml
+def test_aca_net_premium_reads_the_premium_of_either_mode():
+    """In optimize mode ACA_n stays zero and the premium is in aca_costs_n."""
+    plan = _aca_plan()
+    premium = float(plan.ACA_n[0])
+    assert premium > 0
+    plan._aca_lp = True
+    plan.maca_n = plan.ACA_n.copy()
+    plan.ACA_n[:] = 0
+    aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
+    assert aca["net_premium_this_year"] == pytest.approx(premium, abs=0.01)

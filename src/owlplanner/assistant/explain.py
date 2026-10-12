@@ -29,6 +29,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 import numpy as np
 
 from .. import tax_federal as tx
+from ..plan import BRACKET_MARGIN
 from .explain_schema import PlanExplanation
 
 _TOL = 1e-9  # dual significance
@@ -146,6 +147,13 @@ CONSTRAINT_FAMILIES = {
     "aca_bracket_lb": {"class": "artifact", "label": "ACA bracket bound big-M"},
     "aca_bracket_ub": {"class": "artifact", "label": "ACA bracket bound big-M"},
 }
+
+
+# A MAGI the optimizer parks on an IRMAA or ACA threshold comes back a fraction of a cent above it,
+# within solver tolerance. The binary formulations start each higher bracket BRACKET_MARGIN above
+# its threshold, so no MAGI lies in between: compare with half the margin of slack, as the
+# fixed-point residual does, or a plan on a threshold reads as one past it.
+THRESHOLD_SLACK = BRACKET_MARGIN / 2
 
 
 def _round(v, digits=2):
@@ -400,7 +408,7 @@ def _year0_thresholds(plan):
         if on_medicare:
             status = 1 if (plan.N_i == 2 and plan.n_d > n_prem) else 0
             thresholds = plan.gamma_n[n_prem] * tx.irmaaBrackets[status][1:]
-            tier = int(np.sum(magi0 > thresholds))
+            tier = int(np.sum(magi0 - THRESHOLD_SLACK > thresholds))
             entry = {
                 "affects_premium_year": thisyear + n_prem,
                 "current_tier": tier,
@@ -408,16 +416,16 @@ def _year0_thresholds(plan):
                 f"{thisyear + n_prem}.",
             }
             if tier < len(thresholds):
-                entry["headroom_to_next_tier"] = _round(float(thresholds[tier]) - magi0)
+                entry["headroom_to_next_tier"] = _round(max(0.0, float(thresholds[tier]) - magi0))
                 entry["next_tier_premium_increase_today"] = _round(
-                    _irmaa_step(plan, float(thresholds[tier]) + 1.0, n_prem)
+                    _irmaa_step(plan, float(thresholds[tier]) + THRESHOLD_SLACK, n_prem)
                 )
             prox["irmaa"] = entry
 
     # ACA: current-year MAGI drives this year's subsidy when pre-Medicare years exist.
     if getattr(plan, "n_aca", 0) > 0:
         prox["aca"] = {
-            "net_premium_this_year": _round(float(plan.ACA_n[0])),
+            "net_premium_this_year": _round(float(plan.aca_costs_n[0])),  # ACA_n is zero in optimize mode
             "aca_years_remaining": int(plan.n_aca),
             "note": "ACA subsidies depend on current-year MAGI; extra income this year raises "
             "this year's premium.",
@@ -440,7 +448,7 @@ def _irmaa_step(plan, magi_year0, n_prem):
         part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
         medical_n=plan._medical_n(g),
     )
-    magi = np.array(plan.MAGI_n[:N], dtype=float)
+    magi = np.array(plan.MAGI_n[:N], dtype=float) - THRESHOLD_SLACK
     now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
     magi[0] = magi_year0
     then = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
@@ -475,14 +483,14 @@ def _aca_cliffs(plan):
         "medicaid_line": _round(medicaid),
         "subsidy_cliff": _round(cliff),
     }
-    if magi <= medicaid:
+    if magi - THRESHOLD_SLACK <= medicaid:
         out["covered_by_medicaid"] = True
-    if magi < cliff:
-        out["headroom_to_subsidy_cliff"] = _round(cliff - magi)
-        out["premium_jump_at_cliff"] = _round(cost(cliff + 1.0) - cost(cliff - 1.0))
+    if magi - THRESHOLD_SLACK <= cliff:
+        out["headroom_to_subsidy_cliff"] = _round(max(0.0, cliff - magi))
+        out["premium_jump_at_cliff"] = _round(cost(cliff + THRESHOLD_SLACK) - cost(cliff - THRESHOLD_SLACK))
     else:
         out["above_subsidy_cliff_by"] = _round(magi - cliff)
-        out["premium_saved_below_cliff"] = _round(cost(magi) - cost(cliff - 1.0))
+        out["premium_saved_below_cliff"] = _round(cost(magi - THRESHOLD_SLACK) - cost(cliff - THRESHOLD_SLACK))
     return out
 
 
