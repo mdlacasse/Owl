@@ -1,3 +1,28 @@
+### Version TBD
+
+#### Fixed: long historical plans no longer end in a solver error with HiGHS
+
+The Roth 5-year rule keeps the last five years of conversions in the Roth account at their
+compounded value. It compounded them with every loss year counted as zero growth, while the
+account itself grew at its real returns. After a loss, a Roth holding only recent conversions was
+then asked to keep more than they were worth, and the one plan that satisfied both was no
+conversion at all, found only through two nearly equal sets of coefficients. HiGHS's simplex
+stalled on it and Owl reported "solver error"; MOSEK found the plan. Conversions are now compounded
+at the account's real returns, losses included, and only the gains of a recent contribution are
+retained, none after a loss.
+
+The failures needed loss years in the sequence: constant returns never failed at any horizon,
+balance or inflation, and a long plan failed more often only because it spans more of them. On a
+one-person case over 65 years of historical returns, 20 failing combinations of balance, horizon
+and start year now all solve, as do all 72 historical sequences of `Case_avery+quinn` with every
+family in loop mode (8 were solver errors) and the issue #139 case. The rule only relaxes: a plan
+that converts before a loss can now do better, and no plan becomes infeasible.
+
+Thanks to Dmitry Fink (@finik) for reporting the failures and for the careful work behind them: the
+HiGHS fallback that brought them to light and the exact-arithmetic and MOSEK checks of the stuck
+models (#184), the `Not Set` status found on a bootstrapped sequence (#188), and the related change
+to which earlier iterate the loop falls back on (#186), each still under review on its own.
+
 ### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it

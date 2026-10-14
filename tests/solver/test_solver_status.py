@@ -1,10 +1,15 @@
 """
 A solve that fails must say whether the plan is impossible or the solver gave up.
 
-Issue #139: HiGHS abandons one case with model status 'Unknown' although the plan is
-feasible -- MOSEK solves it, and the failing HiGHS run even prints an objective within
+Issue #139: HiGHS abandoned one case with model status 'Unknown' although the plan is
+feasible -- MOSEK solves it, and the failing HiGHS run even printed an objective within
 rounding of MOSEK's answer. Reporting that as "unsuccessful", the same word used for a
 genuinely infeasible plan, tells the user to fix a plan that was never broken.
+
+The case itself stopped failing once the Roth 5-year rule followed the account's real
+returns (#184): its maturation rows had asked a loss-hit Roth to keep more than its recent
+conversions were worth, a near-equality the simplex stalled on. The wording of a solver
+failure is now checked on a HiGHS made to give up.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -25,6 +30,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import owlplanner as owl
@@ -41,22 +47,22 @@ def _solve(name, solver, **opts):
     return p
 
 
-def test_issue_139_is_a_solver_error_not_an_infeasible_plan():
-    """
-    The regression from issue #139, and a tripwire for a future highspy.
-
-    Should an upgraded HiGHS simply solve this, the fixture has done its job and the
-    test says so out loud rather than passing quietly on a case that no longer bites.
-    """
+def test_issue_139_case_solves_under_highs():
+    """The #139 model ended without a verdict until the Roth 5-year rule followed real returns."""
     p = _solve(CASE, "HiGHS")
+    assert p.caseStatus == "solved", p.solverMessage
 
-    assert p.caseStatus != "infeasible", "a feasible plan was reported as infeasible"
 
-    if p.caseStatus == "solved":
-        pytest.skip(
-            "HiGHS now solves the issue #139 model (highspy was upgraded). This fixture no "
-            "longer exercises the solver-error path -- find a new one or drop this test."
-        )
+def test_solver_that_gives_up_is_a_solver_error_not_an_infeasible_plan(monkeypatch):
+    """A solver that ends without a verdict must not be read as an impossible plan."""
+
+    def gives_up(self, c, *args, **kwargs):
+        self._infeasible = False
+        self._lastMipNodes = 0
+        return None, np.zeros(len(c)), False, "Unknown", -1.0
+
+    monkeypatch.setattr(owl.Plan, "_run_highs", gives_up)
+    p = _solve(JACK, "HiGHS")
 
     assert p.caseStatus == "solver error"
     # The message is what the user reads, so it has to make the distinction in words.
