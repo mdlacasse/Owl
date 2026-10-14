@@ -1,3 +1,26 @@
+### Version WIP
+
+#### New: the assistant asks before starting a long scenario sweep
+
+A sweep's cost is the number of solves times the time each takes, and both vary widely: 1000
+Monte Carlo scenarios with Medicare solved as a MILP is a different undertaking from a few dozen
+historical years in loop mode, yet the MCP tools started either without a word. The six sweep tools
+(`run_stochastic`, `run_spending_bequest_frontier`, `run_year1_robustness`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now time one solve of the plan
+before running the scenarios and project the total, crediting the threaded sweeps with their
+measured parallel speed-up. A run projected beyond two minutes stops there and returns
+`needs_confirmation` with the estimate, the options driving the cost (MILP families, optimized
+claiming ages) and cheaper alternatives (the loop, fewer scenarios); the assistant relays them,
+asks whether to proceed, and runs it only with `confirm_long_run=true`. The intake interview now
+asks how long the user is willing to wait, and an estimate within that budget runs without asking
+again. A run beyond an hour is flagged `very_long` and its estimate, given in hours or days, is
+always put to the user, whatever budget they stated; nothing is refused once they agree. The two
+thresholds are set by the `OWL_MCP_CONFIRM_MINUTES` and `OWL_MCP_VERY_LONG_MINUTES` environment
+variables. After the first solve, the assistant quotes its time with a rough cost for each sweep
+it offers. On
+`Case_jack+jill`, the projection for `run_stochastic` was 12 s against 11.8 s measured. Runs under
+the threshold, and every solve outside the MCP tools, are unchanged.
+
 ### Version 2026.10.14
 
 #### Fixed: long historical plans no longer end in a solver error with HiGHS

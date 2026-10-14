@@ -36,7 +36,9 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 import asyncio
 import datetime
 import json
+import os
 import sys
+import time
 from pathlib import Path
 from typing import Annotated
 
@@ -118,7 +120,18 @@ SERVER_INSTRUCTIONS = (
     "could change the results. "
     "File paths (directory, filename) must be absolute or resolvable from the "
     "MCP server working directory — prefer absolute paths to the Owl repo or "
-    "user workspace."
+    "user workspace. "
+    "Scenario sweeps differ widely in cost: total time is roughly the number of solves "
+    "(scenarios, or bequest levels x scenarios) times the time per solve, and a solve with "
+    "MILP families (with_medicare/with_aca='optimize', optimize_ss_ages) can take many times "
+    "longer than the default self-consistent loop. When a sweep tool returns "
+    "'needs_confirmation', nothing was run beyond one pilot solve: tell the user the "
+    "estimated time and the cheaper alternatives, ask 'Do you want to proceed?', and call "
+    "again with confirm_long_run=true only if they agree. A time budget the user stated "
+    "earlier in the session (asked during intake) counts as that agreement for any estimate "
+    "within it. Never set confirm_long_run without one or the other. A response with "
+    "'very_long' (beyond an hour) needs the user's agreement to that specific estimate, "
+    "whatever budget they stated; once they agree, run it."
 )
 
 
@@ -313,6 +326,141 @@ def _downgrade_milp_tax_modes(opts):
     opts.pop("breakpointMethod", None)
     opts.pop("mipStrategy", None)
     return downgraded
+
+
+# What "long" means for an MCP sweep. A run projected beyond _CONFIRM_MINUTES is long: it stops
+# after its pilot solve and asks the user, unless the estimate fits a time budget the user stated
+# earlier. One beyond _VERY_LONG_MINUTES is very long: the user must agree to that specific
+# estimate, whatever budget they gave in advance. Either runs once the user agrees. Overridable
+# through the OWL_MCP_CONFIRM_MINUTES and OWL_MCP_VERY_LONG_MINUTES environment variables.
+_CONFIRM_MINUTES = 2.0
+_VERY_LONG_MINUTES = 60.0
+# Measured speed-up of the threaded scenario sweeps is about a third of the worker count
+# (63 historical scenarios on 10 cores ran 3.1x faster than serially).
+_PARALLEL_EFFICIENCY = 0.35
+
+
+class _NeedsConfirmation(Exception):
+    """Raised by a sweep whose projected run time exceeds the confirmation threshold."""
+
+    def __init__(self, info):
+        super().__init__(info["message"])
+        self.info = info
+
+
+def _env_minutes(name, default):
+    try:
+        return float(os.environ.get(name, default))
+    except ValueError:
+        return default
+
+
+def _confirm_minutes():
+    return _env_minutes("OWL_MCP_CONFIRM_MINUTES", _CONFIRM_MINUTES)
+
+
+def _very_long_minutes():
+    return _env_minutes("OWL_MCP_VERY_LONG_MINUTES", _VERY_LONG_MINUTES)
+
+
+def _fmt_duration(minutes):
+    """Human-readable duration: seconds, minutes, hours or days."""
+    if minutes < 1:
+        return f"{minutes * 60:.0f} seconds"
+    if minutes < 120:
+        return f"{minutes:.0f} minutes"
+    if minutes < 48 * 60:
+        return f"{minutes / 60:.1f} hours"
+    return f"{minutes / 1440:,.0f} days"
+
+
+def _historical_count(plan, ystart, yend):
+    """Number of historical start years a sweep over ystart..yend will solve."""
+    from owlplanner.rates import FROM, TO
+
+    lo = int(ystart) if ystart is not None else FROM
+    hi = min(int(yend) if yend is not None else TO, TO + 1 - plan.N_n)
+    return max(0, hi - lo + 1)
+
+
+def _timed_solve(plan, objective, opts):
+    """Solve once and return the wall time in seconds."""
+    t0 = time.perf_counter()
+    plan.solve(objective, opts)
+    return time.perf_counter() - t0
+
+
+def _cost_drivers(opts):
+    """Options that make each scenario solve a MIP rather than an LP."""
+    o = dict(opts)
+    normalize_mode_options(o)
+    drivers = [f"{key}='optimize' (MILP)" for key in _MILP_TAX_MODES if o.get(key) == "optimize"]
+    if o.get("withSSAges") not in (None, False, "fixed", "none"):
+        drivers.append("optimize_ss_ages (MILP)")
+    return drivers
+
+
+def _check_run_cost(seconds_per_solve, n_solves, opts, *, parallel, confirm, n_per_level=None):
+    """Stop a long sweep before it starts unless the caller confirmed it.
+
+    seconds_per_solve comes from one solve actually timed on this plan, so the estimate
+    reflects the plan's horizon, the solver, the machine and the MILP families switched on.
+    Threaded sweeps are credited with the measured parallel speed-up. n_per_level is the
+    number of solves per bequest level, for sweeps whose total is levels x scenarios.
+    """
+    if confirm or n_solves <= 0:
+        return
+    speedup = max(1.0, _PARALLEL_EFFICIENCY * min(os.cpu_count() or 1, n_solves)) if parallel else 1.0
+    effective = seconds_per_solve / speedup
+    minutes = n_solves * effective / 60.0
+    threshold = _confirm_minutes()
+    if minutes <= threshold:
+        return
+    very_long = minutes > _very_long_minutes()
+
+    alternatives = []
+    drivers = _cost_drivers(opts)
+    if drivers:
+        alternatives.append(
+            "solve the scenarios with the self-consistent loop instead of MILP "
+            "(with_medicare/with_aca='loop', optimize_ss_ages=false); usually much faster"
+        )
+    fit = int(threshold * 60.0 / effective)
+    if 0 < fit < n_solves:
+        if n_per_level:
+            alternatives.append(
+                f"fewer bequest levels or scenarios: about {fit} solves in total fit in {threshold:g} min"
+            )
+        else:
+            alternatives.append(f"n_scenarios={fit} (or a narrower ystart/yend range) runs in about {threshold:g} min")
+
+    duration = _fmt_duration(minutes)
+    head = (
+        f"This run needs {n_solves} solves and is projected to take about {duration} "
+        f"(one pilot solve took {seconds_per_solve:.1f} s). Nothing else was run. "
+    )
+    message = head + (
+        "Tell the user the estimate and the cheaper alternatives, ask whether to proceed, and call "
+        "again with confirm_long_run=true only if they agree."
+    )
+    if very_long:
+        message += (
+            f" This is a very long run (over {_very_long_minutes():g} minutes): ask about this estimate "
+            "explicitly, even if the user stated a time budget earlier."
+        )
+    info = {
+        "needs_confirmation": True,
+        "very_long": very_long,
+        "estimated_minutes": round(minutes, 1),
+        "estimated_duration": duration,
+        "total_solves": int(n_solves),
+        "seconds_per_solve": round(seconds_per_solve, 2),
+        "parallel_speedup": round(speedup, 1),
+        "cost_drivers": drivers,
+        "cheaper_alternatives": alternatives,
+        "message": message,
+    }
+    raise _NeedsConfirmation(info)
 
 
 def _drop_breakpoint_preset(opts):
@@ -2963,14 +3111,17 @@ async def explain_results(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
+def _stochastic_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts, seed, confirm_long_run=True):
     """Solve base plan then run multi-scenario efficient frontier. Runs in a thread."""
     from owlplanner.stresstests import run_stochastic_spending
     from owlplanner.rates import FROM, TO
 
-    plan.solve(plan.objective, opts)
+    seconds = _timed_solve(plan, plan.objective, opts)
     if plan.caseStatus != "solved":
         raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
+    if not confirm_long_run:
+        n_solves = _historical_count(plan, ystart, yend) if scenario_method == "historical" else int(n_scenarios)
+        _check_run_cost(seconds, n_solves, opts, parallel=True, confirm=False)
 
     if seed is not None:
         plan.setReproducible(True, seed=seed)
@@ -3139,7 +3290,7 @@ def _build_distribution_json(plan, results, objective, scenario_method, n_attemp
     return out
 
 
-def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse, roll):
+def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse, roll, confirm_long_run=True):
     """Solve plan across historical year sequences; returns (plan, n_attempted, results)."""
     from itertools import product as iproduct
     from owlplanner.rates import FROM, TO
@@ -3159,6 +3310,10 @@ def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse
         pairs = [(bool(reverse), int(roll))]
 
     n_attempted = (_yend - _ystart + 1) * len(pairs)
+    if not confirm_long_run:
+        plan.setRates("historical", _ystart, reverse=pairs[0][0], roll=pairs[0][1])
+        seconds = _timed_solve(plan, objective, opts)
+        _check_run_cost(seconds, n_attempted, opts, parallel=False, confirm=False)
     results = []
 
     for year in range(_ystart, _yend + 1):
@@ -3175,7 +3330,7 @@ def _historical_blocking(plan, objective, opts, ystart, yend, augmented, reverse
     return plan, n_attempted, results, _ystart, _yend
 
 
-def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
+def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed, confirm_long_run=True):
     """Solve plan across Monte Carlo rate draws; returns (plan, n_attempted, results)."""
     from owlplanner.stresstests import MC_TIME_LIMIT
 
@@ -3192,6 +3347,10 @@ def _monte_carlo_blocking(plan, objective, opts, n_scenarios, seed):
     myopts = dict(opts)
     if "maxTime" not in myopts:
         myopts["maxTime"] = MC_TIME_LIMIT
+
+    if not confirm_long_run:
+        seconds = _timed_solve(plan, objective, myopts)
+        _check_run_cost(seconds, int(n_scenarios), myopts, parallel=False, confirm=False)
 
     if plan.reproducibleRates and hasattr(plan.rateModel, "_rng"):
         plan.rateModel._rng = np.random.default_rng(plan.rateSeed)
@@ -3289,6 +3448,7 @@ async def run_stochastic(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    confirm_long_run: bool = False,
 ) -> str:
     """Run multi-scenario spending optimization and return an efficient frontier.
 
@@ -3406,6 +3566,9 @@ async def run_stochastic(
         solver:               "HiGHS", "MOSEK", or None (auto-select).
         max_time:             Per-scenario solver time limit in seconds.
         seed:                 Random seed for reproducibility.
+        confirm_long_run:     Run even when the projected time exceeds the confirmation threshold.
+                              Leave false; set true only after the user has seen the estimate
+                              returned with needs_confirmation and agreed to proceed.
     """
     from owlplanner.stresstests import _validate_success_rate_pct
 
@@ -3554,7 +3717,10 @@ async def run_stochastic(
             n_scenarios,
             opts,
             seed,
+            confirm_long_run,
         )
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Stochastic run error: {e}"})
 
@@ -3610,10 +3776,20 @@ def _default_bequest_grid(plan, opts, n_points=5):
 
 
 def _frontier_blocking(
-    plan, opts, bequest_grid, scenario_method, ystart, yend, n_scenarios, rates_pct, seed, with_duals=False
+    plan,
+    opts,
+    bequest_grid,
+    scenario_method,
+    ystart,
+    yend,
+    n_scenarios,
+    rates_pct,
+    seed,
+    with_duals=False,
+    confirm_long_run=True,
 ):
     """Trace the spending-vs-bequest trade-off. Runs in a thread."""
-    from owlplanner.stresstests import run_spending_bequest_frontier
+    from owlplanner.stresstests import run_spending_bequest_frontier, MC_TIME_LIMIT
     from owlplanner.rates import FROM
 
     if scenario_method == "mc":
@@ -3623,6 +3799,17 @@ def _frontier_blocking(
                 "(e.g. 'historical_gaussian', 'lognormal', 'historical_bootstrap'). "
                 "Current rate method is deterministic."
             )
+
+    if not confirm_long_run and scenario_method != "deterministic":
+        pilot = dict(opts)
+        pilot.setdefault("maxTime", MC_TIME_LIMIT)
+        pilot["bequest"] = min(float(b) for b in bequest_grid)
+        seconds = _timed_solve(plan, "maxSpending", pilot)
+        per_level = _historical_count(plan, ystart, yend) if scenario_method == "historical" else int(n_scenarios)
+        n_levels = len({float(b) for b in bequest_grid})
+        _check_run_cost(
+            seconds, n_levels * per_level, opts, parallel=True, confirm=False, n_per_level=per_level
+        )
 
     return run_spending_bequest_frontier(
         plan,
@@ -3756,6 +3943,7 @@ async def run_spending_bequest_frontier(
     max_time: float | None = None,
     seed: int | None = None,
     with_duals: bool = False,
+    confirm_long_run: bool = False,
 ) -> str:
     """Trace the trade-off between net spending and the bequest left behind.
 
@@ -3831,6 +4019,9 @@ async def run_spending_bequest_frontier(
         exceed the final bequest several times over -- it is included in the total
         estate. Zero for a single filer, for equal life expectancies, and whenever the
         surviving spouse is the sole beneficiary.
+        confirm_long_run: Run even when the projected time exceeds the confirmation threshold.
+            Leave false; set true only after the user has seen the estimate returned with
+            needs_confirmation and agreed to proceed. Cost is levels x scenarios.
     """
     from owlplanner.stresstests import _validate_success_rate_pct, summarize_spending_bequest_frontier
 
@@ -4003,8 +4194,11 @@ async def run_spending_bequest_frontier(
             rates_pct,
             seed,
             with_duals,
+            confirm_long_run,
         )
         summary = summarize_spending_bequest_frontier(result, target_success_rate_pct=target_success_rate_pct)
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Frontier run error: {e}"})
 
@@ -4031,14 +4225,19 @@ async def run_spending_bequest_frontier(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _year1_robustness_blocking(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
+def _year1_robustness_blocking(
+    plan, scenario_method, ystart, yend, n_scenarios, opts, seed, confirm_long_run=True
+):
     """Solve base plan (capturing its year-1 decisions), then run scenarios. Runs in a thread."""
     from owlplanner.stresstests import run_stochastic_spending, _year1_snapshot
     from owlplanner.rates import FROM, TO
 
-    plan.solve(plan.objective, opts)
+    seconds = _timed_solve(plan, plan.objective, opts)
     if plan.caseStatus != "solved":
         raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
+    if not confirm_long_run:
+        n_solves = _historical_count(plan, ystart, yend) if scenario_method == "historical" else int(n_scenarios)
+        _check_run_cost(seconds, n_solves, opts, parallel=True, confirm=False)
     base_year1 = _year1_snapshot(plan)
 
     if seed is not None:
@@ -4185,6 +4384,7 @@ async def run_year1_robustness(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    confirm_long_run: bool = False,
 ) -> str:
     """Quantify how robust the FIRST YEAR's decisions are across return scenarios.
 
@@ -4209,6 +4409,8 @@ async def run_year1_robustness(
     Carlo draws; requires a stochastic rate_method; seed for reproducibility).
     MILP tax modes are downgraded to the self-consistent loop for the scenario
     solves (never a MIP per scenario), recorded in the notes.
+    confirm_long_run follows run_stochastic: leave it false, and set it true only after the
+    user has seen a needs_confirmation estimate and agreed to proceed.
     """
     assumed: list[dict] = []
     overrides = _norm_overrides(overrides)
@@ -4349,7 +4551,10 @@ async def run_year1_robustness(
             n_scenarios,
             opts,
             seed,
+            confirm_long_run,
         )
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Year-1 robustness run error: {e}"})
 
@@ -4442,6 +4647,7 @@ def _longevity_stochastic_blocking(
     spousal_deposit_fraction=None,
     other_medical_expenses=None,
     medical_inflation_excess=None,
+    confirm_long_run=True,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4511,9 +4717,12 @@ def _longevity_stochastic_blocking(
     if mortality_table:
         plan.setMortalityTable(mortality_table)
 
-    plan.solve(plan.objective, opts)
+    seconds = _timed_solve(plan, plan.objective, opts)
     if plan.caseStatus != "solved":
         raise RuntimeError(f"Base plan did not solve (status: {plan.caseStatus}). {plan.solverMessage}")
+    if not confirm_long_run:
+        n_solves = _historical_count(plan, ystart, yend) if scenario_method == "historical" else int(n_scenarios)
+        _check_run_cost(seconds, n_solves, opts, parallel=True, confirm=False)
 
     _ystart = ystart if ystart is not None else FROM
     _yend = yend if yend is not None else TO
@@ -4633,6 +4842,7 @@ async def run_longevity_stochastic(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    confirm_long_run: bool = False,
 ) -> str:
     """Run a spending frontier that jointly samples market sequences AND random lifespans.
 
@@ -4738,6 +4948,9 @@ async def run_longevity_stochastic(
         solver:           "HiGHS", "MOSEK", or None (auto-select).
         max_time:         Per-scenario solver time limit in seconds.
         seed:             Random seed for reproducibility.
+        confirm_long_run: Run even when the projected time exceeds the confirmation threshold.
+                          Leave false; set true only after the user has seen the estimate
+                          returned with needs_confirmation and agreed to proceed.
     """
     from owlplanner.stresstests import _validate_success_rate_pct
 
@@ -4849,7 +5062,10 @@ async def run_longevity_stochastic(
             spousal_deposit_fraction,
             other_medical_expenses,
             medical_inflation_excess,
+            confirm_long_run,
         )
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Longevity stochastic run error: {e}"})
 
@@ -4946,6 +5162,7 @@ async def run_historical(
     roll: int = 0,
     solver: str | None = None,
     max_time: float | None = None,
+    confirm_long_run: bool = False,
 ) -> str:
     """Backtest a plan across historical rate sequences and return a distribution of outcomes.
 
@@ -5049,6 +5266,9 @@ async def run_historical(
         roll:             Shift the rate sequence by this many years (non-augmented only).
         solver:           "HiGHS", "MOSEK", or None (auto-select).
         max_time:         Per-scenario solver time limit in seconds.
+        confirm_long_run: Run even when the projected time exceeds the confirmation threshold.
+                          Leave false; set true only after the user has seen the estimate
+                          returned with needs_confirmation and agreed to proceed.
     """
     assumed: list[dict] = []
     overrides = _norm_overrides(overrides)
@@ -5189,7 +5409,10 @@ async def run_historical(
             augmented,
             reverse,
             roll,
+            confirm_long_run,
         )
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Historical run error: {e}"})
 
@@ -5285,6 +5508,7 @@ async def run_monte_carlo(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    confirm_long_run: bool = False,
 ) -> str:
     """Run Monte Carlo simulations and return a distribution of optimal outcomes.
 
@@ -5400,6 +5624,9 @@ async def run_monte_carlo(
         solver:           "HiGHS", "MOSEK", or None (auto-select).
         max_time:         Per-scenario solver time limit in seconds.
         seed:             Random seed for reproducible results.
+        confirm_long_run: Run even when the projected time exceeds the confirmation threshold.
+                          Leave false; set true only after the user has seen the estimate
+                          returned with needs_confirmation and agreed to proceed.
     """
     assumed: list[dict] = []
     overrides = _norm_overrides(overrides)
@@ -5537,7 +5764,10 @@ async def run_monte_carlo(
             opts,
             n_scenarios,
             seed,
+            confirm_long_run,
         )
+    except _NeedsConfirmation as e:
+        return json.dumps(e.info, indent=2)
     except Exception as e:
         return json.dumps({"error": f"Monte Carlo run error: {e}"})
 

@@ -200,7 +200,7 @@ def test_year1_filename_path_merges_case_solver_options(monkeypatch):
 
     captured = {}
 
-    def _stub(plan, scenario_method, ystart, yend, n_scenarios, opts, seed):
+    def _stub(plan, scenario_method, ystart, yend, n_scenarios, opts, seed, confirm_long_run):
         captured.update(opts)
         raise RuntimeError("stop after capturing opts")
 

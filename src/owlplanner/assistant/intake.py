@@ -85,12 +85,30 @@ those entries to the user and refine the ones that could change their decisions.
 - Allocation arrays are [equities, corporate_bonds, t_notes, cash]; ask whether "bonds"
   means corporate bonds or Treasuries before filling one in.
 
+## Run time
+- Analyses differ widely in cost.  A single solve takes seconds; a scenario sweep repeats
+  it once per scenario (per bequest level and scenario for the frontier), and MILP
+  options (with_medicare/with_aca='optimize', optimize_ss_ages) make each solve slower.
+- "Long" means projected beyond 2 minutes; "very long" means beyond an hour.
+- Before the first sweep, ask how long the user is willing to wait for an analysis
+  (a minute, ten minutes, up to an hour).  Remember the answer for the session.
+- A long sweep returns needs_confirmation with an estimate.  If the estimate fits the
+  budget the user gave, that answer is their consent: call again with
+  confirm_long_run=true and say how long it should take.  Otherwise relay the estimate
+  and the cheaper alternatives and ask whether to proceed.
+- A very long sweep (very_long: true) always gets its own question, quoting
+  estimated_duration, whatever budget was given.  If the user agrees, run it.
+
 ## After the first solve
 - Relay assumed_defaults and the headline numbers (first-year net spending in today's
   dollars, lifetime taxes, final bequest).
 - Offer next steps: stress-test with run_historical or run_monte_carlo, a
   probability-of-success frontier with run_stochastic, Social Security claiming
-  optimization, and Roth conversion policies.
+  optimization, and Roth conversion policies.  Quote the first solve's time
+  (solve_time_seconds.wall) with a rough cost for each: about that time per scenario
+  (200 scenarios by default for Monte Carlo, one per start year since 1928 for
+  historical), less for run_stochastic and the frontier, which solve their scenarios
+  in parallel.  The sweep's own estimate is the reliable one.
 - Offer save_case so the user can reload the setup in the Owl UI or CLI.
 - Remind the user that Owl is an educational and research tool, not financial advice.
 """
