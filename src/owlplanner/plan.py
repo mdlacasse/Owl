@@ -2985,14 +2985,17 @@ class Plan:
         - Roth contribution *principal* can be withdrawn tax- and penalty-free at any time.
         - Roth *earnings* on contributions require both (a) account age ≥ 5 years AND
           (b) age ≥ 59½ (or other exception) to be penalty-free.
-        - Each Roth *conversion* carries its own 5-year clock; conversion principal converted
-          before age 59½ is subject to the 10% penalty if withdrawn within 5 years of conversion.
+        - Each Roth *conversion* carries its own 5-year clock; conversion principal withdrawn
+          within 5 years of conversion is subject to the 10% penalty if the owner is under 59½
+          at the time of the withdrawal. The age that matters is the age at withdrawal, not at
+          conversion: converting at 58 and withdrawing at 61 incurs no penalty.
 
         Simplification: This implementation applies a single unified 5-year lookback that retains
         all recent conversions (at compounded value, losses included) and the gains-only portion of recent
-        contributions as a minimum balance floor. Contribution *principal* is not separately tracked
-        and freed — the constraint treats it as part of the 5-year retainer, making it intentionally
-        conservative (preventing some valid early withdrawals of contribution principal). This never
+        contributions as a minimum balance floor, at every age, including after 59½. Contribution
+        *principal* is not separately tracked and freed — the constraint treats it as part of the
+        5-year retainer. Both choices make it intentionally conservative (preventing some valid
+        withdrawals of contribution principal, and of conversions after 59½). This never
         allows a withdrawal that would violate IRS rules; it only restricts some withdrawals that
         would technically be permitted. Exact per-dollar basis tracking is out of scope for an LP.
         """
