@@ -47,6 +47,15 @@ report.
 The GitHub Actions test workflow installs uv with `astral-sh/setup-uv` 10.3.0 instead of 10.2.0
 (#189, from Dependabot).
 
+#### Maintenance: Updated dependencies
+
+`streamlit` 1.65.0 → 1.66.0, `anthropic` 1.13.0 → 1.14.0, `async-lru` 2.3.0 → 2.4.0, `fonttools`
+4.66.1 → 4.67.0, `jedi` 0.20.0 → 0.20.1, `jsonpointer` 3.2.0 → 3.2.1, `nbconvert` 7.17.1 → 7.17.2,
+`numpy` 2.5.3 → 2.5.4 (Python 3.12 and up), `platformdirs` 4.12.4 → 4.13.0, `pyarrow` 25.0.1 →
+26.0.0, `pydantic` 2.14.0 → 2.14.1, `pydantic-core` 2.50.0 → 2.50.1, `soupsieve` 3.0 → 3.0.3 (2.10
+also locked), `starlette` 1.7.0 → 1.8.0, `truststore` 0.10.4 → 0.10.5; `httptools` is no longer
+required.
+
 ### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it
