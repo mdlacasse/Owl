@@ -157,6 +157,7 @@ def _summary_currency_pair(dic, label, val_today, val_nominal, prefix=""):
 
 def _save_workbook(wb, basename, overwrite, mylog):
     """Save workbook to file with overwrite prompt. Return filename on success, None if skipped."""
+    basename = str(basename)
     if Path(basename).suffixes == []:
         fname = "workbook" + "_" + basename + ".xlsx"
     else:
@@ -977,7 +978,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     """
     Build Excel workbook from plan. Optionally save to file.
 
-    Returns wb if saveToFile is False, else None.
+    Returns wb if saveToFile is False, else the name of the file saved (None if skipped).
+    basename may be a str or a path; in real dollars, "_real" is added before any suffix.
     """
     if with_config not in {"no", "first", "last"}:
         raise ValueError(f"Invalid with_config option '{with_config}'.")
@@ -1262,18 +1264,21 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     add_config_sheet("last")
 
     if saveToFile:
-        if basename is None:
-            basename = plan._name
+        basename = plan._name if basename is None else str(basename)
         if real:
-            basename = basename + "_real"
-        _save_workbook(wb, basename, overwrite, plan.mylog)
-        return None
+            path = Path(basename)
+            if path.suffix:
+                basename = str(path.with_name(path.stem + "_real" + path.suffix))
+            else:
+                basename = basename + "_real"
+        return _save_workbook(wb, basename, overwrite, plan.mylog)
 
     return wb
 
 
 def plan_to_csv(plan, basename, mylog):
-    """Build plan data and write to CSV file."""
+    """Build plan data and write to CSV file. basename may be a str or a path."""
+    basename = str(basename)
     planData = {}
     planData["year"] = plan.year_n
     planData["net spending"] = plan.g_n

@@ -2419,8 +2419,7 @@ class Plan:
 
         wb = self.saveContributions()
 
-        if basename is None:
-            basename = self._name
+        basename = self._name if basename is None else str(basename)
 
         if Path(basename).suffixes == []:
             if not basename.startswith("HFP_"):

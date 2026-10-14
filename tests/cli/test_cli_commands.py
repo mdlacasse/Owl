@@ -246,6 +246,19 @@ def test_run_json_with_set_override():
     assert data["time_horizon_years"] == 24
 
 
+@pytest.mark.toml
+@pytest.mark.parametrize("real, suffix", [(False, "_results.xlsx"), (True, "_results_real.xlsx")])
+def test_run_saves_workbook(tmp_path, real, suffix):
+    """Issue #190: the CLI passes a path, and real-dollar output added "_real" to it as a string."""
+    case = tmp_path / "Case_bill.toml"
+    case.write_text(open(BILL_TOML, encoding="utf-8").read(), encoding="utf-8")
+    r = _invoke("run", str(case), "--set", f"results.worksheet_real_dollars={str(real).lower()}", *FAST_OPTS)
+    assert r.exit_code == 0
+    saved = tmp_path / ("Case_bill" + suffix)
+    assert saved.is_file()
+    assert f"Results saved to: {saved}" in r.output
+
+
 # ---------------------------------------------------------------------------
 # owlcli compare
 # ---------------------------------------------------------------------------

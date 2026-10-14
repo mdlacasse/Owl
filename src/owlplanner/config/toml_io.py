@@ -122,7 +122,7 @@ def _convert_for_toml(obj):
 
 
 def load_toml(
-    file: Union[str, BytesIO, StringIO],
+    file: Union[str, os.PathLike, BytesIO, StringIO],
     *,
     mylog=None,
 ) -> tuple[dict, str, Union[str, None]]:
@@ -130,7 +130,7 @@ def load_toml(
     Load configuration from TOML file. Unknown keys are preserved.
 
     Args:
-        file: File path (str), BytesIO, or StringIO
+        file: File path (str or path), BytesIO, or StringIO
         mylog: Optional :class:`mylogging.Logger` for warnings (e.g. the case's logger).
 
     Returns:
@@ -142,6 +142,8 @@ def load_toml(
     dirname = ""
     filename = None
 
+    if isinstance(file, os.PathLike):
+        file = os.fspath(file)
     if isinstance(file, str):
         filename = file
         dirname = os.path.dirname(filename)
@@ -179,7 +181,7 @@ def load_toml(
 
 def save_toml(
     diconf: dict,
-    file: Union[str, None, StringIO],
+    file: Union[str, os.PathLike, None, StringIO],
     *,
     mylog=None,
 ) -> None:
@@ -188,7 +190,7 @@ def save_toml(
 
     Args:
         diconf: Configuration dictionary (from plan_to_config or load_toml)
-        file: File path (str), StringIO, or None (no-op)
+        file: File path (str or path), StringIO, or None (no-op)
         mylog: Optional logger for messages
     """
     if file is None:
@@ -196,6 +198,8 @@ def save_toml(
 
     diconf = _convert_for_toml(diconf)
 
+    if isinstance(file, os.PathLike):
+        file = os.fspath(file)
     if isinstance(file, str):
         filename = file
         if not file.endswith(".toml"):

@@ -231,5 +231,5 @@ def cmd_run(
             click.echo(plan.solverMessage)
         if plan.caseStatus == "solved":
             output_filename = filename.with_name(filename.stem + "_results.xlsx")
-            plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)
-            click.echo(f"Results saved to: {output_filename}")
+            saved = plan.saveWorkbook(basename=output_filename, overwrite=True, with_config=with_config)
+            click.echo(f"Results saved to: {saved or output_filename}")

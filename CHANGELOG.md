@@ -31,6 +31,17 @@ number of years. Medicare now simply does not start within the plan, and it solv
 premiums. This comes up when a plan is cut short, for example to find the last year a plan can
 still pay for everything on a hard market sequence.
 
+#### Fixed: `owlcli run` saves the workbook when results are in today's dollars
+
+With real-dollar worksheets selected (`worksheet_real_dollars`), `owlcli run` stopped with
+"unsupported operand type(s) for +" before saving its results (#190): the name of the real-dollar
+file was built by adding "_real" to a path as if it were text. The workbook is now saved as
+`<case>_results_real.xlsx`, and the CLI reports that name. The same mistake stopped `readConfig`,
+`saveConfig`, `saveHFP` (given no extension) and `saveWorkbookCSV` when called from Python with a
+`pathlib.Path`; every file a plan reads or writes can now be named with a path or a string, and
+`saveWorkbook` returns the name of the file it saved. Thanks to Scott Snyder (@ssnyder379) for the
+report.
+
 ### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it
