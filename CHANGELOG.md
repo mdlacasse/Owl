@@ -42,6 +42,11 @@ file was built by adding "_real" to a path as if it were text. The workbook is n
 `saveWorkbook` returns the name of the file it saved. Thanks to Scott Snyder (@ssnyder379) for the
 report.
 
+#### Maintenance: `astral-sh/setup-uv` 10.3.0 in the test workflow
+
+The GitHub Actions test workflow installs uv with `astral-sh/setup-uv` 10.3.0 instead of 10.2.0
+(#189, from Dependabot).
+
 ### Version 2026.10.11
 
 #### New: health care in the MCP, from setting it to explaining it
