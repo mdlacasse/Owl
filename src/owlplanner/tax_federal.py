@@ -339,7 +339,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     # What index year will Medicare start? 65 - age for each individual.
     nm = yobs + 65 - thisyear
     nm = np.maximum(0, nm)
-    nmstart = np.min(nm)
+    # A plan can end before anyone reaches 65: then Medicare never starts within it.
+    nmstart = min(int(np.min(nm)), Nn)
     # Has it already started?
     Nmed = Nn - nmstart
 
