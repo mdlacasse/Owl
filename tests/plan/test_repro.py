@@ -43,21 +43,24 @@ import owlplanner as owl
 # Updated when taxable cost basis started counting taxed, reinvested dividends and interest and
 # putting the account's unrealized gain in its equity share: SPENDING1 89_532 -> 89_154,
 # BEQUEST1 960_684 -> 959_220 (recorded with HiGHS on linux; the other platforms take the same).
+# Updated when the Roth 5-year rule started compounding recent conversions at real returns, losses
+# included (#184): BEQUEST1 959_220 -> 959_420, the same with HiGHS and MOSEK (recorded on darwin;
+# linux and win32 take the same, not rerun there).
 if platform == "darwin":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_220
+    BEQUEST1 = 959_420
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_220
+    BEQUEST1 = 959_420
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_220
+    BEQUEST1 = 959_420
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
