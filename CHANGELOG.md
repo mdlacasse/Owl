@@ -1,4 +1,4 @@
-### Version TBD
+### Version 2026.10.14
 
 #### Fixed: long historical plans no longer end in a solver error with HiGHS
 
