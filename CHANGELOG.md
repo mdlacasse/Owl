@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.15
 
 #### New: the assistant asks before starting a long scenario sweep
 
