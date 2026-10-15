@@ -190,6 +190,15 @@ _HIGHS_INFEASIBLE_RETRIES = (
     ("presolve_rule_off", 1 << 12, "presolve rule 12 off"),
     ("presolve", "off", "presolve off"),
 )
+# HiGHS's default LP path (presolve, then dual simplex) can break down numerically on a model
+# that has no feasible point and report "Solve error" or "Unknown" instead of infeasible;
+# whether it does can turn on rounding in the last digits. The interior-point method and the
+# primal simplex settle such a model either way, so an LP that ends without a verdict is
+# solved again with them before it is reported as a failure of the solver.
+_HIGHS_LP_FALLBACKS = (
+    ({"solver": "ipm"}, "the interior-point method"),
+    ({"solver": "simplex", "simplex_strategy": 4}, "the primal simplex"),
+)
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -6259,6 +6268,18 @@ class Plan:
                 nodes += self._countHighsNodes(h, options, True)
                 ms = h.getModelStatus()
                 if ms != highspy.HighsModelStatus.kInfeasible:
+                    break
+        if not is_mip and ms not in (highspy.HighsModelStatus.kOptimal, highspy.HighsModelStatus.kInfeasible):
+            for settings, label in _HIGHS_LP_FALLBACKS:
+                self.mylog.vprint(
+                    f"HiGHS ended the LP with status '{h.modelStatusToString(ms)}'; solving it again with {label}."
+                )
+                h.clearSolver()
+                for option, value in settings.items():
+                    h.setOptionValue(option, value)
+                h.run()
+                ms = h.getModelStatus()
+                if ms in (highspy.HighsModelStatus.kOptimal, highspy.HighsModelStatus.kInfeasible):
                     break
         self._lastMipNodes = nodes
 
