@@ -5387,12 +5387,30 @@ class Plan:
             "ACA_n_lp": [],  # ACA_n parameter used by each iteration's LP
             "J_n_lp": [],  # J_n parameter used by each iteration's LP
             "Psi_n_lp": [],  # Psi_n parameter used by each iteration's LP
+            "residuals": [],  # how far each iterate's own income moves the parameters it was built with
         }
 
     def _valid_history_start(self, includeMedicare):
         # Iteration 0 is built from initial guesses (no premiums, LTCG bracket room with no
         # ordinary income, ...), so it undercharges and its objective looks best.
         return 1
+
+    def _pick_settled_valid_index(self, trace, includeMedicare):
+        """The valid iterate to fall back on when the next one cannot be solved: the one whose own
+        income moves its parameters least, the latest of those tied.
+
+        Not the one with the best objective. The costs the loop feeds back start at nothing and
+        catch up pass by pass, so on a tight case each iterate is poorer than the one before, and
+        the best objective belongs to the iterate furthest from its own costs: a plan that has not
+        yet been charged for what its income brings. The most settled iterate is the closest to the
+        fixed point the loop was heading for.
+        """
+        start = self._valid_history_start(includeMedicare)
+        residuals = trace["residuals"][start:]
+        if not residuals:
+            return 0 if trace["scaledObjectives"] and not includeMedicare else None
+        least = min(residuals)
+        return start + max(k for k, r in enumerate(residuals) if r <= least * (1 + 1e-9))
 
     def _pick_best_valid_index(self, scaled_obj_history, includeMedicare):
         start = self._valid_history_start(includeMedicare)
@@ -5706,7 +5724,7 @@ class Plan:
                 # (|df| shrinking to a few hundred dollars) followed by one bad step used to do.
                 # Mirrors the cycle and stagnation exits, which accept an earlier iterate the
                 # same way.
-                best_idx = self._pick_best_valid_index(trace["scaledObjectives"], includeMedicare)
+                best_idx = self._pick_settled_valid_index(trace, includeMedicare)
                 if best_idx is None:
                     # Nothing ever solved, so the case really is infeasible.
                     self.caseStatus = "infeasible" if self._infeasible else "solver error"
@@ -5778,6 +5796,7 @@ class Plan:
             # gains tax can disagree with the tax this iterate's own income implies.
             moves.append(np.sum(np.abs(self.U_n - self._ltcg_tax_implied()) / g_today))
             scResidual = float(max(moves))
+            trace["residuals"].append(scResidual)
 
             has_prev_obj = len(trace["scaledObjectives"]) > 1
             prev_scaled_obj = trace["scaledObjectives"][-2] if has_prev_obj else scaled_obj
