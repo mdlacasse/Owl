@@ -57,6 +57,9 @@ irmaaBrackets = np.array(
     ]
 )
 
+# BBA 2018 froze the top IRMAA tier at $500k/$750k in nominal dollars; CPI indexing starts in 2028.
+IRMAA_TOP_TIER_INDEXED_FROM = 2028
+
 # These are current for 2026 (2025TY). Source: CMS 2026 Part B premiums and IRMAA.
 # Index [0] stores the standard Medicare Part B basic premium (monthly $202.90 for 2026).
 # Following values are incremental IRMAA Part B monthly fees; cumulative = total/month.
@@ -314,6 +317,20 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     return new_Psi_n
 
 
+def irmaaThresholds(status, gamma_n, n, thisyear):
+    """
+    Return the nominal IRMAA thresholds (tiers 1-5) for plan year n.
+
+    Lower tiers follow gamma_n. The top tier stays at its nominal value through the
+    bill year before IRMAA_TOP_TIER_INDEXED_FROM and follows inflation from then on.
+    """
+    scale = np.full(len(irmaaBrackets[status]) - 1, gamma_n[n])
+    nfrozen = IRMAA_TOP_TIER_INDEXED_FROM - 1 - thisyear
+    if nfrozen >= 0:
+        scale[-1] = gamma_n[n] / gamma_n[nfrozen] if n > nfrozen else 1.0
+    return scale * irmaaBrackets[status][1:]
+
+
 def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0,
              medical_n=None):
     """
@@ -325,7 +342,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     Part B and Part D use the same MAGI brackets (two-year lookback). Part D base
     is added per eligible person; Part D IRMAA uses CMS 2026 amounts.
 
-    Bracket thresholds follow gamma_n (they are indexed to CPI). Premiums follow medical_n,
+    Bracket thresholds follow gamma_n (they are indexed to CPI), except the top tier,
+    which is frozen in nominal dollars before 2028 (see irmaaThresholds). Premiums follow medical_n,
     which defaults to gamma_n; pass a faster series when medical prices outgrow inflation.
     """
     if medical_n is None:
@@ -360,7 +378,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
                 status = 0  # single or one spouse deceased
             else:
                 status = 1  # married filing jointly
-            Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
+            Lbar[nn] = irmaaThresholds(status, gamma_n, n, thisyear)
             Cbar[nn] = imed * medical_n[n] * costs_per_person
             if include_part_d and part_d_base_annual_per_person != 0:
                 Cbar[nn] += imed * medical_n[n] * part_d_base_annual_per_person
@@ -369,7 +387,7 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
             # before age 65, or there is a gap between one spouse dying before 65
             # and the other reaching Medicare).  Use single-filer brackets with
             # zero cost so the LP constraints remain valid but impose no charge.
-            Lbar[nn] = gamma_n[n] * irmaaBrackets[0][1:]
+            Lbar[nn] = irmaaThresholds(0, gamma_n, n, thisyear)
             # Cbar[nn] stays at zero (already initialized)
 
     return nmstart, Lbar, Cbar
@@ -458,7 +476,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
 
     Uses the same MAGI brackets and two-year lookback for both Part B and Part D.
     Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
-    Thresholds follow gamma_n and premiums follow medical_n (default gamma_n), as in mediVals.
+    Thresholds follow irmaaThresholds and premiums follow medical_n (default gamma_n), as in mediVals.
     """
     if medical_n is None:
         medical_n = gamma_n
@@ -469,6 +487,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     costs = np.zeros(Nn)
     for n in range(Nn):
         status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
+        thresholds = irmaaThresholds(status, gamma_n, n, thisyear)
         for i in range(Ni):
             if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
                 # Part B basic premium
@@ -480,7 +499,7 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
-                    if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
+                    if mymagi > thresholds[q - 1]:
                         costs[n] += medical_n[n] * (fees_b[q] + fees_d[q])
 
     return costs

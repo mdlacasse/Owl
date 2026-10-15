@@ -4,6 +4,7 @@ Martin-D. Lacasse (mdlacasse)
 
 - Contributors (alphabetical order):
  Robert E. Anderson (@NH-RedAnt) for bug fixes and suggestions,
+ @bkbaugh for catching the nominal freeze of the top IRMAA tier,
  Dmitry Fink (@finik) for letting medical prices grow faster than inflation,
  Clark Jefcoat (@hubcity) for fruitful interactions,
  @kg333 for fixing an error in Docker's instructions,

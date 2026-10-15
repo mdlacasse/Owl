@@ -258,3 +258,35 @@ def test_plan_ending_before_medicare_solves():
     short.solve(short.objective, dict(short.solverOptions, solver="HiGHS"))
     assert short.caseStatus == "solved"
     assert float(np.sum(short.medicare_n)) == 0.0
+
+
+@pytest.mark.parametrize("thisyear", [2026, 2027, 2028, 2030])
+def test_irmaa_top_tier_frozen_before_2028(thisyear):
+    """The top tier stays at $500k/$750k through 2027 and follows inflation from 2028 (#191)."""
+    gamma_n = 1.03 ** np.arange(8)
+    for status in (0, 1):
+        top = tx.irmaaBrackets[status][-1]
+        for n in range(8):
+            L = tx.irmaaThresholds(status, gamma_n, n, thisyear)
+            assert np.allclose(L[:-1], gamma_n[n] * tx.irmaaBrackets[status][1:-1])
+            if thisyear + n <= 2027:
+                assert L[-1] == top
+            else:
+                assert np.isclose(L[-1], top * 1.03 ** (thisyear + n - max(thisyear, 2027)))
+
+
+def test_mediCosts_top_tier_frozen_in_2027():
+    """MAGI just above $500k pays the top tier in 2027 even though lower thresholds grew."""
+    thisyear = date.today().year
+    if thisyear > 2027:
+        pytest.skip("Freeze only applies to bill years before 2028.")
+    Nn = 2028 - thisyear + 1
+    yobs = np.array([thisyear - 70])
+    horizons = np.array([Nn])
+    gamma_n = 1.05 ** np.arange(Nn + 1)
+    n = 2027 - thisyear
+    prevmagi = np.full(2, 501_000.0)
+    magi = np.full(Nn, 501_000.0)
+    costs = tx.mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=False)
+    top = gamma_n[n] * tx.partB_irmaa_costs[-1]
+    assert costs[n] == pytest.approx(top)

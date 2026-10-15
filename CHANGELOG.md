@@ -1,3 +1,16 @@
+### Version WIP
+
+#### Fixed: the top IRMAA tier is no longer indexed before 2028
+
+Owl indexed every IRMAA threshold to inflation from the first plan year. The Bipartisan Budget Act
+of 2018 froze the top tier at \$500,000 single and \$750,000 married filing jointly, with CPI
+indexing starting only in 2028, while the lower tiers are indexed every year. Raising the top tier
+with inflation in the 2026 and 2027 bill years understated Part B and Part D premiums for households
+with MAGI near \$500k/\$750k. The top tier now stays at its nominal value through 2027 and follows
+inflation from 2028; the lower tiers are unchanged. The same thresholds are used by the
+self-consistent loop, the Medicare MILP, and the assistant's `explain` headroom. Thanks to
+@bkbaugh for reporting it, with the statute and the lines of code involved (#191).
+
 ### Version 2026.10.15
 
 #### New: the assistant asks before starting a long scenario sweep

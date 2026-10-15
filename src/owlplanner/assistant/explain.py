@@ -407,7 +407,7 @@ def _year0_thresholds(plan):
         ]
         if on_medicare:
             status = 1 if (plan.N_i == 2 and plan.n_d > n_prem) else 0
-            thresholds = plan.gamma_n[n_prem] * tx.irmaaBrackets[status][1:]
+            thresholds = tx.irmaaThresholds(status, plan.gamma_n, n_prem, thisyear)
             tier = int(np.sum(magi0 - THRESHOLD_SLACK > thresholds))
             entry = {
                 "affects_premium_year": thisyear + n_prem,
