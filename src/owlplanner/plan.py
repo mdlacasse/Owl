@@ -3803,14 +3803,18 @@ class Plan:
              and the next iterate moves the year to 1);
           1  capped:   t^σ_n = 0.85·ζ̄_n, a dollar of income adds no taxable SS;
           2  small benefit (ζ̄_n < Δ𝒫_n, where the formula has a flat middle and is not
-             convex): t^σ_n = Psi_n·ζ̄_n with Psi_n updated as in the loop.
+             convex): t^σ_n = Psi_n·ζ̄_n with Psi_n updated as in the loop;
+          3  start:    t^σ_n = 0.85·ζ̄_n with no condition, for the first iterate only.
         """
         if not self._ss_cvx:
             return
         tss = self.vm["tss"]
         if getattr(self, "_ss_region_n", None) is None:
+            # Unseeded, every year starts at a flat 85% (3), as the loop does: starting on the
+            # phase-in piece overcharges every year past its cap point, which pushes income
+            # into the first years and keeps the late ones under the cap, so they never move.
             seed = getattr(self, "_ss_region_seed", None)
-            self._ss_region_n = np.zeros(self.N_n, dtype=int) if seed is None else np.array(seed, dtype=int)
+            self._ss_region_n = np.full(self.N_n, 3, dtype=int) if seed is None else np.array(seed, dtype=int)
             self._ss_flips_n = np.zeros(self.N_n, dtype=int)
             self._ss_psi_fixed_n = np.full(self.N_n, 0.85)
             for n in range(self.N_n):
@@ -3826,6 +3830,9 @@ class Plan:
                 continue
             self._ss_pi_rows[n] = self._ss_provisional_income_row(n)
             region = self._ss_region_n[n]
+            if region == 3:
+                self.B.setRange(tss_idx, 0.85 * zetaBar_n, 0.85 * zetaBar_n)
+                continue
             if region == 1:
                 # Capped, and held there: provisional income stays at or above the cap point
                 # Π* = 𝒫^hi + ζ̄_n − 0.5·Δ𝒫_n / 0.85, so the constant is exact on the whole piece.
@@ -3876,12 +3883,16 @@ class Plan:
                 if abs(blended - self._ss_psi_fixed_n[n]) > 1e-3:
                     self._ss_psi_fixed_n[n] = blended
                 continue
-            if self._ss_flips_n[n] >= SS_REGION_FLIPS:
-                continue
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
             lo, hi = tx.ssTaxabilityLo[status_n], tx.ssTaxabilityHi[status_n]
             uncapped = max(0.0, 0.5 * (pi_n[n] - lo), 0.5 * (hi - lo) + 0.85 * (pi_n[n] - hi))
             cap = 0.85 * ss_n[n]
+            if region == 3:
+                # The flat start is not a piece: place the year where its income landed.
+                self._ss_region_n[n] = 1 if uncapped >= cap else 0
+                continue
+            if self._ss_flips_n[n] >= SS_REGION_FLIPS:
+                continue
             if (region == 0 and uncapped > cap + 1.0) or (region == 1 and uncapped < cap - 1.0):
                 self._ss_region_n[n] = 1 - region
                 self._ss_flips_n[n] += 1
@@ -5425,7 +5436,7 @@ class Plan:
         best = self._objectiveValue(objective)
         best_state = copy.deepcopy({k: v for k, v in self.__dict__.items() if k not in skip})
         regions = self._ss_region_n.copy()
-        candidates = [n for n in self._ss_pi_rows if regions[n] != 2]
+        candidates = [n for n in self._ss_pi_rows if regions[n] in (0, 1)]
         probes = kept = 0
         improved = True
         while improved:
