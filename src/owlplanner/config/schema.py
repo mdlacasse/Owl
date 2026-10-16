@@ -378,7 +378,7 @@ class SolverOptions(BaseModel):
     withACA: Optional[Literal["loop", "optimize"]] = None
     withLTCG: Optional[Literal["loop", "optimize"]] = None
     withNIIT: Optional[Literal["loop", "optimize"]] = None
-    withSSTaxability: Optional[Union[Literal["loop", "optimize"], float]] = None
+    withSSTaxability: Optional[Union[Literal["loop", "optimize", "convex"], float]] = None
     withSeniorBonus: Optional[Literal["loop", "optimize"]] = None
     withSSAges: Optional[Union[str, List[str]]] = None
     withDuals: Optional[bool] = None
