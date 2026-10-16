@@ -64,6 +64,21 @@ from .stresstests import (
 from .varmap import VarMap
 
 
+class _BasisCache:
+    """The last optimal HiGHS LP basis, to start the next LP of the same shape from.
+
+    Held on the plan while the SS cap probe runs. A HiGHS basis cannot be copied, and a plan
+    snapshot reaches it through bound methods as well as directly, so a copy shares the cache.
+    """
+
+    def __init__(self):
+        self.shape = None
+        self.basis = None
+
+    def __deepcopy__(self, memo):
+        return self
+
+
 def _mosek_available():
     import importlib.util
     import os
@@ -3830,37 +3845,36 @@ class Plan:
                 continue
             self._ss_pi_rows[n] = self._ss_provisional_income_row(n)
             region = self._ss_region_n[n]
-            if region == 3:
-                self.B.setRange(tss_idx, 0.85 * zetaBar_n, 0.85 * zetaBar_n)
-                continue
-            if region == 1:
-                # Capped, and held there: provisional income stays at or above the cap point
-                # Π* = 𝒫^hi + ζ̄_n − 0.5·Δ𝒫_n / 0.85, so the constant is exact on the whole piece.
-                status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
-                lo, hi = tx.ssTaxabilityLo[status_n], tx.ssTaxabilityHi[status_n]
-                pi_row, rhs_pi = self._ss_pi_rows[n]
-                pi_cap = hi + zetaBar_n - 0.5 * (hi - lo) / 0.85
-                self.A.addNewRow(dict(pi_row), -np.inf, rhs_pi - pi_cap, tag=("ss_cvx_cap", n))
-                self.B.setRange(tss_idx, 0.85 * zetaBar_n, 0.85 * zetaBar_n)
-                continue
-            if region == 2:
-                val = self._ss_psi_fixed_n[n] * zetaBar_n
-                self.B.setRange(tss_idx, val, val)
-                continue
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
             ss_lo_n = tx.ssTaxabilityLo[status_n]
             ss_hi_n = tx.ssTaxabilityHi[status_n]
             pi_row, rhs_pi = self._ss_pi_rows[n]
+            # Every year with a benefit gets the same three rows whatever its region, switched on
+            # and off through their bounds: the LP keeps its shape from one solve to the next, so
+            # HiGHS can start each one from the previous basis (see _run_highs).
+            free = (-np.inf, np.inf)
             # t^σ_n ≥ 0.5·(Π_n − 𝒫^lo)
+            lb50 = (0.5 * (rhs_pi - ss_lo_n), np.inf) if region == 0 else free
+            # t^σ_n ≥ 0.5·Δ𝒫_n + 0.85·(Π_n − 𝒫^hi)
+            lb85 = (0.5 * (ss_hi_n - ss_lo_n) + 0.85 * (rhs_pi - ss_hi_n), np.inf) if region == 0 else free
+            # Capped, and held there: provisional income stays at or above the cap point
+            # Π* = 𝒫^hi + ζ̄_n − 0.5·Δ𝒫_n / 0.85, so the constant is exact on the whole piece.
+            pi_cap = ss_hi_n + zetaBar_n - 0.5 * (ss_hi_n - ss_lo_n) / 0.85
+            cap = (-np.inf, rhs_pi - pi_cap) if region == 1 else free
             row = {k: 0.5 * v for k, v in pi_row.items()}
             row[tss_idx] = 1
-            self.A.addNewRow(row, 0.5 * (rhs_pi - ss_lo_n), np.inf, tag=("ss_cvx_50", n))
-            # t^σ_n ≥ 0.5·Δ𝒫_n + 0.85·(Π_n − 𝒫^hi)
+            self.A.addNewRow(row, *lb50, tag=("ss_cvx_50", n))
             row = {k: 0.85 * v for k, v in pi_row.items()}
             row[tss_idx] = 1
-            self.A.addNewRow(row, 0.5 * (ss_hi_n - ss_lo_n) + 0.85 * (rhs_pi - ss_hi_n), np.inf,
-                             tag=("ss_cvx_85", n))
-            self.B.setRange(tss_idx, 0, np.inf)
+            self.A.addNewRow(row, *lb85, tag=("ss_cvx_85", n))
+            self.A.addNewRow(dict(pi_row), *cap, tag=("ss_cvx_cap", n))
+            if region == 0:
+                self.B.setRange(tss_idx, 0, np.inf)
+            elif region == 2:
+                val = self._ss_psi_fixed_n[n] * zetaBar_n
+                self.B.setRange(tss_idx, val, val)
+            else:  # 1 (capped) and 3 (start)
+                self.B.setRange(tss_idx, 0.85 * zetaBar_n, 0.85 * zetaBar_n)
 
     def _update_ss_regions(self, x):
         """Move each year of withSSTaxability="convex" to the piece its provisional income is on.
@@ -3876,6 +3890,7 @@ class Plan:
             pi_n[n] = rhs_pi - sum(v * x[k] for k, v in pi_row.items())
         psi_true = tx.compute_social_security_taxability(self.N_i, pi_n + 0.5 * ss_n, ss_n, n_d=self.n_d)
         self._ss_tss_true_n = psi_true * ss_n
+        self._ss_pi_n = pi_n
         for n in self._ss_pi_rows:
             region = self._ss_region_n[n]
             if region == 2:
@@ -5399,21 +5414,34 @@ class Plan:
         income past the cap point is worth it, because there a dollar adds no taxable benefit and
         the phase-in piece overcharges it. Which years sit on the cap is the only combinatorial
         choice left, and this makes it greedily, one year at a time: each probe is a full solve
-        (a few pure LPs) with that year moved, kept when it raises the objective. Repeats until a
-        pass finds nothing.
+        (a few pure LPs, started from the best plan's premiums, NIIT and gains) with that year
+        moved, kept when it raises the objective. A pass that kept something is followed by one
+        over the years that came within a near-tie, until a pass keeps nothing.
         """
-        skip = ("mylog",)
 
-        def run(seed):
+        def run(seed, warm=None):
             self._ss_region_seed = seed
+            self._sc_warm_start = warm
             self._ssProbing = True
             try:
                 self.solve(objective, options=dict(myoptions))
             finally:
                 self._ssProbing = False
                 self._ss_region_seed = None
+                self._sc_warm_start = None
             return self.caseStatus == "solved"
 
+        self._lp_basis = _BasisCache()
+        try:
+            return self._ssCapProbe(objective, myoptions, run)
+        finally:
+            self._lp_basis = None
+
+    def _ssCapProbe(self, objective, myoptions, run):
+        """Body of _ssCapProbeSolve, run with LP basis reuse on."""
+        skip = ("mylog", "_lp_basis")
+        warm_keys = ("M_n", "ACA_n", "J_n", "I_n", "G_n", "Q_n", "U_n", "MAGI_n", "MAGI_aca_n", "gain_fraction_in",
+                     "_tax_tiebreak_on")
         if not run(None) or not self._ss_cvx:
             return None
         if self.convergenceType == "unsolvable iterate":
@@ -5438,25 +5466,50 @@ class Plan:
         regions = self._ss_region_n.copy()
         candidates = [n for n in self._ss_pi_rows if regions[n] in (0, 1)]
         probes = kept = 0
+        self._ssProbeTrace = []
         improved = True
-        while improved:
+        _pass = 0
+        while improved and candidates:
             improved = False
+            _pass += 1
+            near = []  # years whose probe came within a near-tie of the best plan this pass
             for n in candidates:
                 seed = regions.copy()
                 seed[n] = 1 - seed[n]
+                _gap = self._ssCapGap(best_state, n)
+                _t0 = time.time()
+                warm = {k: best_state[k] for k in warm_keys if k in best_state}
                 probes += 1
-                if not run(seed) or self.convergenceType == "unsolvable iterate":
+                ok = run(seed, warm) and self.convergenceType != "unsolvable iterate"
+                ok = ok and self._fixedPointResidualTotal() <= resid_bar
+                value = self._objectiveValue(objective) if ok else -np.inf
+                self._ssProbeTrace.append((n, regions[n], _gap, value - best, time.time() - _t0, _pass))
+                if not ok:
                     continue
-                if self._fixedPointResidualTotal() > resid_bar:
-                    continue
-                value = self._objectiveValue(objective)
+                # A probe that lands on the same plan (to the dollar) moved nothing worth revisiting.
+                if best - max(100.0, 1e-4 * abs(best)) < value and abs(value - best) > 1.0:
+                    near.append(n)
                 if value > best + max(1.0, 1e-9 * abs(best)):
                     best, regions, improved = value, self._ss_region_n.copy(), True
                     best_state = copy.deepcopy({k: v for k, v in self.__dict__.items() if k not in skip})
                     kept += 1
+            # Nearly all the gain comes on the first pass (measured on the shipped examples and the
+            # #193 cases: later passes added $81 in all, at one to three times its cost). Only a
+            # near-tie can turn into a gain once other years have moved, so only those go again.
+            candidates = near
+        trace = self._ssProbeTrace
         self.__dict__.update(best_state)
+        self._ssProbeTrace = trace
         self.mylog.vprint(f"SS cap probe: {probes} probe(s), {kept} kept; objective {u.d(best)}.")
         return None
+
+    def _ssCapGap(self, state, n):
+        """Year n's provisional income less its cap point, as a fraction of its benefit."""
+        ss = np.sum(state["zetaBar_in"][:, n])
+        status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+        lo, hi = tx.ssTaxabilityLo[status_n], tx.ssTaxabilityHi[status_n]
+        pi_cap = hi + ss - 0.5 * (hi - lo) / 0.85
+        return (state["_ss_pi_n"][n] - pi_cap) / ss
 
     def _localSearchSolve(self, objective, myoptions):
         """mipStrategy="local-search": solve the loop first, search from its plan, keep the better.
@@ -5848,6 +5901,12 @@ class Plan:
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
         self._tax_tiebreak_on = False
+        warm = getattr(self, "_sc_warm_start", None)
+        if warm is not None:
+            # A cap probe re-solves a plan the loop has just converged on with one year moved:
+            # start from that plan's premiums, NIIT, LTCG room and basis, not from zero.
+            for k, v in warm.items():
+                setattr(self, k, copy.deepcopy(v))
         M_n_lp = self.M_n.copy()
         ACA_n_lp = self.ACA_n.copy()
         Psi_n_lp = self.Psi_n.copy()
@@ -6453,7 +6512,15 @@ class Plan:
             h.setSolution(len(c), all_idx, warm_x.astype(np.float64))
 
         is_mip = bool(integrality.any())
+        # The SS cap probe solves long runs of LPs of the same shape that differ by a few bounds:
+        # starting each from the previous optimal basis saves most of the simplex work.
+        cache = getattr(self, "_lp_basis", None) if not is_mip else None
+        shape = (len(c), len(lbvec))
+        if cache is not None and cache.shape == shape:
+            h.setBasis(cache.basis)
         h.run()
+        if cache is not None and h.getModelStatus() == highspy.HighsModelStatus.kOptimal:
+            cache.shape, cache.basis = shape, h.getBasis()
         nodes = self._countHighsNodes(h, options, is_mip)
         ms = h.getModelStatus()
         # HiGHS's MIP presolve can call a feasible model infeasible when big-M coefficients are
