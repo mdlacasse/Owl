@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.16
 
 #### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
 
