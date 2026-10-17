@@ -5976,6 +5976,7 @@ class Plan:
             self._check_cashflow_balance()
             self._check_bracket_order()
             self._computeFixedPointResidual(includeMedicare)
+            self._warnSSResidual(fixed_psi)
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -6051,6 +6052,30 @@ class Plan:
                 f"({u.d(worst[1]['max_abs'])} in one year); the plan's own income implies a slightly "
                 "different model than the one solved."
             )
+
+    def _warnSSResidual(self, fixed_psi):
+        """Point to the exact model when the loop leaves taxable Social Security unsettled.
+
+        Under the loop, taxable SS enters each LP as Psi_n * benefit, a constant, so income in a
+        phase-in year is priced at the bracket rate only, and the loop can stop (at its cap, or in
+        a cycle) on a plan well short of the exact one (#193). The SS residual measures it: the
+        taxable benefits the plan's own income implies, against those it was charged. Above the
+        loop's own tolerance summed over the plan, say so. Not for a pinned fraction (a choice, not
+        a loop result), nor under withSSTaxability="optimize", nor inside a local search, whose
+        result is judged elsewhere.
+        """
+        if fixed_psi is not None or "tss" in self.vm or getattr(self, "_localSearchSeeding", False):
+            return
+        ss = (self.fixedPointResidual or {}).get("SS")
+        if ss is None or ss["abs_sum"] <= self.N_n * self._residual_tol:
+            return
+        self.mylog.print(
+            f"Taxable Social Security did not settle: this plan's own income implies {u.d(ss['abs_sum'])} "
+            f"of different taxable benefits over the horizon ({u.d(ss['max_abs'])} in one year). The loop "
+            "prices income in the 50%-85% phase-in at the bracket rate only, and its plan can fall well "
+            'short of the exact one, which withSSTaxability="optimize" solves for.',
+            tag="WARNING",
+        )
 
     def _amoContext(self, options):
         """Bundle what amorepair needs from this plan."""

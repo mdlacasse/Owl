@@ -1,3 +1,16 @@
+### Version WIP
+
+#### New: the loop says when Social Security did not settle
+
+Under the default loop, the taxable share of Social Security is a constant in each LP, so a dollar
+of income in a year where benefits are being phased in (50% to 85% taxable) is charged the bracket
+rate only, while it also makes up to \$0.85 of benefits taxable. On a couple with most benefit years
+in that range, the loop stopped at its iteration cap or in a cycle, \$34k-\$49k of bequest short of
+the exact plan (#193). When the loop leaves taxable Social Security unsettled (the plan's own income
+implies more than the loop's tolerance, \$50 a year by default, of different taxable benefits over
+the horizon), the log now says so and points to `withSSTaxability = "optimize"`. A loop can also
+settle on a plan short of the exact one with a small residual, which this does not detect.
+
 ### Version 2026.10.17
 
 #### Fixed: optimized Social Security claiming ages can no longer be in the past
