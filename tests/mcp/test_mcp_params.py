@@ -1469,24 +1469,23 @@ def test_run_from_params_optimize_ss_ages_all():
 
 @pytest.mark.toml
 def test_run_from_params_optimize_ss_ages_already_claimed():
-    """A person past 70 keeps the entered age even when selected; plan still solves."""
+    """Selecting a person whose claiming age is already past is an error; selecting the other solves."""
     # Bob born 1955 → age 71 in 2026, already past any claiming age
-    result = _run(
-        run_from_params(
-            names=["Alice", "Bob"],
-            birth_dates=["1963-07-01", "1955-07-01"],
-            life_expectancy=[90, 87],
-            taxable=[150_000, 150_000],
-            tax_deferred=[600_000, 600_000],
-            roth=[75_000, 75_000],
-            ss_monthly_pias=[2333, 2667],
-            ss_ages=[67, 70],
-            state="TX",
-            rate_method="conservative",
-            optimize_ss_ages=True,
-        )
+    params = dict(
+        names=["Alice", "Bob"],
+        birth_dates=["1963-07-01", "1955-07-01"],
+        life_expectancy=[90, 87],
+        taxable=[150_000, 150_000],
+        tax_deferred=[600_000, 600_000],
+        roth=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667],
+        ss_ages=[67, 70],
+        state="TX",
+        rate_method="conservative",
     )
-    data = json.loads(result)
+    data = json.loads(_run(run_from_params(**params, optimize_ss_ages=True)))
+    assert "Bob's SS claiming age" in data["error"]
+    data = json.loads(_run(run_from_params(**params, optimize_ss_ages="Alice")))
     assert data["status"] == "solved"
 
 

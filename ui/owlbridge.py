@@ -225,15 +225,6 @@ def runPlan(plan):
 
     kz.storeCaseKey("caseStatus", plan.caseStatus)
     kz.storeCaseKey("solverMessage", plan.solverMessage)
-    # A selected individual whose entered claiming age is past was optimized from this month.
-    for name in getattr(plan, "ssaPastAgeNames", []):
-        st.warning(
-            f"**{name}**'s entered claiming age is already past, so it was treated as a planned age and "
-            f"optimized from this month. If {name} is already collecting benefits, do not select {name} "
-            "for optimization: the plan would credit benefits that cannot be received. Enter the actual "
-            "claiming age and select only the other spouse, or `none`.",
-            icon=":material/warning:",
-        )
     if plan.caseStatus == "solved":
         kz.storeCaseKey("summaryDf", plan.summaryDf())
         kz.storeCaseKey("metricsDict", plan.metricsDict())

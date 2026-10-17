@@ -813,14 +813,14 @@ Then compare with a solve using `both`, and keep whichever gives the better obje
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
 
-**Already-claiming individuals:** do not select an individual who is already receiving benefits.
-An individual who is selected is always optimized, even when the age entered in the
-*claiming at age...* fields is already past: that age is then only a starting value, and the
-claiming month is chosen from this month on. For someone already collecting, every such choice pays
-more than the reduced benefit actually being received, so the plan would credit benefits that cannot
-be had; **Owl** shows a warning after the solve when a selected individual's entered age is past.
+**Already-claiming individuals:** an individual whose claiming age entered in the
+*claiming at age...* fields is already past is taken to be collecting benefits, and a claim cannot
+be redone: such an individual is not offered in the *Optimize SS claiming age for...* selector,
+and neither is `both`. If an earlier selection names them (for instance after a solve wrote back an
+age that has since gone by), the selection is reset to `none`. If that individual is not actually
+collecting yet, enter a claiming age from this month on and they become available again.
 For a couple where one spouse is already receiving benefits, enter that spouse's *actual* claiming
-age and select only the other spouse's name; `both` is for couples where neither has claimed.
+age and select the other spouse's name; `both` is for couples where neither has claimed.
 Individuals who are not selected keep the age entered, and `none` uses the entered ages as-is
 for everyone.
 A great website for guidance on when to start taking Social Security is

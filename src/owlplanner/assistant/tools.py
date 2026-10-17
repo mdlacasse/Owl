@@ -3546,9 +3546,8 @@ async def run_stochastic(
         optimize_ss_ages:     Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
                               None/False → disabled; True/"all" → all persons; a single name
                               string → that person only; a list of names → those persons only.
-                              A selected person is optimized from this month even if their
-                              entered age is past (warned): never select someone already
-                              collecting benefits. Persons past 70 keep their entered age.
+                              Selecting a person whose entered age is already past (already
+                              collecting) is an error: select only persons who have not claimed.
         constrain_mean:       If True, generated rate series means are pinned to historical
                               averages, isolating sequence-of-returns risk.  Supported by
                               historical_gaussian, historical_lognormal, historical_copula,
@@ -4932,9 +4931,8 @@ async def run_longevity_stochastic(
         optimize_ss_ages: Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
                           None/False → disabled; True/"all" → all persons; a single name string
                           → that person only; a list of names → those persons only.
-                          A selected person is optimized from this month even if their entered
-                          age is past (warned): never select someone already collecting benefits.
-                          Persons past 70 keep their entered age.
+                          Selecting a person whose entered age is already past (already
+                          collecting) is an error: select only persons who have not claimed.
         constrain_mean:   If True, pin rate series means to historical averages.
         rate_params:      Extra rate model parameters, e.g. {"bootstrap_type":"block","block_size":5}.
                           Only used with flat params (not filename=).

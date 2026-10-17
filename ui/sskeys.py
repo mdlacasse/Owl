@@ -468,6 +468,27 @@ def ensureCaseConfigDefaults(ni: int | None = None) -> None:
             case[k] = v
 
 
+def ssPastAgeNames():
+    """
+    Return the names of individuals whose entered SS claiming age is already past this month.
+
+    Such an age reads as benefits already being collected, so the solver refuses to optimize it
+    (Plan._ssaCheckPastAges, same month arithmetic): these individuals are not offered for
+    claiming-age optimization.
+    """
+    today = date.today()
+    ni = 2 if getCaseKey("status") == "married" else 1
+    names = []
+    for i in range(ni):
+        dob, years = getCaseKey(f"dob{i}"), getCaseKey(f"ssAge_y{i}")
+        if not dob or years is None:
+            continue
+        current = 12 * (today.year - int(dob[:4])) + today.month - int(dob[5:7])
+        if current > 12 * int(years) + int(getCaseKey(f"ssAge_m{i}") or 0):
+            names.append(getCaseKey(f"iname{i}"))
+    return names
+
+
 def initCaseKey(key, val):
     """
     Set the case key if unset. Uses config defaults when the key is

@@ -236,8 +236,22 @@ else:
         else:
             choices = ["none", iname0]
 
+        # Someone whose entered claiming age is already past cannot be optimized (the solver
+        # refuses it), so neither that name nor "both" is offered.
+        past = kz.ssPastAgeNames()
+        if past:
+            choices = [c for c in choices if c not in past and c != "both"]
         kz.initCaseKey("ssAgesMode", "none")
+        if kz.getCaseKey("ssAgesMode") not in choices:
+            kz.setCaseKey("ssAgesMode", "none")
+            st.session_state.pop(kz.genCaseKey("ssAgesMode"), None)
         ret = kz.getRadio("Optimize SS claiming age for...", choices, "ssAgesMode", help=helpmsg)
+        for name in past:
+            st.caption(
+                f"{name}'s claiming age entered on the *Fixed Income* page is already past, so it cannot be "
+                f"optimized. If {name} is not yet collecting, enter a claiming age from this month on to "
+                "make it available here."
+            )
 
     st.divider()
     with st.expander("*Advanced options*"):

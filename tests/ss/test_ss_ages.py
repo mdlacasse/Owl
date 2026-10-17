@@ -441,24 +441,19 @@ class TestNoPastClaimingAge:
         assert round(float(p.ssecAges[0]) * 12) >= 66 * 12 + 9
         assert float(p.ssecAges[1]) == pytest.approx(62 + 1 / 12)
 
-    def test_selected_past_age_is_optimized_and_warned(self):
-        """Selection wins over a past entered age, which used to skip the individual silently.
+    def test_selected_past_age_is_refused(self):
+        """A selected individual whose entered age is past is an error, not silently skipped.
 
-        The unselected spouse, who claimed at 62, keeps that age and is not warned about.
+        The unselected spouse, who claimed at 62, keeps that age without complaint.
         """
         p = _issue195_plan()
         p.setSocialSecurity([3800, 1500], [66 + 6 / 12, 62 + 1 / 12])
+        with pytest.raises(ValueError, match="Higher Income's SS claiming age .* is already past"):
+            p.solve("maxSpending", options=_ISSUE195_OPTS)
+        p.setSocialSecurity([3800, 1500], [66 + 9 / 12, 62 + 1 / 12])  # this month: still open
         p.solve("maxSpending", options=_ISSUE195_OPTS)
         assert p.caseStatus == "solved"
-        assert not p._ssaAgeIsFixed(0)
-        assert p.ssaPastAgeNames == ["Higher Income"]
-        assert round(float(p.ssecAges[0]) * 12) >= 66 * 12 + 9
         assert float(p.ssecAges[1]) == pytest.approx(62 + 1 / 12)
-
-    def test_future_selected_age_not_warned(self):
-        p = _issue195_plan()
-        p.solve("maxSpending", options=_ISSUE195_OPTS)
-        assert p.ssaPastAgeNames == []
 
     def test_optimize_matches_best_fixed_age(self):
         """With the loops made exact, optimizing must do at least as well as the entered age.

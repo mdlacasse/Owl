@@ -105,6 +105,11 @@ else:
     _ss_mode = kz.getCaseKey("ssAgesMode") or "none"
     _iname0 = kz.getCaseKey("iname0")
     _iname1 = kz.getCaseKey("iname1")
+    # A selection naming someone whose age is now past cannot be solved (Run Options no longer
+    # offers it and resets it, the solver refuses it): keep the fields editable to correct the age.
+    _past = kz.ssPastAgeNames()
+    if _ss_mode in _past or (_ss_mode in ("optimize", "both") and _past):
+        _ss_mode = "none"
     ss_age0_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname0
     ss_age1_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname1
     col1, col2, col3 = st.columns((1, 1, 0.5), gap="large", vertical_alignment="top")
