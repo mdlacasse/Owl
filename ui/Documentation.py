@@ -813,13 +813,16 @@ Then compare with a solve using `both`, and keep whichever gives the better obje
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
 
-**Already-claiming individuals:** if an individual's current age equals or exceeds the age entered
-in the *claiming at age...* fields, **Owl** always treats that person's claiming age as fixed —
-regardless of the optimize setting. For a couple where one spouse is already receiving benefits,
-enter that spouse's *actual* claiming age here so the solver can recognize them as already claimed;
-their age fields remain editable as reference values while the other spouse's name is the one selected.
-Choosing `both` makes both individuals' age fields read-only, whether or not either has already claimed.
-Selecting `none` always uses the entered ages as-is for all individuals.
+**Already-claiming individuals:** do not select an individual who is already receiving benefits.
+An individual who is selected is always optimized, even when the age entered in the
+*claiming at age...* fields is already past: that age is then only a starting value, and the
+claiming month is chosen from this month on. For someone already collecting, every such choice pays
+more than the reduced benefit actually being received, so the plan would credit benefits that cannot
+be had; **Owl** shows a warning after the solve when a selected individual's entered age is past.
+For a couple where one spouse is already receiving benefits, enter that spouse's *actual* claiming
+age and select only the other spouse's name; `both` is for couples where neither has claimed.
+Individuals who are not selected keep the age entered, and `none` uses the entered ages as-is
+for everyone.
 A great website for guidance on when to start taking Social Security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there are

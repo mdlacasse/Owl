@@ -1,4 +1,4 @@
-### Version 2026.10.16
+### Version 2026.10.17
 
 #### Fixed: optimized Social Security claiming ages can no longer be in the past
 
@@ -7,8 +7,16 @@ already behind someone who has not yet claimed. The benefit table paid such a pa
 year at its reduction factor, as if benefits had been collected retroactively, which SSA does not
 do. A 66 9/12-year-old planning to claim at 70 was told to claim at 65 11/12, the latest age whose
 first check would have arrived in January. The earliest claiming age offered is now the age reached
-in the current month, and a stored claiming age earlier than that counts as already claimed, so it
-stays fixed. Thanks to @sengsational for reporting it (#195).
+in the current month. Thanks to @sengsational for reporting it (#195).
+
+#### Changed: a selected claiming age is optimized even when the age entered is already past
+
+An entered claiming age already behind someone used to mean that person was collecting, so they were
+left out of the optimization even when selected, without a word, and no new age was written back.
+Selecting someone now always optimizes their claiming age, from the current month on; a warning
+names anyone whose entered age was past. Do not select a person who is already receiving benefits:
+every claiming month then pays more than the reduced benefit they actually get. For a couple where
+one spouse has claimed, enter that spouse's actual age and select only the other spouse.
 
 #### Fixed: optimizing one spouse's claiming age accounts for the spousal and survivor benefits
 

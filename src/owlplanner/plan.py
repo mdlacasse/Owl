@@ -2688,6 +2688,7 @@ class Plan:
             # the spousal and survivor amounts depend on the pair of choices -- not linear in
             # zssa -- so they are carried in the offset below and are only exact at convergence.
             free = [i for i in range(self.N_i) if not self._ssaAgeIsFixed(i)]
+            self._ssaWarnPastAges()
             self._ssa_B_cross = np.zeros_like(self._ssa_B_own)
             self._ssa_pair_exact = self.N_i == 2 and len(free) == 1
             if self._ssa_pair_exact:
@@ -3806,13 +3807,43 @@ class Plan:
         """
         Return True if individual i's SS claiming age is not a free decision variable.
 
-        An age is fixed when the individual has no PIA, has already claimed (their current
-        age this month is at or past the stored claiming age), or was not selected by withSSAges.
+        An age is fixed when the individual has no PIA, was not selected by withSSAges, or is past
+        70, when no claiming month is left to choose. For a selected individual the entered age is
+        only a starting value, even when it is already past: selection means the age is still to
+        be decided (_ssaWarnPastAges says so).
         """
         pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
-        already_claimed = self._ssaCurrentAgeMonths(i) >= round(float(self.ssecAges[i]) * 12)
         not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
-        return pia_i == 0 or already_claimed or not_selected
+        past_70 = self._ssaCurrentAgeMonths(i) > 70 * 12
+        return pia_i == 0 or not_selected or past_70
+
+    def _ssaWarnPastAges(self):
+        """
+        Warn about each selected individual whose entered claiming age is already past.
+
+        That age used to mark the individual as already collecting and kept them out of the
+        optimization without a word. Selection now wins, so the age is optimized from this month.
+        If the individual is in fact collecting, the plan credits a benefit that cannot be had
+        (a later start pays more than the reduced one being received), hence the warning. The
+        names are kept in self.ssaPastAgeNames for the UI.
+        """
+        self.ssaPastAgeNames = []
+        for i in sorted(getattr(self, "_ssa_optimize_set", set())):
+            if i >= self.N_i or self._ssaAgeIsFixed(i):
+                continue
+            entered = round(float(self.ssecAges[i]) * 12)
+            current = self._ssaCurrentAgeMonths(i)
+            if current <= entered:
+                continue
+            name = self.inames[i]
+            self.ssaPastAgeNames.append(name)
+            self.mylog.print(
+                f"{name}'s entered SS claiming age ({entered // 12}y {entered % 12}m) is already past, so it was "
+                f"treated as a planned age and optimized from this month ({current // 12}y {current % 12}m). "
+                f"If {name} is already collecting benefits, do not select {name} for optimization: the plan "
+                "would credit benefits that cannot be received.",
+                tag="WARNING",
+            )
 
     @_fixedAcrossIterations
     def _configure_ss_age_variables(self):
@@ -3824,8 +3855,8 @@ class Plan:
           b) Benefit definition, for each n:
              ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k] + sum_k B_cross[i,k,n] * zssa[partner,k]
 
-        For already-claimed individuals (current age >= stored claiming age), all zssa[i,k]
-        are fixed to 0/1 via bounds so the optimizer leaves them at the recorded age.
+        For individuals not selected by withSSAges (or past 70), all zssa[i,k] are fixed to 0/1
+        via bounds so the optimizer leaves them at the recorded age.
         For individuals with zero PIA, zssa[i,0] is fixed to 1 (irrelevant, B_own=0).
         For free individuals, claiming months before 62 (eligibility) or before the current
         month are fixed to 0: B_own would otherwise pay a past claiming age a full first year.
@@ -5130,6 +5161,7 @@ class Plan:
         self._niit_lp = False  # Will be set to True in _buildOffsetMap when withNIIT="optimize"
         self._sb_lp = False  # Will be set to True in _buildOffsetMap when withSeniorBonus="optimize"
         self._ssa_lp = False  # Will be set to True in _buildOffsetMap when withSSAges="optimize"
+        self.ssaPastAgeNames = []  # Selected by withSSAges with an entered age already past
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter

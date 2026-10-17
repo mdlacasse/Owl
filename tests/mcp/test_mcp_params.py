@@ -1469,7 +1469,7 @@ def test_run_from_params_optimize_ss_ages_all():
 
 @pytest.mark.toml
 def test_run_from_params_optimize_ss_ages_already_claimed():
-    """A person whose current age >= ss_age is treated as already claimed; plan still solves."""
+    """A person past 70 keeps the entered age even when selected; plan still solves."""
     # Bob born 1955 → age 71 in 2026, already past any claiming age
     result = _run(
         run_from_params(
