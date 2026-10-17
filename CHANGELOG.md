@@ -9,7 +9,7 @@ dropped every row still being typed. Entering several assets before their years,
 first one a year, made the others disappear. The editors now keep the table they started with while
 their edits go to the case, so incomplete rows stay on screen until they are finished. A row with an
 empty required cell is still left out of the case and of the downloaded workbook until it is
-completed. Not specific to the latest Streamlit release. Thanks to @sengsational for reporting it,
+completed. Not specific to the latest Streamlit release. Thanks to Dale Seng for reporting it,
 with a screencast (#194).
 
 #### Fixed: the top IRMAA tier is no longer indexed before 2028
