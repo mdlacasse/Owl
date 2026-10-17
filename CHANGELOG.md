@@ -1,5 +1,17 @@
 ### Version WIP
 
+#### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
+
+A row added to the *Debts* or *Fixed Assets* table stays in the browser until all its required cells
+are filled, and only then reaches Owl. Each time a row was completed, Owl stored the table and fed
+the stored copy back to the editor, which Streamlit takes as a new table: it rebuilt the editor and
+dropped every row still being typed. Entering several assets before their years, then giving the
+first one a year, made the others disappear. The editors now keep the table they started with while
+their edits go to the case, so incomplete rows stay on screen until they are finished. A row with an
+empty required cell is still left out of the case and of the downloaded workbook until it is
+completed. Not specific to the latest Streamlit release. Thanks to @sengsational for reporting it,
+with a screencast (#194).
+
 #### Fixed: the top IRMAA tier is no longer indexed before 2028
 
 Owl indexed every IRMAA threshold to inflation from the first plan year. The Bipartisan Budget Act

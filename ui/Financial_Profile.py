@@ -113,6 +113,53 @@ def timetableColumnConfig(df, helpdic):
     return formatdic
 
 
+def houseEditorBase(listKey, tableType, widgetKey, config):
+    """
+    Return the table to give the Debts or Fixed Assets editor at widgetKey.
+
+    Streamlit resets a dynamic data_editor whenever its data or column config change, and a reset
+    drops the rows still being typed in the browser: a row with an empty required cell is not sent
+    to Python until it is complete (#194). The editor is therefore fed the same table across reruns,
+    while its edits go to the case. The table is rebuilt from the case only where the editor starts
+    afresh anyway: it was not shown on the last run, its column config changed, or the case table
+    was replaced elsewhere (e.g. by loading a workbook).
+    """
+    stored = kz.getCaseKey(listKey)
+    signature = str(config)
+    held = st.session_state.get(widgetKey + "_base")
+    if (
+        widgetKey not in st.session_state
+        or held is None
+        or held["stored"] is not stored
+        or held["signature"] != signature
+    ):
+        held = {
+            "stored": stored,
+            "signature": signature,
+            "base": owb.conditionDebtsAndFixedAssetsDF(stored, tableType),
+        }
+        st.session_state[widgetKey + "_base"] = held
+
+    return held["base"]
+
+
+def storeHouseEdits(listKey, tableType, widgetKey, edited):
+    """Store the table returned by a house editor in the case if it changed. Return True if it did."""
+    edited = owb.conditionDebtsAndFixedAssetsDF(edited, tableType)
+    if edited.equals(owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey(listKey), tableType)):
+        return False
+
+    kz.setCaseKey(listKey, edited)
+    # The editor keeps its table: the case now holds what it shows.
+    st.session_state[widgetKey + "_base"]["stored"] = edited
+    if kz.getCaseKey("stHFP") is not None:
+        fname = kz.getCaseKey("hfpFileName") or ""
+        if fname and not fname.endswith(" *"):
+            kz.storeCaseKey("hfpFileName", fname + " *")
+
+    return True
+
+
 def loadWCExample(file):
     if file:
         # Use normalized HFP name for the file parameter to match the actual filename
@@ -354,10 +401,11 @@ The second table starts at the current year and covers the rest of the plan.""")
         }
 
         # The editor shows an empty cell for no property (None); the table stores "".
-        debtview = debtdf.copy()
+        debtkey = kz.genCaseKey("debts")
+        debtview = houseEditorBase("houseListDebts", "Debts", debtkey, debtconf).copy()
         debtview["property"] = [prop or None for prop in debtview["property"]]
         edited_debtdf = st.data_editor(
-            debtview, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
+            debtview, column_config=debtconf, num_rows="dynamic", hide_index=True, key=debtkey
         )
         debtsCaption = """Amounts are in nominal \\$. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
@@ -375,13 +423,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             )
 
         # Store edited debts if changed
-        if not debtview.equals(edited_debtdf):
-            edited_debtdf = owb.conditionDebtsAndFixedAssetsDF(edited_debtdf, "Debts")
-            kz.setCaseKey("houseListDebts", edited_debtdf)
-            if kz.getCaseKey("stHFP") is not None:
-                fname = kz.getCaseKey("hfpFileName") or ""
-                if fname and not fname.endswith(" *"):
-                    kz.storeCaseKey("hfpFileName", fname + " *")
+        if storeHouseEdits("houseListDebts", "Debts", debtkey, edited_debtdf):
             st.rerun()
 
         st.divider()
@@ -389,9 +431,6 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
 
         # Get fixed asset types from owlbridge to ensure consistency with validation logic
         fixedTypes = getTableTypes("Fixed Assets")
-
-        # Get existing fixed assets or create empty DataFrame
-        fixeddf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
 
         fixedconf = {
             "active": st.column_config.CheckboxColumn(
@@ -466,8 +505,10 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
         }
 
+        fixedkey = kz.genCaseKey("fixed_assets")
+        fixeddf = houseEditorBase("houseListFixedAssets", "Fixed Assets", fixedkey, fixedconf)
         edited_fixeddf = st.data_editor(
-            fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=kz.genCaseKey("fixed_assets")
+            fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=fixedkey
         )
         fixedCaption = """Value is in reference-year \\$ (at the start of the reference year). \
 Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
@@ -477,13 +518,7 @@ pressing the *Delete* key."""
         st.caption(fixedCaption)
 
         # Store edited fixed assets if changed
-        if not fixeddf.equals(edited_fixeddf):
-            edited_fixeddf = owb.conditionDebtsAndFixedAssetsDF(edited_fixeddf, "Fixed Assets")
-            kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
-            if kz.getCaseKey("stHFP") is not None:
-                fname = kz.getCaseKey("hfpFileName") or ""
-                if fname and not fname.endswith(" *"):
-                    kz.storeCaseKey("hfpFileName", fname + " *")
+        if storeHouseEdits("houseListFixedAssets", "Fixed Assets", fixedkey, edited_fixeddf):
             st.rerun()
 
     st.divider()
