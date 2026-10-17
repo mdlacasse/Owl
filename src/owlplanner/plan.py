@@ -2680,44 +2680,47 @@ class Plan:
                 N_K=self._ssa_N_K,
                 thisyear=None,
             )
-            # Fold the survivor benefit into the survivor's rows of the benefit table when
-            # the deceased's own claiming age is not itself a decision variable. The survivor
-            # amount is then a genuine constant, so max(own_k, survivor) is exact for every
-            # candidate k and the post-death offset below vanishes. When the deceased's age
-            # is also optimized, the survivor amount depends on their chosen k -- unknown at
-            # matrix-build time, since the SC loop updates parameters but never rebuilds A --
-            # so the survivor benefit is carried in the offset instead and is only exact at
-            # convergence.
-            survivor = socsec.compute_survivor_stream(
-                pias,
-                self.ssecAges,
-                self.yobs,
-                self.mobs,
-                self.tobs,
-                self.horizons,
-                self.N_i,
-                self.N_n,
-                survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
-                trim_pct=trim_pct,
-                trim_year=trim_year,
-                thisyear=None,
-            )
-            self._ssa_fold_survivor = survivor.survivor_idx >= 0 and self._ssaAgeIsFixed(survivor.deceased_idx)
-            if self._ssa_fold_survivor:
-                self._ssa_B_own = socsec.apply_survivor_to_benefit_table(
-                    self._ssa_B_own, survivor, self.gamma_n[:-1]
-                )
+            # With a couple where only one claiming age is free, every benefit the household
+            # receives -- both own benefits, the spousal add-on, and the survivor benefit --
+            # is a function of that one choice. Tabulate the full streams for each candidate
+            # age so the MILP sees them exactly: the free person's row goes in B_own and the
+            # partner's in B_cross, keyed on the free person's zssa. When both ages are free,
+            # the spousal and survivor amounts depend on the pair of choices -- not linear in
+            # zssa -- so they are carried in the offset below and are only exact at convergence.
+            free = [i for i in range(self.N_i) if not self._ssaAgeIsFixed(i)]
+            self._ssa_B_cross = np.zeros_like(self._ssa_B_own)
+            self._ssa_pair_exact = self.N_i == 2 and len(free) == 1
+            if self._ssa_pair_exact:
+                i_free = free[0]
+                ages = np.array(self.ssecAges, dtype=float)
+                B_pair = np.zeros_like(self._ssa_B_own)
+                for k in range(self._ssa_N_K):
+                    ages[i_free] = self._ssa_ages_k[k]
+                    zeta_in, _ = socsec.compute_social_security_benefits(
+                        pias,
+                        ages,
+                        self.yobs,
+                        self.mobs,
+                        self.tobs,
+                        self.horizons,
+                        self.N_i,
+                        self.N_n,
+                        trim_pct=trim_pct,
+                        trim_year=trim_year,
+                        thisyear=None,
+                        survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
+                    )
+                    B_pair[:, k, :] = zeta_in * self.gamma_n[:-1]
+                self._ssa_B_own = np.zeros_like(B_pair)
+                self._ssa_B_own[i_free] = B_pair[i_free]
+                self._ssa_B_cross[1 - i_free] = B_pair[1 - i_free]
 
-            # Initialize spousal/survivor offset from initial claiming ages.
-            # B_own at initial claiming age k_init; offset = total zetaBar - own benefit.
-            # With the fold applied the post-death terms cancel and the offset is exactly the
-            # spousal add-on; otherwise it also carries the excess survivor benefit,
-            # max(0, survivor - own), which is non-negative by construction.
-            self._ssa_spousal_offset = np.zeros((self.N_i, self.N_n))
-            for i in range(self.N_i):
-                k_init = int(round((float(self.ssecAges[i]) - 62.0) * 12))
-                k_init = max(0, min(self._ssa_N_K - 1, k_init))
-                self._ssa_spousal_offset[i, :] = self.zetaBar_in[i, :] - self._ssa_B_own[i, k_init, :]
+            # Initialize spousal/survivor offset from initial claiming ages:
+            # offset = total zetaBar - modeled benefit at the initial ages. It vanishes when the
+            # pair is tabulated exactly; otherwise it carries the spousal add-on and the excess
+            # survivor benefit, max(0, survivor - own), which is non-negative by construction.
+            k_init = np.clip(np.round((np.asarray(self.ssecAges, dtype=float) - 62.0) * 12), 0, self._ssa_N_K - 1)
+            self._ssa_spousal_offset = self.zetaBar_in - self._ssaModeledBenefit(k_init.astype(int))
 
         # Stack all variables in a single block vector with all binary variables at the end.
         vm = VarMap()
@@ -3239,7 +3242,7 @@ class Plan:
 
         ss_in = self.zetaBar_in
         if "ssb" in self.vm:
-            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + np.max(self._ssa_B_own[:, :, :Nn], axis=1))
+            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + self._ssaMaxBenefit()[:, :Nn])
         pos = lambda a: np.maximum(a, 0.0)  # noqa: E731
         fixed_n = (
             np.sum(pos(self.omega_in) + pos(self.other_inc_in) + pos(self.netinv_in), axis=0)
@@ -3387,7 +3390,7 @@ class Plan:
         if "ssb" in self.vm:
             # The MAGI rows carry the own benefit of whichever claiming age the MILP picks, which can
             # exceed the previous iterate's: bound it by the largest candidate.
-            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + np.max(self._ssa_B_own[:, :, :Nn], axis=1))
+            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + self._ssaMaxBenefit()[:, :Nn])
         fixed = (
             np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
             + np.sum(self.piBar_in + self.spiaBar_in + ss_in + self.Lambda_in, axis=0)
@@ -3773,6 +3776,22 @@ class Plan:
             return self._ssa_spousal_offset[i, n], self.vm["ssb"].idx(i, n)
         return self.zetaBar_in[i, n], None
 
+    def _ssaModeledBenefit(self, k_i):
+        """
+        Return the SS benefit the MILP models for claiming-age indices ``k_i``, shape (N_i, N_n).
+
+        Person i's ssb row is their B_own entry at their own index plus, when the couple is
+        tabulated exactly, their B_cross entry at the partner's index.
+        """
+        modeled = np.array([self._ssa_B_own[i, k_i[i], :] for i in range(self.N_i)])
+        if self.N_i == 2:
+            modeled += np.array([self._ssa_B_cross[i, k_i[1 - i], :] for i in range(self.N_i)])
+        return modeled
+
+    def _ssaMaxBenefit(self):
+        """Upper bound on each person's modeled ssb over all candidate claiming ages, (N_i, N_n)."""
+        return np.max(self._ssa_B_own, axis=1) + np.max(self._ssa_B_cross, axis=1)
+
     def _ssaCurrentAgeMonths(self, i):
         """
         Return individual i's age, in whole months, reached in the current calendar month.
@@ -3802,7 +3821,8 @@ class Plan:
 
         Two constraint groups per individual i:
           a) AMO (exactly-one claiming month): sum_k zssa[i,k] = 1
-          b) Benefit definition: ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k]  for each n
+          b) Benefit definition, for each n:
+             ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k] + sum_k B_cross[i,k,n] * zssa[partner,k]
 
         For already-claimed individuals (current age >= stored claiming age), all zssa[i,k]
         are fixed to 0/1 via bounds so the optimizer leaves them at the recorded age.
@@ -3812,8 +3832,10 @@ class Plan:
 
         Notes
         -----
-        ssb[i,n] = own SS benefit only; spousal/survivor offsets are added as parameters
-        (_ssa_spousal_offset[i,n]) in the cash-flow constraint and updated each SC iteration.
+        When only one of a couple's ages is free, B_own and B_cross hold the full benefit streams
+        and ssb[i,n] is exact. Otherwise ssb[i,n] is the own benefit only (B_cross is zero), and
+        spousal/survivor offsets are added as parameters (_ssa_spousal_offset[i,n]) in the
+        cash-flow constraint and updated each SC iteration.
         """
         if not self._ssa_lp:
             return
@@ -3821,6 +3843,7 @@ class Plan:
         vm = self.vm
         N_K = self._ssa_N_K
         B_own = self._ssa_B_own
+        B_cross = self._ssa_B_cross
 
         for i in range(self.N_i):
             pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
@@ -3848,7 +3871,7 @@ class Plan:
             amo_row = {vm["zssa"].idx(i, k): 1 for k in range(N_K)}
             self.A.addNewRow(amo_row, 1, 1, tag=("ss_age_amo", i))
 
-            # b) Benefit definition: ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k]
+            # b) Benefit definition: ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k] + partner's B_cross term
             for n in range(self.N_n):
                 ssb_idx = vm["ssb"].idx(i, n)
                 row = {ssb_idx: 1}
@@ -3856,6 +3879,9 @@ class Plan:
                     b_val = float(B_own[i, k, n])
                     if b_val != 0.0:
                         row[vm["zssa"].idx(i, k)] = row.get(vm["zssa"].idx(i, k), 0) - b_val
+                    c_val = float(B_cross[i, k, n])
+                    if c_val != 0.0:
+                        row[vm["zssa"].idx(1 - i, k)] = row.get(vm["zssa"].idx(1 - i, k), 0) - c_val
                 # equality: ssb[i,n] - sum_k B_own * zssa = 0
                 self.A.addNewRow(row, 0, 0, tag=("ss_age_benefit", i, n))
 
@@ -6787,9 +6813,8 @@ class Plan:
                 survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
             )
             new_zetaBar_in = new_zeta_in * self.gamma_n[:-1]
-            for i in range(self.N_i):
-                k_opt = int(np.argmax(zssa_vals[i, :]))
-                self._ssa_spousal_offset[i, :] = new_zetaBar_in[i, :] - self._ssa_B_own[i, k_opt, :]
+            k_opt = np.argmax(zssa_vals, axis=1)
+            self._ssa_spousal_offset = new_zetaBar_in - self._ssaModeledBenefit(k_opt)
             self.zetaBar_in = new_zetaBar_in
 
         # NIIT (IRC §1411) and IRMAA use the AGI-basis MAGI_n (taxable SS only). ACA (below)

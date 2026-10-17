@@ -792,13 +792,24 @@ By default, **Owl** uses the claiming ages you enter and does not change them.
 However, on the **Run Options** page, under *Social Security Claiming Ages*, the
 *Optimize SS claiming age for...* selector lets you choose which
 individuals should have their SS claiming month optimized (any month between age 62 and 70,
-i.e., 97 monthly choices).
+i.e., 97 monthly choices, but never a month already past: the earliest choice is the age reached
+this month, as benefits for earlier months cannot be collected retroactively).
 For a single individual the choices are `none` and the individual's name.
-For couples the choices are `none`, each spouse's name, and `both` —
-which is particularly useful when one spouse has already started collecting and only
-the other's age should be optimized.
+For couples the choices are `none`, each spouse's name, and `both`.
+Selecting one spouse's name is particularly useful when the other has already started collecting.
 The optimizer will choose the claiming month that maximizes the plan objective (spending or bequest),
 taking into account the interaction with taxes, Medicare, and Roth conversion strategy.
+
+**Optimizing one spouse versus both:** when only one spouse's age is optimized, **Owl** evaluates
+every benefit the household receives for each candidate month — both own benefits, the spousal
+add-on, and the survivor benefit the longer-lived spouse inherits — so that choice is exact.
+With `both`, the spousal and survivor amounts depend on the pair of ages chosen and are instead
+settled by the self-consistent loop, which can stop on a slightly worse pair.
+The recommended strategy for a couple where neither spouse has claimed is to optimize
+one spouse at a time: select the first spouse's name and solve, then select the other's and solve
+again, as each optimal age is written back to this page and is used as the fixed age of that
+spouse in the next solve. Repeat until neither age changes, which usually takes one or two rounds.
+Then compare with a solve using `both`, and keep whichever gives the better objective.
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
 

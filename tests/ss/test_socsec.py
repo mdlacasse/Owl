@@ -669,44 +669,6 @@ def test_compute_survivor_stream_no_survivor_period():
     assert np.all(survivor.annual == 0)
 
 
-def test_apply_survivor_to_benefit_table():
-    """Folding the survivor stream into the own-benefit table takes the greater of the two."""
-    from datetime import date
-
-    thisyear = date.today().year
-    yobs = np.array([thisyear - 68, thisyear - 63])
-    pias = np.array([2000, 3000])
-    ages = np.array([67.0, 70.0])
-    mobs = np.array([6, 6])
-    tobs = np.array([15, 15])
-    horizons = np.array([5, 30])
-    N_n = 30
-    gamma_n = np.ones(N_n)
-
-    fras = ss.getFRAs(yobs, mobs, tobs)
-    B_own, ages_k = ss.build_own_benefit_table(
-        pias, fras, yobs, mobs, tobs, horizons, 2, N_n, gamma_n, thisyear=thisyear
-    )
-    survivor = ss.compute_survivor_stream(
-        pias, ages, yobs, mobs, tobs, horizons, 2, N_n, thisyear=thisyear
-    )
-    B_eff = ss.apply_survivor_to_benefit_table(B_own, survivor, gamma_n)
-
-    nd = survivor.death_year_n
-    # The deceased's rows and all pre-death years are untouched.
-    assert np.allclose(B_eff[0], B_own[0])
-    assert np.allclose(B_eff[1, :, :nd], B_own[1, :, :nd])
-    # Post-death entries are the greater of own benefit and survivor benefit, for every k.
-    assert np.allclose(B_eff[1, :, nd:], np.maximum(B_own[1, :, nd:], survivor.annual[nd:]))
-    # The table matches the combined series for the claiming age actually in force.
-    k = int(round((ages[1] - 62.0) * 12))
-    zeta_in, _ = ss.compute_social_security_benefits(
-        pias, ages, yobs, mobs, tobs, horizons, 2, N_n, thisyear=thisyear
-    )
-    assert ages_k[k] == pytest.approx(ages[1])
-    assert np.allclose(B_eff[1, k, nd:], zeta_in[1, nd:])
-
-
 # ---------------------------------------------------------------------------
 # Pathological / boundary cases for the survivor stream
 # ---------------------------------------------------------------------------

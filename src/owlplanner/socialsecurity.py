@@ -44,8 +44,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 Public API (used by plan.py): getFRAs, compute_social_security_benefits,
-build_own_benefit_table, compute_survivor_stream, apply_survivor_to_benefit_table,
-validate_survivor_claim_age.
+build_own_benefit_table, compute_survivor_stream, validate_survivor_claim_age.
 All other functions are internal and may change without notice.
 """
 
@@ -56,7 +55,6 @@ __all__ = [
     "build_own_benefit_table",
     "compute_survivor_stream",
     "survivor_claim_window",
-    "apply_survivor_to_benefit_table",
     "validate_survivor_claim_age",
 ]
 
@@ -526,8 +524,7 @@ def compute_survivor_stream(
     year of the first death.
 
     This is the same stream ``compute_social_security_benefits`` combines with the
-    survivor's own benefit; it is exposed separately so the SS claiming-age MIP can fold
-    it into its own-benefit table (see :func:`apply_survivor_to_benefit_table`).
+    survivor's own benefit; it is exposed separately so callers can report it on its own.
 
     Returns
     -------
@@ -600,41 +597,6 @@ def compute_survivor_stream(
         survivor_claim_age,
         annual,
     )
-
-
-def apply_survivor_to_benefit_table(B_own, survivor, gamma_n):
-    """
-    Overlay a survivor benefit stream onto the survivor's rows of an own-benefit table.
-
-    For the surviving spouse and every plan year at or after the first death, the entry
-    becomes the greater of the own benefit for that candidate claiming age and the
-    survivor benefit — exactly what SSA pays. Folding the survivor benefit into the table
-    this way makes the post-death payout exact for every candidate claiming age, so the
-    SS claiming-age MIP needs no parameter offset after the first death.
-
-    Parameters
-    ----------
-    B_own : ndarray, shape (N_i, N_K, N_n)
-        Own-benefit table from :func:`build_own_benefit_table`, in nominal dollars.
-    survivor : SurvivorStream
-        From :func:`compute_survivor_stream`; ``annual`` is in today's dollars.
-    gamma_n : array, shape (N_n,)
-        Cumulative inflation factors, matching those passed to ``build_own_benefit_table``.
-
-    Returns
-    -------
-    ndarray
-        A copy of ``B_own`` with the overlay applied. Returned unchanged (as a copy) when
-        there is no survivor period.
-    """
-    B_eff = np.array(B_own, dtype=float, copy=True)
-    if survivor.survivor_idx < 0:
-        return B_eff
-
-    nd = survivor.death_year_n
-    surv_nominal = survivor.annual[nd:] * gamma_n[nd:]
-    B_eff[survivor.survivor_idx, :, nd:] = np.maximum(B_eff[survivor.survivor_idx, :, nd:], surv_nominal)
-    return B_eff
 
 
 def compute_social_security_benefits(

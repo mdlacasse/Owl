@@ -10,6 +10,19 @@ first check would have arrived in January. The earliest claiming age offered is 
 in the current month, and a stored claiming age earlier than that counts as already claimed, so it
 stays fixed. Thanks to @sengsational for reporting it (#195).
 
+#### Fixed: optimizing one spouse's claiming age accounts for the spousal and survivor benefits
+
+When only one spouse's claiming age was optimized, the spousal add-on and the survivor benefit that
+depend on it were carried from the previous solve rather than seen by the optimizer. It therefore
+missed that claiming later raises the benefit a longer-lived spouse inherits, and could settle on an
+earlier age that pays the household less than the age entered. In the case reported in #195, with
+the other loops made exact, it chose 66 9/12 for \$186,526/yr where claiming at 70 gives
+\$188,445/yr. When one age of a couple is free, Owl now tabulates every benefit the household
+receives for each candidate age, so the choice is exact: here it picks 70. When both ages are
+optimized, spousal and survivor amounts are still settled by the self-consistent loop. Small
+differences between an optimized and a fixed-age solve at the same age can remain in loop mode,
+where taxable Social Security and Medicare premiums land on slightly different fixed points.
+
 #### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
 
 A row added to the *Debts* or *Fixed Assets* table stays in the browser until all its required cells
