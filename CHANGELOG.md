@@ -1,5 +1,15 @@
 ### Version 2026.10.16
 
+#### Fixed: optimized Social Security claiming ages can no longer be in the past
+
+When optimizing claiming ages, Owl let the solver pick any month from 62 to 70, including months
+already behind someone who has not yet claimed. The benefit table paid such a past age a full first
+year at its reduction factor, as if benefits had been collected retroactively, which SSA does not
+do. A 66 9/12-year-old planning to claim at 70 was told to claim at 65 11/12, the latest age whose
+first check would have arrived in January. The earliest claiming age offered is now the age reached
+in the current month, and a stored claiming age earlier than that counts as already claimed, so it
+stays fixed. Thanks to @sengsational for reporting it (#195).
+
 #### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
 
 A row added to the *Debts* or *Fixed Assets* table stays in the browser until all its required cells

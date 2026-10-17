@@ -3773,16 +3773,25 @@ class Plan:
             return self._ssa_spousal_offset[i, n], self.vm["ssb"].idx(i, n)
         return self.zetaBar_in[i, n], None
 
+    def _ssaCurrentAgeMonths(self, i):
+        """
+        Return individual i's age, in whole months, reached in the current calendar month.
+
+        This is the earliest claiming age still open: a claiming month already behind us
+        cannot be chosen, as SSA does not pay retroactively for it.
+        """
+        today = date.today()
+        return 12 * (today.year - int(self.yobs[i])) + today.month - int(self.mobs[i])
+
     def _ssaAgeIsFixed(self, i):
         """
         Return True if individual i's SS claiming age is not a free decision variable.
 
         An age is fixed when the individual has no PIA, has already claimed (their current
-        age is at or past the stored claiming age), or was not selected by withSSAges.
+        age this month is at or past the stored claiming age), or was not selected by withSSAges.
         """
         pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
-        current_age = date.today().year - self.yobs[i] - (self.mobs[i] - 1) / 12
-        already_claimed = current_age >= float(self.ssecAges[i])
+        already_claimed = self._ssaCurrentAgeMonths(i) >= round(float(self.ssecAges[i]) * 12)
         not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
         return pia_i == 0 or already_claimed or not_selected
 
@@ -3798,6 +3807,8 @@ class Plan:
         For already-claimed individuals (current age >= stored claiming age), all zssa[i,k]
         are fixed to 0/1 via bounds so the optimizer leaves them at the recorded age.
         For individuals with zero PIA, zssa[i,0] is fixed to 1 (irrelevant, B_own=0).
+        For free individuals, claiming months before 62 (eligibility) or before the current
+        month are fixed to 0: B_own would otherwise pay a past claiming age a full first year.
 
         Notes
         -----
@@ -3825,11 +3836,12 @@ class Plan:
                     lb = 1 if k == k_fixed else 0
                     self.B.setRange(vm["zssa"].idx(i, k), lb, lb)
             else:
-                # Free individual: fix ineligible claiming ages to 0.
+                # Free individual: fix ineligible and past claiming ages to 0.
                 bornOnFirstDays = self.tobs[i] <= 2
-                eligible = 62.0 if bornOnFirstDays else 62.0 + 1.0 / 12
+                eligible_months = 62 * 12 if bornOnFirstDays else 62 * 12 + 1
+                earliest_months = max(eligible_months, self._ssaCurrentAgeMonths(i))
                 for k in range(N_K):
-                    if self._ssa_ages_k[k] < eligible:
+                    if round(self._ssa_ages_k[k] * 12) < earliest_months:
                         self.B.setRange(vm["zssa"].idx(i, k), 0, 0)
 
             # a) AMO: exactly one claiming month per individual.

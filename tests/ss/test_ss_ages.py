@@ -387,3 +387,81 @@ class TestClaimingAgeTaxes:
         fixed.setStateTax("CA")
         fixed.solve("maxSpending", options=_EXACT_OPTS)
         assert results[0][1] == pytest.approx(float(fixed.g_n[0]), abs=1.0)
+
+
+# ---------------------------------------------------------------------------
+# Claiming ages already in the past cannot be chosen (issue #195)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def october_2026(monkeypatch):
+    """Run on the date issue #195 was reported, past the January date the suite freezes."""
+    import datetime
+
+    import owlplanner.plan as plan_module
+
+    class _October(datetime.date):
+        @classmethod
+        def today(cls):
+            return datetime.date(2026, 10, 17)
+
+    monkeypatch.setattr(plan_module, "date", _October)
+
+
+def _issue195_plan():
+    """Couple from issue #195: the higher earner is 66 9/12 in October 2026 and plans to claim
+    at 70; the longer-lived spouse already claimed at 62."""
+    import io
+
+    import owlplanner as owl
+
+    p = owl.Plan(
+        ["Higher Income", "Lower Income"],
+        ["1960-01-15", "1958-01-15"],
+        [75, 95],
+        "issue195",
+        verbose=False,
+        logstreams=[io.StringIO()],
+    )
+    p.setSpendingProfile("flat", 60)
+    p.setAccountBalances(taxable=[100, 50], taxDeferred=[1000, 0], taxFree=[1000, 0], hsa=[50, 0], startDate="10-16")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[60, 40, 0, 0], [70, 30, 0, 0]]])
+    p.setRates("user", values=[6, 4, 3, 2.5])
+    p.setSocialSecurity([3800, 1500], [70, 62 + 1 / 12])
+    return p
+
+
+_ISSUE195_OPTS = {"withSSAges": "Higher Income", "bequest": 0}
+
+
+@pytest.mark.usefixtures("october_2026")
+class TestNoPastClaimingAge:
+    def test_past_months_blocked_in_benefit_choice(self):
+        """Every zssa column for a month already behind us is bounded to zero."""
+        p = _issue195_plan()
+        p.solve("maxSpending", options=_ISSUE195_OPTS)
+        assert p.caseStatus == "solved"
+        current = p._ssaCurrentAgeMonths(0)
+        assert current == 66 * 12 + 9
+        _, ub = p.B.arrays()
+        for k in range(p._ssa_N_K):
+            month = 62 * 12 + k
+            expected = 0 if month < current else 1
+            assert ub[p.vm["zssa"].idx(0, k)] == expected, f"Claiming month {month // 12}y{month % 12}m"
+
+    def test_optimized_age_not_in_the_past(self):
+        """The optimizer used to pick 65 11/12, collecting a full year of benefits it never could."""
+        p = _issue195_plan()
+        p.solve("maxSpending", options=_ISSUE195_OPTS)
+        assert p.caseStatus == "solved"
+        assert round(float(p.ssecAges[0]) * 12) >= 66 * 12 + 9
+        assert float(p.ssecAges[1]) == pytest.approx(62 + 1 / 12)
+
+    def test_stored_past_age_counts_as_claimed(self):
+        """A stored claiming age earlier this year is already claimed, not a free choice."""
+        p = _issue195_plan()
+        p.setSocialSecurity([3800, 1500], [66 + 6 / 12, 62 + 1 / 12])
+        assert p._ssaAgeIsFixed(0)
+        p.setSocialSecurity([3800, 1500], [67, 62 + 1 / 12])
+        assert not p._ssaAgeIsFixed(0)
