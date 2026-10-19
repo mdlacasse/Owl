@@ -30,6 +30,18 @@ optimized, spousal and survivor amounts are still settled by the self-consistent
 differences between an optimized and a fixed-age solve at the same age can remain in loop mode,
 where taxable Social Security and Medicare premiums land on slightly different fixed points.
 
+#### Fixed: the spousal benefit keeps its full first plan year and no longer depends on listing order
+
+The spousal add-on starts the month after the later spouse claims. When that claim predated the
+plan, Owl still cut the first plan year as if the add-on began then: a spouse with a PIA of \$800
+married to one with \$3,000, both collecting since 2024, was credited \$9,507.50 in 2026 instead of
+\$12,255.00. Separately, an age entered below the earliest claiming age (62, or 62 1/12 for most
+birthdays) is raised to it, but the spouse listed first had their add-on timed from the other's
+age before it was raised, so it started a month early and the result changed when the couple was
+listed the other way round. The first year is now cut only when the add-on starts within the plan,
+and all ages are raised before any benefit is computed. Thanks to Florin Mateoc for reporting it
+and proposing the fix (#198).
+
 #### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
 
 A row added to the *Debts* or *Fixed Assets* table stays in the browser until all its required cells
