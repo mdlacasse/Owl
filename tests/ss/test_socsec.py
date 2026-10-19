@@ -318,6 +318,41 @@ def test_compute_ss_spousal_benefit():
     assert zeta_in[1, 5] == pytest.approx(expected_annual, rel=0.01)
 
 
+def test_spousal_benefit_full_first_year_when_both_claimed_before_plan():
+    """Issue #198: a spousal add-on that started before the plan is not cut in the first plan year."""
+    # Born 1961-01-15 and 1962-05-15, both entered at 62 and reset to 62y1m: the later
+    # claim is June 2024, so the spousal add-on is paid for all of 2026.
+    zeta_in, ages = ss.compute_social_security_benefits(
+        np.array([3000, 800]), np.array([62.0, 62.0]), np.array([1961, 1962]), np.array([1, 5]),
+        np.array([15, 15]), np.array([25, 25]), 2, 25, thisyear=2026
+    )
+    assert ages == pytest.approx([62 + 1 / 12, 62 + 1 / 12])
+    # 59 months before FRA 67: own reduction 71/240, spousal reduction 83/240.
+    own = 800 * (1 - 71 / 240)
+    spousal = (1500 - 800) * (1 - 83 / 240)
+    assert zeta_in[1, 0] == pytest.approx(12 * (own + spousal))  # 12,255.00
+    assert zeta_in[1, 0] == pytest.approx(zeta_in[1, 1])
+
+
+@pytest.mark.parametrize("aux", [0, 1])
+def test_spousal_benefit_start_independent_of_listing_order(aux):
+    """Issue #198: the spousal start reads the other spouse's age after its eligibility reset."""
+    # Auxiliary: PIA 1000, born 1964-03-15, claims at 62y1m (April 2026).
+    # Primary: PIA 3000, born 1966-05-15, enters 62.0, reset to 62y1m (June 2028).
+    # The spousal add-on is first paid in July 2028: six months in plan year 2.
+    prim = 1 - aux
+    pias, ages, yobs, mobs = np.zeros(2, dtype=int), np.zeros(2), np.zeros(2, dtype=int), np.zeros(2, dtype=int)
+    pias[aux], ages[aux], yobs[aux], mobs[aux] = 1000, 62 + 1 / 12, 1964, 3
+    pias[prim], ages[prim], yobs[prim], mobs[prim] = 3000, 62.0, 1966, 5
+    zeta_in, _ = ss.compute_social_security_benefits(
+        pias, ages, yobs, mobs, np.array([15, 15]), np.array([25, 25]), 2, 25, thisyear=2026
+    )
+    own = 12 * 1000 * (1 - 71 / 240)  # 59 months early
+    spousal = 6 * 500 * (1 - 55 / 240)  # 64y3m at the primary's claim: 33 months early
+    assert zeta_in[aux, 1] == pytest.approx(own)  # 8,450.00: no spousal add-on yet
+    assert zeta_in[aux, 2] == pytest.approx(own + spousal)  # 10,762.50
+
+
 def test_compute_ss_born_on_2nd():
     """Born-on-2nd: eligible at conventional 62 (same as born-on-1st) but factor has no +1/12 shift."""
     from datetime import date

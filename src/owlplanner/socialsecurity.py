@@ -374,12 +374,15 @@ def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, age
     latest_claim_year = float(np.max(yobs + (mobs - 1) / 12 + ages))
     claim_age = latest_claim_year - yobs[i] - (mobs[i] - 1) / 12
     payment_claim_year = latest_claim_year + 1 / 12
-    ns2 = max(0, int(payment_claim_year) - thisyear)
+    payment_start_n = int(payment_claim_year) - thisyear
+    ns2 = max(0, payment_start_n)
     if ns2 >= nd:
         return  # Spousal benefit would start at or after the end of entitlement.
     spousal_factor = getSpousalFactor(fra, claim_age, bool(tobs[i] == 1))
     spousal_in[i, ns2:nd] += spousal_amount * spousal_factor
-    spousal_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
+    if payment_start_n >= 0:
+        # Partial first year only when the first spousal check falls inside the plan.
+        spousal_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
 
 
 def validate_survivor_claim_age(survivor_claim_age):
@@ -676,16 +679,19 @@ def compute_social_security_benefits(
     fras = getFRAs(yobs, mobs, tobs)
     spousalBenefits = getSpousalBenefits(pias)
 
-    own_in = np.zeros((N_i, N_n))
-    spousal_in = np.zeros((N_i, N_n))
+    # Eligibility: born on 1st or 2nd can claim in their birthday month (or prior for 1st).
+    # Every age is reset before any stream is built: the spousal start reads both ages.
     for i in range(N_i):
-        # Eligibility: born on 1st or 2nd can claim in their birthday month (or prior for 1st).
-        # Factor shift: only born on 1st attains age one month early, warranting +1/12 SSA age.
         bornOnFirstDays = tobs[i] <= 2
-        bornOnFirst = tobs[i] == 1
         eligible = 62 if bornOnFirstDays else 62 + 1 / 12
         if round(ages[i] * 12) < round(eligible * 12):
             ages[i] = eligible
+
+    own_in = np.zeros((N_i, N_n))
+    spousal_in = np.zeros((N_i, N_n))
+    for i in range(N_i):
+        # Factor shift: only born on 1st attains age one month early, warranting +1/12 SSA age.
+        bornOnFirst = tobs[i] == 1
 
         payment_start_n, frac = _payment_start(yobs[i], mobs[i], ages[i], thisyear)
         ns = max(0, payment_start_n)
