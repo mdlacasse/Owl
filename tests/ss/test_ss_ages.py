@@ -2,11 +2,10 @@
 Tests for SS claiming age optimization (withSSAges='optimize').
 
 Tests cover:
-- Single individual: optimizer should delay claiming when horizon is long.
+- Single individual: the age chosen is the best of the fixed-age solves.
 - Couple: both individuals get independent claiming ages.
 - Already-claimed: optimizer respects a fixed claiming age for the already-claiming individual.
 - Consistency: optimize result >= fixed-age result for maxSpending (optimizer can only do equal or better).
-- build_own_benefit_table: basic shape and value checks.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -24,10 +23,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import numpy as np
 import pytest
 from owlplanner import readConfig
-from owlplanner.socialsecurity import build_own_benefit_table, getFRAs
 
 
 # ---------------------------------------------------------------------------
@@ -48,94 +45,6 @@ def jack_jill():
 
 
 # ---------------------------------------------------------------------------
-# build_own_benefit_table tests
-# ---------------------------------------------------------------------------
-
-
-class TestBuildOwnBenefitTable:
-    def test_shape(self):
-        pias = [2000]
-        yobs = [1960]
-        mobs = [6]
-        tobs = [15]
-        horizons = [30]
-        N_i, N_n = 1, 30
-        gamma_n = np.ones(N_n)
-        fras = getFRAs(yobs, mobs, tobs)
-        B, ages_k = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n)
-        assert B.shape == (1, 97, 30)
-        assert ages_k.shape == (97,)
-
-    def test_ages_k_range(self):
-        """ages_k should span 62.0 to 70.0 in 1/12-year steps."""
-        pias = [2000]
-        yobs = [1960]
-        mobs = [6]
-        tobs = [15]
-        horizons = [30]
-        N_i, N_n = 1, 30
-        gamma_n = np.ones(N_n)
-        fras = getFRAs(yobs, mobs, tobs)
-        _, ages_k = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n)
-        assert abs(ages_k[0] - 62.0) < 1e-9
-        assert abs(ages_k[96] - 70.0) < 1e-9
-        assert abs(ages_k[1] - ages_k[0] - 1 / 12) < 1e-9
-
-    def test_zero_pia(self):
-        """Zero PIA produces all-zero benefit table."""
-        pias = [0]
-        yobs = [1960]
-        mobs = [6]
-        tobs = [15]
-        horizons = [30]
-        N_i, N_n = 1, 30
-        gamma_n = np.ones(N_n)
-        fras = getFRAs(yobs, mobs, tobs)
-        B, _ = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, N_i, N_n, gamma_n)
-        assert np.all(B == 0)
-
-    def test_delay_increases_benefit(self):
-        """Claiming at 70 should yield higher per-year benefit than at 62 (FRA=67, delay rate=8%/yr)."""
-        pias = [2000]
-        yobs = [1960]
-        mobs = [6]
-        tobs = [15]
-        N_n = 35
-        horizons = [N_n]
-        gamma_n = np.ones(N_n)
-        fras = getFRAs(yobs, mobs, tobs)
-        B, ages_k = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
-        # Find k=0 (age 62) and k=96 (age 70)
-        # B_at_70 > B_at_62 for years after both payment start dates
-        k_62 = 0
-        k_70 = 96
-        # Benefit after both start paying (year 31+ since born 1960, planning from 2026)
-        # age 70 in year 2030, age 62 in year 2022 (already started)
-        # For years deep in the plan, compare per-year benefits
-        mid = 20
-        assert B[0, k_70, mid] > B[0, k_62, mid]
-
-    def test_trim(self):
-        """trim_pct reduces benefits from trim_year onward."""
-        pias = [2000]
-        yobs = [1960]
-        mobs = [6]
-        tobs = [15]
-        N_n = 30
-        horizons = [N_n]
-        gamma_n = np.ones(N_n)
-        fras = getFRAs(yobs, mobs, tobs)
-        B_no_trim, _ = build_own_benefit_table(pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, thisyear=2026)
-        B_trimmed, _ = build_own_benefit_table(
-            pias, fras, yobs, mobs, tobs, horizons, 1, N_n, gamma_n, trim_pct=25, trim_year=2036, thisyear=2026
-        )
-        # Before trim year: equal
-        np.testing.assert_array_almost_equal(B_no_trim[:, :, :10], B_trimmed[:, :, :10])
-        # After trim year: trimmed is 75% of full
-        np.testing.assert_allclose(B_trimmed[:, :, 10:], B_no_trim[:, :, 10:] * 0.75)
-
-
-# ---------------------------------------------------------------------------
 # withSSAges='optimize' integration tests
 # ---------------------------------------------------------------------------
 
@@ -152,11 +61,26 @@ class TestSSAgesOptimize:
         age = float(joe.ssecAges[0])
         assert 62.0 <= age <= 70.0 + 1e-9
 
-    def test_single_delays_claiming(self, joe):
-        """For a healthy long horizon, optimizer should delay past FRA (67)."""
+    def test_single_is_best_of_fixed_ages(self, joe):
+        """The age chosen gives the same plan as entering it, and no other age entered does better."""
         joe.solve("maxSpending", options={"withSSAges": "optimize"})
-        age = float(joe.ssecAges[0])
-        assert age > 67.0, f"Expected age > 67, got {age:.2f}"
+        assert joe.caseStatus == "solved"
+        age, spending = float(joe.ssecAges[0]), float(joe.g_n[0])
+        for other in (age, 62 + 1 / 12, 67, 68 + 2 / 12, 70):
+            fixed = readConfig("examples/Case_joe.toml")
+            fixed.setSocialSecurity(fixed.ssecAmounts, [other])
+            fixed.solve("maxSpending")
+            assert fixed.caseStatus == "solved"
+            if other == age:
+                assert spending == pytest.approx(float(fixed.g_n[0]), abs=1.0)
+            else:
+                assert spending >= float(fixed.g_n[0]) - 1.0, f"fixed claim at {other:.2f}"
+
+    def test_selection_kept_after_solve(self, joe):
+        """The UI reads the selection and the chosen ages back from the plan after a solve."""
+        joe.solve("maxSpending", options={"withSSAges": "optimize"})
+        assert joe.solverOptions["withSSAges"] == "optimize"
+        assert joe._ssa_optimize_set == {0}
 
     def test_optimize_not_worse_than_fixed(self, joe):
         """Optimize mode should produce spending >= fixed claiming age."""
@@ -169,43 +93,16 @@ class TestSSAgesOptimize:
             f"Optimize ({spending_opt:.0f}) worse than fixed ({spending_fixed:.0f})"
         )
 
-    def test_couple_solves(self, jack_jill):
-        """Couple: solve completes successfully."""
+    def test_couple_both(self, jack_jill):
+        """Both ages searched in turn: the solve completes, both ages are in [62, 70], and the plan
+        is at least as good as at the ages entered."""
+        jack_jill.solve("maxSpending")
+        entered = float(jack_jill.g_n[0])
         jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
         assert jack_jill.caseStatus == "solved"
-
-    def test_couple_claiming_ages_valid(self, jack_jill):
-        """Both individuals must claim in [62, 70]."""
-        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
         for i, age in enumerate(jack_jill.ssecAges):
             assert 62.0 <= float(age) <= 70.0 + 1e-9, f"Individual {i}: age {age:.2f} out of range"
-
-    def test_couple_ages_may_differ(self, jack_jill):
-        """Each individual should have an independent optimal claiming age."""
-        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
-        # Not strictly required to differ, but they typically will for a couple
-        # (at least one should differ from default 67)
-        ages = [float(a) for a in jack_jill.ssecAges]
-        assert any(abs(a - 67.0) > 1 / 12 for a in ages), f"Both ages appear to be 67: {ages}"
-
-    def test_ssa_lp_flag_reset_between_solves(self, joe):
-        """_ssa_lp flag is reset when switching back to fixed mode."""
-        joe.solve("maxSpending", options={"withSSAges": "optimize"})
-        assert joe._ssa_lp is True
-        joe.solve("maxSpending")  # default: fixed
-        assert joe._ssa_lp is False
-
-    def test_zssa_not_in_vm_for_fixed_mode(self, joe):
-        """In fixed mode, zssa and ssb should not be in vm."""
-        joe.solve("maxSpending")
-        assert "zssa" not in joe.vm
-        assert "ssb" not in joe.vm
-
-    def test_zssa_in_vm_for_optimize_mode(self, joe):
-        """In optimize mode, zssa and ssb must be in vm."""
-        joe.solve("maxSpending", options={"withSSAges": "optimize"})
-        assert "zssa" in joe.vm
-        assert "ssb" in joe.vm
+        assert float(jack_jill.g_n[0]) >= entered - 1.0
 
     def test_partial_optimize_individual_0_only(self, jack_jill):
         """withSSAges=name: only individual 0's age is optimized; individual 1 keeps entered age."""
@@ -235,59 +132,21 @@ class TestSSAgesOptimize:
 # ---------------------------------------------------------------------------
 
 
-class TestSurvivorOffset:
-    """The spousal/survivor parameter offset must stay well-formed in optimize mode.
-
-    Regression: the survivor benefit used to overwrite the survivor's own benefit for the
-    rest of the horizon, which made `zetaBar_in - B_own[k]` go sharply negative and fed the
-    LP a large phantom income deduction for every candidate claiming age.
-    """
-
-    def test_offset_is_non_negative(self, jack_jill):
-        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
-        offset = jack_jill._ssa_spousal_offset
-        assert np.all(offset > -1e-6), f"Negative SS offset: min {offset.min():.2f}"
-
-    def test_pair_tabulated_when_one_age_is_free(self, jack_jill):
-        """Optimizing one spouse's age alone makes every household benefit a function of it.
-
-        Jack dies first; optimizing Jill's claiming age alone keeps Jack's fixed, which is the
-        common real case (one spouse already collecting). The full streams are tabulated, so
-        the modeled benefit at the chosen ages is the benefit itself and the offset vanishes.
-        """
-        survivor_name = jack_jill.inames[1]
-        jack_jill.solve("maxSpending", options={"withSSAges": survivor_name})
-        assert jack_jill._ssa_pair_exact
-
-        k_opt = np.round((np.asarray(jack_jill.ssecAges, dtype=float) - 62) * 12).astype(int)
-        np.testing.assert_allclose(jack_jill._ssaModeledBenefit(k_opt), jack_jill.zetaBar_in, atol=1e-6)
-        assert np.allclose(jack_jill._ssa_spousal_offset, 0.0, atol=1e-6)
-
+class TestSurvivorClaimAge:
     def test_optimize_solves_with_survivor_fra(self, jack_jill):
         """A deferred survivor benefit still solves and is not better than claiming earlier."""
-        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
+        survivor = jack_jill.inames[1]
+        jack_jill.solve("maxSpending", options={"withSSAges": survivor})
         spending_immediate = float(jack_jill.g_n[0])
 
         deferred = readConfig("examples/Case_jack+jill.toml")
         deferred.setSocialSecurity(
             deferred.ssecAmounts, deferred.ssecAges, survivor_claim_age="FRA"
         )
-        deferred.solve("maxSpending", options={"withSSAges": "optimize"})
+        deferred.solve("maxSpending", options={"withSSAges": survivor})
         assert deferred.caseStatus == "solved"
         # Jill is past her survivor FRA when Jack dies, so 'fra' resolves to the same date.
         assert float(deferred.g_n[0]) == pytest.approx(spending_immediate, rel=5e-3)
-
-    def test_both_optimized_uses_offset_path(self, jack_jill):
-        """When both ages are variables, spousal and survivor amounts ride in the offset.
-
-        Jack is 63 with a claiming age of 70, so 'optimize' leaves both ages free and the
-        survivor amount depends on the pair of ages the solver picks; it cannot be tabulated.
-        """
-        jack_jill.solve("maxSpending", options={"withSSAges": "optimize"})
-        assert jack_jill.caseStatus == "solved"
-        assert not jack_jill._ssa_pair_exact
-        assert not np.any(jack_jill._ssa_B_cross)
-        assert np.all(jack_jill._ssa_spousal_offset > -1e-6)
 
 
 # ---------------------------------------------------------------------------
@@ -322,15 +181,6 @@ _EXACT_OPTS = {"withMedicare": "None", "withSSTaxability": 0.85, "bequest": 0}
 
 
 class TestClaimingAgeTaxes:
-    def test_tax_rows_carry_ssb(self):
-        """The taxable-income row charges Psi_n on the own-benefit variable."""
-        p = _exact_ss_plan(67)
-        p.solve("maxSpending", options={**_EXACT_OPTS, "withSSAges": "optimize"})
-        assert p.caseStatus == "solved"
-        const, idx = p._ss_benefit_terms(0, 10)
-        assert idx == p.vm["ssb"].idx(0, 10)
-        assert const == pytest.approx(p._ssa_spousal_offset[0, 10])
-
     def test_result_independent_of_starting_age_and_consistent(self):
         """Same age and spending from any starting age, equal to a fixed-age solve at that age.
 
@@ -420,18 +270,14 @@ _ISSUE195_OPTS = {"withSSAges": "Higher Income", "bequest": 0}
 
 @pytest.mark.usefixtures("october_2026")
 class TestNoPastClaimingAge:
-    def test_past_months_blocked_in_benefit_choice(self):
-        """Every zssa column for a month already behind us is bounded to zero."""
+    def test_open_ages_start_this_month(self):
+        """The candidates run from the age reached this month to 70, never a month behind us."""
         p = _issue195_plan()
-        p.solve("maxSpending", options=_ISSUE195_OPTS)
-        assert p.caseStatus == "solved"
-        current = p._ssaCurrentAgeMonths(0)
-        assert current == 66 * 12 + 9
-        _, ub = p.B.arrays()
-        for k in range(p._ssa_N_K):
-            month = 62 * 12 + k
-            expected = 0 if month < current else 1
-            assert ub[p.vm["zssa"].idx(0, k)] == expected, f"Claiming month {month // 12}y{month % 12}m"
+        assert p._ssaCurrentAgeMonths(0) == 66 * 12 + 9
+        ages = p._ssaOpenAges(0)
+        assert round(ages[0] * 12) == 66 * 12 + 9
+        assert ages[-1] == pytest.approx(70.0)
+        assert len(ages) == 40
 
     def test_optimized_age_not_in_the_past(self):
         """The optimizer used to pick 65 11/12, collecting a full year of benefits it never could."""
@@ -469,6 +315,23 @@ class TestNoPastClaimingAge:
         p = _issue195_plan()
         p.solve("maxSpending", options={**exact, "withSSAges": "Higher Income"})
         assert p.caseStatus == "solved"
-        assert p._ssa_pair_exact
         assert float(p.ssecAges[0]) == pytest.approx(70.0)
         assert float(p.g_n[0]) >= float(fixed.g_n[0]) - 1.0
+
+    def test_loop_mode_not_worse_than_any_entered_age(self):
+        """Issue #195 follow-up, with the taxes left to the loop as reported.
+
+        The MILP taxed each candidate age's benefits at the share the loop had settled for the
+        current age. Here it returned $190,539/yr where entering 70 gives $190,692/yr; on the case
+        as reported, 66 9/12 at $212,026/yr where 68 6/12 entered by hand gives $212,233/yr.
+        Each candidate is now a fixed-age solve.
+        """
+        p = _issue195_plan()
+        p.solve("maxSpending", options=_ISSUE195_OPTS)
+        assert p.caseStatus == "solved"
+        for age in (66 + 9 / 12, 68 + 6 / 12, 70):
+            fixed = _issue195_plan()
+            fixed.setSocialSecurity([3800, 1500], [age, 62 + 1 / 12])
+            fixed.solve("maxSpending", options={"bequest": 0})
+            assert fixed.caseStatus == "solved"
+            assert float(p.g_n[0]) >= float(fixed.g_n[0]) - 1.0, f"fixed claim at {age:.2f}"

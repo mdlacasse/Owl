@@ -797,19 +797,16 @@ this month, as benefits for earlier months cannot be collected retroactively).
 For a single individual the choices are `none` and the individual's name.
 For couples the choices are `none`, each spouse's name, and `both`.
 Selecting one spouse's name is particularly useful when the other has already started collecting.
-The optimizer will choose the claiming month that maximizes the plan objective (spending or bequest),
-taking into account the interaction with taxes, Medicare, and Roth conversion strategy.
+**Owl** solves the plan once for each open claiming month, with the same options as any other solve,
+and keeps the month that gives the best objective (spending or bequest). Every candidate accounts for
+taxes, Medicare, and the Roth conversion strategy, and the result is never worse than any age
+you could enter by hand. Each candidate is a full solve, so a search takes up to 97 of them
+(fewer the closer to 70), run in parallel.
 
-**Optimizing one spouse versus both:** when only one spouse's age is optimized, **Owl** evaluates
-every benefit the household receives for each candidate month — both own benefits, the spousal
-add-on, and the survivor benefit the longer-lived spouse inherits — so that choice is exact.
-With `both`, the spousal and survivor amounts depend on the pair of ages chosen and are instead
-settled by the self-consistent loop, which can stop on a slightly worse pair.
-The recommended strategy for a couple where neither spouse has claimed is to optimize
-one spouse at a time: select the first spouse's name and solve, then select the other's and solve
-again, as each optimal age is written back to this page and is used as the fixed age of that
-spouse in the next solve. Repeat until neither age changes, which usually takes one or two rounds.
-Then compare with a solve using `both`, and keep whichever gives the better objective.
+**Optimizing one spouse versus both:** with `both`, **Owl** searches one spouse's age with the other's
+held, then the other's, and repeats until neither age changes, which usually takes one or two rounds.
+Each candidate includes every benefit the household receives — both own benefits, the spousal
+add-on, and the survivor benefit the longer-lived spouse inherits.
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
 

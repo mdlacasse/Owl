@@ -1991,18 +1991,15 @@ async def run_from_params(
                         Used to determine the Medicare IRMAA surcharge bracket in the first
                         two plan years, where premiums are based on income two years prior.
                         Omit if unknown; Owl will assume the lowest bracket.
-        optimize_ss_ages: Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+        optimize_ss_ages: Controls SS claiming-age optimization (monthly precision, 62–70).
                         True or "all" → optimize all individuals.
                         A single name string (e.g. "Alice") → optimize only that person.
                         A list of names (e.g. ["Alice"]) → optimize those people.
                         None or False → use fixed ss_ages for everyone (default).
                         Already-claimed individuals are detected automatically (current age >=
                         ss_ages value) and pinned to their recorded age regardless of this setting.
-                        Formerly: If True, the optimizer finds the best Social Security claiming
-                        month for each person (ages 62–70, monthly resolution) instead of
-                        using the fixed ss_ages values.  The fixed ss_ages are used as
-                        starting hints but the MIP is free to choose any claiming month.
-                        Adds binary variables; increases solve time.
+                        The plan is solved at each open claiming month and the best is kept, so
+                        a search costs up to 97 solves (fewer the closer to 70).
         constrain_mean: If True, each generated rate series is post-processed so its
                         arithmetic mean exactly matches the historical mean of the selected
                         window, isolating sequence-of-returns (SOR) risk from mean-estimation
@@ -3543,7 +3540,7 @@ async def run_stochastic(
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
                               other individual. Takes precedence over no_roth_person.
         bequest:              Target bequest in today's $ for maxSpending objective.
-        optimize_ss_ages:     Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+        optimize_ss_ages:     Controls SS claiming-age optimization (monthly precision, 62–70).
                               None/False → disabled; True/"all" → all persons; a single name
                               string → that person only; a list of names → those persons only.
                               Selecting a person whose entered age is already past (already
@@ -4928,7 +4925,7 @@ async def run_longevity_stochastic(
         swap_roth_converters_year: Calendar year conversion responsibility switches to the
                               other individual. Takes precedence over no_roth_person.
         bequest:          Target bequest in today's $ for maxSpending objective.
-        optimize_ss_ages: Controls SS claiming-age optimization (MIP, monthly precision, 62–70).
+        optimize_ss_ages: Controls SS claiming-age optimization (monthly precision, 62–70).
                           None/False → disabled; True/"all" → all persons; a single name string
                           → that person only; a list of names → those persons only.
                           Selecting a person whose entered age is already past (already

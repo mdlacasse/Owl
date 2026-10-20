@@ -24,6 +24,21 @@ branch-and-bound plan. On the 18 examples, Florin measured no example worse, gai
 on seven others, and 1.5x the total local-search time. Thanks to Florin Mateoc for finding it,
 explaining it, and proposing the fix (#197).
 
+#### Fixed: an optimized Social Security claiming age is never worse than one entered by hand
+
+The claiming age was chosen inside the solve, with a binary per claiming month. Each candidate
+month's benefits were taxed at the share settled for the current one, so the choice ignored how a
+later claim changes the tax on benefits, and it kept the earliest open month. On the case reported
+in #195, it chose 66 9/12 for \$212,035/yr where entering 68 6/12 by hand gives \$212,233/yr.
+Taxing each candidate exactly inside the solve was tried and dropped: neighbouring months differ by
+less than the solver's gap, and a single solve took minutes instead of seconds. **Owl** now solves
+the plan once for each open claiming month, with the case's own options, and keeps the best, so
+the age chosen is never worse than any age entered. With both spouses selected, each age is
+searched in turn with the other held, until neither moves. The reported case now gets 68 5/12 at
+\$212,236/yr (40 solves, 1.4 s), or 69 2/12 at \$213,464/yr with the tax thresholds solved exactly.
+The claiming-month binaries and their benefit tables are removed from the model. Thanks to
+@sengsational for following up with the hand-entered ages that showed it (#195).
+
 ### Version 2026.10.17
 
 #### Fixed: optimized Social Security claiming ages can no longer be in the past

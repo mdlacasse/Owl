@@ -30,8 +30,9 @@ machine speed or load), with a time backstop (`stepTime`), and solved to a relat
 `STEP_GAP`, whatever the case's gap; the whole search has a budget (`totalTime`). A capped step
 keeps the best plan it found. When the loop rebuilds the problem of the previous iteration, that
 iteration's plan is returned without searching again. Withdrawal-ordering gates
-(withdrawalOrder="taxable_first") and claiming-age selectors (withSSAges="optimize") are not searched: Plan.solve() hands such cases to
-branch-and-bound.
+(withdrawalOrder="taxable_first") are not searched: Plan.solve() hands such cases to branch-and-bound.
+Claiming ages (withSSAges) are chosen around the solve, one fixed-age solve per candidate, each of
+which can use this search.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 

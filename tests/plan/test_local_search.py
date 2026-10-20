@@ -127,12 +127,11 @@ def test_invalid_values_are_rejected(opts):
         _load()._applyBreakpointOptions(dict(opts))
 
 
-def test_claiming_ages_and_ordering_go_to_branch_and_bound():
+def test_ordering_goes_to_branch_and_bound():
     p = _load()
-    for extra in ({"withSSAges": "optimize"}, {"withdrawalOrder": "taxable_first"}):
-        opts = {"withNIIT": "optimize", "mipStrategy": "local-search", **extra}
-        assert not p._useLocalSearch(opts)
-        assert opts["mipStrategy"] == "branch-and-bound"
+    opts = {"withNIIT": "optimize", "mipStrategy": "local-search", "withdrawalOrder": "taxable_first"}
+    assert not p._useLocalSearch(opts)
+    assert opts["mipStrategy"] == "branch-and-bound"
 
 
 def test_threshold_method_label():

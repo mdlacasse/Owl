@@ -140,7 +140,7 @@ as commands and lets you attach resources to the conversation):
 | | `max_roth_conversion` | Annual per-person Roth conversion cap in \$/year |
 | | `roth_conversions` | Conversions held fixed `[{"person","year","amount"}]`; listing a year pins it to that amount, `0` pins no conversion, unlisted years stay optimized |
 | | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
-| | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
+| | `optimize_ss_ages` | SS claiming-age search (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
 | | `with_aca` | How ACA premiums are solved: `"loop"` (default) or `"optimize"`; ACA is modeled whenever `slcsp` > 0 |
 | | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum). Use `"local-search"` for the plan the user will act on: more accurate, for seconds to a few minutes of solving. The stress tools (`run_stochastic`, the frontiers, `run_historical`, `run_monte_carlo`) solve every scenario with the loop and say so in `breakpoint_method_note` |

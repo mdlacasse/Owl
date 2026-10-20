@@ -2629,99 +2629,11 @@ class Plan:
         sb_lp = options.get("withSeniorBonus", "loop") == "optimize" and bool(self._sb_years)
         self._sb_lp = sb_lp
         ordering = options.get("withdrawalOrder", "optimal") == "taxable_first"
-        # withSSAges: "fixed"/"none" → no opt; "optimize" → all;
-        # individual name or list of names → optimize only those individuals.
-        _ssa_opt = options.get("withSSAges", "fixed")
-        if isinstance(_ssa_opt, (list, tuple)):
-            _ssa_optimize_set = set()
-            for name in _ssa_opt:
-                try:
-                    _ssa_optimize_set.add(self.inames.index(name))
-                except ValueError as e:
-                    raise ValueError(f"Unknown individual '{name}' for withSSAges:") from e
-            self._ssa_optimize_set = _ssa_optimize_set
-        elif _ssa_opt == "optimize":
-            self._ssa_optimize_set = set(range(self.N_i))
-        elif _ssa_opt not in ("fixed", "none"):
-            # Single name string (e.g. "Jack").
-            try:
-                self._ssa_optimize_set = {self.inames.index(_ssa_opt)}
-            except ValueError as e:
-                raise ValueError(f"Unknown individual '{_ssa_opt}' for withSSAges:") from e
-        else:
-            self._ssa_optimize_set = set()
-        ssa_lp = bool(self._ssa_optimize_set)
+        self._ssa_optimize_set = self._parseSSAgesOption(options)
         self._aca_lp = aca_lp and self.slcsp_annual > 0 and self.n_aca > 0
         self._ltcg_lp = ltcg_lp
         self._niit_lp = niit_lp
         Nmed = self.N_n - self.nm
-
-        # SS claiming-age optimization: precompute benefit table and initialize SC offset.
-        pias = getattr(self, "ssecAmounts", None)
-        ssa_lp = ssa_lp and pias is not None and bool(np.any(pias > 0))
-        self._ssa_lp = ssa_lp
-        self._ssa_N_K = 97  # monthly grid from 62.0 to 70.0 (inclusive)
-        if ssa_lp:
-            fras = socsec.getFRAs(self.yobs, self.mobs, self.tobs)
-            trim_pct = getattr(self, "ssecTrimPct", 0) or 0
-            trim_year = getattr(self, "ssecTrimYear", None)
-            self._ssa_B_own, self._ssa_ages_k = socsec.build_own_benefit_table(
-                pias,
-                fras,
-                self.yobs,
-                self.mobs,
-                self.tobs,
-                self.horizons,
-                self.N_i,
-                self.N_n,
-                self.gamma_n[:-1],
-                trim_pct=trim_pct,
-                trim_year=trim_year,
-                N_K=self._ssa_N_K,
-                thisyear=None,
-            )
-            # With a couple where only one claiming age is free, every benefit the household
-            # receives -- both own benefits, the spousal add-on, and the survivor benefit --
-            # is a function of that one choice. Tabulate the full streams for each candidate
-            # age so the MILP sees them exactly: the free person's row goes in B_own and the
-            # partner's in B_cross, keyed on the free person's zssa. When both ages are free,
-            # the spousal and survivor amounts depend on the pair of choices -- not linear in
-            # zssa -- so they are carried in the offset below and are only exact at convergence.
-            free = [i for i in range(self.N_i) if not self._ssaAgeIsFixed(i)]
-            self._ssaCheckPastAges()
-            self._ssa_B_cross = np.zeros_like(self._ssa_B_own)
-            self._ssa_pair_exact = self.N_i == 2 and len(free) == 1
-            if self._ssa_pair_exact:
-                i_free = free[0]
-                ages = np.array(self.ssecAges, dtype=float)
-                B_pair = np.zeros_like(self._ssa_B_own)
-                for k in range(self._ssa_N_K):
-                    ages[i_free] = self._ssa_ages_k[k]
-                    zeta_in, _ = socsec.compute_social_security_benefits(
-                        pias,
-                        ages,
-                        self.yobs,
-                        self.mobs,
-                        self.tobs,
-                        self.horizons,
-                        self.N_i,
-                        self.N_n,
-                        trim_pct=trim_pct,
-                        trim_year=trim_year,
-                        thisyear=None,
-                        survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
-                    )
-                    B_pair[:, k, :] = zeta_in * self.gamma_n[:-1]
-                self._ssa_B_own = np.zeros_like(B_pair)
-                self._ssa_B_own[i_free] = B_pair[i_free]
-                self._ssa_B_cross[1 - i_free] = B_pair[1 - i_free]
-
-            # Initialize spousal/survivor offset from initial claiming ages:
-            # offset = total zetaBar - modeled benefit at the initial ages. It vanishes when the
-            # pair is tabulated exactly; otherwise it carries the spousal add-on and the excess
-            # survivor benefit, max(0, survivor - own), which is non-negative by construction.
-            k_init = np.clip(np.round((np.asarray(self.ssecAges, dtype=float) - 62.0) * 12), 0, self._ssa_N_K - 1)
-            self._ssa_spousal_offset = self.zetaBar_in - self._ssaModeledBenefit(k_init.astype(int))
 
         # Stack all variables in a single block vector with all binary variables at the end.
         vm = VarMap()
@@ -2746,7 +2658,6 @@ class Plan:
         vm.add_if(ltcg_lp, "gn", self.N_n)  # G_n: ordinary taxable income (LTCG MILP)
         vm.add_if(niit_lp or sb_lp, "magi", self.N_n)  # MAGI_n LP variable (NIIT, senior bonus)
         vm.add_if(niit_lp, "Jn", self.N_n)  # J_n: NIIT tax LP variable (NIIT MILP)
-        vm.add_if(ssa_lp, "ssb", self.N_i, self.N_n)  # SS own-benefit LP var (SS age optimize)
         vm.add_if(sb_lp, "sbp", len(self._sb_years))  # senior-bonus reduction per person, bonus years
         # State income tax LP variables (continuous, before binary block).
         # No-income-tax states (FL, TX, AK, ...) have all-zero brackets, so st_T_n is
@@ -2765,7 +2676,6 @@ class Plan:
         vm.add_if(self._aca_lp, "za", self.n_aca, tx.N_ACA_R)  # ACA bracket selection binaries
         vm.add_if(ltcg_lp, "zl", 2, self.N_n)  # 2×N_n regime binaries (LTCG MILP)
         vm.add_if(niit_lp, "zj", self.N_n)  # N_n NIIT threshold binaries
-        vm.add_if(ssa_lp, "zssa", self.N_i, self._ssa_N_K)  # claiming-month selectors (SS age)
         vm.add_if(ordering, "zo", 2, self.N_n)  # withdrawal-ordering gates (taxable_first)
         vm.add_if(sb_lp, "zsb", len(self._sb_years))  # senior bonus fully phased out, bonus years
         self.vm = vm
@@ -2816,7 +2726,6 @@ class Plan:
         if self._st_lp:
             self._add_state_taxable_income()
         self._configure_ss_taxability_lp(options)
-        self._configure_ss_age_variables()
         self._configure_ltcg_constraints()
         self._configure_Medicare_binary_variables(options)
         self._add_Medicare_costs(options)
@@ -2917,13 +2826,10 @@ class Plan:
         # through tss: Psi_n there lags the LP by one self-consistent iteration.
         ss_lp = "tss" in vm
         # SS adjustment: federal G_n contains taxable SS; remove it in years whose state excludes SS.
-        # With withSSAges="optimize" the own benefit is the ssb variable (added to the row below),
-        # and only the spousal/survivor offset is a parameter.
-        ssb_lp = not ss_lp and "ssb" in vm
         if ss_lp:
             ss_excl_n = np.zeros(self.N_n)
         else:
-            ss_par_n = np.sum(self._ssa_spousal_offset if ssb_lp else self.zetaBar_in, axis=0)
+            ss_par_n = np.sum(self.zetaBar_in, axis=0)
             ss_excl_n = np.where(self.st_tax_ss_n, 0.0, self.Psi_n * ss_par_n)
         # Pension exemption (parameter): each person's pension up to their own cap.
         pe_adj_n = np.sum(np.minimum(self.piBar_in, self.st_pe_cap_in), axis=0)
@@ -2945,9 +2851,6 @@ class Plan:
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             if ss_lp and not self.st_tax_ss_n[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
-            elif ssb_lp and not self.st_tax_ss_n[n]:
-                for i in range(self.N_i):
-                    row.addElem(vm["ssb"].idx(i, n), self.Psi_n[n])  # exclude Psi_n * own benefit
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # A personal credit only offsets tax: the credit used stays below the year's state tax.
@@ -3242,8 +3145,6 @@ class Plan:
         g_half_jn = np.maximum(g_jn, 1.0 + np.max(tau_ijn, axis=0) / 2)
 
         ss_in = self.zetaBar_in
-        if "ssb" in self.vm:
-            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + self._ssaMaxBenefit()[:, :Nn])
         pos = lambda a: np.maximum(a, 0.0)  # noqa: E731
         fixed_n = (
             np.sum(pos(self.omega_in) + pos(self.other_inc_in) + pos(self.netinv_in), axis=0)
@@ -3388,10 +3289,6 @@ class Plan:
         """
         Nn = self.N_n
         ss_in = self.zetaBar_in
-        if "ssb" in self.vm:
-            # The MAGI rows carry the own benefit of whichever claiming age the MILP picks, which can
-            # exceed the previous iterate's: bound it by the largest candidate.
-            ss_in = np.maximum(ss_in, self._ssa_spousal_offset + self._ssaMaxBenefit()[:, :Nn])
         fixed = (
             np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
             + np.sum(self.piBar_in + self.spiaBar_in + ss_in + self.Lambda_in, axis=0)
@@ -3526,12 +3423,7 @@ class Plan:
             if "maca" in self.vm:
                 row.addElem(self.vm["maca"].idx(n), 1)
             for i in range(self.N_i):
-                if "ssb" in self.vm:
-                    # SS own-benefit is an LP variable; spousal/survivor is a parameter offset.
-                    ss_income = self._ssa_spousal_offset[i, n]
-                    row.addElem(self.vm["ssb"].idx(i, n), -1)
-                else:
-                    ss_income = self.zetaBar_in[i, n]
+                ss_income = self.zetaBar_in[i, n]
                 rhs += (
                     self.omega_in[i, n]
                     + self.other_inc_in[i, n]
@@ -3599,18 +3491,14 @@ class Plan:
                         + self.spiaBar_in[i, n]
                     )
                 else:
-                    ss_const, ssb_idx = self._ss_benefit_terms(i, n)
                     rhs += (
                         self.omega_in[i, n]
                         + self.other_inc_in[i, n]
                         + self.netinv_in[i, n]
-                        + self.Psi_n[n] * ss_const
+                        + self.Psi_n[n] * self.zetaBar_in[i, n]
                         + self.piBar_in[i, n]
                         + self.spiaBar_in[i, n]
                     )
-                    if ssb_idx is not None:
-                        # Taxable SS follows the claiming age the MILP picks (Psi_n lags).
-                        row.addElem(ssb_idx, -self.Psi_n[n])
                 row.addElem(self.vm["w"].idx(i, 1, n), -1)
                 row.addElem(self.vm["x"].idx(i, n), -1)
                 fak = fak_in[i, n]
@@ -3766,32 +3654,32 @@ class Plan:
             )
             self.B.setRange(tss_idx, 0, 0.85 * zetaBar_n)  # t^σ ≤ 0.85·ζ̄
 
-    def _ss_benefit_terms(self, i, n):
-        """Person i's SS income in year n as (constant part, ssb column index or None).
+    def _parseSSAgesOption(self, options):
+        """Indices selected by withSSAges: "fixed"/"none" → none; "optimize" → all;
+        an individual's name or a list of names → those individuals."""
+        sel = options.get("withSSAges", "fixed")
+        if isinstance(sel, (list, tuple)):
+            names = list(sel)
+        elif sel == "optimize":
+            return set(range(self.N_i))
+        elif sel in ("fixed", "none"):
+            return set()
+        else:
+            names = [sel]  # Single name string (e.g. "Jack").
+        chosen = set()
+        for name in names:
+            try:
+                chosen.add(self.inames.index(name))
+            except ValueError as e:
+                raise ValueError(f"Unknown individual '{name}' for withSSAges:") from e
+        return chosen
 
-        With withSSAges="optimize" the own benefit is the LP variable ssb[i, n] and only the
-        spousal/survivor offset is a parameter, so every row that charges tax or premiums on SS
-        sees the benefit of the claiming age the MILP picks. Otherwise all of it is zetaBar.
-        """
-        if "ssb" in self.vm:
-            return self._ssa_spousal_offset[i, n], self.vm["ssb"].idx(i, n)
-        return self.zetaBar_in[i, n], None
-
-    def _ssaModeledBenefit(self, k_i):
-        """
-        Return the SS benefit the MILP models for claiming-age indices ``k_i``, shape (N_i, N_n).
-
-        Person i's ssb row is their B_own entry at their own index plus, when the couple is
-        tabulated exactly, their B_cross entry at the partner's index.
-        """
-        modeled = np.array([self._ssa_B_own[i, k_i[i], :] for i in range(self.N_i)])
-        if self.N_i == 2:
-            modeled += np.array([self._ssa_B_cross[i, k_i[1 - i], :] for i in range(self.N_i)])
-        return modeled
-
-    def _ssaMaxBenefit(self):
-        """Upper bound on each person's modeled ssb over all candidate claiming ages, (N_i, N_n)."""
-        return np.max(self._ssa_B_own, axis=1) + np.max(self._ssa_B_cross, axis=1)
+    def _ssaOpenAges(self, i):
+        """Claiming ages (years, whole months) still open to individual i: from eligibility or the
+        current month, whichever is later, to 70."""
+        eligible = 62 * 12 if self.tobs[i] <= 2 else 62 * 12 + 1
+        first = max(eligible, self._ssaCurrentAgeMonths(i))
+        return [m / 12 for m in range(first, 70 * 12 + 1)]
 
     def _ssaCurrentAgeMonths(self, i):
         """
@@ -3805,10 +3693,10 @@ class Plan:
 
     def _ssaAgeIsFixed(self, i):
         """
-        Return True if individual i's SS claiming age is not a free decision variable.
+        Return True if individual i's SS claiming age is held rather than searched.
 
-        An age is fixed when the individual has no PIA or was not selected by withSSAges. A selected
-        individual is always free: _ssaCheckPastAges refuses one whose entered age is already past.
+        An age is held when the individual has no PIA or was not selected by withSSAges. A selected
+        individual is always searched: _ssaCheckPastAges refuses one whose entered age is already past.
         """
         pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
         not_selected = i not in getattr(self, "_ssa_optimize_set", set(range(self.N_i)))
@@ -3836,77 +3724,6 @@ class Plan:
                     f"If {name} is already collecting benefits, do not select {name} in withSSAges; "
                     f"otherwise enter a claiming age from this month on."
                 )
-
-    @_fixedAcrossIterations
-    def _configure_ss_age_variables(self):
-        """
-        Add SS claiming-age optimization constraints (withSSAges='optimize' mode).
-
-        Two constraint groups per individual i:
-          a) AMO (exactly-one claiming month): sum_k zssa[i,k] = 1
-          b) Benefit definition, for each n:
-             ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k] + sum_k B_cross[i,k,n] * zssa[partner,k]
-
-        For individuals not selected by withSSAges, all zssa[i,k] are fixed to 0/1 via bounds so
-        the optimizer leaves them at the recorded age.
-        For individuals with zero PIA, zssa[i,0] is fixed to 1 (irrelevant, B_own=0).
-        For free individuals, claiming months before 62 (eligibility) or before the current
-        month are fixed to 0: B_own would otherwise pay a past claiming age a full first year.
-
-        Notes
-        -----
-        When only one of a couple's ages is free, B_own and B_cross hold the full benefit streams
-        and ssb[i,n] is exact. Otherwise ssb[i,n] is the own benefit only (B_cross is zero), and
-        spousal/survivor offsets are added as parameters (_ssa_spousal_offset[i,n]) in the
-        cash-flow constraint and updated each SC iteration.
-        """
-        if not self._ssa_lp:
-            return
-
-        vm = self.vm
-        N_K = self._ssa_N_K
-        B_own = self._ssa_B_own
-        B_cross = self._ssa_B_cross
-
-        for i in range(self.N_i):
-            pia_i = int(self.ssecAmounts[i]) if hasattr(self, "ssecAmounts") else 0
-
-            if self._ssaAgeIsFixed(i):
-                # Fix to the known/current claiming age (or age 62 if no SS).
-                if pia_i == 0:
-                    k_fixed = 0  # Arbitrary; B_own is all-zero anyway.
-                else:
-                    k_fixed = int(round((float(self.ssecAges[i]) - 62.0) * 12))
-                    k_fixed = max(0, min(N_K - 1, k_fixed))
-                for k in range(N_K):
-                    lb = 1 if k == k_fixed else 0
-                    self.B.setRange(vm["zssa"].idx(i, k), lb, lb)
-            else:
-                # Free individual: fix ineligible and past claiming ages to 0.
-                bornOnFirstDays = self.tobs[i] <= 2
-                eligible_months = 62 * 12 if bornOnFirstDays else 62 * 12 + 1
-                earliest_months = max(eligible_months, self._ssaCurrentAgeMonths(i))
-                for k in range(N_K):
-                    if round(self._ssa_ages_k[k] * 12) < earliest_months:
-                        self.B.setRange(vm["zssa"].idx(i, k), 0, 0)
-
-            # a) AMO: exactly one claiming month per individual.
-            amo_row = {vm["zssa"].idx(i, k): 1 for k in range(N_K)}
-            self.A.addNewRow(amo_row, 1, 1, tag=("ss_age_amo", i))
-
-            # b) Benefit definition: ssb[i,n] = sum_k B_own[i,k,n] * zssa[i,k] + partner's B_cross term
-            for n in range(self.N_n):
-                ssb_idx = vm["ssb"].idx(i, n)
-                row = {ssb_idx: 1}
-                for k in range(N_K):
-                    b_val = float(B_own[i, k, n])
-                    if b_val != 0.0:
-                        row[vm["zssa"].idx(i, k)] = row.get(vm["zssa"].idx(i, k), 0) - b_val
-                    c_val = float(B_cross[i, k, n])
-                    if c_val != 0.0:
-                        row[vm["zssa"].idx(1 - i, k)] = row.get(vm["zssa"].idx(1 - i, k), 0) - c_val
-                # equality: ssb[i,n] - sum_k B_own * zssa = 0
-                self.A.addNewRow(row, 0, 0, tag=("ss_age_benefit", i, n))
 
     def _configure_ltcg_constraints(self):
         """
@@ -4312,10 +4129,7 @@ class Plan:
                     + 0.5 * self.kappa_ijn[i, 0, n2] * afac
                 )
                 if not ss_lp:
-                    ss_const, ssb_idx = self._ss_benefit_terms(i, n2)
-                    sumoni += self.Psi_n[n2] * ss_const  # taxable SS (SC-loop param)
-                    if ssb_idx is not None:
-                        row.addElem(ssb_idx, -self.Psi_n[n2])
+                    sumoni += self.Psi_n[n2] * self.zetaBar_in[i, n2]  # taxable SS (SC-loop param)
                 rhs += sumoni
 
             if ss_lp:
@@ -4412,14 +4226,11 @@ class Plan:
                 row_magi[d_idx] = row_magi.get(d_idx, 0) - afac
                 row_magi[w0_idx] = row_magi.get(w0_idx, 0) + (afac - bfac)
 
-                ss_const, ssb_idx = self._ss_benefit_terms(i, n)
-                if ssb_idx is not None:
-                    row_magi[ssb_idx] = row_magi.get(ssb_idx, 0) - 1
                 rhs_magi += (
                     self.omega_in[i, n]
                     + self.other_inc_in[i, n]
                     + self.netinv_in[i, n]
-                    + ss_const  # full SS (not 0.5×SS; ACA uses MAGI)
+                    + self.zetaBar_in[i, n]  # full SS (not 0.5×SS; ACA uses MAGI)
                     + self.piBar_in[i, n]
                     + self.spiaBar_in[i, n]
                     + 0.5 * self.kappa_ijn[i, 0, n] * afac
@@ -5092,6 +4903,8 @@ class Plan:
         u.normalize_mode_options(myoptions)
 
         self._applyBreakpointOptions(myoptions)
+        if self._ssaSelected(myoptions):
+            return self._ssAgeSearch(objective, myoptions)
         if self._useLocalSearch(myoptions):
             return self._localSearchSolve(objective, myoptions)
 
@@ -5152,7 +4965,6 @@ class Plan:
         self._ltcg_lp = False  # Will be set to True in _buildOffsetMap when withLTCG="optimize"
         self._niit_lp = False  # Will be set to True in _buildOffsetMap when withNIIT="optimize"
         self._sb_lp = False  # Will be set to True in _buildOffsetMap when withSeniorBonus="optimize"
-        self._ssa_lp = False  # Will be set to True in _buildOffsetMap when withSSAges="optimize"
         self._st_lp = False  # Will be set to True in _buildOffsetMap when state is set
         self._adjustedParameters = False  # Force fresh parameter setup for each solve()
         self._highs_warm_start = None  # MIP warm-start hint; reset each solve(), updated each SC iter
@@ -5289,6 +5101,96 @@ class Plan:
         if strategy not in ("branch-and-bound", "local-search"):
             raise ValueError(f"mipStrategy '{strategy}' must be 'branch-and-bound' or 'local-search'.")
 
+    @staticmethod
+    def _ssaSelected(options):
+        """True when withSSAges selects anyone: "optimize", a name, or a non-empty list of names."""
+        sel = options.get("withSSAges", "fixed")
+        if isinstance(sel, (list, tuple)):
+            return len(sel) > 0
+        return sel not in ("fixed", "none")
+
+    def _ssAgeSearch(self, objective, options):
+        """
+        withSSAges: pick claiming ages by solving the plan at each open claiming month.
+
+        Each candidate is an ordinary fixed-age solve, in the case's own tax modes, so the ages
+        returned are never worse than any age the user could enter by hand. A single selected
+        individual is searched once over every open month; with two, each age is searched in turn
+        with the other held, until neither moves. Candidates run on clones, in parallel threads.
+
+        Choosing the age inside the MILP itself, with a binary per claiming month, taxed every
+        candidate's benefits as if they were the current iterate's under the loop, and picked the
+        earliest open month on the case of issue #195. Taxing them exactly made the MILP
+        intractable: neighbouring ages differ by less than the relative gap.
+        """
+        import io
+        import os
+        from concurrent.futures import ThreadPoolExecutor
+
+        chosen = self._parseSSAgesOption(options)
+        self._ssa_optimize_set = chosen
+        self._ssaCheckPastAges()
+        free = [i for i in sorted(chosen) if not self._ssaAgeIsFixed(i)]
+        fixed_opts = dict(options, withSSAges="fixed")
+
+        def _set(plan, ages):
+            plan.setSocialSecurity(
+                self.ssecAmounts,
+                list(ages),
+                trim_pct=self.ssecTrimPct,
+                trim_year=self.ssecTrimYear,
+                survivor_claim_age=self.ssecSurvivorClaimAge,
+            )
+
+        def _evaluate(ages):
+            c = clone(self, verbose=False)
+            c.mylog = log.Logger(verbose=False, logstreams=[io.StringIO()])
+            _set(c, ages)
+            c.solve(objective, fixed_opts)
+            return c._objectiveValue(objective) if c.caseStatus == "solved" else None
+
+        def key(ages):
+            return tuple(int(round(a * 12)) for a in ages)
+
+        values = {}
+        best = np.array(self.ssecAges, dtype=float)
+        workers = os.cpu_count() or 1
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ssages") as executor:
+
+            def _sweep(trials):
+                todo = [t for t in trials if key(t) not in values]
+                for t, v in zip(todo, executor.map(_evaluate, todo), strict=True):
+                    values[key(t)] = v
+
+            _sweep([best])
+            for _ in range(5 if len(free) > 1 else 1):
+                moved = False
+                for i in free:
+                    trials = []
+                    for a in self._ssaOpenAges(i):
+                        t = best.copy()
+                        t[i] = a
+                        trials.append(t)
+                    _sweep(trials)
+                    for t in trials:
+                        v, vb = values[key(t)], values[key(best)]
+                        if v is not None and (vb is None or v > vb + 1e-9 * abs(vb)):
+                            best, moved = t, True
+                if not moved:
+                    break
+
+        for i in free:
+            months = int(round(best[i] * 12))
+            self.mylog.print(
+                f"SS claiming age for {self.inames[i]}: {months // 12}y {months % 12}m, "
+                f"best of {len(values)} fixed-age solve(s)."
+            )
+        _set(self, best)
+        self.solve(objective, fixed_opts)
+        self.solverOptions = dict(options)
+        self._ssa_optimize_set = chosen
+        return None
+
     def _useLocalSearch(self, options):
         """True when this solve should run the local search (not from inside one)."""
         if getattr(self, "_localSearchSeeding", False) or options.get("mipStrategy") != "local-search":
@@ -5296,8 +5198,6 @@ class Plan:
         if not self._breakpointFamilies(options):
             return False
         blockers = []
-        if options.get("withSSAges", "fixed") == "optimize":
-            blockers.append('withSSAges="optimize"')
         if options.get("withdrawalOrder", "optimal") == "taxable_first":
             blockers.append('withdrawalOrder="taxable_first"')
         if blockers:
@@ -6838,33 +6738,6 @@ class Plan:
         if "tss" not in self.vm and fixedPsi is None:
             self._update_Psi_n()
 
-        # SS claiming-age LP: update zetaBar_in from optimal zssa solution each SC iteration.
-        # _ssa_spousal_offset is updated here so next iteration's cash-flow constraint is correct.
-        if getattr(self, "_ssa_lp", False) and "zssa" in self.vm:
-            zssa_vals = self.vm["zssa"].extract(x)
-            new_ages = np.array(self.ssecAges, dtype=float)
-            for i in range(self.N_i):
-                k_opt = int(np.argmax(zssa_vals[i, :]))
-                new_ages[i] = float(self._ssa_ages_k[k_opt])
-            new_zeta_in, _ = socsec.compute_social_security_benefits(
-                self.ssecAmounts,
-                new_ages,
-                self.yobs,
-                self.mobs,
-                self.tobs,
-                self.horizons,
-                self.N_i,
-                self.N_n,
-                trim_pct=getattr(self, "ssecTrimPct", 0) or 0,
-                trim_year=getattr(self, "ssecTrimYear", None),
-                thisyear=date.today().year,
-                survivor_claim_age=getattr(self, "ssecSurvivorClaimAge", "immediate"),
-            )
-            new_zetaBar_in = new_zeta_in * self.gamma_n[:-1]
-            k_opt = np.argmax(zssa_vals, axis=1)
-            self._ssa_spousal_offset = new_zetaBar_in - self._ssaModeledBenefit(k_opt)
-            self.zetaBar_in = new_zetaBar_in
-
         # NIIT (IRC §1411) and IRMAA use the AGI-basis MAGI_n (taxable SS only). ACA (below)
         # uses the full-SS MAGI_aca_n (§36B adds back non-taxable SS).
         if not getattr(self, "_niit_lp", False):
@@ -6946,13 +6819,6 @@ class Plan:
             mask = ss_n > 0
             self.Psi_n = np.zeros(Nn)
             self.Psi_n[mask] = np.minimum(self.tss_n[mask] / ss_n[mask], 0.85)
-
-        # Extract optimal SS claiming ages from zssa binaries (full aggregation only).
-        if "zssa" in vm and not short:
-            zssa_vals = vm["zssa"].extract(x)
-            for i in range(Ni):
-                k_opt = int(np.argmax(zssa_vals[i, :]))
-                self.ssecAges[i] = float(self._ssa_ages_k[k_opt])
 
         self.G_n = np.sum(self.f_tn, axis=0)
 
