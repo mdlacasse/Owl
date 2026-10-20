@@ -12,8 +12,10 @@ by a sequence of small restricted problems, each solved with most binaries pinne
    narrow band and the binaries free. Never the full program: if every attempt fails, the
    search stops and the caller keeps the loop's plan.
 2. (a) Social Security taxability pinned; the other families freed one at a time.
-   (b) The other families pinned; Social Security taxability free within a local-branching
-       ball of at most `radius` flips from the current plan.
+   (b) Social Security taxability free within a local-branching ball of at most `radius` flips
+       from the current plan, with the LTCG binaries free alongside it; the other families pinned.
+       The LTCG binaries hold ordinary income on one side of each LTCG threshold, so moving
+       income across a threshold and SS taxability with it takes both at once.
    (a') When neither moved: the other families freed jointly, once.
    (c)  The binaries of every family freed in the years where the plan's own income implies a
         different cost than the one charged.
@@ -274,7 +276,7 @@ class LocalSearch:
                 self._step(steps, f"round {rnd} (a): {FAMILY_LABEL[f]} free", res, dt)
                 if self._better(res, best):
                     best, improved = res, True
-            # (b) the others pinned; SS taxability within a local-branching ball.
+            # (b) SS taxability within a local-branching ball, LTCG free with it; the others pinned.
             if "zs" in fams:
                 A = copy.deepcopy(p.A)
                 row, ones = {}, 0
@@ -285,7 +287,8 @@ class LocalSearch:
                     else:
                         row[int(c)] = 1.0
                 A.addNewRow(row, -np.inf, self.radius - ones, tag=("local_branching", 0))
-                res, dt = self._mip(options, overrides=self._pin(best[1], others), A=A, warm=best[1])
+                pinned = [f for f in others if f != "zl"]
+                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), A=A, warm=best[1])
                 self._step(steps, f"round {rnd} (b): SS within {self.radius} flips", res, dt)
                 if self._better(res, best):
                     best, improved = res, True
