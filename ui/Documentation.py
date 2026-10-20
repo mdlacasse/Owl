@@ -809,6 +809,9 @@ Each candidate includes every benefit the household receives — both own benefi
 add-on, and the survivor benefit the longer-lived spouse inherits.
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
+Historical, Monte Carlo, spending-optimization, and regret runs do not search claiming ages again:
+they hold the ages the plan has. Choosing a claiming age in each scenario would choose it knowing
+that scenario's returns and lifespans; the age is chosen once, under the life expectancies entered.
 
 **Already-claiming individuals:** an individual whose claiming age entered in the
 *claiming at age...* fields is already past is taken to be collecting benefits, and a claim cannot

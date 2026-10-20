@@ -39,6 +39,14 @@ searched in turn with the other held, until neither moves. The reported case now
 The claiming-month binaries and their benefit tables are removed from the model. Thanks to
 @sengsational for following up with the hand-entered ages that showed it (#195).
 
+#### Changed: scenario runs keep the plan's claiming ages
+
+Historical-range, Monte Carlo, spending-optimization, and regret runs passed *Optimize SS claiming
+age for...* on to every scenario, which chose the age again knowing that scenario's returns and
+lifespans. A claiming age is decided once, without that knowledge: these runs now hold the ages
+the plan has, chosen by a solve under the life expectancies entered, and say so in the log. In the
+regret sweep, this leaves the first-year conversion as the only decision that varies.
+
 ### Version 2026.10.17
 
 #### Fixed: optimized Social Security claiming ages can no longer be in the past

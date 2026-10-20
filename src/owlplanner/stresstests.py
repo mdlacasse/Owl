@@ -443,6 +443,22 @@ REGRET_MAX_GAP = 1e-6
 _MILP_TAX_MODES = ("withMedicare", "withACA", "withSSTaxability", "withLTCG", "withNIIT")
 
 
+def _hold_ss_ages(plan, options, what):
+    """
+    Return a copy of options without withSSAges: claiming ages stay at the plan's values.
+
+    A claiming age is a single decision taken without knowing the future. Choosing it again in
+    each scenario would choose it knowing that scenario's returns and lifespans, and fold a
+    clairvoyant decision into what the run measures. It is chosen once, by a solve of the plan
+    under the life expectancies entered, and held fixed here.
+    """
+    opts = dict(options)
+    sel = opts.pop("withSSAges", "fixed")
+    if sel not in ("fixed", "none", [], ()):
+        plan.mylog.print(f"{what}: SS claiming ages held at their current values, not optimized.")
+    return opts
+
+
 def _downgrade_milp_tax_modes(options):
     """
     Flip MILP tax modes to their self-consistent loop equivalents.
@@ -454,7 +470,8 @@ def _downgrade_milp_tax_modes(options):
     modeling difference into the regret itself.
 
     withSSAges is deliberately left alone: it selects a claiming age rather than
-    linearizing a tax schedule, and has no loop equivalent.
+    linearizing a tax schedule, and has no loop equivalent. The sweep drops it on its own
+    (_hold_ss_ages).
 
     Returns (options, downgraded) where downgraded names the keys that were changed.
     """
@@ -664,7 +681,8 @@ def run_conversion_regret_sweep(
     Outcomes are in the objective's natural units, today's dollars: the first year's net
     spending ($/yr) for maxSpending, after-tax final savings estate for maxBequest (which
     requires options["netSpending"]). For a couple, only `person`'s conversion is pinned;
-    the spouse's remains free.
+    the spouse's remains free. Social Security claiming ages stay at the plan's values:
+    withSSAges is dropped from options.
 
     Cost is n_scenarios x (len(grid) + 2) full-horizon optimizations.
 
@@ -721,6 +739,7 @@ def run_conversion_regret_sweep(
     options, downgraded = _downgrade_milp_tax_modes(options) if milp_downgrade else (dict(options), [])
     if downgraded:
         plan.mylog.print(f"Regret sweep: {', '.join(downgraded)} solved in loop mode.", tag="INFO")
+    options = _hold_ss_ages(plan, options, "Regret sweep")
 
     # Solver tolerance is never a cost lever here. Regret near the valley is of order 1e-3
     # of the objective - smaller than the MIP gap Owl adopts by default when a tax mode is
@@ -1219,6 +1238,7 @@ def run_historical_range(
     When not augmented, a bar chart of spending/bequest by historical start year is also
     produced alongside the histogram.
     """
+    options = _hold_ss_ages(plan, options, "Historical range")
     if yend + plan.N_n > plan.year_n[0]:
         yend = plan.year_n[0] - plan.N_n
         plan.mylog.print(f"Upper bound for year range re-adjusted to {yend}.", tag="WARNING")
@@ -1345,7 +1365,7 @@ def run_mc(plan, objective, options, N, *, verbose=False, figure=False, progcall
 
     # Use a shorter per-scenario time limit so a single hard MILP instance cannot stall
     # the entire MC run for the full single-run TIME_LIMIT. Callers can override via options.
-    myoptions = dict(options)
+    myoptions = _hold_ss_ages(plan, options, "Monte Carlo")
     if "maxTime" not in myoptions:
         myoptions["maxTime"] = MC_TIME_LIMIT
 
@@ -1471,6 +1491,7 @@ def run_stochastic_spending(
                                scenario (see _year1_snapshot); None for infeasible or
                                short-horizon scenarios. Summarize with summarize_year1().
     """
+    options = _hold_ss_ages(plan, options, "Stochastic spending")
     if with_longevity and scenario_method == "historical":
         raise ValueError(
             "Longevity risk is not supported with historical scenarios "
@@ -1897,6 +1918,7 @@ def run_spending_bequest_frontier(
 
     Summarize with summarize_spending_bequest_frontier().
     """
+    options = _hold_ss_ages(plan, options, "Spending-bequest frontier")
     if scenario_method not in ("deterministic", "historical", "mc"):
         raise ValueError(
             f"scenario_method must be 'deterministic', 'historical' or 'mc', got '{scenario_method}'."

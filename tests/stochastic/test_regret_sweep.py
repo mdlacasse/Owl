@@ -334,6 +334,24 @@ class TestMilpDowngrade:
         assert changed == [] and out["withSSAges"] == "optimize"
 
 
+def test_claiming_ages_are_held_by_the_sweep(dana, monkeypatch):
+    """Only the conversion varies: no solve of the sweep searches claiming ages.
+
+    A sweep solve that searched them would raise here and count as a failed scenario (NaN).
+    """
+    from owlplanner.plan import Plan
+
+    def no_search(self, *args, **kwargs):
+        raise AssertionError("claiming ages searched inside the regret sweep")
+
+    monkeypatch.setattr(Plan, "_ssAgeSearch", no_search)
+    opts = {"solver": "HiGHS", "netSpending": 58.0, "withSSAges": "optimize"}
+    res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0.0], 1966, 1966)
+    assert np.all(np.isfinite(res["v_star"]))
+    assert np.all(np.isfinite(res["v_at"]))
+    assert opts["withSSAges"] == "optimize", "must not mutate the caller's options"
+
+
 class TestSummaryRobustnessLayer:
     """The readouts that decide what the plot is allowed to claim."""
 
