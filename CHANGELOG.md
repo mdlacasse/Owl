@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle
 
