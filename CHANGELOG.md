@@ -11,6 +11,19 @@ implies more than the loop's tolerance, \$50 a year by default, of different tax
 the horizon), the log now says so and points to `withSSTaxability = "optimize"`. A loop can also
 settle on a plan short of the exact one with a small residual, which this does not detect.
 
+#### Fixed: local search can move Social Security taxability and the LTCG regime together
+
+The LTCG regime binaries hold each year's ordinary income on one side of the 15% and 20% thresholds,
+gains or not. The local search's Social Security step kept them pinned, and no other step frees both
+families at once, so it could not move income under a threshold and the taxable share of benefits
+with it. On `Case_john+sally.toml` under `breakpointMethod = "local-search"`, the bequest was
+\$20,004 where branch-and-bound finds \$31,778: converting more early lets the couple's income drop
+under the 15% threshold later, where benefits are taxed in the phase-in rather than at 85%. The
+Social Security step now leaves the LTCG binaries free, and local search finds \$31,778, the
+branch-and-bound plan. On the 18 examples, Florin measured no example worse, gains of 0.08% or less
+on seven others, and 1.5x the total local-search time. Thanks to Florin Mateoc for finding it,
+explaining it, and proposing the fix (#197).
+
 ### Version 2026.10.17
 
 #### Fixed: optimized Social Security claiming ages can no longer be in the past
