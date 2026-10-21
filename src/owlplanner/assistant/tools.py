@@ -1996,8 +1996,9 @@ async def run_from_params(
                         A single name string (e.g. "Alice") → optimize only that person.
                         A list of names (e.g. ["Alice"]) → optimize those people.
                         None or False → use fixed ss_ages for everyone (default).
-                        Already-claimed individuals are detected automatically (current age >=
-                        ss_ages value) and pinned to their recorded age regardless of this setting.
+                        Do not select anyone whose ss_ages value is already past (current age >
+                        ss_ages value, e.g. already collecting): the solve returns an error naming
+                        them. Leave them out of the selection to keep their recorded age.
                         The plan is solved at each open claiming month and the best is kept, so
                         a search costs up to 97 solves (fewer the closer to 70).
         constrain_mean: If True, each generated rate series is post-processed so its

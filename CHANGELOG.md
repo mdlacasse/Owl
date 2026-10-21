@@ -35,7 +35,7 @@ less than the solver's gap, and a single solve took minutes instead of seconds. 
 the plan once for each open claiming month, with the case's own options, and keeps the best, so
 the age chosen is never worse than any age entered. With both spouses selected, each age is
 searched in turn with the other held, until neither moves. The reported case now gets 68 5/12 at
-\$212,236/yr (40 solves, 1.4 s), or 69 2/12 at \$213,464/yr with the tax thresholds solved exactly.
+\$212,236/yr (40 solves, 1.4 s), or 69 6/12 at \$213,350/yr with all tax thresholds solved exactly.
 The claiming-month binaries and their benefit tables are removed from the model. Thanks to
 @sengsational for following up with the hand-entered ages that showed it (#195).
 
