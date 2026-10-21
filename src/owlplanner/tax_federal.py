@@ -789,9 +789,24 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
     return n_aca, Lbar, tangents, slcsp_aca_n
 
 
+def taxBirthYears(yobs, mobs, tobs):
+    """
+    Birth years as the federal age-65 tests count them, for taxParams and seniorBonusSchedule.
+
+    The additional standard deduction (IRC 63(f)) and the OBBBA senior deduction
+    (IRC 151(d)(5)(C)(ii), Pub. L. 119-21 sec. 70103) require having attained age 65 before the
+    close of the taxable year, and the IRS treats a person as reaching an age on the day before the
+    birthday: "A person is considered to reach age 65 on the day before the person's 65th birthday"
+    (2025 Instructions for Form 1040). A January 1 birthday therefore counts in the year before,
+    which is why the 2025 instructions read "born before January 2, 1961".
+    """
+    yobs = np.asarray(yobs)
+    return yobs - ((np.asarray(mobs) == 1) & (np.asarray(tobs) == 1)).astype(yobs.dtype)
+
+
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
     """
-    Input is year of birth, index of shortest-lived individual,
+    Input is year of birth (as returned by taxBirthYears), index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
     in the plan, and the year that preTCJA rates might come back.
 
@@ -861,6 +876,7 @@ def seniorBonusSchedule(yobs, i_d, n_d, N_n):
     (0 outside the bonus years, or when nobody is 65 or older), and the MAGI threshold of that
     year's filing status, above which each individual's bonus shrinks by
     SENIOR_BONUS_PHASEOUT_RATE per dollar, down to zero.
+    Birth years yobs are as returned by taxBirthYears.
     """
     count_n = np.zeros(N_n, dtype=int)
     threshold_n = np.zeros(N_n)

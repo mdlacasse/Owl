@@ -477,6 +477,8 @@ class Plan:
         self.yOBBBA = 2032
         self.inames = inames
         self.yobs, self.mobs, self.tobs = u.parseDobs(dobs)
+        # Birth years for the federal 65+ deductions: a January 1 birthday counts in the year before.
+        self.yobs_tax = tx.taxBirthYears(self.yobs, self.mobs, self.tobs)
         self.dobs = dobs
         self.expectancy = np.array(expectancy, dtype=np.int32)
         self.sexes = ["M", "F"] if self.N_i == 2 else ["F"]  # default; overridden by setSexes()
@@ -2506,7 +2508,7 @@ class Plan:
             raise RuntimeError("A rate method needs to be first selected using setRates(...).")
 
         self.sigmaBar_n, self.theta_tn, self.Delta_tn = tx.taxParams(
-            self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, MAGI_n, self.yOBBBA
+            self.yobs_tax, self.i_d, self.n_d, self.N_n, gamma_n, MAGI_n, self.yOBBBA
         )
 
         # In a year whose state follows the federal standard deduction, the state deduction is
@@ -2520,7 +2522,8 @@ class Plan:
             if np.any(fed_no_bonus):
                 # Infinite MAGI phases the senior bonus out entirely.
                 no_bonus = np.full(self.N_n, np.inf)
-                sigma_nb = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus, self.yOBBBA)[0]
+                sigma_nb = tx.taxParams(self.yobs_tax, self.i_d, self.n_d, self.N_n, gamma_n, no_bonus,
+                                        self.yOBBBA)[0]
                 st_sigma[fed_no_bonus] = sigma_nb[fed_no_bonus]
             self.st_sigmaBar_n = st_sigma
 
@@ -2624,7 +2627,7 @@ class Plan:
         niit_lp = options.get("withNIIT", "loop") == "optimize"
         # OBBBA 65+ bonus deduction: in optimize mode its MAGI phase-out is part of the LP, in the
         # years where somebody receives it.
-        self._sb_count_n, self._sb_threshold_n = tx.seniorBonusSchedule(self.yobs, self.i_d, self.n_d, self.N_n)
+        self._sb_count_n, self._sb_threshold_n = tx.seniorBonusSchedule(self.yobs_tax, self.i_d, self.n_d, self.N_n)
         self._sb_years = [n for n in range(self.N_n) if self._sb_count_n[n] > 0]
         sb_lp = options.get("withSeniorBonus", "loop") == "optimize" and bool(self._sb_years)
         self._sb_lp = sb_lp
@@ -2775,7 +2778,7 @@ class Plan:
             # The deduction without the senior bonus; _add_senior_bonus_lp adds the bonus less its
             # phase-out as LP terms, so the bound here is the most it can reach.
             no_bonus = np.full(self.N_n, np.inf)
-            self._sb_base_n = tx.taxParams(self.yobs, self.i_d, self.n_d, self.N_n, self.gamma_n, no_bonus,
+            self._sb_base_n = tx.taxParams(self.yobs_tax, self.i_d, self.n_d, self.N_n, self.gamma_n, no_bonus,
                                            self.yOBBBA)[0]
             sigma_n = self._sb_base_n + tx.SENIOR_BONUS * self._sb_count_n
         for n in range(self.N_n):
@@ -5055,7 +5058,7 @@ class Plan:
         if options.get("withNIIT", "loop") == "optimize":
             fams.append("NIIT")
         if options.get("withSeniorBonus", "loop") == "optimize" and np.any(
-            tx.seniorBonusSchedule(self.yobs, self.i_d, self.n_d, self.N_n)[0]
+            tx.seniorBonusSchedule(self.yobs_tax, self.i_d, self.n_d, self.N_n)[0]
         ):
             fams.append("senior bonus")
         return fams
@@ -5923,7 +5926,7 @@ class Plan:
 
         res["NIIT"] = (self.J_n - tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, Nn)) / g
 
-        sigma_true = tx.taxParams(self.yobs, self.i_d, self.n_d, Nn, self.gamma_n, self.MAGI_n, self.yOBBBA)[0]
+        sigma_true = tx.taxParams(self.yobs_tax, self.i_d, self.n_d, Nn, self.gamma_n, self.MAGI_n, self.yOBBBA)[0]
         res["deduction"] = (self.sigmaBar_n - sigma_true) / g
 
         res["LTCG"] = (self.U_n - self._ltcg_tax_implied()) / g

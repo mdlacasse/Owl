@@ -1,3 +1,16 @@
+### Version WIP
+
+#### Fixed: a January 1 birthday gets the 65+ deductions a year earlier
+
+The additional standard deduction for age 65 (IRC 63(f)) and the OBBBA senior deduction
+(IRC 151(d)(5)(C)(ii)) require having attained age 65 before the end of the tax year, and the IRS
+treats a person as reaching an age on the day before the birthday (2025 Instructions for Form
+1040), hence "born before January 2, 1961" for 2025. **Owl** tested the birth year only, so a
+person born on January 1 got these deductions a year late: a single filer born January 1, 1962,
+had a 2026 deduction of \$16,100 instead of \$24,150. The age test now counts a January 1
+birthday in the year before. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the
+legal references and a fix (#207).
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

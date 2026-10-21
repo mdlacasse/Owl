@@ -60,6 +60,31 @@ def _obbba_bonus_mfj_total(magi):
 
 
 # ---------------------------------------------------------------------------
+# taxBirthYears(): age 65 is reached the day before the 65th birthday (issue #207)
+# ---------------------------------------------------------------------------
+
+
+def test_taxBirthYears_january_first_counts_in_prior_year():
+    yobs = tx.taxBirthYears([1961, 1962, 1962, 1962], [12, 1, 1, 2], [31, 1, 2, 1])
+    assert list(yobs) == [1961, 1961, 1962, 1962]
+
+
+def test_plan_january_first_birthday_gets_65_deductions_a_year_early():
+    """Born January 1 of the year that makes them 64: 65 for tax purposes this year."""
+    import owlplanner as owl
+
+    thisyear = date.today().year
+    sigma = {}
+    for dob in (f"{thisyear - 65}-12-31", f"{thisyear - 64}-01-01", f"{thisyear - 64}-01-02"):
+        p = owl.Plan(["A"], [dob], [80], "age65", verbose=False)
+        sigma[dob] = tx.taxParams(p.yobs_tax, p.i_d, p.n_d, p.N_n, np.ones(p.N_n + 1), np.zeros(p.N_n))[0][0]
+    dec31, jan1, jan2 = sigma.values()
+    assert jan1 == dec31
+    assert jan2 == float(tx.stdDeduction_OBBBA[0])
+    assert jan1 - jan2 >= float(tx.extra65Deduction[0])
+
+
+# ---------------------------------------------------------------------------
 # taxBrackets()
 # ---------------------------------------------------------------------------
 

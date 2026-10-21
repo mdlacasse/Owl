@@ -73,7 +73,7 @@ def _single(taxable, tax_deferred, conversions=None, spending=40):
 
 
 def _deduction_implied(p):
-    return tx.taxParams(p.yobs, p.i_d, p.n_d, p.N_n, p.gamma_n, p.MAGI_n, p.yOBBBA)[0]
+    return tx.taxParams(p.yobs_tax, p.i_d, p.n_d, p.N_n, p.gamma_n, p.MAGI_n, p.yOBBBA)[0]
 
 
 @needs_bonus_years
