@@ -45,7 +45,9 @@ Historical-range, Monte Carlo, spending-optimization, and regret runs passed *Op
 age for...* on to every scenario, which chose the age again knowing that scenario's returns and
 lifespans. A claiming age is decided once, without that knowledge: these runs now hold the ages
 the plan has, chosen by a solve under the life expectancies entered, and say so in the log. In the
-regret sweep, this leaves the first-year conversion as the only decision that varies.
+regret sweep, this leaves the first-year conversion as the only decision that varies. The MCP
+historical-range and Monte Carlo tools, which loop over scenarios themselves, hold the ages too,
+and their run-time estimate now times one solve at the ages chosen rather than the whole search.
 
 ### Version 2026.10.17
 

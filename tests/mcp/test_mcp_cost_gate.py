@@ -97,3 +97,59 @@ def test_run_monte_carlo_asks_then_runs(monkeypatch):
     data = _mc(confirm_long_run=True)
     assert data["status"] == "completed"
     assert data["n_scenarios_attempted"] == 5
+
+
+# Scenarios keep the plan's claiming ages, so optimize_ss_ages costs nothing per scenario.
+
+
+def test_ss_ages_not_a_cost_driver():
+    from owlplanner.assistant.tools import _cost_drivers
+
+    assert _cost_drivers({"withSSAges": "optimize"}) == []
+
+
+@pytest.fixture
+def no_age_search(monkeypatch):
+    from owlplanner.plan import Plan
+
+    def no_search(self, *args, **kwargs):
+        raise AssertionError("claiming ages searched inside a scenario run")
+
+    monkeypatch.setattr(Plan, "_ssAgeSearch", no_search)
+
+
+def test_monte_carlo_holds_claiming_ages(no_age_search):
+    out = _mc(optimize_ss_ages=True, confirm_long_run=True)
+    assert "error" not in out, out
+
+
+def test_historical_range_holds_claiming_ages(no_age_search):
+    from owlplanner.assistant.tools import _historical_blocking
+    from owlplanner.config import readConfig
+
+    plan = readConfig("examples/Case_dana.toml", verbose=False)
+    opts = {"solver": "HiGHS", "withSSAges": "optimize"}
+    _, n, results, _, _ = _historical_blocking(plan, "maxSpending", opts, 1966, 1967, False, False, 0)
+    assert n == 2 and len(results) == 2
+    assert opts["withSSAges"] == "optimize", "must not mutate the caller's options"
+
+
+def test_pilot_times_one_held_solve(monkeypatch):
+    """A base solve that searched the ages is timed again, once, at the ages chosen."""
+    from owlplanner.assistant.tools import _timed_solve
+    from owlplanner.config import readConfig
+    from owlplanner.plan import Plan
+
+    plan = readConfig("examples/Case_dana.toml", verbose=False)
+    calls = []
+    solve = Plan.solve
+
+    def spy(self, objective, options=None):
+        calls.append((self is plan, dict(options or {}).get("withSSAges")))
+        return solve(self, objective, options)
+
+    monkeypatch.setattr(Plan, "solve", spy)
+    _timed_solve(plan, "maxSpending", {"solver": "HiGHS", "withSSAges": "optimize"})
+    assert plan.caseStatus == "solved"
+    assert plan.solverOptions["withSSAges"] == "optimize"
+    assert calls[-1] == (False, None)
