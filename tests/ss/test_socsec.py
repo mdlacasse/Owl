@@ -998,3 +998,43 @@ def test_survivor_claim_window_born_on_the_first():
     assert (w1["earliest_age"], w1["full_rate_age"]) == pytest.approx((59 + 11 / 12, 66 + 11 / 12))
     assert (w15["earliest_age"], w15["full_rate_age"]) == pytest.approx((60.0, 67.0))
     assert w1["survivor_fra"] == w15["survivor_fra"] == 67.0
+
+
+# ---------------------------------------------------------------------------
+# Own delayed credits come out of the spousal excess (POMS RS 00615.694), #211
+# ---------------------------------------------------------------------------
+
+
+def _spouse_benefits(spouse_pia, spouse_age):
+    """Worker born 2/10/1962, PIA $3,000, claims at 67; spouse born 9/10/1962 (FRA 67)."""
+    zeta, _ = ss.compute_social_security_benefits(
+        np.array([3000, spouse_pia]), np.array([67.0, spouse_age]), np.array([1962, 1962]), np.array([2, 9]),
+        np.array([10, 10]), np.array([40, 40]), 2, 40, thisyear=2026)
+    return zeta[1]
+
+
+@pytest.mark.parametrize("spouse_age", [67.0, 68.0, 70.0])
+def test_own_delayed_credits_come_out_of_the_spousal_excess(spouse_age):
+    """Combined payment without the credits, own benefit with them subtracted: $1,000 + $500 at any age
+    from FRA, where the old sum gave $1,580 at 68 and $1,740 at 70."""
+    assert _spouse_benefits(1000, spouse_age)[2036 - 2026] / 12 == pytest.approx(1500.0)
+
+
+def test_own_benefit_above_the_spousal_amount_is_paid_alone():
+    """PIA $1,400 at 70: own $1,736 exceeds $1,400 + $100, so the spousal part is zero."""
+    assert _spouse_benefits(1400, 70.0)[2036 - 2026] / 12 == pytest.approx(1400 * 1.24)
+
+
+def test_spousal_partial_first_year_uses_the_net_amount():
+    """Spouse files at 70 in September 2032: three payments of $1,240 own + $260 spousal that year."""
+    z = _spouse_benefits(1000, 70.0)
+    assert z[2032 - 2026] == pytest.approx(3 * (1240 + 260))
+    assert z[2033 - 2026] == pytest.approx(12 * 1500)
+
+
+def test_early_own_claim_keeps_the_full_spousal_excess():
+    """Without delayed credits nothing is subtracted. Born on the 10th, the spouse's own claim is raised
+    to 62y1m; the spousal excess starts with the worker's claim in Feb 2029, when the spouse is 66y5m."""
+    own = 1000 * ss.getSelfFactor(67, 62 + 1 / 12, False)
+    spousal = 500 * ss.getSpousalFactor(67, 66 + 5 / 12, False)
+    assert _spouse_benefits(1000, 62.0)[2036 - 2026] / 12 == pytest.approx(own + spousal)

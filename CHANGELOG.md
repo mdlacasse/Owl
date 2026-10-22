@@ -1,5 +1,16 @@
 ### Version WIP
 
+#### Fixed: a spouse's own delayed credits come out of the spousal benefit instead of adding to it
+
+When someone receives their own retirement benefit with delayed credits and a spousal benefit,
+Social Security computes the combined payment without the credits and subtracts the own benefit
+with them to get the spousal part (POMS RS 00615.694; 42 U.S.C. 402(k)(3)(A)). **Owl** added the
+full spousal excess on top of the delayed own benefit. Example: with a \$3,000 PIA for one spouse and
+\$1,000 for the other, who files at 70, the second spouse gets \$1,500 a month, not \$1,740;
+delaying past FRA only pays once one's own benefit exceeds half the other's PIA. The claiming-age
+search no longer sees value in such a delay. Thanks to Marco Pignone (@rationalpiper) for reporting
+it, with the legal references and a fix (#211).
+
 #### Fixed: Part D IRMAA tiers 2 to 4 use the 2026 CMS amounts
 
 The 2026 Part D income-related monthly adjustments are \$14.50, \$37.50, \$60.40, \$83.30 and

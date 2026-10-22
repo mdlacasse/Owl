@@ -773,6 +773,10 @@ before their conventional 70, and a survivor benefit claimed before the survivor
 for one month less.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
+A spouse who delays their own benefit past FRA does not add the delayed credits on top of the
+spousal benefit: Social Security computes the combined payment without them and takes them out of
+the spousal part (POMS RS 00615.694), so delaying raises the total only once the spouse's own
+benefit exceeds half of the other spouse's PIA.
 Complex cases involving divorce or deceased spouses are not considered.
 
 **Survivor benefits.** After the first passing, the surviving spouse is entitled to two

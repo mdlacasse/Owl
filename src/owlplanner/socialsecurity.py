@@ -371,7 +371,7 @@ def _payment_start(yob, mob, claim_age, thisyear):
     return n_start, 1.0 - (payment_janage % 1.0)
 
 
-def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, ages, tobs, thisyear):
+def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, ages, tobs, thisyear, own_drc=0.0):
     """
     Apply spousal benefit to spousal_in[i, :] starting from the later of both spouses' claim dates.
 
@@ -379,6 +379,13 @@ def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, age
     spousal benefit requires the higher-earning spouse to be collecting first), and ends
     at ``nd``, which the caller truncates to the year of the first death: entitlement as a
     spouse ceases then and is replaced by the survivor benefit.
+
+    ``own_drc`` is the monthly amount of delayed retirement credits in individual i's own benefit.
+    The combined payment is computed without them, and the own benefit with them is subtracted
+    from it to give the spousal payment (POMS RS 00615.694; 42 U.S.C. 402(k)(3)(A)), so the credits
+    come out of the spousal excess, down to zero, rather than add to it (#211). An own benefit with
+    credits was claimed after FRA, so the spousal start, the later of the two claims, is too, and
+    its factor is 1.
     """
     latest_claim_year = float(np.max(yobs + (mobs - 1) / 12 + ages))
     claim_age = latest_claim_year - yobs[i] - (mobs[i] - 1) / 12
@@ -388,10 +395,11 @@ def _add_spousal_benefit(spousal_in, i, nd, spousal_amount, fra, yobs, mobs, age
     if ns2 >= nd:
         return  # Spousal benefit would start at or after the end of entitlement.
     spousal_factor = getSpousalFactor(fra, claim_age, bool(tobs[i] == 1))
-    spousal_in[i, ns2:nd] += spousal_amount * spousal_factor
+    monthly = max(0.0, spousal_amount * spousal_factor - own_drc)
+    spousal_in[i, ns2:nd] += monthly
     if payment_start_n >= 0:
         # Partial first year only when the first spousal check falls inside the plan.
-        spousal_in[i, ns2] -= spousal_amount * spousal_factor * (payment_claim_year % 1.0)
+        spousal_in[i, ns2] -= monthly * (payment_claim_year % 1.0)
 
 
 def validate_survivor_claim_age(survivor_claim_age):
@@ -739,12 +747,16 @@ def compute_social_security_benefits(
         if payment_start_n >= 0 and ns < nd:
             own_in[i, ns] *= frac
 
-        own_in[i, :] *= getSelfFactor(fras[i], ages[i], bornOnFirst)
+        self_factor = getSelfFactor(fras[i], ages[i], bornOnFirst)
+        own_in[i, :] *= self_factor
 
         if N_i == 2 and spousalBenefits[i] > 0:
             # Spousal entitlement ends at the first death, when the survivor benefit takes over.
+            # Delayed credits in the own benefit come out of the spousal excess (#211).
+            own_drc = pias[i] * max(0.0, self_factor - 1.0)
             _add_spousal_benefit(
-                spousal_in, i, min(nd, death_year_n), spousalBenefits[i], fras[i], yobs, mobs, ages, tobs, thisyear
+                spousal_in, i, min(nd, death_year_n), spousalBenefits[i], fras[i], yobs, mobs, ages, tobs, thisyear,
+                own_drc,
             )
 
     zeta_in = (own_in + spousal_in) * 12
