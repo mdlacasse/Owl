@@ -421,3 +421,38 @@ def test_mediCosts_pinned_years_use_the_top_edge():
                      np.ones(3), 3, include_part_d=False)
     assert c[0] / 12 == pytest.approx(689.90)
     assert c[1] / 12 == pytest.approx(649.20)
+
+
+# ---------------------------------------------------------------------------
+# A previous MAGI above the year's income ceiling (#215)
+# ---------------------------------------------------------------------------
+
+
+def test_previous_magi_above_the_income_ceiling_is_feasible():
+    """Single, 70, $10k/month pension, no savings, $520k MAGI last year (a one-time gain): the pinned
+    year's MAGI exceeds the year's income ceiling. Optimize mode was infeasible; it now matches loop."""
+    import io
+    import warnings
+
+    from owlplanner import Plan
+
+    this_year = date.today().year
+    results = {}
+    for mode in ("loop", "optimize"):
+        p = Plan(["A"], [f"{this_year - 70}-06-15"], [73], "prevmagi", verbose=False, logstreams=[io.StringIO()])
+        p.setSpendingProfile("flat")
+        p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[0], startDate="01-01")
+        p.setPension([10_000], [65], [False])
+        p.setAllocationRatios("individual", generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
+        p.setRates("user", values=[6, 4, 4, 2.5])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": mode, "previousMAGIs": [100, 520]})
+        assert p.caseStatus == "solved", mode
+        results[mode] = (float(p.g_n[0]), p.medicare_n[:3].copy())
+        medical_1 = float(p._medical_n(p.gamma_n)[1])
+    assert results["optimize"][0] == pytest.approx(results["loop"][0], rel=1e-6)
+    np.testing.assert_allclose(results["optimize"][1], results["loop"][1], rtol=1e-6)
+    # Year 1 reads the $520k lookback: the top tier, a year of medical inflation on.
+    top = tx.partB_irmaa_costs[5] + tx.partD_irmaa_costs[5]
+    assert results["loop"][1][1] == pytest.approx(top * medical_1)

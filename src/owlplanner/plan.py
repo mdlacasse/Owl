@@ -4172,8 +4172,13 @@ class Plan:
                 if q < top:
                     upper = self.Lbar_nq[nn, q] - (margin if q == top - 1 else 0.0)
                 else:
-                    # Upper bound for last bracket so h_qn = 0 when z_q = 0.
-                    upper = self._ceiling_n[self.nm + nn]  # the year's MAGI ceiling
+                    # Upper bound for last bracket so h_qn = 0 when z_q = 0: the year's MAGI ceiling.
+                    # A pinned year's MAGI is the known previous MAGI, not plan income, and can exceed
+                    # that ceiling (a one-time gain two years back with modest savings now, #215).
+                    n = self.nm + nn
+                    upper = self._ceiling_n[n]
+                    if n < 2:
+                        upper = max(upper, self.prevMAGI[n])
                 self.A.addNewRow({mg_idx: 1, zm_idx: -upper}, -np.inf, 0, tag=("irmaa_bracket_ub", nn, q))
 
     @_fixedAcrossIterations

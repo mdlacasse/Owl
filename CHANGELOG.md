@@ -1,5 +1,14 @@
 ### Version WIP
 
+#### Fixed: a previous-year MAGI above the year's income ceiling no longer makes optimize mode infeasible
+
+With *Solve Medicare brackets with MILP*, the first two plan years take their IRMAA bracket from the
+previous MAGIs entered, but the top bracket was still capped at the year's income ceiling. A
+previous MAGI above that cap, such as a one-time gain two years back with modest savings now, left
+no feasible plan, reported as a bequest or spending floor set too high, while the loop mode solved
+the same case. The known previous MAGI now fits that bracket, and both modes give the same plan.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with a fix (#215).
+
 #### Fixed: MAGI of exactly \$500,000 (\$750,000 joint) is the top IRMAA tier
 
 Every IRMAA tier excludes its upper edge except the top one: "More than \$160,000 but less than
