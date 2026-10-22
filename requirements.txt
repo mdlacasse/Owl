@@ -49,9 +49,9 @@ h11==0.16.0
     #   uvicorn
 highspy==1.15.1
     # via owlplanner
-httpcore2==2.15.1 ; sys_platform != 'emscripten'
+httpcore2==2.16.0 ; sys_platform != 'emscripten'
     # via httpx2
-httpx2==2.15.1
+httpx2==2.16.0
     # via mcp
 httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscripten'
     # via httpx2
@@ -133,7 +133,7 @@ pandas==3.0.6
     #   owlplanner
     #   seaborn
     #   streamlit
-pillow==12.3.0
+pillow==13.0.0
     # via
     #   matplotlib
     #   streamlit
@@ -158,7 +158,7 @@ pyjwt==2.15.1
     # via mcp
 pyparsing==3.3.3
     # via matplotlib
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via
     #   matplotlib
     #   pandas
@@ -193,7 +193,7 @@ starlette==1.9.0
     #   mcp
     #   sse-starlette
     #   streamlit
-streamlit==1.66.0
+streamlit==1.66.1
     # via owlplanner
 toml==0.10.2
     # via owlplanner
@@ -219,8 +219,10 @@ typing-inspection==0.4.4
     # via
     #   mcp
     #   pydantic
-tzdata==2026.5 ; sys_platform == 'emscripten' or sys_platform == 'win32'
-    # via pandas
+tzdata==2026.5
+    # via
+    #   pandas
+    #   python-dateutil
 urllib3==2.8.0
     # via requests
 uvicorn==0.54.0
