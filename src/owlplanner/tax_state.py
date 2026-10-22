@@ -41,6 +41,10 @@ _LAST_BRACKET_SENTINEL = 5_000_000.0
 # States with zero income tax — stored as single zero-rate bracket for uniformity.
 NO_TAX_STATES = frozenset(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"])
 
+# How a state treats Roth conversion income: toward its retirement income exemption (and that
+# exemption's age), never exempt, or left out of state income at any age (issue #203).
+CONVERSION_MODES = ("exemption", "taxed", "excluded")
+
 
 @lru_cache(maxsize=1)
 def _load_state_data(toml_path: str = None) -> dict:
@@ -119,6 +123,17 @@ def _per_filer(entry: dict, key: str, state: str, *, with_age: bool = False):
     return spec
 
 
+def _conversion_mode(entry: dict, state: str) -> str:
+    """The entry's roth_conversion mode; the former boolean roth_conversion_eligible maps to
+    "exemption" (true) or "taxed" (false)."""
+    if "roth_conversion" in entry:
+        mode = entry["roth_conversion"]
+        if mode not in CONVERSION_MODES:
+            raise ValueError(f"State '{state}': roth_conversion must be one of {', '.join(CONVERSION_MODES)}.")
+        return mode
+    return "exemption" if entry.get("roth_conversion_eligible", True) else "taxed"
+
+
 def _filers_alive(N_i: int, n_d: int, i_d, n: int) -> list:
     """Indices of the filers alive in plan year n: both until n_d, then the survivor."""
     if N_i == 1 or n < n_d:
@@ -186,7 +201,7 @@ def st_taxParams(
     Returns
     -------
     (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-     st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n)
+     st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss, st_ss_thresh_n)
 
     N_st           — number of state brackets (max across Single and MFJ)
     st_theta_tn    — shape (N_st, N_n) marginal rates (decimals)
@@ -198,7 +213,9 @@ def st_taxParams(
                      (0 = none, np.inf = fully exempt)
     st_pe_cap_in   — shape (N_i, N_n) pension-only exemption cap of each individual
                      (0 = pensions count toward st_re_cap_in instead)
-    st_conv_ok     — bool, whether Roth conversion income counts toward st_re_cap_in
+    st_conv        — str, the state's treatment of Roth conversion income (CONVERSION_MODES):
+                     "exemption" counts toward st_re_cap_in, "taxed" never does, "excluded"
+                     is left out of state income at any age
     st_tax_ss      — bool, whether state taxes Social Security benefits
     st_ss_thresh_n — shape (N_n,) AGI threshold below which SS is exempt
                      (0 = not applicable)
@@ -293,7 +310,7 @@ def st_taxParams(
     pe_raw = entry_single.get("pension_exemption", 0)
     pe_base = np.inf if pe_raw == -1 else float(pe_raw)
 
-    st_conv_ok = bool(entry_single.get("roth_conversion_eligible", True))
+    st_conv = _conversion_mode(entry_single, state)
 
     # Age gating is per individual: each spouse qualifies on their own age, and an unused
     # cap cannot be claimed by the other spouse. An individual qualifies in the first year
@@ -320,7 +337,7 @@ def st_taxParams(
 
     return (
         N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-        st_re_cap_in, st_pe_cap_in, st_conv_ok, st_tax_ss, st_ss_thresh_n,
+        st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss, st_ss_thresh_n,
     )
 
 
@@ -346,7 +363,7 @@ def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_
     Returns a dict of per-year arrays:
       N_st, theta_tn, DeltaBar_tn, sigmaBar_n (the state's own deduction and per-filer exemptions;
       zero where the state follows the federal deduction, which the Plan fills in), re_cap_in,
-      pe_cap_in, credit_n, and the per-year flags conv_ok_n, tax_ss_n, fed_sd_n, senior_bonus_n,
+      pe_cap_in, credit_n, the per-year conversion treatment conv_n, and the flags tax_ss_n, fed_sd_n, senior_bonus_n,
       pension_eligible_n.
     """
     states_n = [(s or "").upper() for s in states_n]
@@ -358,13 +375,13 @@ def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_
     for state in dict.fromkeys(states_n):
         if not state:
             continue
-        (n_st, theta, delta, sigma, re_cap, pe_cap, conv_ok, tax_ss, _ss_thresh) = st_taxParams(
+        (n_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss, _ss_thresh) = st_taxParams(
             state, N_i, n_d, N_n, gamma_n, yobs, mobs=mobs, i_d=i_d, toml_path=toml_path
         )
         fed_sd, bonus = federal_deduction(state, toml_path)
         per_state[state] = {
             "theta": theta, "delta": delta, "sigma": sigma, "re_cap": re_cap, "pe_cap": pe_cap,
-            "conv_ok": conv_ok, "tax_ss": tax_ss, "fed_sd": fed_sd, "bonus": bonus,
+            "conv": conv, "tax_ss": tax_ss, "fed_sd": fed_sd, "bonus": bonus,
             "pension_eligible": get_state_entry(state, 0, toml_path).get("pension_exemption", 0) == 0,
             "credit": st_credits(state, N_i, n_d, N_n, gamma_n, yobs=yobs, mobs=mobs, i_d=i_d, toml_path=toml_path),
         }
@@ -378,7 +395,7 @@ def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_
         "re_cap_in": np.zeros((N_i, N_n)),
         "pe_cap_in": np.zeros((N_i, N_n)),
         "credit_n": np.zeros(N_n),
-        "conv_ok_n": np.ones(N_n, dtype=bool),
+        "conv_n": np.full(N_n, "exemption", dtype=object),
         "tax_ss_n": np.zeros(N_n, dtype=bool),
         "fed_sd_n": np.zeros(N_n, dtype=bool),
         "senior_bonus_n": np.zeros(N_n, dtype=bool),
@@ -398,7 +415,7 @@ def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_
         out["re_cap_in"][:, n] = p["re_cap"][:, n]
         out["pe_cap_in"][:, n] = p["pe_cap"][:, n]
         out["credit_n"][n] = p["credit"][n]
-        out["conv_ok_n"][n] = p["conv_ok"]
+        out["conv_n"][n] = p["conv"]
         out["tax_ss_n"][n] = p["tax_ss"]
         out["fed_sd_n"][n] = p["fed_sd"]
         out["senior_bonus_n"][n] = p["bonus"]

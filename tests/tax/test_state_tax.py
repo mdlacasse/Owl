@@ -71,7 +71,7 @@ def test_toml_all_states_load(state):
 def test_st_taxparams_shape():
     """st_taxParams returns arrays with correct shapes."""
     gamma = np.ones(31)  # N_n=30 years + 1
-    N_st, theta, delta, sigma, re_cap, pe_cap, conv_ok, tax_ss, ss_thresh = tax_state.st_taxParams(
+    N_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss, ss_thresh = tax_state.st_taxParams(
         "MN", 1, 30, 30, gamma, [1960], mobs=[1]
     )
     assert theta.shape == (N_st, 30)
@@ -361,11 +361,42 @@ def test_st_taxparams_ny_age_59_and_a_half():
     assert re_cap[1, 0] == 0 and re_cap[1, 1] == pytest.approx(20000)  # July birthday: next year
 
 
-@pytest.mark.parametrize("state,expected", [("NY", True), ("IL", True), ("KY", True), ("MD", False)])
-def test_st_taxparams_roth_conversion_eligibility(state, expected):
-    """Roth conversion income counts toward the exemption except in MD."""
-    _, _, _, _, _, _, conv_ok, _, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
-    assert conv_ok is expected
+@pytest.mark.parametrize("state,expected", [
+    ("NY", "exemption"), ("IL", "exemption"), ("KY", "exemption"), ("MD", "taxed"),
+    ("PA", "excluded"), ("MS", "excluded"),
+])
+def test_st_taxparams_roth_conversion_mode(state, expected):
+    """Roth conversion income counts toward the exemption, except in MD (never exempt) and in PA
+    and MS (left out of state income at any age, #203)."""
+    _, _, _, _, _, _, conv, _, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
+    assert conv == expected
+
+
+@pytest.mark.parametrize("fields,expected", [
+    ({"roth_conversion_eligible": True}, "exemption"),
+    ({"roth_conversion_eligible": False}, "taxed"),
+    ({}, "exemption"),
+    ({"roth_conversion": "excluded", "roth_conversion_eligible": True}, "excluded"),
+])
+def test_conversion_mode_reads_the_former_boolean(fields, expected):
+    assert tax_state._conversion_mode(fields, "XX") == expected
+
+
+def test_conversion_mode_rejects_unknown_values():
+    with pytest.raises(ValueError, match="roth_conversion"):
+        tax_state._conversion_mode({"roth_conversion": True}, "XX")
+
+
+@pytest.mark.parametrize("state", ["PA", "MS"])
+def test_pa_ms_exempt_distributions_from_59_and_a_half(state):
+    """PA and MS exempt IRA distributions from 59 1/2 (PA-40 instructions; 35 Miss. Code R.
+    3-02-07-104, early distributions do not qualify), reached by December 31 (#203)."""
+    thisyear = date.today().year
+    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+        state, 2, 30, 30, np.ones(31), [thisyear - 59, thisyear - 59], mobs=[6, 7]
+    )
+    assert re_cap[0, 0] == np.inf  # June birthday: 59.5 by December 31
+    assert re_cap[1, 0] == 0 and re_cap[1, 1] == np.inf  # July birthday: next year
 
 
 def _exempt_plan(state, names, dobs, deferred, taxable=0):
@@ -415,6 +446,27 @@ def test_maryland_exemption_excludes_conversions():
     p = _exempt_plan("MD", ["Jack"], [f"{thisyear - 66}-01-01"], [1000])
     tol = 1e-3 * np.max(p.st_re_cap_in)
     assert np.all(p.st_re_in <= _eligible_in(p, False) + tol)
+
+
+@pytest.mark.parametrize("state, untaxed, rate", [("PA", 0, 0.0307), ("MS", 8300 + 10000, 0.04)])
+def test_conversions_before_59_and_a_half_not_taxed(state, untaxed, rate):
+    """#203: before 59 1/2, PA and MS tax tax-deferred withdrawals but not Roth conversions (PA-40
+    instructions, p. 13; Miss. Code 27-7-15(4)(ff)); from 59 1/2 neither is taxed. MS: deduction
+    and personal exemption $8,300, zero bracket to $10,000, neither indexed."""
+    thisyear = date.today().year
+    p = Plan(["P"], [f"{thisyear - 55}-06-15"], [70], "early" + state, verbose=False)
+    p.setStateTax(state)
+    p.setAccountBalances(taxable=[0], taxDeferred=[600], taxFree=[100], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.setSpendingProfile("flat")
+    p.solve("maxSpending", options={"bequest": 0, "verbose": False})
+    assert p.caseStatus == "solved"
+    n5 = int(p.n595[0])
+    assert n5 == 4 and np.sum(p.x_in[0, :n5]) > 50_000  # converts before 59 1/2
+    expected = rate * np.maximum(0, p.w_ijn[0, 1, :n5] - untaxed)
+    np.testing.assert_allclose(p.st_T_n[:n5], expected, atol=1)
+    np.testing.assert_allclose(p.st_T_n[n5:], 0, atol=1)
 
 
 # ---------------------------------------------------------------------------
@@ -582,7 +634,7 @@ def test_schedule_of_one_state_is_st_taxparams(state):
     assert s["N_st"] == ref[0]
     for key, k in (("theta_tn", 1), ("DeltaBar_tn", 2), ("sigmaBar_n", 3), ("re_cap_in", 4), ("pe_cap_in", 5)):
         np.testing.assert_array_equal(s[key], ref[k])
-    assert np.all(s["conv_ok_n"] == ref[6]) and np.all(s["tax_ss_n"] == ref[7])
+    assert np.all(s["conv_n"] == ref[6]) and np.all(s["tax_ss_n"] == ref[7])
     fed_sd, bonus = tax_state.federal_deduction(state)
     assert np.all(s["fed_sd_n"] == fed_sd) and np.all(s["senior_bonus_n"] == bonus)
     np.testing.assert_array_equal(

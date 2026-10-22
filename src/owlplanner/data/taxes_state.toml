@@ -32,9 +32,15 @@
 #                               (0 = no age requirement)
 #   pension_exemption         = additional dollar cap applying only to defined-benefit
 #                               pension income (0 = use retirement_income_exemption for all)
-#   roth_conversion_eligible  = true/false — whether Roth conversion income counts toward
-#                               retirement_income_exemption (default true; false for MD,
-#                               whose pension exclusion does not cover IRAs or conversions)
+#   roth_conversion           = how the state treats Roth conversion income:
+#                               "exemption" — counts toward retirement_income_exemption, with
+#                                             its exemption_age (default)
+#                               "taxed"     — never exempt (MD, whose pension exclusion does not
+#                                             cover IRAs or conversions)
+#                               "excluded"  — left out of state income at any age, apart from
+#                                             the retirement exemption (PA, MS)
+#                               The former true/false roth_conversion_eligible is still read
+#                               as "exemption"/"taxed".
 #   brackets_indexed          = true/false — whether bracket thresholds grow with inflation
 #   deduction_indexed         = true/false — whether the state's own standard deduction or
 #                               personal exemption grows with inflation (true when it is tied
@@ -78,7 +84,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [AK_MFJ]
 brackets = [[0.0, 0.0]]
@@ -91,7 +97,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [FL_Single]
 brackets = [[0.0, 0.0]]
@@ -104,7 +110,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [FL_MFJ]
 brackets = [[0.0, 0.0]]
@@ -117,7 +123,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NV_Single]
 brackets = [[0.0, 0.0]]
@@ -130,7 +136,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NV_MFJ]
 brackets = [[0.0, 0.0]]
@@ -143,7 +149,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NH_Single]
 # Interest & Dividends tax repealed effective Jan 1, 2026
@@ -157,7 +163,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NH_MFJ]
 brackets = [[0.0, 0.0]]
@@ -170,7 +176,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [SD_Single]
 brackets = [[0.0, 0.0]]
@@ -183,7 +189,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [SD_MFJ]
 brackets = [[0.0, 0.0]]
@@ -196,7 +202,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [TN_Single]
 brackets = [[0.0, 0.0]]
@@ -209,7 +215,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [TN_MFJ]
 brackets = [[0.0, 0.0]]
@@ -222,7 +228,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [TX_Single]
 brackets = [[0.0, 0.0]]
@@ -235,7 +241,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [TX_MFJ]
 brackets = [[0.0, 0.0]]
@@ -248,7 +254,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WA_Single]
 # WA has a capital gains tax on high earners (>$262k, 7%) but no general income tax
@@ -262,7 +268,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WA_MFJ]
 brackets = [[0.0, 0.0]]
@@ -275,7 +281,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WY_Single]
 brackets = [[0.0, 0.0]]
@@ -288,7 +294,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WY_MFJ]
 brackets = [[0.0, 0.0]]
@@ -301,7 +307,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 # ==========================================
 # FLAT TAX STATES (2026 Rates)
@@ -319,7 +325,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [AZ_MFJ]
 brackets = [[0.0, 2.5]]
@@ -333,7 +339,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CO_Single]
 # CO fully exempts SS for those 65+; retirement income: $24k/person exemption (65+)
@@ -348,7 +354,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 24000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CO_MFJ]
 brackets = [[0.0, 4.4]]
@@ -362,7 +368,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 24000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [GA_Single]
 # Audit 2026-09: HB 463 (signed May 11, 2026) cut the 2026 rate to 4.99%; SD $15,000/$30,000.
@@ -379,7 +385,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 65000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [GA_MFJ]
 brackets = [[0.0, 4.99]]
@@ -392,7 +398,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 65000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ID_Single]
 # Audit 2026-09: 0% on the first $4,811/$9,622 of taxable income; Tax Foundation 2026 table.
@@ -408,7 +414,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ID_MFJ]
 brackets = [[0.0, 0.0], [9622.0, 5.3]]
@@ -422,7 +428,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IL_Single]
 # Audit 2026-09: personal exemption $2,925/$5,850 (none above $250k/$500k AGI); Tax Foundation 2026 table.
@@ -437,7 +443,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IL_MFJ]
 brackets = [[0.0, 4.95]]
@@ -450,7 +456,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IN_Single]
 # Rate drops to 2.95% in 2026; $1,000 pension deduction (DB pensions)
@@ -464,7 +470,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IN_MFJ]
 brackets = [[0.0, 2.95]]
@@ -477,7 +483,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IA_Single]
 # Iowa: all retirement income exempt for those 55+ (effective 2023)
@@ -493,7 +499,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 55
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [IA_MFJ]
 brackets = [[0.0, 3.8]]
@@ -508,7 +514,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = -1
 exemption_age = 55
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [KY_Single]
 # Audit 2026-09: SD $3,360 (not doubled for MFJ); Tax Foundation 2026 table.
@@ -524,7 +530,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 31110
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [KY_MFJ]
 brackets = [[0.0, 3.5]]
@@ -537,7 +543,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 31110
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MI_Single]
 # Audit 2026-09: personal exemption $5,900/$11,800; Tax Foundation 2026 table.
@@ -552,7 +558,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MI_MFJ]
 brackets = [[0.0, 4.25]]
@@ -565,11 +571,13 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MS_Single]
 # Audit 2026-09: SD $2,300/$4,600 + personal exemption $6,000/$12,000; Tax Foundation 2026 table.
-# MS: zero bracket extended to $10k in 2026 (from $5k); flat 4% above. Full retirement exempt.
+# MS: zero bracket extended to $10k in 2026 (from $5k); flat 4% above.
+# Retirement income fully exempt, but not early distributions (35 Miss. Code R. 3-02-07-104):
+# exempt from 59.5. Roth conversions are left out of gross income at any age (27-7-15(4)(ff)).
 brackets = [[0.0, 0.0], [10000.0, 4.0]]
 standard_deduction = 8300
 brackets_indexed = false
@@ -578,9 +586,9 @@ exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
-exemption_age = 0
+exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "excluded"
 
 [MS_MFJ]
 brackets = [[0.0, 0.0], [10000.0, 4.0]]
@@ -591,9 +599,9 @@ exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
-exemption_age = 0
+exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "excluded"
 
 [NC_Single]
 # Rate drops to 3.99% in 2026
@@ -607,7 +615,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NC_MFJ]
 brackets = [[0.0, 3.99]]
@@ -620,10 +628,11 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [PA_Single]
-# PA fully exempts retirement income (IRA, pension, SS) for those 60+
+# PA fully exempts IRA distributions from 59.5 (and SS at any age); a trustee-to-trustee Roth
+# conversion is nontaxable at any age (2025 PA-40 instructions, pp. 12-13).
 brackets = [[0.0, 3.07]]
 standard_deduction = 0
 brackets_indexed = false
@@ -632,9 +641,9 @@ exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
-exemption_age = 60
+exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "excluded"
 
 [PA_MFJ]
 brackets = [[0.0, 3.07]]
@@ -645,9 +654,9 @@ exemptions_indexed = false
 tax_social_security = false
 ss_exemption_threshold = 0
 retirement_income_exemption = -1
-exemption_age = 60
+exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "excluded"
 
 [UT_Single]
 # Audit 2026-09: SB 60 (signed Mar 23, 2026) cut the rate to 4.45%, retroactive to Jan 1, 2026.
@@ -663,7 +672,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [UT_MFJ]
 brackets = [[0.0, 4.45]]
@@ -677,7 +686,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 # ==========================================
 # GRADUATED TAX STATES (2026 Rates)
@@ -696,7 +705,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [AL_MFJ]
 brackets = [[0.0, 2.0], [1000.0, 4.0], [6000.0, 5.0]]
@@ -709,7 +718,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [AR_Single]
 # AR: 2026 special session cut top rate to 3.7% (retroactive to Jan 1, 2026).
@@ -725,7 +734,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [AR_MFJ]
 brackets = [[0.0, 0.0], [5600.0, 2.0], [11200.0, 3.0], [16000.0, 3.4], [26400.0, 3.7]]
@@ -739,7 +748,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CA_Single]
 # Audit 2026-09: 2025 brackets (2026 not yet published); the 1% surtax starts at $1M for all filers; Tax Foundation 2026 table.
@@ -759,7 +768,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CA_MFJ]
 brackets = [
@@ -778,7 +787,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CT_Single]
 # CT: 7 brackets, 2%–6.99%. Uses credits not standard deduction. SS is taxed.
@@ -792,7 +801,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [CT_MFJ]
 brackets = [[0.0, 2.0], [20000.0, 4.5], [100000.0, 5.5], [200000.0, 6.0], [400000.0, 6.5], [500000.0, 6.9], [1000000.0, 6.99]]
@@ -805,7 +814,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [DC_Single]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
@@ -819,7 +828,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [DC_MFJ]
 brackets = [[0.0, 4.0], [10000.0, 6.0], [40000.0, 6.5], [60000.0, 8.5], [250000.0, 9.25], [500000.0, 9.75], [1000000.0, 10.75]]
@@ -833,7 +842,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [DE_Single]
 brackets = [[0.0, 0.0], [2000.0, 2.2], [5000.0, 3.9], [10000.0, 4.8], [20000.0, 5.2], [25000.0, 5.55], [60000.0, 6.6]]
@@ -847,7 +856,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 12500
 exemption_age = 60
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [DE_MFJ]
 brackets = [[0.0, 0.0], [2000.0, 2.2], [5000.0, 3.9], [10000.0, 4.8], [20000.0, 5.2], [25000.0, 5.55], [60000.0, 6.6]]
@@ -861,7 +870,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 12500
 exemption_age = 60
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [HI_Single]
 # Audit 2026-09: SD $4,400/$8,800 + personal exemption $1,144/$2,288; Tax Foundation 2026 table.
@@ -880,7 +889,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [HI_MFJ]
 brackets = [
@@ -897,7 +906,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [KS_Single]
 # Audit 2026-09: SB 1 (2024) two-rate structure 5.2%/5.58%; SD $3,605/$8,240 + exemption $9,160/$18,320; Tax Foundation 2026 table.
@@ -912,7 +921,7 @@ ss_exemption_threshold = 75000
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [KS_MFJ]
 brackets = [[0.0, 5.2], [46000.0, 5.58]]
@@ -925,7 +934,7 @@ ss_exemption_threshold = 75000
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [LA_Single]
 # Audit 2026-09: SD $12,875/$25,750 (indexed); Tax Foundation 2026 table.
@@ -941,7 +950,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [LA_MFJ]
 brackets = [[0.0, 3.0]]
@@ -954,7 +963,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ME_Single]
 # Audit 2026-09: Maine Revenue Services 2026 schedules; SD $15,300/$30,600 + exemption $5,300/$10,600
@@ -969,7 +978,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ME_MFJ]
 brackets = [[0.0, 5.8], [54850.0, 6.75], [129750.0, 7.15], [1500000.0, 9.15]]
@@ -982,7 +991,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MD_Single]
 # MD: 2025 Budget Act added 6.25% ($500k-$1M) and 6.5% (>$1M) brackets, retroactive to 2025.
@@ -1001,7 +1010,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 41200  # Comptroller's 2025 maximum pension exclusion
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = false
+roth_conversion = "taxed"
 
 [MD_MFJ]
 brackets = [[0.0, 2.0], [1000.0, 3.0], [2000.0, 4.0], [3000.0, 4.75], [150000.0, 5.0], [175000.0, 5.25], [225000.0, 5.5], [300000.0, 5.75], [600000.0, 6.25], [1200000.0, 6.5]]
@@ -1016,7 +1025,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 41200  # Comptroller's 2025 maximum pension exclusion
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = false
+roth_conversion = "taxed"
 
 [MA_Single]
 # Audit 2026-09: 4% surtax above $1,083,150 (2025 threshold, indexed); personal exemption $4,400/$8,800; Tax Foundation 2026 table.
@@ -1031,7 +1040,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MA_MFJ]
 brackets = [[0.0, 5.0], [1083150.0, 9.0]]
@@ -1044,7 +1053,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MN_Single]
 # MN: 2026 brackets adjusted 2.369% from 2025 (per MN DOR Dec 2025 announcement).
@@ -1059,7 +1068,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MN_MFJ]
 brackets = [[0.0, 5.35], [48700.0, 6.8], [193480.0, 7.85], [337930.0, 9.85]]
@@ -1072,7 +1081,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MO_Single]
 # Audit 2026-09: brackets indexed for 2026; SD equals federal $16,100/$32,200; Tax Foundation 2026 table.
@@ -1092,7 +1101,7 @@ ss_exemption_threshold = 100000
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MO_MFJ]
 brackets = [
@@ -1109,7 +1118,7 @@ ss_exemption_threshold = 100000
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MT_Single]
 # Audit 2026-09: SD equals federal $16,100/$32,200; Tax Foundation 2026 table.
@@ -1126,7 +1135,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [MT_MFJ]
 brackets = [[0.0, 4.7], [95000.0, 5.65]]
@@ -1140,7 +1149,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NE_Single]
 # Audit 2026-09: 2026 indexed brackets; SD $8,850/$17,700; Tax Foundation 2026 table.
@@ -1156,7 +1165,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NE_MFJ]
 brackets = [[0.0, 2.46], [8250.0, 3.51], [49530.0, 4.55]]
@@ -1170,7 +1179,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NJ_Single]
 # NJ: excludes up to $100k pension/IRA if household income <= $100k (complex phaseout)
@@ -1186,7 +1195,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NJ_MFJ]
 brackets = [[0.0, 1.4], [20000.0, 1.75], [50000.0, 2.45], [70000.0, 3.5], [80000.0, 5.525], [150000.0, 6.37], [500000.0, 8.97], [1000000.0, 10.75]]
@@ -1201,7 +1210,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NM_Single]
 # Audit 2026-09: HB 252 (2025) six-bracket schedule, 1.5%-5.9%; Tax Foundation 2026 table.
@@ -1221,7 +1230,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NM_MFJ]
 brackets = [
@@ -1238,7 +1247,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NY_Single]
 # NY: 2026 budget reduced rates in first five brackets. $20k pension/IRA exemption per person
@@ -1258,7 +1267,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [NY_MFJ]
 brackets = [
@@ -1275,7 +1284,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 20000
 exemption_age = 59.5
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ND_Single]
 # ND: SB 2302 (2023) dramatically simplified brackets. 2026 structure (inflation-adjusted
@@ -1291,7 +1300,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [ND_MFJ]
 brackets = [[0.0, 0.0], [80975.0, 1.95], [298075.0, 2.5]]
@@ -1305,7 +1314,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OH_Single]
 brackets = [[0.0, 0.0], [26050.0, 2.75]]
@@ -1319,7 +1328,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OH_MFJ]
 brackets = [[0.0, 0.0], [26050.0, 2.75]]
@@ -1333,7 +1342,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OK_Single]
 # Audit 2026-09: 2026 schedule 0/2.5/3.5/4.5%; SD $6,350/$12,700 + exemption $1,000/$2,000; Tax Foundation 2026 table.
@@ -1349,7 +1358,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OK_MFJ]
 brackets = [[0.0, 0.0], [7500.0, 2.5], [9800.0, 3.5], [14400.0, 4.5]]
@@ -1362,7 +1371,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OR_Single]
 # OR: brackets and deduction are inflation-adjusted annually (DOR withholding tables 2026).
@@ -1377,7 +1386,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [OR_MFJ]
 brackets = [[0.0, 4.75], [9100.0, 6.75], [22800.0, 8.75], [250000.0, 9.9]]
@@ -1391,7 +1400,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [RI_Single]
 # Audit 2026-09: 2026 brackets; SD $11,200/$22,400 + exemption $5,250/$10,500 (phase out above $261k); Tax Foundation 2026 table.
@@ -1406,7 +1415,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [RI_MFJ]
 brackets = [[0.0, 3.75], [82050.0, 4.75], [186450.0, 5.99]]
@@ -1419,7 +1428,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [SC_Single]
 # SC: H.4216 (signed Mar 30, 2026) replaced prior brackets with 2-rate structure effective 2026.
@@ -1435,7 +1444,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 15000
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [SC_MFJ]
 brackets = [[0.0, 1.99], [30000.0, 5.21]]
@@ -1448,7 +1457,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 15000
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [VT_Single]
 # Audit 2026-09: 2026 brackets; SD $7,650/$15,300 + exemption $5,300/$10,600; Tax Foundation 2026 table.
@@ -1463,7 +1472,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [VT_MFJ]
 brackets = [[0.0, 3.35], [82500.0, 6.6], [199450.0, 7.6], [304000.0, 8.75]]
@@ -1476,7 +1485,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [VA_Single]
 # Audit 2026-09: SD $8,750/$17,500 + personal exemption $930/$1,860; Tax Foundation 2026 table.
@@ -1490,7 +1499,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 12000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [VA_MFJ]
 brackets = [[0.0, 2.0], [3000.0, 3.0], [5000.0, 5.0], [17000.0, 5.75]]
@@ -1503,7 +1512,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 12000
 exemption_age = 65
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WV_Single]
 # Audit 2026-09: personal exemption $2,000/$4,000; Tax Foundation 2026 table.
@@ -1523,7 +1532,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WV_MFJ]
 # WV uses the same bracket thresholds for all filing statuses (no MFJ doubling).
@@ -1540,7 +1549,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WI_Single]
 # Audit 2026-09: 2025 Act 15 widened the 4.4% bracket; max SD $13,960/$25,840 + exemption $700/$1,400.
@@ -1555,7 +1564,7 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"
 
 [WI_MFJ]
 brackets = [[0.0, 3.5], [20150.0, 4.4], [69260.0, 5.3], [443630.0, 7.65]]
@@ -1568,4 +1577,4 @@ ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
-roth_conversion_eligible = true
+roth_conversion = "exemption"

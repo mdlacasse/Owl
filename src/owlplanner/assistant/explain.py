@@ -881,8 +881,8 @@ def _state_bracket_analysis(plan):
         "starts from gross income, includes capital gains, and takes the state's own standard "
         "deduction and exemptions (Social Security, pensions, retirement income, where the state "
         "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
-        "boundary, the next dollar of income, such as a Roth conversion, is taxed at a higher "
-        "state rate.",
+        "boundary, the next dollar of income, such as a Roth conversion where the state taxes it, is "
+        "taxed at a higher state rate.",
     }
     if plan.state_moves:
         year, new_state = plan.state_moves[0]

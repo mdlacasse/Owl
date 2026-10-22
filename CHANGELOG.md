@@ -1,5 +1,18 @@
 ### Version WIP
 
+#### Fixed: PA and MS no longer tax Roth conversions before 59½, and exempt IRA withdrawals from 59½
+
+Pennsylvania treats a trustee-to-trustee Roth conversion as nontaxable at any age and exempts IRA
+distributions from 59½ (2025 PA-40 instructions, pp. 12–13). Mississippi leaves conversions out of
+gross income (Miss. Code 27-7-15(4)(ff)) and denies its retirement exemption to early distributions
+(35 Miss. Code R. 3-02-07-104). **Owl** gated conversions behind the same age as withdrawals (60 in
+PA) and exempted MS withdrawals at any age: in the reported case, a \$20,000 conversion at 55 paid
+\$614 of PA tax. The state data's `roth_conversion_eligible` flag becomes a three-valued
+`roth_conversion` field: `"exemption"` (counts toward the retirement exemption, with its age; the
+default), `"taxed"` (MD), or `"excluded"` (PA, MS: left out of state income at any age, apart from
+the exemption). PA and MS now exempt withdrawals from 59½. The former flag is still read. Thanks to
+Marco Pignone (@rationalpiper) for reporting it, with the PA references and a fix (#203).
+
 #### Fixed: Roth earnings can no longer be withdrawn before 59½ without tax or penalty
 
 A Roth distribution comes from contributions first, then conversions, and earnings last (IRC

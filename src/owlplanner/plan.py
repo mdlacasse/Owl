@@ -541,7 +541,8 @@ class Plan:
         self.N_st = 0  # Number of state tax brackets (0 when no state set)
         self.st_re_cap_in = np.zeros((self.N_i, self.N_n))  # State retirement income exemption caps
         # Per-year state flags (the state of residence can differ by year; see tax_state.st_schedule).
-        self.st_conv_ok_n = np.ones(self.N_n, dtype=bool)  # Roth conversions count toward the exemption
+        # Roth conversions: "exemption", "taxed" or "excluded" (see tax_state.CONVERSION_MODES)
+        self.st_conv_n = np.full(self.N_n, "exemption", dtype=object)
         self.st_tax_ss_n = np.zeros(self.N_n, dtype=bool)  # The state taxes Social Security
         self.st_fed_sd_n = np.zeros(self.N_n, dtype=bool)  # The state follows the federal standard deduction
         self.st_senior_bonus_n = np.zeros(self.N_n, dtype=bool)  # ...including the OBBBA senior bonus
@@ -2835,6 +2836,7 @@ class Plan:
                     G_n carries -- the tss_n variable under withSSTaxability="optimize",
                     the Psi_n * zetaBar_n parameter otherwise)
                   - pension exemption cap (parameter)
+                  - Roth conversions (x[i,n]) in years whose state leaves them out of income
 
         The LP then subtracts the state standard deduction (st_e) and retirement income
         exemption (st_re), with st_e and st_re bounded to prevent negative state tax.
@@ -2873,6 +2875,9 @@ class Plan:
                 row.addElem(vm["q"].idx(p, n), -1)  # subtract Q_n (capital gains)
             if ss_lp and not self.st_tax_ss_n[n]:
                 row.addElem(vm["tss"].idx(n), 1)  # exclude taxable SS (LP variable)
+            if self.st_conv_n[n] == "excluded":
+                for i in range(self.N_i):
+                    row.addElem(vm["x"].idx(i, n), 1)  # exclude Roth conversions (PA, MS)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # A personal credit only offsets tax: the credit used stays below the year's state tax.
@@ -2890,7 +2895,7 @@ class Plan:
                 for n in range(self.N_n):
                     row = self.A.newRow({vm["st_re"].idx(i, n): 1})
                     row.addElem(vm["w"].idx(i, 1, n), -1)
-                    if self.st_conv_ok_n[n]:
+                    if self.st_conv_n[n] == "exemption":
                         row.addElem(vm["x"].idx(i, n), -1)
                     rhs = self.piBar_in[i, n] if self.st_pension_eligible_n[n] else 0
                     self.A.addRow(row, -np.inf, rhs, tag=("state_ret_exempt_cap", i, n))
@@ -5044,7 +5049,7 @@ class Plan:
             self.st_re_cap_in = sched["re_cap_in"]
             self.st_pe_cap_in = sched["pe_cap_in"]
             self.st_credit_n = sched["credit_n"]
-            self.st_conv_ok_n = sched["conv_ok_n"]
+            self.st_conv_n = sched["conv_n"]
             self.st_tax_ss_n = sched["tax_ss_n"]
             self.st_fed_sd_n = sched["fed_sd_n"]
             self.st_senior_bonus_n = sched["senior_bonus_n"]
