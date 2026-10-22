@@ -220,11 +220,11 @@ class TestAcaCostsFunction:
         """2026 (Rev. Proc. 2025-25): the 133-150% band runs from 3.14% to 4.19%, not from 2.10%."""
         yobs = np.array([1985])
         horizons = np.array([5])
-        fpl_2026 = tx._ACA_FPL[2026][0]
+        fpl = tx._ACA_FPL[2025][0]  # 2026 coverage uses the 2025 guideline (#200)
         gamma_n = self._gamma(5)
         slcsp = 12_000.0
         for ratio in (1.40, 1.45, 1.4999):
-            magi = ratio * fpl_2026
+            magi = ratio * fpl
             costs = tx.acaCosts(
                 yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026
             )
@@ -720,12 +720,12 @@ class TestACACoverageMonths:
     def test_couple_keeps_two_person_line_with_one_on_medicare(self):
         """#199: a couple filing jointly is a family of 2, even when only one spouse is enrolled."""
         yobs, horizons, gamma = np.array([1961, 1967]), np.array([30, 30]), np.ones(4)
-        fpl2 = tx._ACA_FPL[2026][1]
+        fpl2 = tx._ACA_FPL[2026][1]  # 2027 coverage uses the 2026 guideline (#200)
         bench = 20_000 * couple_to_individual_fraction(60)
         for magi in (40_000, 70_000, 80_000):  # 70k and 80k are above 400% of the 1-person line
             cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2027)[0]
-            pct = tx._aca_contrib_pct(magi / fpl2, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026,
-                                      tx._ACA_CONTRIB_INITIAL_2026)
+            pct = tx._aca_contrib_pct(magi / fpl2, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2027,
+                                      tx._ACA_CONTRIB_INITIAL_2027)
             assert np.isclose(cost, min(bench, pct * magi), rtol=1e-9)
 
     def test_single_enrolled_until_medicare_month(self):
@@ -750,8 +750,8 @@ class TestACACoverageMonths:
             cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp, 3, thisyear=thisyear,
                                mobs=mobs, tobs=tobs)[0]
             r = magi / fpl2
-            contrib = np.inf if r >= 4 else magi * tx._aca_contrib_pct(
-                r, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026)
+            contrib = np.inf if r > 4 else magi * tx._aca_contrib_pct(
+                r, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2027, tx._ACA_CONTRIB_INITIAL_2027)
             assert np.isclose(cost, 5 / 12 * min(slcsp, contrib) + 7 / 12 * min(alone, contrib))
 
     def test_acavals_weights_the_transition_year(self):
@@ -764,7 +764,8 @@ class TestACACoverageMonths:
         n_aca, _, tan, s_n = tx.acaVals([thisyear - 65], [10], np.ones(11), slcsp, 10, mobs=[12], tobs=[15])
         assert n_aca == 1
         assert np.isclose(s_n[0], 11 / 12 * slcsp)
-        np.testing.assert_allclose(tan[0], 11 / 12 * tx._aca_tangents(tx._ACA_FPL[max(tx._ACA_FPL)][0]))
+        fpl = tx._aca_fpl(thisyear, 1, np.ones(11), thisyear)
+        np.testing.assert_allclose(tan[0], 11 / 12 * tx._aca_tangents(fpl, tx._aca_table(thisyear)))
         # Couple: older spouse born June 15 turns 65 this year; younger spouse is 58.
         n_aca, _, _, s_n = tx.acaVals([thisyear - 65, thisyear - 58], [30, 30], np.ones(31), slcsp, 30,
                                       mobs=[6, 3], tobs=[15, 3])
@@ -779,3 +780,78 @@ class TestACACoverageMonths:
                            mobs=[1], tobs=[1])
         assert np.isclose(cost[0], 11 / 12 * slcsp)
         assert np.allclose(cost[1:], 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Poverty guideline year and applicable percentage table (issues #200, #201)
+# ---------------------------------------------------------------------------
+
+
+class TestACAGuidelineAndTable:
+    """Coverage in year Y uses the guideline published in Y-1 and the table of year Y."""
+
+    def test_guideline_of_the_year_before(self):
+        """IRC 36B(d)(3)(B), 26 CFR 1.36B-1(h): published guidelines are used as is."""
+        gamma = 1.03 ** np.arange(4)
+        assert tx._aca_fpl(2026, 2, gamma, 2026) == 21_150
+        assert tx._aca_fpl(2027, 2, gamma, 2026) == 21_640
+        assert tx._aca_fpl(2027, 1, gamma, 2026) == 15_960
+
+    def test_unpublished_guideline_grows_from_its_own_year(self):
+        """Past the table, inflation counts from the latest guideline's year, also for a later plan start."""
+        gamma = 1.03 ** np.arange(4)
+        assert np.isclose(tx._aca_fpl(2028, 2, gamma, 2026), 21_640 * 1.03)
+        assert np.isclose(tx._aca_fpl(2029, 2, gamma, 2026), 21_640 * 1.03**2)
+        # Plan starting in 2028 with a table ending at 2026 (#200, comment).
+        assert np.isclose(tx._aca_fpl(2028, 2, gamma, 2028), 21_640 * 1.03)
+        assert np.isclose(tx._aca_fpl(2030, 2, gamma, 2028), 21_640 * 1.03**3)
+
+    def test_2026_coverage_priced_on_the_2025_guideline(self):
+        """#200 repro: a couple under 65 in 2026, income measured against $21,150."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        for magi, expected in ((30_000, 1106), (32_000, 1361), (40_000, 2430), (60_000, 5678)):
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2026)
+            assert round(cost[0]) == expected
+
+    def test_table_by_year(self):
+        assert tx._aca_table(2026)[1] is tx._ACA_CONTRIB_PCT_2026
+        assert tx._aca_table(2027)[1] is tx._ACA_CONTRIB_PCT_2027
+        assert tx._aca_table(2035)[1] is tx._ACA_CONTRIB_PCT_2027  # last table carried forward
+        assert tx._aca_table(2025)[1] is tx._ACA_CONTRIB_PCT_2026
+
+    def test_2027_coverage_uses_rev_proc_2026_26(self):
+        """#201 (a): Rev. Proc. 2026-26 sec. 3.01, entered independently of Owl's table."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        fpl = 21_640  # 2026 guideline for 2027 coverage
+        bands = [(1.33, 1.50, .0323, .0430), (1.50, 2.00, .0430, .0678), (2.00, 2.50, .0678, .0866),
+                 (2.50, 3.00, .0866, .1022), (3.00, 4.00, .1022, .1022)]
+        for magi in (35_000, 45_000, 60_000, 80_000):
+            r = magi / fpl
+            pct = next(a + (r - lo) / (hi - lo) * (b - a) for lo, hi, a, b in bands if lo <= r <= hi)
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2027)
+            assert np.isclose(cost[0], min(20_000, pct * magi), rtol=1e-9)
+
+    def test_exactly_400_percent_qualifies(self):
+        """#201 (b): IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent"."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        magi = 4 * 21_640
+        at = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, 20_000, 3, thisyear=2027)[0]
+        above = tx.acaCosts(yobs, horizons, np.full(3, magi + 1), gamma, 20_000, 3, thisyear=2027)[0]
+        assert np.isclose(at, 0.1022 * magi)
+        assert np.isclose(above, 20_000)
+
+    def test_acavals_uses_each_years_guideline_and_table(self):
+        """Optimize mode: year 0 on the 2025 guideline and 2026 table, year 1 on 2026 and 2027."""
+        from datetime import date
+
+        thisyear = date.today().year
+        gamma = np.ones(11)
+        _, lbar, tan, _ = tx.acaVals([thisyear - 50], [10], gamma, 1e6, 10)
+        for n in (0, 1):
+            fpl = tx._aca_fpl(thisyear + n, 1, gamma, thisyear)
+            np.testing.assert_allclose(tan[n], tx._aca_tangents(fpl, tx._aca_table(thisyear + n)))
+            np.testing.assert_allclose(lbar[n], tx._ACA_LP_BREAKPOINTS * fpl)
+        if thisyear == 2026:
+            assert np.isclose(lbar[0][-1], 4 * 15_650)
+            assert np.isclose(lbar[1][-1], 4 * 15_960)
+            assert not np.allclose(tan[0], tan[1])

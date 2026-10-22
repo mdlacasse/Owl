@@ -42,6 +42,25 @@ Medicare (IRC 223(b)(2) and (b)(7)). **Owl** dropped the whole contribution in t
 birthday month, or the month before for a birthday on the 1st: 5/12 of the entry for a June 15
 birthday, and 11/12 of the year before for a January 1 birthday, which **Owl** used to keep whole.
 
+#### Fixed: the ACA poverty line is the guideline of the year before
+
+The premium tax credit measures income against "the most recently published poverty line as of the
+1st day of the regular enrollment period" (IRC 36B(d)(3)(B); 26 CFR 1.36B-1(h)). Open enrollment
+starts in November, so coverage in 2026 uses the 2025 guideline (\$21,150 for two people), not the
+2026 one (\$21,640). **Owl** used the coverage year's guideline grown by a year of inflation, which
+made the 138%, 150% and 400% lines about 2.3% too generous. Years past the last published guideline
+now grow it by inflation from its own year, which also corrects a plan starting after that year.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal references (#200).
+
+#### Fixed: ACA uses the 2027 applicable percentage table, and exactly 400% of the poverty line qualifies
+
+Rev. Proc. 2026-26 publishes the 2027 table (2.15% below 133% of the poverty line, up to 10.22%).
+**Owl** applied the 2026 table to every year; the tables are now keyed by year, in both the loop and
+optimize modes, with the latest carried forward. In loop mode, income of exactly 400% of the poverty
+line paid the full benchmark; IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent",
+so it now gets the credit, as it already did in optimize mode. Thanks to Marco Pignone
+(@rationalpiper) for reporting it (#201).
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

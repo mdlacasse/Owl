@@ -173,9 +173,9 @@ QCD_MIN_AGE = 70.5
 # ACA Premium Tax Credit constants (updated annually by HHS and IRS).
 ###############################################################################
 
-# Federal Poverty Level base amounts (48 contiguous states + DC).
+# HHS poverty guidelines (48 contiguous states + DC), keyed by the year they were published.
 # Indexed by household size: [single (1 person), couple (2 persons)].
-# Per-year: 2025 HHS, 2026 HHS. For 2027+ we use 2026 until next update.
+# Coverage in year Y uses the guideline of year Y-1: see _aca_fpl.
 _ACA_FPL = {
     2025: np.array([15_650.0, 21_150.0]),
     2026: np.array([15_960.0, 21_640.0]),
@@ -199,6 +199,18 @@ _ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
 # the previous one ends.
 _ACA_CONTRIB_INITIAL_2026 = np.array([0.0314, 0.0419, 0.066, 0.0844, 0.0996])
 # No cap above 400%: full SLCSP (no PTC)
+
+# 2027 taxable year: IRS Rev. Proc. 2026-26, sec. 3.01. Same breakpoints as 2026.
+_ACA_CONTRIB_PCT_2027 = np.array([0.0215, 0.043, 0.0678, 0.0866, 0.1022, 0.1022])
+_ACA_CONTRIB_INITIAL_2027 = np.array([0.0323, 0.043, 0.0678, 0.0866, 0.1022])
+
+# Applicable percentage tables of the 2026+ rules, keyed by taxable year: (breakpoints, percentage
+# at the top of each band with the below-133% rate first, initial percentage of each band).
+# A year past the last table uses the last one: see _aca_table.
+_ACA_TABLES = {
+    2026: (_ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026),
+    2027: (_ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2027, _ACA_CONTRIB_INITIAL_2027),
+}
 
 # Below 138% FPL the household is assumed covered by Medicaid, at no premium. That is the rule in
 # expansion states; in the others there is no Medicaid for most adults and the marketplace rules
@@ -556,6 +568,44 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     return costs
 
 
+def _aca_table(calendar_year):
+    """Applicable percentage table (breakpoints, pct, initial pct) for coverage in calendar_year.
+
+    The table is published for each taxable year (IRC 36B(b)(3)(A)); a year past the last one
+    published uses the last one, and a year before the first uses the first.
+    """
+    years = [y for y in _ACA_TABLES if y <= calendar_year]
+    return _ACA_TABLES[max(years) if years else min(_ACA_TABLES)]
+
+
+def _aca_fpl(calendar_year, size, gamma_n, thisyear):
+    """
+    Poverty line ($) for ACA coverage in calendar_year, for a tax household of size 1 or 2.
+
+    The line is "the most recently published poverty line as of the 1st day of the regular
+    enrollment period" (IRC 36B(d)(3)(B); 26 CFR 1.36B-1(h)). Open enrollment for year Y starts in
+    November of Y-1, so coverage in Y uses the guideline published in Y-1 (#200). A published
+    guideline is used as is. A year past the last one published grows it by inflation from its own
+    year, gamma_n from plan year latest - thisyear to z - thisyear, and a year before the first
+    deflates the first likewise. Before the plan, inflation is taken at the plan's first-year rate.
+    """
+    z = calendar_year - 1
+    if z in _ACA_FPL:
+        return float(_ACA_FPL[z][size - 1])
+
+    rate = gamma_n[1] / gamma_n[0] if len(gamma_n) > 1 else 1.0
+
+    def growth(k):
+        if k < 0:
+            return gamma_n[0] * rate**k
+        if k >= len(gamma_n):
+            return gamma_n[-1] * rate ** (k - len(gamma_n) + 1)
+        return gamma_n[k]
+
+    base = max(_ACA_FPL) if z > max(_ACA_FPL) else min(_ACA_FPL)
+    return float(_ACA_FPL[base][size - 1] * growth(z - thisyear) / growth(base - thisyear))
+
+
 def _aca_contrib_pct(ratio, breakpoints, contrib_pct, initial_pct=None):
     """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range.
 
@@ -613,8 +663,11 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
     The Premium Tax Credit (PTC) = max(0, SLCSP - cap_pct * MAGI), where cap_pct
     is a piecewise-linear function of MAGI/FPL. Net cost = min(SLCSP, cap_pct * MAGI).
-    Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%);
-    2026+ uses Rev. Proc. 2025-25 (no subsidy above 400%).
+    Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%); 2026 on has no
+    subsidy above 400% and uses the year's applicable percentage table (Rev. Proc. 2025-25 for 2026,
+    2026-26 for 2027, the last one after that; see _aca_table). Income of exactly 400% FPL still
+    qualifies: IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent" (#201). The poverty
+    line is the guideline published the year before (_aca_fpl, #200).
 
     Coverage is by the month (IRC 36B(b)): an individual is enrolled in the months of year n before
     Medicare starts (medicareMonths, from birth months mobs and days tobs) while within the planning
@@ -651,7 +704,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
         Years before this index are set to zero regardless of eligibility.
     medical_n : array, optional
         Growth factors for the SLCSP premium, length >= N_n. Defaults to gamma_n; pass a
-        faster series when medical prices outgrow inflation. FPL always follows gamma_n.
+        faster series when medical prices outgrow inflation. The poverty line follows gamma_n.
 
     Returns
     -------
@@ -667,7 +720,6 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     if thisyear is None:
         thisyear = date.today().year
     costs = np.zeros(N_n)
-    fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
 
     family_n, parts_n = _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear)
 
@@ -676,8 +728,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
             continue  # nobody enrolled this year
 
         calendar_year = thisyear + n
-        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl = _ACA_FPL[fpl_year][family_n[n] - 1] * gamma_n[n]
+        fpl = _aca_fpl(calendar_year, family_n[n], gamma_n, thisyear)
         slcsp = slcsp_annual * medical_n[n]
         magi = magi_n[n]
 
@@ -695,15 +746,14 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
             else:
                 cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2025, _ACA_CONTRIB_PCT_2025)
         else:
-            # 2026+ rules: Rev. Proc. 2025-25, no PTC above 400%
-            if ratio >= _ACA_BREAKPOINTS_2026[-1]:
+            # 2026+ rules: the year's table, no PTC above 400% (exactly 400% still qualifies)
+            breakpoints, pct, initial = _aca_table(calendar_year)
+            if ratio > breakpoints[-1]:
                 cap_pct = np.inf
-            elif ratio < _ACA_BREAKPOINTS_2026[0]:
-                cap_pct = _ACA_CONTRIB_PCT_2026[0]
+            elif ratio < breakpoints[0]:
+                cap_pct = pct[0]
             else:
-                cap_pct = _aca_contrib_pct(
-                    ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026
-                )
+                cap_pct = _aca_contrib_pct(ratio, breakpoints, pct, initial)
 
         # Each coverage month pays the lesser of its benchmark and 1/12 of the contribution.
         contribution = cap_pct * magi
@@ -712,41 +762,45 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     return costs
 
 
-def _aca_lp_band(r):
-    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..5), as multiples of FPL."""
+def _aca_lp_band(r, table=None):
+    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..5), as multiples of FPL.
+
+    table is the year's applicable percentage table (_aca_table); defaults to the 2026 one.
+    """
+    breakpoints, pct, initial = _ACA_TABLES[2026] if table is None else table
     lo, hi = _ACA_LP_BREAKPOINTS[r - 1], _ACA_LP_BREAKPOINTS[r]
-    p_lo = _aca_contrib_pct(lo, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026)
-    p_hi = _aca_contrib_pct(hi - 1e-12, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026)
+    p_lo = _aca_contrib_pct(lo, breakpoints, pct, initial)
+    p_hi = _aca_contrib_pct(hi - 1e-12, breakpoints, pct, initial)
     return lo, hi, p_lo, p_hi
 
 
-def _aca_band_cost_coefs(r, fpl):
+def _aca_band_cost_coefs(r, fpl, table=None):
     """Coefficients (a, b) of the bracket's cost a*M + b*M**2 in MAGI dollars M.
 
     The applicable percentage rises linearly across the bracket, p = p_lo + s*(M/fpl - lo), so the
     expected contribution p*M is quadratic in M and convex (b >= 0).
     """
-    lo, hi, p_lo, p_hi = _aca_lp_band(r)
+    lo, hi, p_lo, p_hi = _aca_lp_band(r, table)
     s = (p_hi - p_lo) / (hi - lo)
     return p_lo - s * lo, s / fpl
 
 
-def _aca_tangents(fpl):
+def _aca_tangents(fpl, table=None):
     """Tangent lines (slope, intercept) under each bracket's cost, shape (N_ACA_R, K, 2), in dollars.
 
     Bracket 0 (Medicaid) and bracket 6 (full SLCSP) have no proportional cost and stay zero.
     """
     tan = np.zeros((N_ACA_R, _ACA_LP_TANGENTS, 2))
     for r in range(1, N_ACA_R - 1):
-        lo, hi, _, _ = _aca_lp_band(r)
-        a, b = _aca_band_cost_coefs(r, fpl)
+        lo, hi, _, _ = _aca_lp_band(r, table)
+        a, b = _aca_band_cost_coefs(r, fpl, table)
         for k, x in enumerate(np.linspace(lo, hi, _ACA_LP_TANGENTS)):
             m = x * fpl
             tan[r, k] = (a + 2 * b * m, -b * m * m)
     return tan
 
 
-def _aca_capped_limits(fpl, slcsp):
+def _aca_capped_limits(fpl, slcsp, table=None):
     """LP bracket thresholds ($), clipped at the MAGI where the expected contribution reaches the SLCSP.
 
     The net premium is min(SLCSP, contribution). The contribution only rises with MAGI, so from the
@@ -759,10 +813,10 @@ def _aca_capped_limits(fpl, slcsp):
     if slcsp <= 0:
         return np.zeros_like(limits)  # no premium: every income in the last bracket, at no cost
     for r in range(1, N_ACA_R - 1):
-        lo, hi, _, p_hi = _aca_lp_band(r)
+        lo, hi, _, p_hi = _aca_lp_band(r, table)
         if slcsp > p_hi * hi * fpl:
             continue  # the whole bracket costs less than the SLCSP
-        a, b = _aca_band_cost_coefs(r, fpl)
+        a, b = _aca_band_cost_coefs(r, fpl, table)
         if b > 0:
             m_star = (-a + np.sqrt(a * a + 4 * b * slcsp)) / (2 * b)
         else:
@@ -775,14 +829,15 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
     """
     Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
-    Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
-    inflation-adjusted via gamma_n. The tax household (1 or 2) determines which FPL base to use.
-    FPL base is year-aware (2025 vs 2026 from _ACA_FPL); contribution rates use 2026 table only.
-    Coverage months and benchmarks follow _aca_coverage, as in acaCosts.
+    Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are multiples of the poverty
+    line of the tax household (1 or 2), the guideline published the year before (_aca_fpl, #200).
+    Each year uses its applicable percentage table (_aca_table, #201). Income of exactly 400% FPL
+    stays in bracket 5, whose upper bound is inclusive. Coverage months and benchmarks follow
+    _aca_coverage, as in acaCosts.
 
     Limitations:
-      - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
-        use 2026 rates; SC-loop mode (acaCosts) is year-aware.
+      - A plan starting in 2025 is priced on the 2026 rules; SC-loop mode (acaCosts) applies the
+        2025 rules to that year.
       - Below 138% FPL: bracket 0, Medicaid at no premium, as in acaCosts.
       - Within brackets 1-5 the cost follows the sliding scale through tangent lines, slightly from
         below between tangent points.
@@ -829,7 +884,6 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
         medical_n = gamma_n
 
     thisyear = date.today().year
-    fpl_max_year = max(_ACA_FPL.keys())
 
     # n_aca = the year after the last one with anybody enrolled.
     family_n, parts_n = _aca_coverage(yobs, horizons, Nn, mobs, tobs, thisyear)
@@ -851,15 +905,15 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
             continue  # Nobody enrolled this year; thresholds stay zero
 
         calendar_year = thisyear + n
-        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl = _ACA_FPL[fpl_year][family_n[n] - 1] * gamma_n[n]
+        fpl = _aca_fpl(calendar_year, family_n[n], gamma_n, thisyear)
+        table = _aca_table(calendar_year)
 
         # The year's benchmark is the sum over its coverage months, and the contribution is owed
         # for the fraction of the year with anybody enrolled.
         frac = sum(months for months, _ in parts_n[n]) / 12
         slcsp_aca_n[nn] = slcsp_annual * medical_n[n] * sum(months * scale for months, scale in parts_n[n]) / 12
-        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac)
-        tangents[nn] = frac * _aca_tangents(fpl)
+        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac, table)
+        tangents[nn] = frac * _aca_tangents(fpl, table)
 
     return n_aca, Lbar, tangents, slcsp_aca_n
 

@@ -353,8 +353,7 @@ def test_aca_cliffs_use_the_aca_magi():
 
     plan = _aca_plan()
     aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
-    fpl_year = THISYEAR if THISYEAR in tx._ACA_FPL else max(tx._ACA_FPL)
-    fpl = float(tx._ACA_FPL[fpl_year][0])
+    fpl = tx._aca_fpl(THISYEAR, 1, plan.gamma_n, THISYEAR)  # the guideline of the year before (#200)
     assert aca["aca_magi"] == pytest.approx(float(plan.MAGI_aca_n[0]), abs=0.01)
     assert aca["subsidy_cliff"] == pytest.approx(4 * fpl, abs=0.01)
     assert aca["medicaid_line"] == pytest.approx(tx._ACA_MEDICAID_RATIO * fpl, abs=0.01)

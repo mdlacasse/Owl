@@ -463,8 +463,7 @@ def _aca_cliffs(plan):
     family, parts = tx._aca_coverage(plan.yobs, plan.horizons, 1, plan.mobs, plan.tobs, thisyear)
     if n_start > 0 or not parts[0]:
         return {}
-    fpl_year = thisyear if thisyear in tx._ACA_FPL else max(tx._ACA_FPL)
-    fpl = float(tx._ACA_FPL[fpl_year][family[0] - 1])
+    fpl = tx._aca_fpl(thisyear, family[0], plan.gamma_n, thisyear)
     magi = float(plan.MAGI_aca_n[0])
     medicaid, cliff = tx._ACA_MEDICAID_RATIO * fpl, 4.0 * fpl
 

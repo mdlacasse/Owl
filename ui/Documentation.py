@@ -714,7 +714,7 @@ is treated and where Owl's model diverges from the actual law:
 | Income tax brackets & standard deduction | Inflation-adjusted | Chained CPI-U (≈ CPI-U − 0.2–0.3%/yr) | Small |
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
-| ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
+| ACA Federal Poverty Level thresholds | Published guideline of the year before; inflation-adjusted past the last one | HHS annual update ≈ CPI-U | Negligible |
 | Medicare premiums, ACA benchmark premium, other medical expenses | Inflation-adjusted, plus the optional *Medical prices above inflation* excess | Medical care CPI, premium growth | Medical prices have historically outpaced CPI; set the excess to model it |
 | SS taxability thresholds (\\$25k/\\$32k, \\$34k/\\$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
 
@@ -1521,12 +1521,19 @@ Coverage is counted by the month: marketplace coverage ends when Medicare starts
 65th birthday (the month before for a birthday on the 1st), so the year of that birthday is charged
 for the months before it. The subsidy uses the poverty line of the tax household, which for a married
 couple is 2 while both spouses are alive, even when one of them is already on Medicare.
+That poverty line is the HHS guideline in effect when open enrollment begins, in November of the year
+before, so coverage in 2027 is measured against the guideline published in 2026 (IRC 36B(d)(3)(B);
+26 CFR 1.36B-1(h)). Years past the last published guideline grow it by inflation from its own year.
+The share of income expected toward the benchmark follows the IRS applicable percentage table of each
+year: Rev. Proc. 2025-25 for 2026 and Rev. Proc. 2026-26 for 2027, with the latest table carried
+forward. Above 400% of the poverty line there is no subsidy; income of exactly 400% still qualifies.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.
 *Solve ACA brackets with MILP (expert)* in *Advanced options*
 co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
-for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
+for improved plan objectives (can be slower; applies the rules of 2026 on, so a 2025 plan year is priced
+on them too); it only applies when SLCSP > 0.
 
 **Medicare** has a toggle *Medicare and IRMAA calculations* (Part B and Part D).
 When turned off, Medicare premiums are ignored (set to zero); this is the fastest option but least accurate.
@@ -1602,7 +1609,7 @@ The *Advanced options* expander contains:
 - *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
   optimization rather than by iteration; enabled only when Medicare and IRMAA calculations are on.
 - *Solve ACA brackets with MILP (expert)* – chooses the ACA bracket inside the optimization, letting
-  it shift MAGI across brackets deliberately (slower; applies 2026 rules only);
+  it shift MAGI across brackets deliberately (slower; applies the rules of 2026 on);
   enabled only when SLCSP > 0.
 
 These two optimize modes operate on nearly disjoint time ranges — ACA covers pre-65 years,
