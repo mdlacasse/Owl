@@ -27,6 +27,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import io
+
 import numpy as np
 import pytest
 
@@ -417,7 +419,7 @@ class TestACAOptimize:
         capped = tx._aca_capped_limits(fpl, 5_000.0)
         assert np.allclose(capped, np.minimum(limits, 5_000.0 / 0.0996))
         # 2,000 crosses inside the sliding 150-200% bracket: the contribution there is exactly 2,000.
-        m = tx._aca_capped_limits(fpl, 2_000.0)[2]
+        m = tx._aca_capped_limits(fpl, 2_000.0)[3]
         assert 1.50 * fpl < m < 2.00 * fpl
         pct = tx._aca_contrib_pct(
             m / fpl, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
@@ -428,16 +430,18 @@ class TestACAOptimize:
         # No premium (before coverage starts): every income is in the last bracket, at no cost.
         assert np.allclose(tx._aca_capped_limits(fpl, 0.0), 0.0)
 
-    def test_tangents_follow_the_sliding_scale_from_below(self):
-        """Optimize mode prices each bracket by tangents: never above the statute's cost, within a few dollars."""
+    @pytest.mark.parametrize("medicaid", [1.38, 1.00, 0.0])
+    def test_tangents_follow_the_sliding_scale_from_below(self, medicaid):
+        """Optimize mode prices each bracket by tangents: never above the statute's cost, within a few dollars.
+        Where Medicaid stops at or below 100% FPL, bracket 1 (100-133%) has the lowest percentage (#202)."""
         fpl = tx._ACA_FPL[2026][0]
-        tan = tx._aca_tangents(fpl)
+        tan = tx._aca_tangents(fpl, medicaid=medicaid)
         for r in range(1, tx.N_ACA_R - 1):
-            lo, hi, _, _ = tx._aca_lp_band(r)
+            lo, hi, _, _ = tx._aca_lp_band(r, medicaid=medicaid)
+            if hi <= lo:
+                continue  # bracket 1 where Medicaid reaches past 133%
             for m in np.linspace(lo * fpl, hi * fpl * (1 - 1e-9), 401):
-                pct = tx._aca_contrib_pct(
-                    m / fpl, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
-                )
+                pct = tx._aca_pct(m / fpl, tx._ACA_TABLES[2026])
                 lp = max(tan[r, k, 0] * m + tan[r, k, 1] for k in range(tan.shape[1]))
                 assert lp <= pct * m + 1e-6
                 assert pct * m - lp < 10.0
@@ -855,3 +859,116 @@ class TestACAGuidelineAndTable:
             assert np.isclose(lbar[0][-1], 4 * 15_650)
             assert np.isclose(lbar[1][-1], 4 * 15_960)
             assert not np.allclose(tan[0], tan[1])
+
+
+class TestCoverageGap:
+    """#202: states without the Medicaid expansion. Below 100% FPL there is no premium tax credit (IRC
+    36B(c)(1)(A)); Wisconsin covers adults to 100% under a waiver, the other nine almost none."""
+
+    YOBS, HORIZONS, GAMMA = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+    FPL = 21_640  # 2026 guideline, 2027 coverage
+
+    def _cost(self, ratio, medicaid, gap="approx", slack=0.0):
+        return tx.acaCosts(self.YOBS, self.HORIZONS, np.full(3, ratio * self.FPL), self.GAMMA, 20_000, 3,
+                           thisyear=2027, medicaid_n=np.full(3, medicaid), gap=gap, slack=slack)[0]
+
+    def test_state_limits(self):
+        from owlplanner import tax_state
+
+        assert {s for s in tax_state.valid_states() if tax_state.medicaid_limit(s) < 1.38} == {
+            "AL", "FL", "GA", "KS", "MS", "SC", "TN", "TX", "WI", "WY"}  # KFF, October 2026
+        assert tax_state.medicaid_limit("WI") == 1.0 and tax_state.medicaid_limit("TX") == 0.0
+        assert tax_state.medicaid_limit("NV") == tax_state.medicaid_limit("") == 1.38
+
+    @pytest.mark.parametrize("medicaid, gap, expected", [
+        (1.38, "exact", [0, 0, 0, 0]),  # expansion: Medicaid to 138%
+        (0.0, "exact", [20_000, 20_000, 512, 605]),  # gap: full benchmark, then 2.15% (2027 table)
+        (0.0, "approx", [279, 419, 512, 605]),  # the loop's: 2.15% below 100% too
+        (1.0, "exact", [0, 0, 512, 605]),  # Wisconsin: Medicaid to 100%
+    ])
+    def test_issue_repro(self, medicaid, gap, expected):
+        costs = [self._cost(r, medicaid, gap) for r in (0.60, 0.90, 1.10, 1.30)]
+        np.testing.assert_allclose(costs, expected, atol=0.5)
+
+    def test_loop_approximation_has_no_jump_at_100_percent(self):
+        below, at = self._cost(1.0 - 1e-9, 0.0), self._cost(1.0, 0.0)
+        assert at - below == pytest.approx(0, abs=0.01)
+        assert self._cost(1.0 - 1e-9, 0.0, "exact") == pytest.approx(20_000)
+
+    def test_edges_read_on_their_own_side(self):
+        """The credit starts at 100% ("equals or exceeds"); 133% takes the higher percentage ("at least")."""
+        assert self._cost(1.0, 0.0, "exact") == pytest.approx(0.0215 * self.FPL)
+        assert self._cost(1.0 - 0.5 / self.FPL, 0.0, "exact", slack=1.0) < 1_000  # parked on the edge
+        assert self._cost(1.33, 0.0, "exact") == pytest.approx(0.0323 * 1.33 * self.FPL)
+        assert self._cost(1.33 - 1e-9, 0.0, "exact") == pytest.approx(0.0215 * 1.33 * self.FPL)
+
+    def test_lp_thresholds(self):
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(1.38), [1.38, 1.38, 1.5, 2, 2.5, 3, 4])
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(1.0), [1.0, 1.33, 1.5, 2, 2.5, 3, 4])
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(0.0), [1.0, 1.33, 1.5, 2, 2.5, 3, 4])
+        assert list(np.flatnonzero(tx._aca_lp_from_above(1.38))) == []
+        assert list(np.flatnonzero(tx._aca_lp_from_above(1.0))) == [1]  # Medicaid includes 100%
+        assert list(np.flatnonzero(tx._aca_lp_from_above(0.0))) == [0, 1]
+
+    def test_acavals_prices_the_gap_in_bracket_0(self):
+        from datetime import date
+
+        thisyear = date.today().year
+        gamma = np.ones(11)
+        for medicaid, cost in ((0.0, True), (1.0, False), (1.38, False)):
+            _, lbar, tan, s_n = tx.acaVals([thisyear - 50], [10], gamma, 12_000, 10, medicaid_n=np.full(10, medicaid))
+            fpl = tx._aca_fpl(thisyear, 1, gamma, thisyear)
+            assert lbar[0][0] == pytest.approx(max(1.0, medicaid) * fpl)
+            np.testing.assert_allclose(tan[0, 0, :, 0], 0)
+            np.testing.assert_allclose(tan[0, 0, :, 1], s_n[0] if cost else 0)
+
+
+def _gap_plan(state, mode, taxable, deferred, roth):
+    from datetime import date
+
+    thisyear = date.today().year
+    log = io.StringIO()
+    p = Plan(["A"], [f"{thisyear - 58}-03-15"], [85], "gap", verbose=False, logstreams=[log])
+    p.setStateTax(state)
+    p.setAccountBalances(taxable=[taxable], taxDeferred=[deferred], taxFree=[roth], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.setSocialSecurity([2000], [67])
+    p.setSpendingProfile("flat")
+    p.setACA(12_000, units="1")
+    p.solve("maxSpending", {"bequest": 0, "withACA": mode, "withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    fpl = np.array([tx._aca_fpl(thisyear + n, 1, p.gamma_n, thisyear) for n in range(p.n_aca)])
+    return p, fpl, log.getvalue()
+
+
+class TestCoverageGapPlans:
+    """#202 in a plan: a Florida early retiree whose income can go below 100% FPL (mostly Roth)."""
+
+    def test_optimize_mode_leaves_the_gap_at_100_percent(self):
+        p, fpl, _ = _gap_plan("FL", "optimize", 300, 0, 600)
+        magi = p.MAGI_aca_n[: p.n_aca]
+        assert np.all(magi >= fpl - 1)  # the credit from 100% beats the full benchmark below it
+        assert np.any(magi < 1.01 * fpl)  # ...and income goes no higher than it needs to
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1  # the 100% edge read on its own side
+
+    def test_optimize_mode_stays_below_133_percent(self):
+        """The table's percentage jumps from 2.15% to 3.23% at 133% (2.10% to 3.14% in 2026)."""
+        p, fpl, _ = _gap_plan("FL", "optimize", 600, 300, 50)
+        magi = p.MAGI_aca_n[: p.n_aca]
+        assert np.any(np.abs(magi - 1.33 * fpl) < 10)  # the optimizer parks next to the jump...
+        assert np.all((magi < 1.33 * fpl) | (magi > 1.34 * fpl))  # ...on its cheap side
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1
+
+    def test_loop_mode_warns_about_the_gap(self):
+        p, fpl, log = _gap_plan("FL", "loop", 300, 0, 600)
+        assert np.any(p.MAGI_aca_n[: p.n_aca] < fpl)
+        assert "coverage gap" in log and "withACA='optimize'" in log
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1
+
+    @pytest.mark.parametrize("state", ["WI", "NV"])
+    def test_no_warning_where_medicaid_covers_it(self, state):
+        p, fpl, log = _gap_plan(state, "loop", 300, 0, 600)
+        assert np.any(p.MAGI_aca_n[: p.n_aca] < fpl)
+        assert np.allclose(p.aca_costs_n[: p.n_aca], 0)
+        assert "coverage gap" not in log

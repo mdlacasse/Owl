@@ -213,17 +213,20 @@ _ACA_TABLES = {
     2027: (_ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2027, _ACA_CONTRIB_INITIAL_2027),
 }
 
-# Below 138% FPL the household is assumed covered by Medicaid, at no premium. That is the rule in
-# expansion states; in the others there is no Medicaid for most adults and the marketplace rules
-# apply from 100% FPL, which is not modeled.
+# Up to the state's Medicaid limit the household is covered by Medicaid, at no premium: 138% FPL in
+# expansion states (the default here), 100% in Wisconsin, none in the other states without the
+# expansion (tax_state.medicaid_limit, issue #202). The premium tax credit starts at 100% FPL
+# (IRC 36B(c)(1)(A)), so in those states income below 100% gets neither: the coverage gap.
 _ACA_MEDICAID_RATIO = 1.38
 
 # ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
-N_ACA_R = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
-# LP bracket thresholds as multiples of FPL (6 thresholds → 7 brackets, constant structure).
-# Bracket 0 (below 138%): Medicaid, no premium. Brackets 1-5: the 2026 sliding scale, priced by
-# tangent lines (see acaVals). Bracket 6 (400% and up): full SLCSP (za * slcsp in plan.py).
-_ACA_LP_BREAKPOINTS = np.array([_ACA_MEDICAID_RATIO, 1.50, 2.00, 2.50, 3.00, 4.00])
+N_ACA_R = 8  # number of ACA brackets: 7 intervals up to 400% FPL + 1 bracket above 400%
+# LP bracket thresholds as multiples of FPL (7 thresholds → 8 brackets, constant structure), set by
+# the year's Medicaid limit: see _aca_lp_breakpoints. Bracket 0 (below the first threshold):
+# Medicaid at no premium, or the coverage gap at the full SLCSP. Brackets 1-6: the sliding scale,
+# priced by tangent lines (see acaVals); bracket 1 (100-133%, the flat lowest percentage) has zero
+# width where Medicaid reaches past 133%. Bracket 7 (400% and up): full SLCSP (za * slcsp in plan.py).
+_ACA_LP_UPPER = np.array([1.50, 2.00, 2.50, 3.00, 4.00])
 # Tangent lines per bracket under the sliding-scale cost pct(MAGI) * MAGI, which is convex within a
 # bracket. Their maximum follows the cost from below, exactly at the tangent points; with four
 # evenly spaced points the shortfall is a few dollars at most.
@@ -688,7 +691,7 @@ def _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear):
 
 
 def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0, medical_n=None,
-             mobs=None, tobs=None):
+             mobs=None, tobs=None, medicaid_n=None, gap="approx", slack=0.0):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
@@ -710,8 +713,14 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
     Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
 
-    Up to and including 138% FPL the household is assumed covered by Medicaid, at no premium (the
-    rule in expansion states; non-expansion states are not modeled).
+    Up to and including the year's Medicaid limit the household is covered by Medicaid, at no
+    premium: medicaid_n[n] x FPL, 138% in expansion states (the default), 100% in Wisconsin and none
+    in the other states without the expansion (tax_state.medicaid_limit, #202). Where the limit is
+    below 100% FPL, income below 100% gets neither Medicaid nor the credit (IRC 36B(c)(1)(A)) and
+    pays the full benchmark: that is gap="exact", which optimize mode prices with its own bracket.
+    The self-consistent loop uses gap="approx", charging the lowest applicable percentage there as
+    from 100%: the exact cost jumps to the full benchmark below 100%, and the loop would oscillate
+    across that jump. The approximation understates the cost of such years; plan.py warns about them.
 
     Parameters
     ----------
@@ -736,6 +745,15 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     medical_n : array, optional
         Growth factors for the SLCSP premium, length >= N_n. Defaults to gamma_n; pass a
         faster series when medical prices outgrow inflation. The poverty line follows gamma_n.
+    medicaid_n : array, optional
+        Medicaid limit of each plan year, as a multiple of FPL (tax_state.medicaid_limit of the
+        state of residence). Defaults to 1.38 every year.
+    gap : str, optional
+        Pricing of the coverage gap below 100% FPL: "approx" (default, the loop's) or "exact".
+    slack : float, optional
+        Dollars by which a MAGI parked on an edge is read on its own side of it, as in irmaaTier:
+        below the Medicaid limit and the 400% cliff, which both include their edge, and at or above
+        100% FPL, where the credit starts. The cost itself is that of MAGI.
 
     Returns
     -------
@@ -763,12 +781,16 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
         slcsp = slcsp_annual * medical_n[n]
         magi = magi_n[n]
 
-        # Up to 138% FPL (133% plus the 5% income disregard): Medicaid, no premium.
-        if magi <= _ACA_MEDICAID_RATIO * fpl:
+        # Up to the Medicaid limit (138% FPL in expansion states: 133% plus the 5% income disregard),
+        # no premium.
+        medicaid = _ACA_MEDICAID_RATIO if medicaid_n is None else medicaid_n[n]
+        if medicaid > 0 and magi - slack <= medicaid * fpl:
             continue
 
         ratio = magi / fpl
-        if calendar_year < 2026:
+        if magi + slack < fpl and gap == "exact":
+            cap_pct = np.inf  # coverage gap: no Medicaid, no credit
+        elif calendar_year < 2026:
             # 2025 rules: Rev. Proc. 2024-35, 8.5% cap above 400%
             if ratio < _ACA_BREAKPOINTS_2025[0]:
                 cap_pct = 0.0
@@ -779,7 +801,7 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
         else:
             # 2026+ rules: the year's table, no PTC above 400% (exactly 400% still qualifies)
             breakpoints, pct, initial = _aca_table(calendar_year)
-            if ratio > breakpoints[-1]:
+            if magi - slack > breakpoints[-1] * fpl:
                 cap_pct = np.inf
             elif ratio < breakpoints[0]:
                 cap_pct = pct[0]
@@ -787,51 +809,92 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
                 cap_pct = _aca_contrib_pct(ratio, breakpoints, pct, initial)
 
         # Each coverage month pays the lesser of its benchmark and 1/12 of the contribution.
-        contribution = cap_pct * magi
+        contribution = np.inf if np.isinf(cap_pct) else max(0.0, cap_pct * magi)
         costs[n] = sum(months / 12 * min(scale * slcsp, contribution) for months, scale in parts_n[n])
 
     return costs
 
 
-def _aca_lp_band(r, table=None):
-    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..5), as multiples of FPL.
+def _aca_lp_breakpoints(medicaid=_ACA_MEDICAID_RATIO):
+    """LP bracket thresholds, as multiples of FPL, for a year whose Medicaid limit is medicaid.
+
+    The first threshold is the Medicaid limit, or 100% FPL where Medicaid stops below it (coverage
+    gap underneath); the second is 133%, where the lowest applicable percentage ends, unless the
+    first is already past it (expansion states: a zero-width bracket 1).
+    """
+    first = max(1.0, medicaid)
+    return np.concatenate(([first, max(_ACA_BREAKPOINTS_2026[0], first)], _ACA_LP_UPPER))
+
+
+_ACA_LP_BREAKPOINTS = _aca_lp_breakpoints()  # expansion states
+
+
+def _aca_lp_from_above(medicaid=_ACA_MEDICAID_RATIO):
+    """Which LP thresholds belong to the bracket above them, for a year whose Medicaid limit is medicaid.
+
+    Most edges belong to the bracket below: Medicaid covers income up to its limit, the credit income
+    that "does not exceed 400 percent", and the other sliding-scale edges are continuous. Two belong
+    to the bracket above: 100% FPL where a coverage gap ends, since the credit starts at income that
+    "equals or exceeds 100 percent" (IRC 36B(c)(1)(A)), and 133%, where the table's "at least 133%"
+    percentage jumps above the lowest one (#202). plan.py moves those upper bounds below the edge.
+    """
+    first = max(1.0, medicaid)
+    mask = np.zeros(len(_ACA_LP_UPPER) + 2, dtype=bool)
+    mask[0] = medicaid < 1.0
+    mask[1] = first < _ACA_BREAKPOINTS_2026[0]
+    return mask
+
+
+def _aca_pct(ratio, table):
+    """Applicable percentage at ratio x FPL on the 2026+ table, the lowest one below its first band."""
+    breakpoints, pct, initial = table
+    if ratio < breakpoints[0]:
+        return pct[0]
+    return _aca_contrib_pct(ratio, breakpoints, pct, initial)
+
+
+def _aca_lp_band(r, table=None, medicaid=_ACA_MEDICAID_RATIO):
+    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..6), as multiples of FPL.
 
     table is the year's applicable percentage table (_aca_table); defaults to the 2026 one.
+    medicaid is the year's Medicaid limit (_aca_lp_breakpoints).
     """
-    breakpoints, pct, initial = _ACA_TABLES[2026] if table is None else table
-    lo, hi = _ACA_LP_BREAKPOINTS[r - 1], _ACA_LP_BREAKPOINTS[r]
-    p_lo = _aca_contrib_pct(lo, breakpoints, pct, initial)
-    p_hi = _aca_contrib_pct(hi - 1e-12, breakpoints, pct, initial)
+    table = _ACA_TABLES[2026] if table is None else table
+    breakpoints = _aca_lp_breakpoints(medicaid)
+    lo, hi = breakpoints[r - 1], breakpoints[r]
+    p_lo = _aca_pct(lo, table)
+    p_hi = _aca_pct(hi - 1e-12, table) if hi > lo else p_lo
     return lo, hi, p_lo, p_hi
 
 
-def _aca_band_cost_coefs(r, fpl, table=None):
+def _aca_band_cost_coefs(r, fpl, table=None, medicaid=_ACA_MEDICAID_RATIO):
     """Coefficients (a, b) of the bracket's cost a*M + b*M**2 in MAGI dollars M.
 
     The applicable percentage rises linearly across the bracket, p = p_lo + s*(M/fpl - lo), so the
     expected contribution p*M is quadratic in M and convex (b >= 0).
     """
-    lo, hi, p_lo, p_hi = _aca_lp_band(r, table)
-    s = (p_hi - p_lo) / (hi - lo)
+    lo, hi, p_lo, p_hi = _aca_lp_band(r, table, medicaid)
+    s = (p_hi - p_lo) / (hi - lo) if hi > lo else 0.0
     return p_lo - s * lo, s / fpl
 
 
-def _aca_tangents(fpl, table=None):
+def _aca_tangents(fpl, table=None, medicaid=_ACA_MEDICAID_RATIO):
     """Tangent lines (slope, intercept) under each bracket's cost, shape (N_ACA_R, K, 2), in dollars.
 
-    Bracket 0 (Medicaid) and bracket 6 (full SLCSP) have no proportional cost and stay zero.
+    Bracket 0 (Medicaid or the coverage gap) and bracket 7 (full SLCSP) have no proportional cost
+    and stay zero; acaVals prices the coverage gap.
     """
     tan = np.zeros((N_ACA_R, _ACA_LP_TANGENTS, 2))
     for r in range(1, N_ACA_R - 1):
-        lo, hi, _, _ = _aca_lp_band(r, table)
-        a, b = _aca_band_cost_coefs(r, fpl, table)
+        lo, hi, _, _ = _aca_lp_band(r, table, medicaid)
+        a, b = _aca_band_cost_coefs(r, fpl, table, medicaid)
         for k, x in enumerate(np.linspace(lo, hi, _ACA_LP_TANGENTS)):
             m = x * fpl
             tan[r, k] = (a + 2 * b * m, -b * m * m)
     return tan
 
 
-def _aca_capped_limits(fpl, slcsp, table=None):
+def _aca_capped_limits(fpl, slcsp, table=None, medicaid=_ACA_MEDICAID_RATIO):
     """LP bracket thresholds ($), clipped at the MAGI where the expected contribution reaches the SLCSP.
 
     The net premium is min(SLCSP, contribution). The contribution only rises with MAGI, so from the
@@ -840,14 +903,14 @@ def _aca_capped_limits(fpl, slcsp, table=None):
     brackets above the crossing get zero width (issue #161). The crossing is found on the sliding
     scale, where the cost is quadratic in MAGI within a bracket.
     """
-    limits = _ACA_LP_BREAKPOINTS * fpl
+    limits = _aca_lp_breakpoints(medicaid) * fpl
     if slcsp <= 0:
         return np.zeros_like(limits)  # no premium: every income in the last bracket, at no cost
     for r in range(1, N_ACA_R - 1):
-        lo, hi, _, p_hi = _aca_lp_band(r, table)
-        if slcsp > p_hi * hi * fpl:
-            continue  # the whole bracket costs less than the SLCSP
-        a, b = _aca_band_cost_coefs(r, fpl, table)
+        lo, hi, _, p_hi = _aca_lp_band(r, table, medicaid)
+        if hi <= lo or slcsp > p_hi * hi * fpl:
+            continue  # empty, or the whole bracket costs less than the SLCSP
+        a, b = _aca_band_cost_coefs(r, fpl, table, medicaid)
         if b > 0:
             m_star = (-a + np.sqrt(a * a + 4 * b * slcsp)) / (2 * b)
         else:
@@ -856,7 +919,8 @@ def _aca_capped_limits(fpl, slcsp, table=None):
     return limits
 
 
-def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None, mobs=None, tobs=None):
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None, mobs=None, tobs=None,
+            medicaid_n=None):
     """
     Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
@@ -869,7 +933,9 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
     Limitations:
       - A plan starting in 2025 is priced on the 2026 rules; SC-loop mode (acaCosts) applies the
         2025 rules to that year.
-      - Below 138% FPL: bracket 0, Medicaid at no premium, as in acaCosts.
+      - Below the year's first threshold: bracket 0, Medicaid at no premium up to the Medicaid limit
+        (medicaid_n, 1.38 by default), or, where that limit is below 100% FPL, the coverage gap at
+        the full SLCSP (acaCosts with gap="exact"). Its tangents carry that cost (slope 0).
       - Within brackets 1-5 the cost follows the sliding scale through tangent lines, slightly from
         below between tangent points.
       - A year with two coverage families (one partner moving to Medicare during the year) is
@@ -894,6 +960,8 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
         (e.g. still on employer coverage). Default 0 = coverage from plan start.
     medical_n : array, optional
         Growth factors for the SLCSP premium, length >= Nn. Defaults to gamma_n.
+    medicaid_n : array, optional
+        Medicaid limit of each plan year, as a multiple of FPL. Defaults to 1.38 every year.
 
     Returns
     -------
@@ -943,8 +1011,11 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
         # for the fraction of the year with anybody enrolled.
         frac = sum(months for months, _ in parts_n[n]) / 12
         slcsp_aca_n[nn] = slcsp_annual * medical_n[n] * sum(months * scale for months, scale in parts_n[n]) / 12
-        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac, table)
-        tangents[nn] = frac * _aca_tangents(fpl, table)
+        medicaid = _ACA_MEDICAID_RATIO if medicaid_n is None else medicaid_n[n]
+        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac, table, medicaid)
+        tangents[nn] = frac * _aca_tangents(fpl, table, medicaid)
+        if medicaid < 1.0:
+            tangents[nn, 0, :, 1] = slcsp_aca_n[nn]  # coverage gap below 100% FPL: the full SLCSP
 
     return n_aca, Lbar, tangents, slcsp_aca_n
 

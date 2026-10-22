@@ -1,5 +1,19 @@
 ### Version WIP
 
+#### Fixed: ACA premiums in states without the Medicaid expansion
+
+**Owl** treated every state as a Medicaid expansion state, with no premium up to 138% of the poverty
+line. In the states without the expansion there is no Medicaid for most adults, and the premium tax
+credit only starts at 100% (IRC 36B(c)(1)(A)): income below 100% gets neither and owes the full
+benchmark premium. Medicaid now follows the state of residence of each year: 138% in expansion
+states, 100% in Wisconsin (which covers adults to 100% under a waiver), and none in AL, FL, GA, KS,
+MS, SC, TN, TX and WY (KFF, October 2026). With *Solve ACA brackets with MILP*, the coverage gap is
+priced exactly, and so is the applicable-percentage jump at 133%, which only expansion states never
+reach: exactly 100% gets the credit and exactly 133% the higher percentage. The self-consistent loop
+charges the lowest applicable percentage in the gap rather than the full premium, so that the cost
+has no jump to oscillate across, and warns when a year ends there. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the references and a proposed design (#202).
+
 #### Fixed: PA and MS no longer tax Roth conversions before 59½, and exempt IRA withdrawals from 59½
 
 Pennsylvania treats a trustee-to-trustee Roth conversion as nontaxable at any age and exempts IRA

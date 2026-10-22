@@ -1787,6 +1787,10 @@ class Plan:
         self.mylog.vprint(f"Medical prices grow {excess:.2f}% a year above inflation.")
         self.caseStatus = "modified"
 
+    def _medicaid_n(self):
+        """Medicaid limit of each plan year, as a multiple of FPL, from the state of residence (#202)."""
+        return np.array([tax_state.medicaid_limit(s) for s in self._states_n()])
+
     def _medical_n(self, gamma_n):
         """Growth factors of medical prices: inflation compounded with the excess of setMedicalInflation."""
         gamma_n = np.asarray(gamma_n, dtype=float)
@@ -2625,6 +2629,7 @@ class Plan:
                 self.n_aca, self.Lbar_aca_nr, self.tangents_aca_nrk, self.slcsp_aca_n = tx.acaVals(
                     self.yobs, self.horizons, gamma_n, self.slcsp_annual, self.N_n, n_aca_start=n_aca_start,
                     medical_n=self._medical_n(gamma_n), mobs=self.mobs, tobs=self.tobs,
+                    medicaid_n=self._medicaid_n(),
                 )
             else:
                 self.n_aca = 0
@@ -4249,7 +4254,8 @@ class Plan:
           c) Bracket bounds (Big-M): MAGI portion in bracket q is within its FPL thresholds.
 
         Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
-        Note: MAGI below 138% FPL is bracket 0, Medicaid at no premium, as in loop mode.
+        Note: MAGI below the year's first threshold is bracket 0: Medicaid at no premium up to the
+        state's Medicaid limit (138% FPL in expansion states), or the coverage gap below 100% FPL (#202).
         """
         if not self._aca_lp:
             return
@@ -4305,18 +4311,22 @@ class Plan:
             self.A.addNewRow(row_magi, rhs_magi, rhs_magi, tag=("aca_magi_def", nn))
 
         # c) Bracket bounds: Lbar[nn, r-1]*za[r] <= haca[r] <= Lbar[nn, r]*za[r], the lower one
-        # raised by BRACKET_MARGIN.
+        # raised by BRACKET_MARGIN. An edge that belongs to the bracket above (100% FPL ending a
+        # coverage gap, 133%: tx._aca_lp_from_above) lowers the upper bound below it instead.
+        medicaid_n = self._medicaid_n()
         for nn in range(self.n_aca):
+            shift = BRACKET_MARGIN * tx._aca_lp_from_above(medicaid_n[nn])
+            edge = self.Lbar_aca_nr[nn] - shift
             for r in range(tx.N_ACA_R):
                 haca_idx = self.vm["haca"].idx(nn, r)
                 za_idx = self.vm["za"].idx(nn, r)
 
-                lower = 0 if r == 0 else self.Lbar_aca_nr[nn, r - 1] + BRACKET_MARGIN
+                lower = 0 if r == 0 else edge[r - 1] + BRACKET_MARGIN
                 if lower > 0:
                     self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf, tag=("aca_bracket_lb", nn, r))
 
                 if r < tx.N_ACA_R - 1:
-                    upper = self.Lbar_aca_nr[nn, r]
+                    upper = edge[r]
                     if upper <= lower:
                         # Above the MAGI where the contribution reaches the SLCSP (see
                         # tx._aca_capped_limits): such incomes belong to the full-premium bracket.
@@ -4333,10 +4343,11 @@ class Plan:
         Add ACA cost constraints for the LP/MIP formulation (optimize mode only).
 
         In optimize mode, for each tangent k:
-            maca_n >= sum_{r=1}^{5} (slope_rk * haca[nn,r] + intercept_rk * za[nn,r]) + slcsp_aca_n[nn] * za[nn,6].
+            maca_n >= sum_{r=0}^{6} (slope_rk * haca[nn,r] + intercept_rk * za[nn,r]) + slcsp_aca_n[nn] * za[nn,7].
         Only the selected bracket's terms are nonzero, so row k is that bracket's k-th tangent under
-        its sliding-scale cost pct(MAGI) * MAGI, and maca is their maximum. Bracket 0 (below 138% FPL)
-        is Medicaid, at no cost; bracket 6 (400% and up) pays the full SLCSP. maca is priced slightly
+        its sliding-scale cost pct(MAGI) * MAGI, and maca is their maximum. Bracket 0 (below the year's
+        first threshold) is Medicaid at no cost, or the coverage gap below 100% FPL in a state without
+        Medicaid there, at the full SLCSP (#202); bracket 7 (400% and up) pays the full SLCSP. maca is priced slightly
         in the objective (MIP_TIEBREAK) so it never rises above that maximum where cash has no value.
         In loop mode: maca variable does not exist; ACA_n (SC loop) goes in the cash-flow RHS.
         """
@@ -4348,12 +4359,15 @@ class Plan:
             self.B.setRange(self.vm["maca"].idx(n), 0, 0)
 
         # Cost: maca_n >= each tangent of the selected bracket (sliding scale), or the full SLCSP in
-        # bracket 6 (>400% FPL: no PTC under 2026 rules). Bracket 0 (Medicaid) adds nothing.
+        # bracket 7 (>400% FPL: no PTC under 2026 rules) and in a coverage-gap bracket 0. Bracket 0
+        # under Medicaid adds nothing.
         for nn in range(self.n_aca):
             for k in range(self.tangents_aca_nrk.shape[2]):
                 row = self.A.newRow({self.vm["maca"].idx(nn): 1})
-                for r in range(1, tx.N_ACA_R - 1):
+                for r in range(tx.N_ACA_R - 1):
                     slope, intercept = self.tangents_aca_nrk[nn, r, k]
+                    if r == 0 and intercept == 0:
+                        continue  # Medicaid: no cost
                     row.addElem(self.vm["haca"].idx(nn, r), -slope)
                     row.addElem(self.vm["za"].idx(nn, r), -intercept)
                 row.addElem(self.vm["za"].idx(nn, tx.N_ACA_R - 1), -self.slcsp_aca_n[nn])
@@ -5939,6 +5953,7 @@ class Plan:
             self._check_bracket_order()
             self._computeFixedPointResidual(includeMedicare)
             self._warnSSResidual(fixed_psi)
+            self._warnACACoverageGap()
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
             self._timestamp = datetime.now().strftime("%Y-%m-%d at %H:%M:%S")
@@ -5949,6 +5964,34 @@ class Plan:
             self.mylog.print(f"Optimization failed: case is {self.caseStatus}.", tag="WARNING")
 
         return None
+
+    def _warnACACoverageGap(self):
+        """Loop mode: warn about ACA years with MAGI below 100% FPL in a state without Medicaid there.
+
+        Such a year gets neither Medicaid nor the premium tax credit and owes the full benchmark, but
+        the self-consistent loop charges the lowest applicable percentage instead, which has no jump
+        to oscillate across (tx.acaCosts, gap="approx"). Optimize mode prices the gap exactly (#202).
+        """
+        if self.slcsp_annual <= 0 or self._aca_lp:
+            return
+        thisyear = int(self.year_n[0])
+        n_start = max(0, self.aca_start_year - thisyear) if self.aca_start_year > 0 else 0
+        family_n, parts_n = tx._aca_coverage(self.yobs, self.horizons, self.N_n, self.mobs, self.tobs, thisyear)
+        medicaid_n = self._medicaid_n()
+        g = self.gamma_n[:-1]
+        years = [
+            int(self.year_n[n]) for n in range(n_start, self.N_n)
+            if parts_n[n] and medicaid_n[n] < 1.0
+            and self.MAGI_aca_n[n] < tx._aca_fpl(thisyear + n, family_n[n], g, thisyear)
+        ]
+        if years:
+            self.mylog.print(
+                f"ACA MAGI below 100% FPL in {', '.join(map(str, years))}, in a state without Medicaid for "
+                "adults at that income: no Medicaid and no premium tax credit, so the full benchmark premium "
+                "is owed. Loop mode charges the lowest applicable percentage instead; use withACA='optimize' "
+                "to price this coverage gap exactly.",
+                tag="WARNING",
+            )
 
     def _ltcg_tax_implied(self):
         """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly."""
@@ -5978,11 +6021,14 @@ class Plan:
             res["IRMAA"] = (self.medicare_n - M_true) / g
 
         if self.slcsp_annual > 0:
-            # Same dollar of slack: an optimizer parks income at the 400% cliff or the 138% line.
+            # Same dollar of slack: an optimizer parks income at the 400% cliff, the Medicaid line, or just
+            # above 100% FPL where a coverage gap ends; each edge is read on its own side (#202).
+            # The coverage gap is priced as each mode prices it (exact in optimize mode only).
             n_aca_start = max(0, self.aca_start_year - int(self.year_n[0])) if self.aca_start_year > 0 else 0
-            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n - 1.0, g, self.slcsp_annual, Nn,
+            ACA_true = tx.acaCosts(self.yobs, self.horizons, self.MAGI_aca_n, g, self.slcsp_annual, Nn,
                                    n_aca_start=n_aca_start, medical_n=self._medical_n(g),
-                                   mobs=self.mobs, tobs=self.tobs)
+                                   mobs=self.mobs, tobs=self.tobs, medicaid_n=self._medicaid_n(),
+                                   gap="exact" if self._aca_lp else "approx", slack=1.0)
             res["ACA"] = (self.aca_costs_n - ACA_true) / g
 
         res["NIIT"] = (self.J_n - tx.computeNIIT(self.N_i, self.MAGI_n, self.I_n, self.Q_n, self.n_d, Nn)) / g
@@ -6845,6 +6891,7 @@ class Plan:
                 medical_n=self._medical_n(self.gamma_n[:-1]),
                 mobs=self.mobs,
                 tobs=self.tobs,
+                medicaid_n=self._medicaid_n(),
             )
 
         return None

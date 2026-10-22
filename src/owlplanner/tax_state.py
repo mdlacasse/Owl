@@ -41,6 +41,26 @@ _LAST_BRACKET_SENTINEL = 5_000_000.0
 # States with zero income tax — stored as single zero-rate bracket for uniformity.
 NO_TAX_STATES = frozenset(["AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY"])
 
+# Upper income limit of Medicaid for adults under 65, as a multiple of the poverty line (issue #202).
+# Expansion states cover adults to 133% plus the 5% income disregard (42 CFR 435.119, 435.603(d)(4)).
+# Of the states without the expansion (KFF, October 2026), Wisconsin covers adults to 100% under a
+# waiver; the others cover almost no adults without children (Georgia's Pathways requires 80 hours a
+# month of work or similar activity), which leaves a coverage gap below 100%, where the premium tax
+# credit starts (IRC 36B(c)(1)(A)).
+MEDICAID_EXPANSION_LIMIT = 1.38
+MEDICAID_ADULT_LIMIT = {
+    "AL": 0.0, "FL": 0.0, "GA": 0.0, "KS": 0.0, "MS": 0.0, "SC": 0.0, "TN": 0.0, "TX": 0.0, "WY": 0.0,
+    "WI": 1.00,
+}
+
+
+def medicaid_limit(state: str) -> float:
+    """Upper income limit of Medicaid for adults in state, as a multiple of the poverty line.
+
+    Expansion states, and a plan without a state, use MEDICAID_EXPANSION_LIMIT (1.38)."""
+    return MEDICAID_ADULT_LIMIT.get((state or "").upper(), MEDICAID_EXPANSION_LIMIT)
+
+
 # How a state treats Roth conversion income: toward its retirement income exemption (and that
 # exemption's age), never exempt, or left out of state income at any age (issue #203).
 CONVERSION_MODES = ("exemption", "taxed", "excluded")

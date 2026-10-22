@@ -1554,6 +1554,16 @@ before, so coverage in 2027 is measured against the guideline published in 2026 
 The share of income expected toward the benchmark follows the IRS applicable percentage table of each
 year: Rev. Proc. 2025-25 for 2026 and Rev. Proc. 2026-26 for 2027, with the latest table carried
 forward. Above 400% of the poverty line there is no subsidy; income of exactly 400% still qualifies.
+Below the subsidy, Medicaid follows the state of residence of each year. In the states that expanded
+Medicaid, adults are covered up to 138% of the poverty line, at no premium. Wisconsin covers adults
+up to 100%. The other states without the expansion (AL, FL, GA, KS, MS, SC, TN, TX, WY, as of October
+2026) cover almost no adults without children, and the subsidy starts at 100%, so income below 100%
+gets neither: this *coverage gap* owes the full benchmark premium. With *Solve ACA brackets with
+MILP*, the optimizer prices the gap exactly and usually keeps income at 100% or above. The default
+loop charges the lowest subsidized share instead, as from 100%, because the cost jumps to the full
+premium below 100% and the loop could oscillate across that jump; it warns when a plan year ends in
+the gap, understating that year's premium. Medicaid's work requirements starting in 2027 are not
+modeled: they count all income, so they only matter below about \\$7,000 a year.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.

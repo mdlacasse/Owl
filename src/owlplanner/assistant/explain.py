@@ -455,8 +455,11 @@ def _irmaa_step(plan, magi_year0, n_prem):
 def _aca_cliffs(plan):
     """First-year ACA MAGI against the Medicaid line and the 400% FPL cliff (today's $).
 
-    ACA uses the full-SS MAGI (IRC 36B), not the AGI-basis MAGI of NIIT and IRMAA. Empty when
-    nobody is on the marketplace in the first year (coverage starting later)."""
+    ACA uses the full-SS MAGI (IRC 36B), not the AGI-basis MAGI of NIIT and IRMAA. The Medicaid line
+    is the state's (138% FPL in expansion states, 100% in Wisconsin, none in the other states without
+    the expansion); where it is below 100% FPL, income under 100% is in the coverage gap, with
+    neither Medicaid nor the credit (#202). Empty when nobody is on the marketplace in the first year
+    (coverage starting later)."""
     thisyear = int(plan.year_n[0])
     n_start = max(0, plan.aca_start_year - thisyear) if plan.aca_start_year > 0 else 0
     # The poverty line is the tax household's, whoever is enrolled (#199).
@@ -465,23 +468,31 @@ def _aca_cliffs(plan):
         return {}
     fpl = tx._aca_fpl(thisyear, family[0], plan.gamma_n, thisyear)
     magi = float(plan.MAGI_aca_n[0])
-    medicaid, cliff = tx._ACA_MEDICAID_RATIO * fpl, 4.0 * fpl
+    medicaid_ratio = float(plan._medicaid_n()[0])
+    medicaid, cliff = medicaid_ratio * fpl, 4.0 * fpl
+    gap = "exact" if getattr(plan, "_aca_lp", False) else "approx"
 
     def cost(m):
         g = plan.gamma_n[:1]
         return float(
             tx.acaCosts(plan.yobs, plan.horizons, np.array([m]), g, plan.slcsp_annual, 1,
-                        thisyear=thisyear, medical_n=plan._medical_n(g), mobs=plan.mobs, tobs=plan.tobs)[0]
+                        thisyear=thisyear, medical_n=plan._medical_n(g), mobs=plan.mobs, tobs=plan.tobs,
+                        medicaid_n=[medicaid_ratio], gap=gap)[0]
         )
 
     out = {
         "aca_magi": _round(magi),
         "fpl_pct": _round(100 * magi / fpl, 1),
-        "medicaid_line": _round(medicaid),
         "subsidy_cliff": _round(cliff),
     }
-    if magi - THRESHOLD_SLACK <= medicaid:
+    if medicaid_ratio > 0:
+        out["medicaid_line"] = _round(medicaid)
+    if medicaid_ratio < 1.0:
+        out["coverage_gap_below"] = _round(fpl)  # no Medicaid, and no credit below 100% FPL
+    if medicaid_ratio > 0 and magi - THRESHOLD_SLACK <= medicaid:
         out["covered_by_medicaid"] = True
+    elif medicaid_ratio < 1.0 and magi + THRESHOLD_SLACK < fpl:
+        out["in_coverage_gap"] = True
     if magi - THRESHOLD_SLACK <= cliff:
         out["headroom_to_subsidy_cliff"] = _round(max(0.0, cliff - magi))
         out["premium_jump_at_cliff"] = _round(cost(cliff + THRESHOLD_SLACK) - cost(cliff - THRESHOLD_SLACK))
