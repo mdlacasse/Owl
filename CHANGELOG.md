@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.21
 
 #### Fixed: a January 1 birthday gets the 65+ deductions a year earlier
 
