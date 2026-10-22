@@ -1,5 +1,15 @@
 ### Version WIP
 
+#### Fixed: four cells of the joint life expectancy table follow the regulation
+
+The Joint and Last Survivor table used for RMDs when the spouse is the sole beneficiary and more
+than 10 years younger was copied from Pub. 590-B (2025), which prints four cells differently from
+the regulation, 26 CFR 1.401(a)(9)-9(d) as published in T.D. 9930: (90, 76) is 14.7, not 14.8, and
+(112, 102), (112, 103) and (112, 107) are 3.3, 3.2 and 3.0, not 3.2, 3.1 and 2.9. The regulation's
+table is symmetric in those cells and governs. Every other stored cell already matched. Only
+(90, 76) can reach a plan: a 90-year-old with a 76-year-old spouse had an RMD 0.7% too low. Thanks
+to Marco Pignone (@rationalpiper) for reporting it (#217).
+
 #### Fixed: a survivor born on the 1st claims at the survivor FRA a month earlier, and from 59 years 11 months
 
 Someone born on the 1st reaches every age in the month before their birthday (20 CFR 404.102), so a

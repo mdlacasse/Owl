@@ -234,6 +234,25 @@ def test_rho_in_table_ii_spot_check_owner73_spouse58():
     assert rho[0][0] == pytest.approx(expected)
 
 
+@pytest.mark.parametrize(
+    "owner, spouse, value",
+    [(90, 76, 14.7), (112, 102, 3.3), (112, 103, 3.2), (112, 107, 3.0)],
+)
+def test_joint_table_follows_the_regulation(owner, spouse, value):
+    """#217: 26 CFR 1.401(a)(9)-9(d) (T.D. 9930, 85 FR 72472), where Pub. 590-B (2025) prints
+    14.8, 3.2, 3.1 and 2.9; the regulation's table is symmetric in these cells."""
+    from owlplanner.data.irs_590b import JOINT_LIFE_TABLE
+
+    assert JOINT_LIFE_TABLE[owner][spouse] == value
+
+
+def test_rmd_owner90_spouse76_uses_the_regulation():
+    """The one corrected cell an RMD can reach (spouse more than 10 years younger)."""
+    thisyear = date.today().year
+    rho = tx.rho_in([thisyear - 90, thisyear - 76], [95, 95], 1)
+    assert rho[0][0] == pytest.approx(1.0 / 14.7)
+
+
 def test_rho_in_table_ii_no_longer_raises_for_large_gap():
     """Plan creation with >10 year age gap should no longer raise RuntimeError."""
     thisyear = date.today().year

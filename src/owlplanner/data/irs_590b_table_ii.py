@@ -22,6 +22,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 # IRS Publication 590-B, Appendix B, Table II — Joint and Last Survivor Life Expectancy
 # For use when spouse is sole designated beneficiary and more than 10 years younger than owner.
+# The values are the regulation's, 26 CFR 1.401(a)(9)-9(d) as published in T.D. 9930 (85 FR 72472,
+# Nov. 12, 2020). Pub. 590-B (2025) prints four cells differently, (90, 76), (112, 102), (112, 103)
+# and (112, 107), where the regulation's own table is symmetric and the regulation governs (#217).
 # Indexed as: JOINT_LIFE_TABLE[owner_age][spouse_age]
 # Owner/spouse ages 20-120 (120 represents '120+' in the IRS table).
 
@@ -2913,7 +2916,7 @@ JOINT_LIFE_TABLE = {
         73: 16.9,
         74: 16.1,
         75: 15.4,
-        76: 14.8,
+        76: 14.7,
         77: 14.1,
         78: 13.4,
         79: 12.8,
@@ -4885,12 +4888,12 @@ JOINT_LIFE_TABLE = {
         99: 3.7,
         100: 3.5,
         101: 3.4,
-        102: 3.2,
-        103: 3.1,
+        102: 3.3,
+        103: 3.2,
         104: 3.1,
         105: 3.0,
         106: 3.0,
-        107: 2.9,
+        107: 3.0,
         108: 2.9,
         109: 2.9,
         110: 2.9,
