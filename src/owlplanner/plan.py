@@ -1264,9 +1264,9 @@ class Plan:
         survivor_claim_age : str or float, optional
             For a couple, when the surviving spouse claims the survivor benefit:
             ``"immediate"`` (default) as soon as eligible, ``"FRA"`` at the survivor
-            full retirement age, or an explicit age in [60, 70]. The survivor's own
-            benefit keeps the claiming age given in ``ages``, and each year the survivor
-            receives the greater of the two, as SSA pays them.
+            full retirement age, or an explicit age in [60, 70] (59 11/12 for a survivor born
+            on the 1st). The survivor's own benefit keeps the claiming age given in ``ages``,
+            and each year the survivor receives the greater of the two, as SSA pays them.
         """
         u.require_list(pias, "pias", self.N_i)
         u.require_list(ages, "ages", self.N_i)
@@ -1353,16 +1353,22 @@ class Plan:
         before age 60, nor before the first passing, and it earns no delayed retirement
         credits past the survivor FRA. A permanent reduction is also worth flagging even
         when nothing was overridden, since the user may not have chosen it deliberately.
+        Ages are conventional: a survivor born on the 1st reaches 60 and the survivor FRA a month
+        earlier (socsec.survivor_claim_limits).
         """
         iname = self.inames[survivor.survivor_idx]
         requested = survivor.requested_age
         claim_age, fra, at_death = survivor.claim_age, survivor.survivor_fra, survivor.age_at_death
+        earliest, full_rate = socsec.survivor_claim_limits(fra, survivor.born_first)
         self.mylog.vprint(f"SS survivor benefit for {iname} claimed at age {claim_age:.2f}.")
 
         if not isinstance(requested, str) and abs(claim_age - requested) > 1e-9:
             reasons = []
-            if requested > fra + 1e-9:
-                reasons.append(f"survivor benefits earn no delayed credits past their survivor FRA of {fra:.2f}")
+            if requested > full_rate + 1e-9:
+                reasons.append(f"survivor benefits earn no delayed credits past their survivor FRA, reached at "
+                               f"{full_rate:.2f}")
+            if requested < earliest - 1e-9:
+                reasons.append(f"a survivor benefit cannot start before age 60, reached at {earliest:.2f}")
             if requested < at_death - 1e-9:
                 reasons.append(f"they are already {at_death:.2f} at the first passing")
             self.mylog.print(
@@ -1372,11 +1378,11 @@ class Plan:
                 tag="WARNING",
             )
 
-        if claim_age < fra - 1e-9:
-            pct = 100 * socsec._survivor_factor(fra, claim_age, bool(self.tobs[survivor.survivor_idx] == 1))
+        if claim_age < full_rate - 1e-9:
+            pct = 100 * socsec._survivor_factor(fra, claim_age, survivor.born_first)
             self.mylog.print(
-                f"Survivor benefit for {iname} starts at age {claim_age:.2f}, below their survivor FRA of "
-                f"{fra:.2f}, so it is permanently reduced to {pct:.1f}% of the full amount. "
+                f"Survivor benefit for {iname} starts at age {claim_age:.2f}, before their survivor FRA, "
+                f"reached at {full_rate:.2f}, so it is permanently reduced to {pct:.1f}% of the full amount. "
                 f"Set the survivor claiming age to 'FRA' to defer it instead."
             )
 

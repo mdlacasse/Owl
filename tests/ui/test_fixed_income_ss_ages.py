@@ -1,7 +1,9 @@
 """
 The Social Security claiming-age fields on the Fixed Income page start at the first month one is 62
 throughout (POMS RS 00201.001): 62 years for those born on the 1st or 2nd, 62 years 1 month for
-everyone else, the minimums the engine applies (#212).
+everyone else, the minimums the engine applies (#212). The survivor claim-age fields span the
+window the engine resolves: 60 to the survivor FRA, a month earlier at both ends for a survivor born
+on the 1st.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -31,7 +33,7 @@ UI_DIR = Path(__file__).resolve().parents[2] / "ui"
 CASE = Path(__file__).resolve().parents[2] / "examples" / "Case_jack+jill.toml"
 
 
-def _render(monkeypatch, day, years, months):
+def _render(monkeypatch, day, years, months, extra=None):
     """Render Fixed_Income.py with Jack born on `day` of his birth month and a stored claiming age."""
     import streamlit as st
     from streamlit.testing.v1 import AppTest
@@ -48,6 +50,7 @@ def _render(monkeypatch, day, years, months):
         "hfpAbsentCols": dict(getattr(plan, "hfpAbsentCols", {})), "logs": io.StringIO(),
         "ssAge_y0": years, "ssAge_m0": months, "ssAgesMode": "none",
     })
+    case.update(extra or {})
     at = AppTest.from_file(str(UI_DIR / "Fixed_Income.py"), default_timeout=120)
     at.session_state["cases"] = {"t": case}
     at.session_state["currentCase"] = "t"
@@ -78,3 +81,27 @@ def test_claiming_age_minimum(monkeypatch, day, stored, shown, min_year, min_mon
     assert years.proto.min == min_year
     assert (years.value, months.value) == shown  # a stored age below the minimum is raised to it
     assert months.proto.min == min_month_at_62
+
+
+@pytest.mark.toml
+@pytest.mark.parametrize(
+    "day, stored, shown, low, high",
+    [
+        # Jill (survivor FRA 67) born on the 1st: 59y11m to 66y11m; 67y0m is past the full rate.
+        (1, (67, 0), (66, 11), (59, 11), (66, 11)),
+        (1, (59, 11), (59, 11), (59, 11), (66, 11)),
+        (15, (67, 0), (67, 0), (60, 0), (67, 0)),
+        (15, (59, 11), (60, 0), (60, 0), (67, 0)),  # raised to 60
+    ],
+)
+def test_survivor_claim_age_window(monkeypatch, day, stored, shown, low, high):
+    dob1 = f"1966-01-{day:02d}"
+    at = _render(monkeypatch, 15, 67, 0, extra={
+        "dob1": dob1, "ssSurvivorMode": "age", "ssSurvivorAge_y": stored[0], "ssSurvivorAge_m": stored[1],
+    })
+    years = at.number_input(key="t1_ssSurvivorAge_y")
+    months = at.number_input(key="t1_ssSurvivorAge_m")
+    assert (years.value, months.value) == shown
+    assert (years.proto.min, years.proto.max) == (low[0], high[0])
+    assert months.proto.min == (low[1] if years.value == low[0] else 0)
+    assert months.proto.max == (high[1] if years.value == high[0] else 11)

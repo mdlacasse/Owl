@@ -935,7 +935,9 @@ def test_survivor_reduction_counts_months_on_the_ssa_age():
     assert ss._survivor_factor(67, 60.0, True) == pytest.approx(1 - 0.285 * 83 / 84)
     assert ss._survivor_factor(67, 66 + 11 / 12, True) == 1.0
     assert ss._survivor_factor(67, 60.0) == pytest.approx(0.715)  # born on any other day: unchanged
-    assert ss._survivor_factor(67, 59.0, True) == pytest.approx(1 - 0.285 * 83 / 84)  # clamped to 60 first
+    # They reach 60 at a conventional 59y11m; an earlier age is clamped to SSA age 60.
+    assert ss._survivor_factor(67, 59 + 11 / 12, True) == pytest.approx(0.715)
+    assert ss._survivor_factor(67, 59.0, True) == pytest.approx(0.715)
 
 
 def test_survivor_stream_born_on_the_first():
@@ -946,3 +948,53 @@ def test_survivor_stream_born_on_the_first():
         np.array([15, 1]), np.array([10, 40]), 2, 40, thisyear=2026)
     expected = 3000 * 1.24 * (1 - 0.285 * 61 / 84)  # deceased claimed at 70: DRCs, no limit (#210)
     assert zeta[1, 16] / 12 == pytest.approx(expected, rel=1e-9)
+
+
+def test_survivor_claim_limits_born_on_the_first():
+    """Born on the 1st, 60 and the survivor FRA are reached a month before the conventional ages."""
+    assert ss.survivor_claim_limits(67, True) == pytest.approx((59 + 11 / 12, 66 + 11 / 12))
+    assert ss.survivor_claim_limits(67, False) == pytest.approx((60.0, 67.0))
+    assert ss.survivor_claim_limits(66 + 10 / 12, True) == pytest.approx((59 + 11 / 12, 66 + 9 / 12))
+
+
+@pytest.mark.parametrize(
+    "setting, at_death, born_first, expected",
+    [
+        ("FRA", 61.0, True, 66 + 11 / 12),  # already the full rate
+        ("FRA", 61.0, False, 67.0),
+        (67.0, 61.0, True, 66 + 11 / 12),  # capped at the full rate
+        ("immediate", 55.0, True, 59 + 11 / 12),  # 60 is reached at 59y11m
+        ("immediate", 55.0, False, 60.0),
+        (59 + 11 / 12, 55.0, False, 60.0),  # anyone else: raised to 60
+        (59 + 11 / 12, 55.0, True, 59 + 11 / 12),
+    ],
+)
+def test_resolve_survivor_claim_age_born_on_the_first(setting, at_death, born_first, expected):
+    assert ss._resolve_survivor_claim_age(setting, 67.0, at_death, born_first) == pytest.approx(expected)
+
+
+def test_survivor_claim_age_validation_allows_59_11():
+    assert ss.validate_survivor_claim_age(59 + 11 / 12) == pytest.approx(59 + 11 / 12)
+    with pytest.raises(ValueError):
+        ss.validate_survivor_claim_age(59 + 10 / 12)
+
+
+def test_survivor_fra_option_born_on_the_first_pays_the_extra_month():
+    """Survivor born 3/1/1974 reaches survivor FRA (67) in Feb 2041: 'FRA' files then, paid from March
+    (10 months in 2041), not a month later as for someone born on the 15th."""
+    for day, months in ((1, 10), (15, 9)):
+        s = ss.compute_survivor_stream(np.array([3000, 0]), np.array([67.0, 67.0]), np.array([1966, 1974]),
+                                       np.array([1, 3]), np.array([15, day]), np.array([10, 40]), 2, 40,
+                                       survivor_claim_age="FRA", thisyear=2026)
+        assert s.born_first == (day == 1)
+        assert s.annual[2041 - 2026] == pytest.approx(3000 * months)
+        assert s.annual[2042 - 2026] == pytest.approx(3000 * 12)
+
+
+def test_survivor_claim_window_born_on_the_first():
+    """The window the UI bounds its fields with: conventional ages, a month earlier for the 1st."""
+    w1 = ss.survivor_claim_window([1966, 1974], [1, 3], [15, 1], [2035, 2066])
+    w15 = ss.survivor_claim_window([1966, 1974], [1, 3], [15, 15], [2035, 2066])
+    assert (w1["earliest_age"], w1["full_rate_age"]) == pytest.approx((59 + 11 / 12, 66 + 11 / 12))
+    assert (w15["earliest_age"], w15["full_rate_age"]) == pytest.approx((60.0, 67.0))
+    assert w1["survivor_fra"] == w15["survivor_fra"] == 67.0

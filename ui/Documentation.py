@@ -787,7 +787,9 @@ retirement credits accrue after death, though the benefit is still inflation-ind
 claiming date changes is the *fraction* of that amount paid, and it is measured against the
 **survivor's own age** when they file. Filing between age 60 and the survivor FRA reduces the
 benefit permanently, linearly from 71.5% at 60 to 100% at that FRA; waiting past it earns nothing
-extra, unlike a retirement benefit.
+extra, unlike a retirement benefit. A survivor born on the 1st of a month reaches both ages a month
+early: 60 at 59 years 11 months, and the survivor FRA a month before their birthday, so *FRA* files
+then, and the age fields span 59 years 11 months to that month.
 
 If the deceased spouse had claimed before their own FRA, the survivor benefit is then capped at
 the larger of the deceased's reduced benefit and 82.5% of their PIA (Social Security Act

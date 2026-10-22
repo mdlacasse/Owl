@@ -1,5 +1,16 @@
 ### Version WIP
 
+#### Fixed: a survivor born on the 1st claims at the survivor FRA a month earlier, and from 59 years 11 months
+
+Someone born on the 1st reaches every age in the month before their birthday (20 CFR 404.102), so a
+survivor born on the 1st reaches 60 and their survivor FRA one month before their conventional age.
+**Owl** resolved the survivor claim age on the conventional ages: *FRA* filed a month after the full
+rate was reached, losing one month of survivor benefit (\$3,000 on a \$3,000 benefit), an explicit
+age was capped a month late, and 59 years 11 months, when they reach 60, was not accepted. The
+claim age now uses those ages in the engine, the log messages, and the survivor claim-age fields,
+which span 59 years 11 months to the month the survivor FRA is reached; a stored age outside that
+window is moved into it. Everyone else is unchanged.
+
 #### Fixed: born on the 1st, delayed credits stop at age 70 and the survivor reduction counts one month less
 
 Social Security counts a person as reaching an age on the day before the birthday (20 CFR 404.102),

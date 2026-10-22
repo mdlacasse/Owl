@@ -2035,7 +2035,8 @@ async def run_from_params(
                         effective when ss_trim_pct > 0.
         ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
                         'immediate' (default, as soon as eligible), 'FRA' (at their
-                        survivor full retirement age), or an explicit age in [60, 70].
+                        survivor full retirement age), or an explicit age in [60, 70]
+                        (59 11/12 for a survivor born on the 1st).
                         SSA pays the larger of the survivor's own benefit and the
                         survivor benefit, so deferring can pay off when their own
                         benefit is still growing.  Couples only.
@@ -3581,8 +3582,8 @@ async def run_stochastic(
                               Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:         Year when the SS benefit reduction begins (e.g. 2033).
         ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
-                              'immediate' (default), 'FRA', or an age in [60, 70].
-                              Couples only.
+                              'immediate' (default), 'FRA', or an age in [60, 70]
+                              (59 11/12 for a survivor born on the 1st). Couples only.
         obbba_expiration_year: Year OBBBA (2025 Tax Reform) rates sunset to pre-TCJA levels
                               (default 2032).
         dividend_rate:        Annual dividend yield for taxable accounts in % (default 1.8).
@@ -4962,7 +4963,7 @@ async def run_longevity_stochastic(
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
         ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
-                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          'immediate' (default), 'FRA', or an age in [60, 70] (59 11/12 for a survivor born on the 1st).
                           Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
@@ -5276,7 +5277,7 @@ async def run_historical(
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
         ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
-                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          'immediate' (default), 'FRA', or an age in [60, 70] (59 11/12 for a survivor born on the 1st).
                           Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).
@@ -5640,7 +5641,7 @@ async def run_monte_carlo(
                           Example: ss_trim_pct=23, ss_trim_year=2033 (SSA trustees baseline).
         ss_trim_year:     Year when the SS benefit reduction begins (e.g. 2033).
         ss_survivor_claim_age: When the surviving spouse claims the survivor benefit:
-                          'immediate' (default), 'FRA', or an age in [60, 70].
+                          'immediate' (default), 'FRA', or an age in [60, 70] (59 11/12 for a survivor born on the 1st).
                           Couples only.
         obbba_expiration_year: Year OBBBA rates sunset to pre-TCJA levels (default 2032).
         dividend_rate:    Annual dividend yield for taxable accounts in % (default 1.8).

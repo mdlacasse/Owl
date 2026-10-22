@@ -288,3 +288,39 @@ class TestSurvivorClaimAgeLogging:
         log = self._log_for(jack_jill, [89, 92], "immediate")
         assert "WARNING" not in log
         assert "permanently reduced" not in log
+
+
+class TestSurvivorBornOnTheFirstLogging:
+    """A survivor born on the 1st reaches the survivor FRA a month early: 66y11m for an FRA of 67."""
+
+    @staticmethod
+    def _log(day, setting, yob=1974):
+        import io
+
+        from owlplanner import Plan
+
+        buf = io.StringIO()
+        # A dies at the end of 2035; B, born 1974, is then 61 and reaches survivor FRA (67) in 2041.
+        p = Plan(["A", "B"], ["1966-01-15", f"{yob}-03-{day:02d}"], [69, 95], "surv1st", verbose=True,
+                 logstreams=[buf, buf])
+        p.setSocialSecurity([3000, 0], [67, 67], survivor_claim_age=setting)
+        return buf.getvalue()
+
+    def test_full_rate_a_month_early_is_not_reduced(self):
+        log = self._log(1, 66 + 11 / 12)
+        assert "WARNING" not in log
+        assert "permanently reduced" not in log
+
+    def test_same_age_born_mid_month_is_reduced(self):
+        assert "permanently reduced" in self._log(15, 66 + 11 / 12)
+
+    def test_age_past_the_full_rate_is_capped_there(self):
+        log = self._log(1, 67.0)
+        assert "WARNING" in log and "no delayed credits" in log and "66.92" in log
+
+    def test_age_before_60_is_explained(self):
+        """59y11m is open to someone born on the 1st only; anyone else is raised to 60, with a reason.
+        Born 1977, B is 58 at the first death."""
+        assert "WARNING" not in self._log(1, 59 + 11 / 12, yob=1977)
+        log = self._log(15, 59 + 11 / 12, yob=1977)
+        assert "WARNING" in log and "cannot start before age 60" in log

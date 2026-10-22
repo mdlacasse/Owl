@@ -119,7 +119,7 @@ class FixedIncome(BaseModel):
         default=DEFAULT_SS_SURVIVOR_CLAIM_AGE,
         description=(
             "When the surviving spouse claims the survivor benefit: 'immediate' (as soon as eligible),"
-            " 'fra' (at the survivor's FRA), or an explicit age in [60, 70]."
+            " 'fra' (at the survivor's FRA), or an explicit age in [60, 70] (59 11/12 for a survivor born on the 1st)."
         ),
     )
 

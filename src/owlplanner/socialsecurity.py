@@ -193,11 +193,12 @@ def _survivor_factor(survivor_fra, survivor_age, bornOnFirstDays=False):
     reduced benefit, linearly interpolated from 100% at survivor FRA down to 71.5% at 60:
     the months of entitlement before survivor FRA times .285, over the months from age 60 to
     survivor FRA (20 CFR 404.410(c)(1)). At or above survivor FRA the factor is 1.0. Survivor
-    benefits cannot be claimed before age 60; ages below 60 are clamped to 60.
+    benefits cannot be claimed before age 60; earlier ages are clamped to 60.
 
     A survivor born on the 1st attains every age in the month before (20 CFR 404.102), so the
     months are counted on the SSA age, one month more than the conventional age (#212): at a
-    conventional 60 they are 83 months before an FRA of 67, not 84.
+    conventional 60 they are 83 months before an FRA of 67, not 84, and they reach 60 at a
+    conventional 59 years 11 months, where the factor is 71.5%.
 
     Parameters
     ----------
@@ -205,11 +206,11 @@ def _survivor_factor(survivor_fra, survivor_age, bornOnFirstDays=False):
         Survivor full retirement age in fractional years.
     survivor_age : float
         Survivor's conventional age (fractional years) when the survivor benefit begins.
-        Values below 60 are treated as 60.
+        An SSA age below 60 is treated as 60.
     bornOnFirstDays : bool, optional
         True if the survivor was born on the 1st of a month (see _ssa_age).
     """
-    survivor_age = _ssa_age(max(survivor_age, 60), bornOnFirstDays)  # No survivor benefits before 60
+    survivor_age = max(_ssa_age(survivor_age, bornOnFirstDays), 60)  # No survivor benefits before 60
     if survivor_age >= survivor_fra:
         return 1.0
     return 1.0 - 0.285 * (survivor_fra - survivor_age) / (survivor_fra - 60)
@@ -398,13 +399,15 @@ def validate_survivor_claim_age(survivor_claim_age):
     Normalize and validate a survivor claiming-age setting.
 
     Accepted values are the keyword ``"immediate"``, the keyword ``"FRA"`` (the survivor's
-    full retirement age), or a numeric age in [60, 70]. Keywords are matched
-    case-insensitively and returned in canonical form; ages are returned as floats.
+    full retirement age), or a numeric age in [59 11/12, 70]: a survivor born on the 1st reaches
+    60 at a conventional 59 years 11 months, and anyone else's earlier age is raised to 60 when
+    resolved (_resolve_survivor_claim_age). Keywords are matched case-insensitively and returned
+    in canonical form; ages are returned as floats.
 
     Raises
     ------
     ValueError
-        If the value is neither a recognized keyword nor an age in [60, 70].
+        If the value is neither a recognized keyword nor an age in [59 11/12, 70].
     """
     if isinstance(survivor_claim_age, str):
         key = survivor_claim_age.strip().lower()
@@ -421,26 +424,41 @@ def validate_survivor_claim_age(survivor_claim_age):
     else:
         age = float(survivor_claim_age)
 
-    if not (60 <= age <= 70):
-        raise ValueError(f"survivor_claim_age {age} outside range [60, 70].")
+    if not (60 - 1 / 12 - 1e-9 <= age <= 70):
+        raise ValueError(f"survivor_claim_age {age} outside range [59 11/12, 70].")
     return age
 
 
-def _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death):
+def survivor_claim_limits(survivor_fra, bornOnFirstDays=False):
     """
-    Return the survivor's age when the survivor benefit begins.
+    Return (earliest, full_rate) conventional ages for claiming a survivor benefit.
+
+    The benefit can start at age 60 and reaches its full rate at the survivor FRA. Someone born on
+    the 1st attains both a month earlier than their conventional age (20 CFR 404.102): 59 years
+    11 months, and the survivor FRA minus one month.
+    """
+    shift = 1 / 12 if bornOnFirstDays else 0.0
+    return 60.0 - shift, float(survivor_fra) - shift
+
+
+def _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death, bornOnFirstDays=False):
+    """
+    Return the survivor's conventional age when the survivor benefit begins.
 
     A survivor benefit cannot start before age 60 nor before the spouse's death, and it
     earns no delayed retirement credits past the survivor full retirement age (FRA), so an
-    explicit age beyond that is capped there.
+    explicit age beyond that is capped there and "FRA" claims there. For a survivor born on the
+    1st both ages come a month earlier (survivor_claim_limits): "FRA" claims at the conventional
+    survivor FRA minus one month, which is already the full rate.
     """
-    earliest = max(60.0, float(age_at_death))
+    earliest, full_rate = survivor_claim_limits(survivor_fra, bornOnFirstDays)
+    earliest = max(earliest, float(age_at_death))
     setting = validate_survivor_claim_age(survivor_claim_age)
     if setting == "immediate":
         return earliest
     if setting == "FRA":
-        return max(float(survivor_fra), earliest)
-    return max(min(setting, float(survivor_fra)), earliest)
+        return max(full_rate, earliest)
+    return max(min(setting, full_rate), earliest)
 
 
 class SurvivorStream(NamedTuple):
@@ -454,6 +472,7 @@ class SurvivorStream(NamedTuple):
     age_at_death: float  # Survivor's age in the year of the first death
     requested_age: object  # The setting as supplied, before clamping (for logging)
     annual: np.ndarray  # Shape (N_n,), annual survivor benefit in today's dollars
+    born_first: bool = False  # Survivor born on the 1st: ages attained a month early (survivor_claim_limits)
 
 
 def _survivor_period(horizons, N_i, N_n):
@@ -502,10 +521,13 @@ def survivor_claim_window(yobs, mobs, tobs, end_years):
     # Owl's convention: the horizon ends after end_years, so the first passing falls in the
     # following plan year -- the same year compute_survivor_stream measures the age against.
     death_year = end_years[deceased_idx] + 1
+    earliest, full_rate = survivor_claim_limits(survivor_fra, int(tobs[survivor_idx]) == 1)
     return {
         "survivor_idx": survivor_idx,
         "deceased_idx": deceased_idx,
         "survivor_fra": float(survivor_fra),
+        "earliest_age": earliest,  # conventional ages: a month earlier for those born on the 1st
+        "full_rate_age": full_rate,
         "age_at_first_passing": death_year - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12,
     }
 
@@ -564,8 +586,8 @@ def compute_survivor_stream(
         tobs[survivor_idx : survivor_idx + 1],
     )[0]
     age_at_death = (thisyear + death_year_n) - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12
-    claim_age = _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death)
     survivor_first = bool(tobs[survivor_idx] == 1)  # SSA age one month ahead (#212)
+    claim_age = _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death, survivor_first)
 
     # The deceased's own monthly benefit as of death, unaffected by any partial first year.
     fra_deceased = getFRAs(yobs, mobs, tobs)[deceased_idx]
@@ -614,6 +636,7 @@ def compute_survivor_stream(
         float(age_at_death),
         survivor_claim_age,
         annual,
+        survivor_first,
     )
 
 
@@ -672,8 +695,9 @@ def compute_social_security_benefits(
     survivor_claim_age : str or float
         When the surviving spouse claims the survivor benefit: ``"immediate"`` (default,
         as soon as eligible), ``"FRA"`` (at the survivor FRA), or an explicit age in
-        [60, 70]. Never earlier than age 60 or the first death, and capped at the
-        survivor FRA since survivor benefits earn no delayed retirement credits.
+        [60, 70] (59 11/12 for a survivor born on the 1st). Never earlier than age 60 or the
+        first death, and capped at the survivor FRA since survivor benefits earn no delayed
+        retirement credits; both ages are a month earlier for a survivor born on the 1st.
 
     Returns
     -------
