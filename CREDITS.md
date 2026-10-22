@@ -12,7 +12,7 @@ Martin-D. Lacasse (mdlacasse)
  Ben Mabey (@bmabey) for greatly enhancing computational performance and devising benchmarks,
  Florin Mateoc (@fmateoc) for auditing the code, identifying critical bugs, and providing fixes,
  @khoguer10 for reporting bug in logic for saving HFP file,
- Marco Pignone (@rationalpiper) for catching the January 1 birthday rule for the 65+ deductions,
+ Marco Pignone (@rationalpiper) for catching tax-law errors in the 65+ deductions and the ACA household,
  Benjamin Quinn (@blquinn) for improvements and bug fixes,
  Don Poll for suggesting QCD and pointing to a blind spot about inheritance state tax,
  @pcm2a for suggesting improved Roth conversion scheme,

@@ -49,16 +49,17 @@ def _phase_in_couple(log):
 def _solve(**extra):
     log = io.StringIO()
     p = _phase_in_couple(log)
-    p.solve("maxBequest", options={"noRothConversions": "None", "netSpending": 95, **extra})
+    p.solve("maxBequest", options={"noRothConversions": "None", "netSpending": 90, **extra})
     assert p.caseStatus == "solved"
     return p, log.getvalue()
 
 
 def test_loop_warns_when_ss_does_not_settle():
-    # At $95k the loop ends in a 2-cycle with thousands of dollars of SS residual: the log points to
-    # the exact model. (At $105k, under the tests' frozen date, the loop's residual stays below the
-    # bar although its plan is well short of the exact one: the warning reports a loop that did not
-    # settle, not one that settled short.)
+    # At $90k the loop ends with thousands of dollars of SS residual under both solvers: the log
+    # points to the exact model. (At $95k and $105k under MOSEK, with the tests' frozen date and the
+    # first Medicare year prorated (#208), the loop's residual stays below the bar although its plan
+    # is short of the exact one: the warning reports a loop that did not settle, not one that
+    # settled short.)
     p, log = _solve()
     assert p.fixedPointResidual["SS"]["abs_sum"] > p.N_n * p._residual_tol
     assert WARNING in log

@@ -1510,6 +1510,10 @@ When the older spouse transitions to Medicare, the tool automatically scales the
 remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
 adjustment is needed. The scaling factor is approximately 37–48% of the couple's combined premium,
 depending on the age gap between spouses.
+Coverage is counted by the month: marketplace coverage ends when Medicare starts, in the month of the
+65th birthday (the month before for a birthday on the 1st), so the year of that birthday is charged
+for the months before it. The subsidy uses the poverty line of the tax household, which for a married
+couple is 2 while both spouses are alive, even when one of them is already on Medicare.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.
@@ -1532,7 +1536,8 @@ of the additional binary variables, and it wants MOSEK.
 Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios, where a
 solve that takes minutes instead of a fraction of a second is multiplied by every draw.
 
-Medicare premiums start automatically in the year each individual reaches age 65.
+Medicare premiums start automatically in the month each individual reaches age 65 (the month before
+for a birthday on the 1st), so the first year is charged only for the months covered.
 While the *Medicare and IRMAA calculations* toggle is on and anyone in the case is age 64 or older,
 inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for

@@ -149,7 +149,7 @@ class TestAcaCostsFunction:
         assert np.allclose(costs[0], expected_net, rtol=1e-4)
 
     def test_couple_one_turns_65(self):
-        """Year when first individual turns 65: household size drops to 1, SLCSP scales down."""
+        """Year after the first individual turns 65: the lone enrollee's SLCSP scales down."""
         # Alex born 1960 → already 65 in 2025 (n=0) → not eligible
         # Jordan born 1970 → pre-65 throughout (age 55 at n=0)
         yobs = np.array([1960, 1970])
@@ -159,9 +159,9 @@ class TestAcaCostsFunction:
         magi_n = np.full(30, magi)
         gamma_n = self._gamma(30)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30, thisyear=2025)
-        # n=0: Alex 65 → not eligible; Jordan pre-65 (age 55) → hh_size=1, single FPL.
-        # SLCSP scaled by CMS age rating fraction for Jordan at 55.
-        # MAGI 80k / 15,650 ≈ 511% FPL → 2025 rules: 8.5% cap above 400%
+        # n=0: Alex on Medicare all year; Jordan pre-65 (age 55) is the only enrollee.
+        # SLCSP scaled by CMS age rating fraction for Jordan at 55. The poverty line is the couple's
+        # (#199): MAGI 80k / 21,150 ≈ 378% FPL → 2025 rules: 8.5% cap from 300%.
         frac = couple_to_individual_fraction(55)
         expected = min(slcsp * frac, 0.085 * magi)
         assert np.allclose(costs[0], expected, rtol=1e-4)
@@ -311,7 +311,8 @@ class TestACAIntegration:
         n65_jordan = max(0, 1972 + 65 - thisyear)  # year Jordan turns 65 (born 1972)
         if n65_jordan < p.N_n:
             assert np.any(p.ACA_n[:n65_jordan] > 0), "Expected ACA costs while Jordan is pre-65."
-            assert np.allclose(p.ACA_n[n65_jordan:], 0.0), "Expected zero ACA costs after Jordan turns 65."
+            # Born June 15: Medicare from June, so ACA covers January to May of the year Jordan turns 65.
+            assert np.allclose(p.ACA_n[n65_jordan + 1:], 0.0), "Expected zero ACA costs after Jordan turns 65."
 
     def test_no_aca_when_not_configured(self):
         """Plan without setACA() should have all-zero ACA_n after solving."""
@@ -360,8 +361,10 @@ class TestACAOptimize:
 
         assert p._aca_lp, "Expected _aca_lp flag to be True in optimize mode."
         # The LP holds MAGI on a bracket edge (here 138% FPL) only to within the solver's feasibility
-        # tolerance, a tenth of a cent or so above it; a cent below keeps the statute's side of it.
-        expected = tx.acaCosts(p.yobs, p.horizons, p.MAGI_aca_n - 0.01, p.gamma_n, p.slcsp_annual, p.N_n)
+        # tolerance, a cent or so above it; a dollar below keeps the statute's side of it, the slack
+        # the fixed-point residual check uses.
+        expected = tx.acaCosts(p.yobs, p.horizons, p.MAGI_aca_n - 1.0, p.gamma_n, p.slcsp_annual, p.N_n,
+                               mobs=p.mobs, tobs=p.tobs)
         np.testing.assert_allclose(p.maca_n[: p.n_aca], expected[: p.n_aca], atol=10.0)
 
     def test_aca_n_zero_in_optimize_mode(self):
@@ -704,3 +707,75 @@ class TestACACoupleSLCSPScaling:
         assert np.isclose(slcsp_aca_n[0], slcsp * frac, rtol=1e-4), (
             f"Expected scaled SLCSP {slcsp * frac:.2f} in acaVals at n=0, got {slcsp_aca_n[0]:.2f}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Tax household and coverage months (issues #199, #208)
+# ---------------------------------------------------------------------------
+
+
+class TestACACoverageMonths:
+    """The poverty line follows the tax household, coverage the months before Medicare."""
+
+    def test_couple_keeps_two_person_line_with_one_on_medicare(self):
+        """#199: a couple filing jointly is a family of 2, even when only one spouse is enrolled."""
+        yobs, horizons, gamma = np.array([1961, 1967]), np.array([30, 30]), np.ones(4)
+        fpl2 = tx._ACA_FPL[2026][1]
+        bench = 20_000 * couple_to_individual_fraction(60)
+        for magi in (40_000, 70_000, 80_000):  # 70k and 80k are above 400% of the 1-person line
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2027)[0]
+            pct = tx._aca_contrib_pct(magi / fpl2, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026,
+                                      tx._ACA_CONTRIB_INITIAL_2026)
+            assert np.isclose(cost, min(bench, pct * magi), rtol=1e-9)
+
+    def test_single_enrolled_until_medicare_month(self):
+        """Born June 15: Medicare from June, so the year of the 65th birthday has 5 ACA months."""
+        thisyear, slcsp, magi = 2027, 12_000.0, 200_000.0  # above 400%: full benchmark each month
+        yobs, horizons = [thisyear - 65], [10]
+        full = tx.acaCosts(yobs, horizons, np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear - 1)
+        assert np.isclose(full[0], slcsp)
+        cost = tx.acaCosts(yobs, horizons, np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear,
+                           mobs=[6], tobs=[15])
+        assert np.isclose(cost[0], 5 / 12 * slcsp)
+        assert np.allclose(cost[1:], 0.0)
+
+    def test_couple_transition_year_by_month(self):
+        """Older spouse turns 65 on June 15: couple plan January-May, younger spouse alone June-December."""
+        thisyear, slcsp = 2027, 20_000.0
+        yobs, horizons, gamma = [thisyear - 65, thisyear - 58], [30, 30], np.ones(4)
+        mobs, tobs = [6, 3], [15, 3]
+        fpl2 = tx._ACA_FPL[2026][1]
+        alone = slcsp * couple_to_individual_fraction(58)
+        for magi in (40_000.0, 60_000.0, 120_000.0):
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp, 3, thisyear=thisyear,
+                               mobs=mobs, tobs=tobs)[0]
+            r = magi / fpl2
+            contrib = np.inf if r >= 4 else magi * tx._aca_contrib_pct(
+                r, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026)
+            assert np.isclose(cost, 5 / 12 * min(slcsp, contrib) + 7 / 12 * min(alone, contrib))
+
+    def test_acavals_weights_the_transition_year(self):
+        """Optimize mode: the months-weighted benchmark, and the contribution for the months covered."""
+        from datetime import date
+
+        thisyear = date.today().year
+        slcsp = 20_000.0
+        # Single, born December 15: 11 ACA months in the year of the 65th birthday.
+        n_aca, _, tan, s_n = tx.acaVals([thisyear - 65], [10], np.ones(11), slcsp, 10, mobs=[12], tobs=[15])
+        assert n_aca == 1
+        assert np.isclose(s_n[0], 11 / 12 * slcsp)
+        np.testing.assert_allclose(tan[0], 11 / 12 * tx._aca_tangents(tx._ACA_FPL[max(tx._ACA_FPL)][0]))
+        # Couple: older spouse born June 15 turns 65 this year; younger spouse is 58.
+        n_aca, _, _, s_n = tx.acaVals([thisyear - 65, thisyear - 58], [30, 30], np.ones(31), slcsp, 30,
+                                      mobs=[6, 3], tobs=[15, 3])
+        alone = slcsp * couple_to_individual_fraction(58)
+        assert np.isclose(s_n[0], (5 * slcsp + 7 * alone) / 12)
+        assert np.isclose(s_n[1], slcsp * couple_to_individual_fraction(59))  # a year older
+
+    def test_january_first_birthday_leaves_aca_in_december(self):
+        """Born January 1: Medicare from December 1 of the year before the 65th birthday."""
+        thisyear, slcsp, magi = 2027, 12_000.0, 200_000.0
+        cost = tx.acaCosts([thisyear - 64], [10], np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear,
+                           mobs=[1], tobs=[1])
+        assert np.isclose(cost[0], 11 / 12 * slcsp)
+        assert np.allclose(cost[1:], 0.0)

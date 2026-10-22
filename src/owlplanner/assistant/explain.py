@@ -398,11 +398,8 @@ def _year0_thresholds(plan):
     # IRMAA: this year's MAGI sets Medicare premiums two years from now.
     n_prem = 2
     if plan.N_n > n_prem:
-        on_medicare = [
-            i
-            for i in range(plan.N_i)
-            if thisyear + n_prem - plan.yobs[i] >= 65 and n_prem < plan.horizons[i]
-        ]
+        months = tx.medicareMonths(plan.yobs, plan.horizons, n_prem + 1, plan.mobs, plan.tobs, thisyear)
+        on_medicare = [i for i in range(plan.N_i) if months[i, n_prem] > 0]
         if on_medicare:
             status = 1 if (plan.N_i == 2 and plan.n_d > n_prem) else 0
             thresholds = tx.irmaaThresholds(status, plan.gamma_n, n_prem, thisyear)
@@ -445,6 +442,8 @@ def _irmaa_step(plan, magi_year0, n_prem):
         include_part_d=getattr(plan, "_include_medicare_part_d", True),
         part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
         medical_n=plan._medical_n(g),
+        mobs=plan.mobs,
+        tobs=plan.tobs,
     )
     magi = np.array(plan.MAGI_n[:N], dtype=float) - THRESHOLD_SLACK
     now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
@@ -460,11 +459,12 @@ def _aca_cliffs(plan):
     nobody is on the marketplace in the first year (coverage starting later)."""
     thisyear = int(plan.year_n[0])
     n_start = max(0, plan.aca_start_year - thisyear) if plan.aca_start_year > 0 else 0
-    eligible = [i for i in range(plan.N_i) if thisyear - plan.yobs[i] < 65 and plan.horizons[i] > 0]
-    if n_start > 0 or not eligible:
+    # The poverty line is the tax household's, whoever is enrolled (#199).
+    family, parts = tx._aca_coverage(plan.yobs, plan.horizons, 1, plan.mobs, plan.tobs, thisyear)
+    if n_start > 0 or not parts[0]:
         return {}
     fpl_year = thisyear if thisyear in tx._ACA_FPL else max(tx._ACA_FPL)
-    fpl = float(tx._ACA_FPL[fpl_year][min(len(eligible), 2) - 1])
+    fpl = float(tx._ACA_FPL[fpl_year][family[0] - 1])
     magi = float(plan.MAGI_aca_n[0])
     medicaid, cliff = tx._ACA_MEDICAID_RATIO * fpl, 4.0 * fpl
 
@@ -472,7 +472,7 @@ def _aca_cliffs(plan):
         g = plan.gamma_n[:1]
         return float(
             tx.acaCosts(plan.yobs, plan.horizons, np.array([m]), g, plan.slcsp_annual, 1,
-                        thisyear=thisyear, medical_n=plan._medical_n(g))[0]
+                        thisyear=thisyear, medical_n=plan._medical_n(g), mobs=plan.mobs, tobs=plan.tobs)[0]
         )
 
     out = {
@@ -513,6 +513,8 @@ def _health_care(plan):
             include_part_d=getattr(plan, "_include_medicare_part_d", True),
             part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
             medical_n=plan._medical_n(g),
+            mobs=plan.mobs,
+            tobs=plan.tobs,
         )
         surcharge = np.maximum(plan.medicare_n - base, 0) / g
         out["irmaa_surcharges_total"] = _round(float(np.sum(surcharge)))

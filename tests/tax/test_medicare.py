@@ -290,3 +290,64 @@ def test_mediCosts_top_tier_frozen_in_2027():
     costs = tx.mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=False)
     top = gamma_n[n] * tx.partB_irmaa_costs[-1]
     assert costs[n] == pytest.approx(top)
+
+
+# ---------------------------------------------------------------------------
+# First Medicare year by months of coverage (issue #208)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "mob, tob, first, second",
+    [
+        (12, 15, 1, 12),  # December 15: December only
+        (12, 1, 2, 12),  # December 1: from November 1
+        (6, 15, 7, 12),  # June 15: June to December
+        (2, 1, 12, 12),  # February 1: from January 1
+    ],
+)
+def test_medicareMonths_first_year(mob, tob, first, second):
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 65], [5], 3, [mob], [tob], thisyear)
+    assert list(months[0]) == [first, second, second]
+
+
+def test_medicareMonths_january_first_starts_the_december_before():
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 64], [5], 3, [1], [1], thisyear)
+    assert list(months[0]) == [1, 12, 12]
+    assert list(tx.medicareStartYear([thisyear - 64], [1], [1])) == [thisyear]
+
+
+def test_medicareMonths_yearly_model_and_horizon():
+    """Without birth months, coverage is the whole year of the 65th birthday; none past the horizon."""
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 64, thisyear - 70], [3, 2], 4, thisyear=thisyear)
+    assert list(months[0]) == [0, 12, 12, 0]
+    assert list(months[1]) == [12, 12, 0, 0]
+
+
+def test_mediCosts_prorates_the_first_year():
+    """Born December 15: one month of premium and IRMAA in the year of the 65th birthday."""
+    thisyear = date.today().year
+    Nn = 3
+    magi = np.full(Nn, 1e6)  # top IRMAA tier
+    prevmagi = np.full(2, 1e6)
+    full = tx.mediCosts([thisyear - 66], [Nn], magi, prevmagi, np.ones(Nn + 1), Nn)
+    first = tx.mediCosts([thisyear - 65], [Nn], magi, prevmagi, np.ones(Nn + 1), Nn, mobs=[12], tobs=[15])
+    assert np.isclose(first[0], full[0] / 12)
+    assert np.isclose(first[1], full[1])
+
+
+def test_mediVals_prorates_the_first_year():
+    """Couple: one spouse born December 1 turns 65 this year, the other is already on Medicare."""
+    thisyear = date.today().year
+    Nn = 3
+    nm, _, Cbar = tx.mediVals([thisyear - 70, thisyear - 65], [Nn, Nn], np.ones(Nn + 1), Nn, 6,
+                              mobs=[5, 12], tobs=[10, 1])
+    assert nm == 0
+    np.testing.assert_allclose(Cbar[0], (1 + 2 / 12) * Cbar[1] / 2)
+    # January 1 birthday: Medicare starts in December of the year before.
+    nm, _, Cbar = tx.mediVals([thisyear - 64], [Nn], np.ones(Nn + 1), Nn, 6, mobs=[1], tobs=[1])
+    assert nm == 0
+    np.testing.assert_allclose(Cbar[0], Cbar[1] / 12)

@@ -11,6 +11,29 @@ had a 2026 deduction of \$16,100 instead of \$24,150. The age test now counts a 
 birthday in the year before. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the
 legal references and a fix (#207).
 
+#### Fixed: Medicare and ACA coverage change in the month of the 65th birthday
+
+Medicare starts in the month of the 65th birthday, or in the month before for a birthday on the 1st
+(CMS), and premiums are monthly. **Owl** charged a full year of Part B, Part D, and IRMAA in the year
+of that birthday, and no ACA premium for its months before Medicare: someone born in December paid
+12 months of Medicare for one month of coverage, \$2,232 of Part B alone at the 2026 premium. The
+first Medicare year is now prorated by the months covered, and marketplace coverage runs until
+Medicare starts. The premium tax credit is computed by the month (IRC 36B(b)), and a month with
+Medicare is not a coverage month (36B(c)(2)(B)): each coverage month pays the lesser of its
+benchmark and 1/12 of the expected contribution, and the benchmark follows who is enrolled that
+month (26 CFR 1.36B-3(f), Example 7). Under `withACA = "optimize"`, the year a spouse moves to
+Medicare is priced on the months-weighted benchmark, which keeps one premium cap per year and
+charges slightly more, only for incomes between the two caps (#208).
+
+#### Fixed: the ACA poverty line is the tax household's
+
+For the premium tax credit, family size is the tax household, both spouses on a joint return
+(IRC 36B(d)(1), 26 CFR 1.36B-1(d)), whoever is enrolled. **Owl** used the 1-person poverty line once
+one spouse was on Medicare, which lowered the 400% cliff for 2027 from \$86,560 to \$63,840: at
+\$70,000 of MAGI, a 60-year-old's benchmark of \$9,572 was charged in full instead of \$6,972. The
+benchmark still covers only the spouse enrolled. Thanks to Marco Pignone (@rationalpiper) for
+reporting it, with the legal references and a fix (#199).
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

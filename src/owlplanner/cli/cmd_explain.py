@@ -15,6 +15,7 @@ import datetime
 import click
 from pathlib import Path
 
+from owlplanner import tax_federal as tx
 from owlplanner.config import load_toml, config_to_plan
 
 from .cmd_run import validate_toml
@@ -51,8 +52,9 @@ def _health_care(plan) -> dict:
     medicare_mode = so.get("withMedicare", "loop")
     medicare_on = medicare_mode not in ("none", "None", False)
     starts = []
+    start_years = tx.medicareStartYear(plan.yobs, plan.mobs, plan.tobs)
     for i in range(plan.N_i):
-        year = int(plan.yobs[i]) + 65
+        year = int(start_years[i])
         last = first_year + int(plan.horizons[i]) - 1
         starts.append({"name": plan.inames[i], "year": max(year, first_year) if year <= last else None})
     medicare = {"modeled": bool(medicare_on), "start_years": starts}

@@ -331,8 +331,53 @@ def irmaaThresholds(status, gamma_n, n, thisyear):
     return scale * irmaaBrackets[status][1:]
 
 
+def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None):
+    """
+    Months of Medicare coverage for each individual in each plan year, shape (N_i, N_n).
+
+    Coverage starts in the month of the 65th birthday, or in the month before when the birthday
+    falls on the 1st: "For an individual whose 65th birthday is on the first day of the month,
+    Part A coverage begins on the first day of the month preceding their birth month" (CMS,
+    Original Medicare (Part A and B) Eligibility and Enrollment). A January 1 birthday therefore
+    starts coverage in December of the year before. Premiums are monthly, and a month with Medicare
+    is not an ACA coverage month (IRC 36B(c)(2)(B), 5000A(f)(1)(A)(i)), so this count drives both
+    the first Medicare year and the last ACA year (issues #199, #208).
+
+    Without birth months (mobs, tobs None), coverage starts in January of the year of the 65th
+    birthday: the yearly model. Years from horizons[i] on, the individual is gone and has 0 months.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+    yobs = np.asarray(yobs, dtype=int)
+    Ni = len(yobs)
+    mobs = np.ones(Ni, dtype=int) if mobs is None else np.asarray(mobs, dtype=int)
+    tobs = np.full(Ni, 2, dtype=int) if tobs is None else np.asarray(tobs, dtype=int)
+    months = np.zeros((Ni, N_n), dtype=int)
+    for i in range(Ni):
+        start_year, start_month = yobs[i] + 65, mobs[i]
+        if tobs[i] == 1:
+            start_month -= 1
+            if start_month == 0:
+                start_year, start_month = start_year - 1, 12
+        for n in range(min(N_n, max(0, horizons[i]))):
+            year = thisyear + n
+            if year > start_year:
+                months[i, n] = 12
+            elif year == start_year:
+                months[i, n] = 13 - start_month
+    return months
+
+
+def medicareStartYear(yobs, mobs=None, tobs=None):
+    """Calendar year of each individual's first Medicare month (see medicareMonths)."""
+    yobs = np.asarray(yobs, dtype=int)
+    if mobs is None or tobs is None:
+        return yobs + 65
+    return yobs + 65 - ((np.asarray(mobs) == 1) & (np.asarray(tobs) == 1)).astype(int)
+
+
 def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0,
-             medical_n=None):
+             medical_n=None, mobs=None, tobs=None):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
@@ -345,6 +390,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     Bracket thresholds follow gamma_n (they are indexed to CPI), except the top tier,
     which is frozen in nominal dollars before 2028 (see irmaaThresholds). Premiums follow medical_n,
     which defaults to gamma_n; pass a faster series when medical prices outgrow inflation.
+    Each individual pays for the months of coverage in the year (medicareMonths, from birth months
+    mobs and days tobs), so the first year is prorated.
     """
     if medical_n is None:
         medical_n = gamma_n
@@ -354,9 +401,10 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     Ni = len(yobs)
     # Combined per-person cumulative costs: Part B + Part D IRMAA when enabled
     costs_per_person = partB_irmaa_costs + (partD_irmaa_costs if include_part_d else 0.0)
-    # What index year will Medicare start? 65 - age for each individual.
-    nm = yobs + 65 - thisyear
+    # What index year will Medicare start? The year of the first month of coverage.
+    nm = medicareStartYear(yobs, mobs, tobs) - thisyear
     nm = np.maximum(0, nm)
+    months_in = medicareMonths(yobs, horizons, Nn, mobs, tobs, thisyear)
     # A plan can end before anyone reaches 65: then Medicare never starts within it.
     nmstart = min(int(np.min(nm)), Nn)
     # Has it already started?
@@ -367,12 +415,9 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
 
     # Year starts at offset nmstart in the plan. L and C arrays are shorter.
     for nn in range(Nmed):
-        imed = 0
         n = nmstart + nn
-        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
-            imed += 1
-        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
-            imed += 1
+        # Individuals paying premiums this year, each for the fraction of the year covered.
+        imed = np.sum(months_in[:, n]) / 12
         if imed:
             if Ni == 1 or not (n < horizons[0] and n < horizons[1]):
                 status = 0  # single or one spouse deceased
@@ -470,13 +515,14 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0,
-              medical_n=None):
+              medical_n=None, mobs=None, tobs=None):
     """
     Compute Medicare costs directly (Part B + Part D when include_part_d is True).
 
     Uses the same MAGI brackets and two-year lookback for both Part B and Part D.
     Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
     Thresholds follow irmaaThresholds and premiums follow medical_n (default gamma_n), as in mediVals.
+    Each individual pays for the months of coverage in the year (medicareMonths), as in mediVals.
     """
     if medical_n is None:
         medical_n = gamma_n
@@ -485,22 +531,24 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     fees_b = partB_irmaa_fees
     fees_d = partD_irmaa_fees if include_part_d else np.zeros_like(partB_irmaa_fees)
     costs = np.zeros(Nn)
+    months_in = medicareMonths(yobs, horizons, Nn, mobs, tobs, thisyear)
     for n in range(Nn):
         status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
         thresholds = irmaaThresholds(status, gamma_n, n, thisyear)
         for i in range(Ni):
-            if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
+            if months_in[i, n]:
+                frac = months_in[i, n] / 12
                 # Part B basic premium
-                costs[n] += medical_n[n] * fees_b[0]
+                costs[n] += frac * medical_n[n] * fees_b[0]
                 if include_part_d and part_d_base_annual_per_person != 0:
-                    costs[n] += medical_n[n] * part_d_base_annual_per_person
+                    costs[n] += frac * medical_n[n] * part_d_base_annual_per_person
                 if n < 2:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
                 for q in range(1, 6):
                     if mymagi > thresholds[q - 1]:
-                        costs[n] += medical_n[n] * (fees_b[q] + fees_d[q])
+                        costs[n] += frac * medical_n[n] * (fees_b[q] + fees_d[q])
 
     return costs
 
@@ -519,7 +567,44 @@ def _aca_contrib_pct(ratio, breakpoints, contrib_pct, initial_pct=None):
     return start + t * (contrib_pct[idx + 1] - start)
 
 
-def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0, medical_n=None):
+def _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear):
+    """
+    The ACA household and coverage families of each plan year, by the month.
+
+    Returns (family_n, parts_n). family_n[n] is the family size for the poverty line: the tax
+    household, 2 while both spouses are alive and 1 after the first death, whoever is enrolled
+    (IRC 36B(d)(1); 26 CFR 1.36B-1(d)(2): "including both spouses in the case of a joint return",
+    issue #199). parts_n[n] lists (months, scale): the months of the year with one coverage family,
+    the members enrolled that month (26 CFR 1.36B-3(b)(2)), and the share of the household
+    benchmark that covers them, since the benchmark follows the coverage family month by month
+    (1.36B-3(f)(1), Example 7). An individual is enrolled in the months before Medicare
+    (medicareMonths), which come first in the year; a lone enrollee of a couple is covered by
+    couple_to_individual_fraction of the couple's benchmark.
+    """
+    Ni = len(yobs)
+    med = medicareMonths(yobs, horizons, N_n, mobs, tobs, thisyear)
+    family_n = np.zeros(N_n, dtype=int)
+    parts_n = []
+    for n in range(N_n):
+        alive = [i for i in range(Ni) if n < horizons[i]]
+        family_n[n] = len(alive)
+        aca = {i: 12 - int(med[i, n]) for i in alive if med[i, n] < 12}
+        parts = []
+        if len(aca) == 2:
+            both = min(aca.values())
+            parts.append((both, 1.0))
+            j = max(aca, key=aca.get)
+            if aca[j] > both:
+                parts.append((aca[j] - both, couple_to_individual_fraction(thisyear + n - yobs[j])))
+        elif len(aca) == 1:
+            ((j, months),) = aca.items()
+            parts.append((months, couple_to_individual_fraction(thisyear + n - yobs[j]) if Ni == 2 else 1.0))
+        parts_n.append(parts)
+    return family_n, parts_n
+
+
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0, medical_n=None,
+             mobs=None, tobs=None):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
@@ -528,15 +613,13 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%);
     2026+ uses Rev. Proc. 2025-25 (no subsidy above 400%).
 
-    Eligibility: individual i is ACA-eligible in year n when:
-      - thisyear + n - yobs[i] < 65 (not yet on Medicare), AND
-      - n < horizons[i] (within planning horizon).
-
-    For a couple where both are pre-65, household size = 2 (joint marketplace plan).
-    When only one is pre-65, household size = 1 (individual plan for the remaining person).
-    In that transition, slcsp_annual is scaled by the CMS age rating fraction
-    (f_younger / (f_older + f_younger)) so that the couple's combined SLCSP is
-    automatically prorated to the remaining partner's individual plan.
+    Coverage is by the month (IRC 36B(b)): an individual is enrolled in the months of year n before
+    Medicare starts (medicareMonths, from birth months mobs and days tobs) while within the planning
+    horizon. Each coverage month costs the lesser of that month's benchmark and 1/12 of the
+    expected contribution. The poverty line is that of the tax household, 2 for a couple while both
+    are alive, even when one spouse is on Medicare (#199). When only one partner is enrolled, the
+    benchmark is the couple's scaled by the CMS age rating fraction
+    (f_younger / (f_older + f_younger)), the remaining partner's individual plan (see _aca_coverage).
 
     Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
 
@@ -580,31 +663,19 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
 
     if thisyear is None:
         thisyear = date.today().year
-    Ni = len(yobs)
     costs = np.zeros(N_n)
     fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
 
+    family_n, parts_n = _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear)
+
     for n in range(max(0, n_aca_start), N_n):
-        # Determine ACA-eligible individuals for this year.
-        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
-        nelig = len(eligible)
-        if nelig == 0:
-            continue
+        if not parts_n[n]:
+            continue  # nobody enrolled this year
 
         calendar_year = thisyear + n
         fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl_base = _ACA_FPL[fpl_year]
-
-        hh_size = min(nelig, 2)
-        fpl = fpl_base[hh_size - 1] * gamma_n[n]
-        # For a couple plan transitioning to individual (one partner now on Medicare),
-        # scale SLCSP down using CMS age rating: fraction = f_younger / (f_older + f_younger).
-        if Ni == 2 and hh_size == 1:
-            age_remaining = thisyear + n - yobs[eligible[0]]
-            slcsp_scale = couple_to_individual_fraction(age_remaining)
-        else:
-            slcsp_scale = 1.0
-        slcsp = slcsp_annual * slcsp_scale * medical_n[n]
+        fpl = _ACA_FPL[fpl_year][family_n[n] - 1] * gamma_n[n]
+        slcsp = slcsp_annual * medical_n[n]
         magi = magi_n[n]
 
         # Up to 138% FPL (133% plus the 5% income disregard): Medicaid, no premium.
@@ -623,16 +694,17 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
         else:
             # 2026+ rules: Rev. Proc. 2025-25, no PTC above 400%
             if ratio >= _ACA_BREAKPOINTS_2026[-1]:
-                costs[n] = slcsp
-                continue
-            if ratio < _ACA_BREAKPOINTS_2026[0]:
+                cap_pct = np.inf
+            elif ratio < _ACA_BREAKPOINTS_2026[0]:
                 cap_pct = _ACA_CONTRIB_PCT_2026[0]
             else:
                 cap_pct = _aca_contrib_pct(
                     ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026
                 )
 
-        costs[n] = min(slcsp, cap_pct * magi)
+        # Each coverage month pays the lesser of its benchmark and 1/12 of the contribution.
+        contribution = cap_pct * magi
+        costs[n] = sum(months / 12 * min(scale * slcsp, contribution) for months, scale in parts_n[n])
 
     return costs
 
@@ -696,13 +768,14 @@ def _aca_capped_limits(fpl, slcsp):
     return limits
 
 
-def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None):
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None, mobs=None, tobs=None):
     """
     Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
     Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
-    inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
+    inflation-adjusted via gamma_n. The tax household (1 or 2) determines which FPL base to use.
     FPL base is year-aware (2025 vs 2026 from _ACA_FPL); contribution rates use 2026 table only.
+    Coverage months and benchmarks follow _aca_coverage, as in acaCosts.
 
     Limitations:
       - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
@@ -710,6 +783,10 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
       - Below 138% FPL: bracket 0, Medicaid at no premium, as in acaCosts.
       - Within brackets 1-5 the cost follows the sliding scale through tangent lines, slightly from
         below between tangent points.
+      - A year with two coverage families (one partner moving to Medicare during the year) is
+        priced on their months-weighted benchmark: min(sum of benchmarks, months/12 * contribution)
+        rather than acaCosts's sum of the families' lesser amounts. That keeps one premium cap per
+        year and charges slightly more, only for MAGI between the two caps.
 
     Parameters
     ----------
@@ -749,12 +826,12 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
         medical_n = gamma_n
 
     thisyear = date.today().year
-    Ni = len(yobs)
     fpl_max_year = max(_ACA_FPL.keys())
 
-    # n_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
-    n_aca_i = [min(max(0, yobs[i] + 65 - thisyear), horizons[i]) for i in range(Ni)]
-    n_aca = min(max(n_aca_i), Nn)
+    # n_aca = the year after the last one with anybody enrolled.
+    family_n, parts_n = _aca_coverage(yobs, horizons, Nn, mobs, tobs, thisyear)
+    covered = [n for n in range(Nn) if parts_n[n]]
+    n_aca = covered[-1] + 1 if covered else 0
 
     if n_aca == 0:
         return empty
@@ -767,24 +844,19 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
         if nn < n_aca_start:
             continue  # Before ACA coverage starts; arrays stay zero (LP pins maca=0 via zero slcsp cap)
         n = nn  # ACA uses current year (no 2-year lag like Medicare)
-        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
-        hh_size = min(len(eligible), 2)
-        if hh_size == 0:
-            continue  # No ACA-eligible individuals this year; thresholds stay zero
+        if not parts_n[n]:
+            continue  # Nobody enrolled this year; thresholds stay zero
 
         calendar_year = thisyear + n
         fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl = _ACA_FPL[fpl_year][hh_size - 1] * gamma_n[n]
+        fpl = _ACA_FPL[fpl_year][family_n[n] - 1] * gamma_n[n]
 
-        # Scale SLCSP for couple-to-individual transition (same logic as acaCosts).
-        if Ni == 2 and hh_size == 1:
-            age_remaining = thisyear + n - yobs[eligible[0]]
-            slcsp_scale = couple_to_individual_fraction(age_remaining)
-        else:
-            slcsp_scale = 1.0
-        slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * medical_n[n]
-        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn])
-        tangents[nn] = _aca_tangents(fpl)
+        # The year's benchmark is the sum over its coverage months, and the contribution is owed
+        # for the fraction of the year with anybody enrolled.
+        frac = sum(months for months, _ in parts_n[n]) / 12
+        slcsp_aca_n[nn] = slcsp_annual * medical_n[n] * sum(months * scale for months, scale in parts_n[n]) / 12
+        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac)
+        tangents[nn] = frac * _aca_tangents(fpl)
 
     return n_aca, Lbar, tangents, slcsp_aca_n
 
