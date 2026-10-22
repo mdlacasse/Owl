@@ -767,8 +767,8 @@ are claimed at the latest date at which both spouses have claimed benefits.
 Complex cases involving divorce or deceased spouses are not considered.
 
 **Survivor benefits.** After the first passing, the surviving spouse is entitled to two
-separate benefits: their own, and a survivor benefit worth the larger of the deceased
-spouse's benefit and 82.5% of their PIA. Social Security pays whichever is larger in a
+separate benefits: their own, and a survivor benefit based on the deceased spouse's PIA,
+plus any delayed retirement credits. Social Security pays whichever is larger in a
 given year, never both, and the spousal add-on ends. Because the two have independent
 start dates, a survivor who has not claimed yet keeps their own benefit and can still let
 it grow to age 70.
@@ -779,6 +779,12 @@ claiming date changes is the *fraction* of that amount paid, and it is measured 
 **survivor's own age** when they file. Filing between age 60 and the survivor FRA reduces the
 benefit permanently, linearly from 71.5% at 60 to 100% at that FRA; waiting past it earns nothing
 extra, unlike a retirement benefit.
+
+If the deceased spouse had claimed before their own FRA, the survivor benefit is then capped at
+the larger of the deceased's reduced benefit and 82.5% of their PIA (Social Security Act
+202(e)(2)(D)). The cap applies after the survivor's age reduction, so it is not reduced itself:
+with a PIA of \\$3,000 claimed at 62, a survivor filing at 62 gets the lesser of 79.6% of \\$3,000
+and the 82.5% cap, \\$2,389 a month, and waiting until the survivor FRA raises that only to \\$2,475.
 
 Note that the *survivor* FRA is a different SSA schedule from the *retirement* FRA that governs
 the claiming ages entered above, and can fall up to four months earlier. Both are derived from the

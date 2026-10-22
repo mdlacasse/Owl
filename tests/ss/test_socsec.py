@@ -437,6 +437,25 @@ def test_compute_ss_survivor_deceased_never_claimed(age_now, factor):
     assert zeta_in[1, 15] == pytest.approx(expected_annual, rel=1e-6)
 
 
+@pytest.mark.parametrize(
+    "deceased_claim, survivor_yob, claim, expected",
+    [
+        # #210 repro: own benefit 70.42% of 3,000 = 2,112.50; survivor 62, factor 0.79643.
+        # Law: min(3,000 x 0.79643, max(2,112.50, 2,475)) = 2,389.29, not 2,475 x 0.79643 = 1,971.16.
+        (62 + 1 / 12, 1974, "immediate", 3000 * (1 - 0.285 * 5 / 7)),
+        (62 + 1 / 12, 1976, "immediate", 3000 * 0.715),  # survivor 60: 2,145, under the cap
+        (62 + 1 / 12, 1974, "FRA", 0.825 * 3000),  # at survivor FRA the cap binds: 2,475
+        (70.0, 1974, "immediate", 3000 * 1.24 * (1 - 0.285 * 5 / 7)),  # claimed after FRA: DRCs, no cap
+    ],
+)
+def test_survivor_limit_caps_after_age_reduction(deceased_claim, survivor_yob, claim, expected):
+    """#210: the widow(er)'s limit caps the age-reduced benefit (SSA 202(e)(2)(D)); it is not reduced."""
+    zeta, _ = ss.compute_social_security_benefits(
+        np.array([3000, 0]), np.array([deceased_claim, 67.0]), np.array([1966, survivor_yob]), np.array([1, 1]),
+        np.array([15, 15]), np.array([10, 40]), 2, 40, thisyear=2026, survivor_claim_age=claim)
+    assert zeta[1, 16] / 12 == pytest.approx(expected, rel=1e-9)
+
+
 def test_survivor_min_age_60():
     """Survivor under 60 at death: factor clamped to age-60 floor (71.5%)."""
     # Age 55 is below SSA minimum; factor must equal the age-60 value (0.715).

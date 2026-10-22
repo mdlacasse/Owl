@@ -61,6 +61,18 @@ line paid the full benchmark; IRC 36B(c)(1)(A) covers income that "does not exce
 so it now gets the credit, as it already did in optimize mode. Thanks to Marco Pignone
 (@rationalpiper) for reporting it (#201).
 
+#### Fixed: the 82.5% survivor limit caps the benefit after the survivor's age reduction
+
+When the deceased spouse had claimed early, **Owl** took the greater of their benefit and 82.5% of
+their PIA as the survivor's base and then reduced it for the survivor's age. The law reduces the
+full PIA for the survivor's age first and only then caps it at that greater amount: the limit
+applies to the benefit "after application of subsection (q)" (Social Security Act 202(e)(2)(D);
+POMS RS 00615.320). With a PIA of \$3,000 claimed at 62 and 1 month, a survivor filing at 62 now
+gets \$2,389.29 a month instead of \$1,971.16, and the gain from waiting until the survivor FRA
+drops from \$504 to \$86 a month. Survivors filing at their survivor FRA, and deceased spouses who
+claimed at or after FRA or never claimed, are unchanged. Thanks to Marco Pignone (@rationalpiper)
+for reporting it, with the legal references and a fix (#210).
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

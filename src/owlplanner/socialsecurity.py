@@ -518,10 +518,14 @@ def compute_survivor_stream(
     """
     Compute the surviving spouse's survivor benefit as a standalone annual stream.
 
-    The amount follows CFR § 404.338: the greater of the deceased's actual benefit at
-    death and 82.5% of their PIA, reduced by ``_survivor_factor`` when claimed before the
-    survivor FRA. A deceased who had not claimed leaves the full PIA, plus the delayed
-    retirement credits earned up to death; the 82.5% limit applies only to reduced benefits.
+    The amount follows Social Security Act 202(e)(2) (42 U.S.C. 402(e)(2)) and CFR § 404.338:
+    the deceased's PIA, plus any delayed retirement credits, reduced by ``_survivor_factor``
+    when claimed before the survivor FRA (subsection (q)). If the deceased had claimed a reduced
+    benefit, the result is then capped at the greater of that benefit and 82.5% of the PIA:
+    the widow(er)'s limit applies "after application of subsection (q)" (202(e)(2)(D);
+    POMS RS 00615.320 A.3), so it caps the age-reduced benefit and is not itself reduced (#210).
+    A deceased who had not claimed leaves the full PIA, plus the delayed retirement credits
+    earned up to death, with no limit.
     The start date comes from ``survivor_claim_age`` and is never earlier than age 60 or the
     year of the first death.
 
@@ -557,20 +561,22 @@ def compute_survivor_stream(
     fra_deceased = getFRAs(yobs, mobs, tobs)[deceased_idx]
     started_n, _ = _payment_start(yobs[deceased_idx], mobs[deceased_idx], ages[deceased_idx], thisyear)
     if started_n < death_year_n:
-        deceased_monthly = pias[deceased_idx] * getSelfFactor(
-            fra_deceased, ages[deceased_idx], bool(tobs[deceased_idx] == 1)
-        )
+        factor = getSelfFactor(fra_deceased, ages[deceased_idx], bool(tobs[deceased_idx] == 1))
+        # PIA, plus delayed retirement credits when claimed after FRA.
+        monthly = pias[deceased_idx] * max(1.0, factor) * _survivor_factor(survivor_fra, claim_age)
+        if factor < 1.0:
+            # Widow(er)'s limit, after the age reduction (SSA 202(e)(2)(D), #210).
+            monthly = min(monthly, max(pias[deceased_idx] * factor, 0.825 * pias[deceased_idx]))
     else:
         # Died before claiming: no reduced benefit, so the widow(er)'s limit (82.5% floor) does not
         # apply (POMS RS 00615.320). The survivor's base is the full PIA, plus the delayed retirement
         # credits earned up to death when death came after FRA (capped at 70).
         age_at_death_dec = (thisyear + death_year_n) - yobs[deceased_idx] - (mobs[deceased_idx] - 1) / 12
-        deceased_monthly = pias[deceased_idx] * max(
+        base = pias[deceased_idx] * max(
             1.0,
             getSelfFactor(fra_deceased, min(70.0, max(62.0, age_at_death_dec)), bool(tobs[deceased_idx] == 1)),
         )
-
-    monthly = max(deceased_monthly, 0.825 * pias[deceased_idx]) * _survivor_factor(survivor_fra, claim_age)
+        monthly = base * _survivor_factor(survivor_fra, claim_age)
 
     n_raw, frac = _payment_start(yobs[survivor_idx], mobs[survivor_idx], claim_age, thisyear)
     hs = min(int(horizons[survivor_idx]), N_n)
