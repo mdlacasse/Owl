@@ -4,6 +4,7 @@ Tests for LTCG tax computation via LP bracket-allocation variables q_{pn} (p=0,1
 The LP bracket formulation is always used (no SC-loop fallback). Validates that:
 - The solver produces a feasible solution for typical plans.
 - q[0,n] + q[1,n] + q[2,n] == Q_n for all years (partition constraint is tight).
+- A standard deduction that ordinary income leaves unused reduces the taxed gains (#205).
 - U_n == 0.15*q[1,n] + 0.20*q[2,n] exactly (LTCG tax definition).
 - Effective LTCG rate U_n/Q_n is in [0%, 20%] when Q_n > 0.
 - 15% bracket is used when Q_n > T15_n − e_n (large-taxable-account plan).
@@ -109,6 +110,35 @@ def test_ltcg_lp_partition_exact():
     ltcg_sum = p.q_pn[0] + p.q_pn[1] + p.q_pn[2]
     total_ltcg = np.maximum(p.Q_n, 0)
     np.testing.assert_allclose(ltcg_sum, total_ltcg, atol=1.0, err_msg="Partition sum does not match Q_n")
+
+
+@pytest.mark.parametrize("mode", ["loop", "optimize"])
+def test_ltcg_unused_deduction_reduces_gains(mode):
+    """With no ordinary income, the deduction comes off the gains (QDCG worksheet, #205).
+
+    A single 66-year-old living off a $600k taxable account (basis $60k) over three years: the gains
+    pass the 0% threshold every year, so leaving the deduction unused would overstate the tax by 15%
+    of it, as Owl did before.
+    """
+    from owlplanner import tax_federal as tx
+
+    thisyear = date.today().year
+    p = owl.Plan(["Alex"], [f"{thisyear - 66}-06-15"], [68], "ltcg_unused_deduction")
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[600], taxDeferred=[0], taxFree=[0], startDate="1-1")
+    p.setCostBasis([60])
+    p.setAllocationRatios("individual", generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withLTCG": mode})
+    assert p.caseStatus == "solved"
+
+    N = p.N_n
+    gains = np.maximum(p.Q_n, 0)
+    taxable = np.maximum(0, p.G_n + p.e_n + gains - p.sigmaBar_n)
+    law = tx.capitalGainTax(p.N_i, taxable, np.minimum(gains, taxable), p.gamma_n[:N], p.n_d, N)
+    assert np.all(p.G_n < 1.0), "the case is meant to have no ordinary taxable income"
+    np.testing.assert_allclose(p.U_n, law, atol=1.0, err_msg="LTCG tax differs from the QDCG worksheet")
+    assert p.fixedPointResidual["LTCG"]["abs_sum"] < 1.0
 
 
 def test_ltcg_lp_tax_identity():

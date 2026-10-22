@@ -1,5 +1,19 @@
 ### Version WIP
 
+#### Fixed: an unused standard deduction now lowers the tax on capital gains
+
+**Owl** stacked long-term gains and qualified dividends on top of ordinary taxable income, so when
+ordinary income was below the standard deduction, the unused part was lost and the gains were taxed
+as if it did not exist. The law taxes gains on taxable income after all deductions (Qualified
+Dividends and Capital Gain Tax Worksheet, lines 1 and 10; IRC 1(h)(1)(B)), so the unused deduction
+shields gains from the bottom up. This is the common early-retiree year spent living off a taxable
+account: the overstatement reached 15% or 20% of the unused deduction, \$2,723 for a single
+66-year-old in 2026. Both modes now widen the 0% and 15% gains brackets by the unused deduction,
+including the senior bonus when it is optimized, and the LTCG residual check follows the worksheet.
+In the test cases affected, the lifetime overstatement of \$10,000–\$26,000 falls to a few dollars,
+and spending rises by 0.2–1.4%; the example cases are unchanged to within 0.02%. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the worksheet references (#205).
+
 #### Fixed: ACA premiums in states without the Medicaid expansion
 
 **Owl** treated every state as a Medicaid expansion state, with no premium up to 138% of the poverty

@@ -108,6 +108,8 @@ CONSTRAINT_FAMILIES = {
     "surplus_deposit": {"class": "structural", "label": "surplus-to-deposit split between spouses"},
     "ltcg_gn_def": {"class": "structural", "label": "ordinary taxable income definition (MILP mode)"},
     "ltcg_partition_lo": {"class": "structural", "label": "capital gains partitioned across LTCG brackets"},
+    "ltcg_room15_deduction": {"class": "structural", "label": "unused deduction widening the 0% gains bracket"},
+    "ltcg_room20_deduction": {"class": "structural", "label": "unused deduction widening the 15% gains bracket"},
     "niit_magi_def": {"class": "structural", "label": "NIIT MAGI definition"},
     "irmaa_magi_def": {"class": "structural", "label": "Medicare IRMAA MAGI definition"},
     "irmaa_cost_def": {"class": "structural", "label": "Medicare premium implied by IRMAA bracket"},

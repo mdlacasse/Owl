@@ -2806,6 +2806,7 @@ class Plan:
             self._sb_base_n = tx.taxParams(self.yobs_tax, self.i_d, self.n_d, self.N_n, self.gamma_n, no_bonus,
                                            self.yOBBBA)[0]
             sigma_n = self._sb_base_n + tx.SENIOR_BONUS * self._sb_count_n
+        self._sigma_lp_n = sigma_n  # widens the capital-gains brackets (_configure_ltcg_constraints)
         for n in range(self.N_n):
             self.B.setRange(self.vm["e"].idx(n), 0, sigma_n[n])
 
@@ -3814,8 +3815,24 @@ class Plan:
 
         MILP mode replaces (1) and (2) with big-M binary constraints using gn and zl.
 
+        Gains are taxed on taxable income after the deduction (QDCG worksheet, line 1), so a deduction
+        that ordinary income leaves unused, sigma_n - e_n, takes gains out of tax first (#205). It enters
+        as room in the 0% and 15% brackets, both of which it widens by the same amount:
+          MILP: q[0,n] + G_n + e_n <= T15_n + sigma_n (and likewise for T20_n), with G_n the LP's own.
+                When ordinary income fills the deduction, e_n = sigma_n and the row is the one above;
+                when it does not, G_n = 0 and the room is T15_n + sigma_n - e_n. Moving a dollar between
+                e_n and G_n leaves the room unchanged, so the LP has no reason to misplace the deduction.
+          loop: G_n is the previous iterate's, so the room cannot follow it. In years where the previous
+                iterate left some deduction U_n unused, q[0,n] + e_n <= room15_n + sigma_n with
+                q[0,n] <= room15_n + U_n (and likewise for room20_n). The cap keeps the LP from trading
+                deduction for gains room at a G_n the solve does not see. Years without unused deduction,
+                and every first iterate, keep the rows above.
+        With the OBBBA senior bonus in the LP, the deduction is sigma_n - k_n*p_n, so k_n*p_n joins e_n.
+
         U_n = 0.15*q[1,n] + 0.20*q[2,n] is computed as a derived quantity after solving.
         """
+        sb_year = {n: j for j, n in enumerate(self._sb_years)} if self._sb_lp else {}
+        prev_e_n = getattr(self, "e_n", None)
         for n in range(self.N_n):
             # Per-year filing status: couple switches to Single at n_d.
             status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
@@ -3827,6 +3844,12 @@ class Plan:
             q0_idx = self.vm["q"].idx(0, n)  # p=0: 0% bracket
             q1_idx = self.vm["q"].idx(1, n)  # p=1: 15% bracket
             q2_idx = self.vm["q"].idx(2, n)  # p=2: 20% bracket
+
+            # The deduction the year's ordinary income can still use: sigma_n - e_n (- k_n*p_n).
+            sigma_n = float(self._sigma_lp_n[n])
+            ded_row = {self.vm["e"].idx(n): 1}
+            if n in sb_year:
+                ded_row[self.vm["sbp"].idx(sb_year[n])] = float(self._sb_count_n[n])
 
             if self._ltcg_lp:
                 # =========================================================
@@ -3861,23 +3884,27 @@ class Plan:
                 self.A.addNewRow({gn_idx: 1, zl15_idx: M_ltcg}, T15_n, T15_n + M_ltcg, tag=("ltcg_zl15_link", n))
                 self.A.addNewRow({gn_idx: 1, zl20_idx: M_ltcg}, T20_n, T20_n + M_ltcg, tag=("ltcg_zl20_link", n))
 
-                # q[0] room15 upper bound: q0 + G_n + M*zl15 <= T15 + M
-                # → q0 <= T15 - G_n + M*(1-zl15) (unlimited when zl15=1, i.e. G_n>=T15)
+                # The unused deduction widens the brackets, so the shutoff rows must reach past T20 by it.
+                M_shut = max(M_ltcg, T20_n + sigma_n)
+
+                # q[0] room15 upper bound: q0 + G_n + e_n + M*zl15 <= T15 + sigma_n + M
+                # → q0 <= T15 - (G_n + e_n - sigma_n) + M*(1-zl15) (unlimited when zl15=1, i.e. G_n>=T15)
                 self.A.addNewRow(
-                    {q0_idx: 1, gn_idx: 1, zl15_idx: M_ltcg}, -np.inf, T15_n + M_ltcg, tag=("ltcg_room15_mip", n)
+                    {q0_idx: 1, gn_idx: 1, zl15_idx: M_ltcg, **ded_row}, -np.inf, T15_n + sigma_n + M_ltcg,
+                    tag=("ltcg_room15_mip", n)
                 )
                 # q[0] forced zero when G_n >= T15 (zl15=1): q0 - M*zl15 <= 0
-                self.A.addNewRow({q0_idx: 1, zl15_idx: -M_ltcg}, -np.inf, 0, tag=("ltcg_q0_zero", n))
+                self.A.addNewRow({q0_idx: 1, zl15_idx: -M_shut}, -np.inf, 0, tag=("ltcg_q0_zero", n))
 
-                # q[0]+q[1] room20 upper bound: q0+q1 + G_n + M*zl20 <= T20 + M
+                # q[0]+q[1] room20 upper bound: q0+q1 + G_n + e_n + M*zl20 <= T20 + sigma_n + M
                 self.A.addNewRow(
-                    {q0_idx: 1, q1_idx: 1, gn_idx: 1, zl20_idx: M_ltcg},
+                    {q0_idx: 1, q1_idx: 1, gn_idx: 1, zl20_idx: M_ltcg, **ded_row},
                     -np.inf,
-                    T20_n + M_ltcg,
+                    T20_n + sigma_n + M_ltcg,
                     tag=("ltcg_room20_mip", n),
                 )
                 # q[0]+q[1] forced zero when G_n >= T20 (zl20=1): q0+q1 - M*zl20 <= 0
-                self.A.addNewRow({q0_idx: 1, q1_idx: 1, zl20_idx: -M_ltcg}, -np.inf, 0, tag=("ltcg_q01_zero", n))
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1, zl20_idx: -M_shut}, -np.inf, 0, tag=("ltcg_q01_zero", n))
 
                 # Monotonicity: zl15 <= zl20 (if G_n <= T15 then G_n <= T20, so room for 0% implies room for 15%)
                 # zl15 - zl20 <= 0  →  addNewRow({zl15:1, zl20:-1}, -inf, 0)
@@ -3892,10 +3919,19 @@ class Plan:
                 # room15_n / room20_n = T15/T20 threshold minus ordinary income already filling the bracket.
                 room15_n = max(0.0, T15_n - self.G_n[n])
                 room20_n = max(0.0, T20_n - self.G_n[n])
+                # Deduction the previous iterate's ordinary income left unused (none before the first).
+                unused_n = 0.0 if prev_e_n is None else sigma_n - self.G_n[n] - prev_e_n[n]
+                unused_n = unused_n if unused_n > 1.0 else 0.0
                 # (1) q[0,n] ≤ room15_n (enforced via variable upper bound)
-                self.B.setRange(q0_idx, 0, room15_n)
+                self.B.setRange(q0_idx, 0, room15_n + unused_n)
                 # (2) q[0,n] + q[1,n] ≤ room20_n
-                self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n, tag=("ltcg_room20", n))
+                self.A.addNewRow({q0_idx: 1, q1_idx: 1}, -np.inf, room20_n + unused_n, tag=("ltcg_room20", n))
+                if unused_n > 0:
+                    # The room the deduction adds shrinks with each dollar of it ordinary income takes.
+                    self.A.addNewRow({q0_idx: 1, **ded_row}, -np.inf, room15_n + sigma_n,
+                                     tag=("ltcg_room15_deduction", n))
+                    self.A.addNewRow({q0_idx: 1, q1_idx: 1, **ded_row}, -np.inf, room20_n + sigma_n,
+                                     tag=("ltcg_room20_deduction", n))
                 # q[1] upper bound = remaining 15% bracket width after stacking ordinary income.
                 self.B.setRange(q1_idx, 0, max(0.0, room20_n - room15_n))
                 # q[2] is unbounded above (the 20% bracket has no cap).
@@ -5994,9 +6030,15 @@ class Plan:
             )
 
     def _ltcg_tax_implied(self):
-        """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly."""
+        """Capital-gains tax the plan's own ordinary income and gains imply, stacked exactly.
+
+        Taxable income is AGI less the deduction (QDCG worksheet line 1), so a deduction that ordinary
+        income leaves unused reduces the gains taxed (line 10: the smaller of gains and taxable income).
+        """
         Nn = self.N_n
-        return tx.capitalGainTax(self.N_i, self.G_n + self.Q_n, self.Q_n, self.gamma_n[:Nn], self.n_d, Nn)
+        gains_n = np.maximum(self.Q_n, 0)
+        taxable_n = np.maximum(0, self.G_n + self.e_n + gains_n - self.sigmaBar_n[:Nn])
+        return tx.capitalGainTax(self.N_i, taxable_n, np.minimum(gains_n, taxable_n), self.gamma_n[:Nn], self.n_d, Nn)
 
     def _fixedPointResidualByYear(self, includeMedicare):
         """Per-year disagreements behind _computeFixedPointResidual: {family: array (today's $)}."""
@@ -6839,6 +6881,7 @@ class Plan:
             self.MAGI_aca_n = np.zeros(self.N_n)
             self.MAGI_n = np.zeros(self.N_n)
             self.G_n = np.zeros(self.N_n)
+            self.e_n = None  # no iterate yet: loop mode opens no deduction to gains
             self.J_n = np.zeros(self.N_n)
             self.M_n = np.zeros(self.N_n)
             self.ACA_n = np.zeros(self.N_n)
