@@ -34,6 +34,14 @@ one spouse was on Medicare, which lowered the 400% cliff for 2027 from \$86,560 
 benchmark still covers only the spouse enrolled. Thanks to Marco Pignone (@rationalpiper) for
 reporting it, with the legal references and a fix (#199).
 
+#### Fixed: HSA contributions are prorated in the year Medicare starts
+
+The HSA limit is the sum of monthly limits, and the monthly limit is zero from the first month of
+Medicare (IRC 223(b)(2) and (b)(7)). **Owl** dropped the whole contribution in the year of the
+65th birthday. It now keeps the share for the months before Medicare, which starts in the
+birthday month, or the month before for a birthday on the 1st: 5/12 of the entry for a June 15
+birthday, and 11/12 of the year before for a January 1 birthday, which **Owl** used to keep whole.
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

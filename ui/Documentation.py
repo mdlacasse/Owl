@@ -462,8 +462,15 @@ leave it blank where it does not apply), where:
   is tracked (every dollar later withdrawn or converted is fully taxable).
 - *HSA ctrb* is HSA contributions in nominal dollars. Like the other *ctrb* columns, subtract them
   from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
-  taxable income. Values are
-  automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
+  taxable income. Enter the full annual amount you plan to contribute: **Owl** applies the
+  Medicare cutoff itself. The HSA limit is counted by the month, and no contribution is allowed
+  for a month with Medicare (IRC 223(b)(2) and (b)(7)). Medicare starts in the month of the
+  65th birthday, or in the month before when the birthday falls on the 1st. In the year it
+  starts, **Owl** keeps the share of your entry for the months before Medicare and drops the rest:
+  5/12 of it for a June 15 birthday, 11/12 for a December 15 birthday, and none for a January 15
+  or February 1 birthday. A January 1 birthday starts Medicare in December of the year before, so
+  that earlier year keeps 11/12. Entries for later years are ignored. Your entries are kept as
+  typed in the workbook; the scaling applies only to the plan.
 - *Roth conv* is a Roth conversion amount in nominal dollars. On the five lead-in rows it records a
   conversion you have already performed, which the five-year maturation rule needs. On a plan year it
   is a conversion you are proposing: a figure you have already committed to, or one computed with

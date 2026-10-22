@@ -74,13 +74,9 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         hsa=balances["hsa"],
         startDate=start_date,
     )
-    # Set n_hsa_i so HSA contributions from HFP are zeroed at Medicare age.
+    # HSA contributions from HFP end at Medicare age 65, prorated in the year it starts.
     # (Do not call setHSA here—it would re-apply unit scaling and corrupt balances.)
-    thisyear = date.today().year
-    ages = [65] * icount
-    for i in range(icount):
-        n_hsa = plan.yobs[i] + ages[i] - thisyear
-        plan.n_hsa_i[i] = min(max(0, n_hsa), plan.N_n)
+    plan._setHSAStop([65] * icount)
     cost_basis = known["savings_assets"].get("taxable_cost_basis", [])
     if cost_basis and any(v > 0 for v in cost_basis):
         plan.setCostBasis(cost_basis)

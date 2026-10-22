@@ -526,7 +526,7 @@ class Plan:
         self.partial_heir_tax_liability = 0.0  # Heir taxes on partial bequest, today's $
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
-        self.n_hsa_i = np.full(self.N_i, self.N_n, dtype=int)  # Year HSA contributions stop (default: never)
+        self._setHSAStop([65] * self.N_i)  # Sets n_hsa_i and hsaFrac_in: HSA contributions end at Medicare
         self.slcsp_annual = 0.0  # Today-dollar annual ACA benchmark Silver plan premium ($)
         self.aca_start_year = 0  # Calendar year ACA coverage begins (0 = plan start)
         self.ACA_n = np.zeros(self.N_n)  # Net ACA cost (after subsidy) per year (plan $)
@@ -1692,10 +1692,29 @@ class Plan:
             u.d(np.sum(taxable) + 0.7 * np.sum(taxDeferred) + np.sum(taxFree)),
         )
 
+    def _setHSAStop(self, ages):
+        """
+        Set the share of each year's HSA contribution that the law allows, given Medicare enrollment
+        ages. The HSA limit is the sum of monthly limits (IRC 223(b)(1)-(2)), and the monthly limit is
+        zero from the first month of Medicare entitlement (IRC 223(b)(7)). Medicare starts in the
+        month of the birthday at that age, or the month before for a birthday on the 1st
+        (tx.medicareMonths), so the year it starts keeps the months before it: 5/12 for a June 15
+        birthday. Sets hsaFrac_in (N_i, N_n) and n_hsa_i, the first year that is cut.
+        """
+        months = tx.medicareMonths(
+            self.yobs, [self.N_n] * self.N_i, self.N_n, self.mobs, self.tobs, ages=ages
+        )
+        self.hsaFrac_in = 1.0 - months / 12
+        self.n_hsa_i = np.array(
+            [int(np.argmax(months[i] > 0)) if np.any(months[i] > 0) else self.N_n for i in range(self.N_i)],
+            dtype=int,
+        )
+
     def setHSA(self, balances, medicare_ages=None, units="k"):
         """
         Set HSA (Health Savings Account) initial balances and Medicare enrollment ages.
-        HSA contributions stop when Medicare enrollment begins (~age 65).
+        HSA contributions stop when Medicare enrollment begins (~age 65); the year it begins
+        keeps the contribution for the months before it (see _setHSAStop).
 
         Parameters
         ----------
@@ -1713,11 +1732,7 @@ class Plan:
             hsa=balances,
             units=units,
         )
-        thisyear = date.today().year
-        ages = medicare_ages if medicare_ages is not None else [65] * self.N_i
-        for i in range(self.N_i):
-            n_hsa = self.yobs[i] + ages[i] - thisyear
-            self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
+        self._setHSAStop(medicare_ages if medicare_ages is not None else [65] * self.N_i)
         self.mylog.vprint("HSA contribution stop years:", [int(self.n_hsa_i[i]) for i in range(self.N_i)])
 
     def setMedicalExpenses(self, amount, units="k"):
@@ -2149,16 +2164,8 @@ class Plan:
             self.kappa_ijn[i, 2, :h] = self.timeLists[iname]["Roth 401k ctrb"][5 : h + 5]
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"][5 : h + 5]
             self.kappa_ijn[i, 3, :h] = self.timeLists[iname]["HSA ctrb"][5 : h + 5]
-            # Zero HSA contributions after Medicare enrollment year.
-            # If n_hsa_i was never set (still at default N_n), initialize from yobs and age 65
-            # so programmatic plans that bypass config still get correct Medicare cutoff.
-            if self.n_hsa_i[i] >= self.N_n:
-                thisyear = date.today().year
-                n_hsa = self.yobs[i] + 65 - thisyear
-                self.n_hsa_i[i] = min(max(0, n_hsa), self.N_n)
-            n_stop = self.n_hsa_i[i]
-            if n_stop < h:
-                self.kappa_ijn[i, 3, n_stop:h] = 0.0
+            # HSA contributions end at Medicare; the year it starts is prorated (_setHSAStop).
+            self.kappa_ijn[i, 3, :h] *= self.hsaFrac_in[i, :h]
             self.myRothX_in[i, :h] = self.timeLists[iname]["Roth conv"][5 : h + 5]
             self.rothXfixed_in[i, :h] = np.asarray(
                 self.timeLists[iname]["Roth conv fixed"][5 : h + 5], dtype=bool
@@ -2407,15 +2414,17 @@ class Plan:
         rebuilt, _ = hfp_io.build_hfp_dataframes(self)
         compare = self.timeLists
         if compare and all(iname in compare for iname in self.inames):
-            # setContributions() zeroes HSA contributions past Medicare enrollment
-            # in the arrays only; apply the same clip to a comparison copy so such
+            # setContributions() prorates and zeroes HSA contributions from Medicare enrollment
+            # in the arrays only; apply the same scaling to a comparison copy so such
             # rows do not flag the time lists as stale.
             compare = {iname: compare[iname].copy() for iname in self.inames}
             for i, iname in enumerate(self.inames):
                 df = compare[iname]
-                n_stop, h = self.n_hsa_i[i], self.horizons[i]
-                if "HSA ctrb" in df.columns and n_stop < h:
-                    df.iloc[5 + n_stop : 5 + h, df.columns.get_loc("HSA ctrb")] = 0.0
+                h = self.horizons[i]
+                if "HSA ctrb" in df.columns:
+                    col = df["HSA ctrb"].to_numpy(dtype=float, copy=True)
+                    col[5 : 5 + h] *= self.hsaFrac_in[i, :h]
+                    df["HSA ctrb"] = col
         if not hfp_io.time_lists_agree(compare, rebuilt):
             self.timeLists = rebuilt
 

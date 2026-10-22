@@ -331,7 +331,7 @@ def irmaaThresholds(status, gamma_n, n, thisyear):
     return scale * irmaaBrackets[status][1:]
 
 
-def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None):
+def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None, ages=None):
     """
     Months of Medicare coverage for each individual in each plan year, shape (N_i, N_n).
 
@@ -345,6 +345,8 @@ def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None):
 
     Without birth months (mobs, tobs None), coverage starts in January of the year of the 65th
     birthday: the yearly model. Years from horizons[i] on, the individual is gone and has 0 months.
+    ages, when given, replaces 65 with each individual's enrollment age, for someone who delays
+    Medicare; coverage then starts in the month of that birthday.
     """
     if thisyear is None:
         thisyear = date.today().year
@@ -352,9 +354,10 @@ def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None):
     Ni = len(yobs)
     mobs = np.ones(Ni, dtype=int) if mobs is None else np.asarray(mobs, dtype=int)
     tobs = np.full(Ni, 2, dtype=int) if tobs is None else np.asarray(tobs, dtype=int)
+    ages = np.full(Ni, 65, dtype=int) if ages is None else np.asarray(ages, dtype=int)
     months = np.zeros((Ni, N_n), dtype=int)
     for i in range(Ni):
-        start_year, start_month = yobs[i] + 65, mobs[i]
+        start_year, start_month = yobs[i] + ages[i], mobs[i]
         if tobs[i] == 1:
             start_month -= 1
             if start_month == 0:

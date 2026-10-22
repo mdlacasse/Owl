@@ -7,7 +7,11 @@ tax-free growth, tax-free qualified medical withdrawals).
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+from datetime import date
+
 import numpy as np
+import pandas as pd
+import pytest
 
 from owlplanner import Plan
 
@@ -127,6 +131,71 @@ def test_hsa_contribution_stops_at_medicare():
         )
     if n_stop > 0:
         assert np.all(p.kappa_ijn[0, 3, :n_stop] == 4300), "HSA contributions before Medicare enrollment should be set"
+
+
+# Year the person turns 65 (offset 0) or the year before (offset -1), and the share of the
+# HSA contribution allowed in that year (IRC 223(b)(2), (b)(7)). Medicare starts in the
+# birthday month, or the month before for a birthday on the 1st.
+@pytest.mark.parametrize(
+    "dob, offset, frac",
+    [
+        ("1970-06-15", 0, 5 / 12),  # Medicare from June: January to May
+        ("1970-12-15", 0, 11 / 12),
+        ("1970-12-01", 0, 10 / 12),  # Medicare from November
+        ("1970-02-01", 0, 0.0),  # Medicare from January
+        ("1970-01-15", 0, 0.0),
+        ("1970-01-01", -1, 11 / 12),  # Medicare from December of the year before
+    ],
+)
+def test_hsa_medicare_year_is_prorated(dob, offset, frac):
+    """The year Medicare starts keeps the contribution for the months before it."""
+    p = _make_plan(dobs=[dob], expectancy=[90])
+    n = 1970 + 65 + offset - date.today().year
+    assert p.n_hsa_i[0] == n
+    assert p.hsaFrac_in[0, n - 1] == pytest.approx(1.0)
+    assert p.hsaFrac_in[0, n] == pytest.approx(frac)
+    assert np.all(p.hsaFrac_in[0, n + 1:] == 0.0)
+
+
+def test_hsa_delayed_medicare_is_prorated():
+    """A later enrollment age moves the prorated year with it."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.setAccountBalances(taxable=[200], taxDeferred=[500], taxFree=[100])
+    p.setHSA([30], medicare_ages=[67])
+    n = 1970 + 67 - date.today().year
+    assert p.n_hsa_i[0] == n
+    assert p.hsaFrac_in[0, n] == pytest.approx(5 / 12)
+
+
+def test_hsa_contributions_prorated_from_hfp():
+    """setContributions() scales the HFP entry in the Medicare year and zeros it after."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.zeroWagesAndContributions()
+    p.timeLists["TestUser"]["HSA ctrb"] = 4_400.0
+    p.setContributions()
+    n = p.n_hsa_i[0]
+    assert np.all(p.kappa_ijn[0, 3, :n] == pytest.approx(4_400))
+    assert p.kappa_ijn[0, 3, n] == pytest.approx(4_400 * 5 / 12)
+    assert np.all(p.kappa_ijn[0, 3, n + 1 : p.horizons[0]] == 0.0)
+    # The user's entry is kept as input.
+    assert np.all(p.timeLists["TestUser"]["HSA ctrb"] == 4_400.0)
+
+
+def test_hsa_prorated_year_does_not_flag_stale(tmp_path):
+    """saveHFP() keeps the user's time lists when only the HSA scaling differs."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.zeroWagesAndContributions()
+    df = p.timeLists["TestUser"]
+    df["HSA ctrb"] = 4_400.0
+    df.loc[df["year"] == date.today().year, "IRA ctrb"] = 7_000
+    p.setContributions()
+    fname = str(tmp_path / "HFP_hsa.xlsx")
+    p.saveHFP(fname, overwrite=True)
+    read_df = pd.read_excel(fname, sheet_name="TestUser")
+    year65 = date.today().year + p.n_hsa_i[0]
+    # Column split preserved, so the time lists were not rebuilt from the arrays.
+    assert read_df.loc[read_df["year"] == date.today().year, "IRA ctrb"].iloc[0] == pytest.approx(7_000)
+    assert read_df.loc[read_df["year"] == year65, "HSA ctrb"].iloc[0] == pytest.approx(4_400)
 
 
 def test_hsa_bequest():
