@@ -379,3 +379,45 @@ def test_survivor_keeps_the_joint_table_for_two_years():
     _, L, _ = tx.mediVals(yobs, horizons, np.ones(6), 6, 6)
     np.testing.assert_allclose(L[:5, 0], tx.irmaaBrackets[1][1])
     assert L[5, 0] == pytest.approx(tx.irmaaBrackets[0][1])
+
+
+# ---------------------------------------------------------------------------
+# The top IRMAA tier includes its edge (#216)
+# ---------------------------------------------------------------------------
+
+
+def test_irmaa_tier_top_includes_its_edge():
+    """42 U.S.C. 1395r(i)(3)(C)(i)(III), 20 CFR 418.1115(b)(3): "less than $500,000" for tier 4,
+    "at least $500,000" for the top; every lower tier excludes its edge."""
+    edges = tx.irmaaBrackets[0][1:]  # 109k, 137k, 171k, 205k, 500k
+    assert tx.irmaaTier(109_000, edges) == 0
+    assert tx.irmaaTier(109_001, edges) == 1
+    assert tx.irmaaTier(499_999, edges) == 4
+    assert tx.irmaaTier(500_000, edges) == 5
+    # Slack reads a MAGI parked on an edge on that edge's side: below the lower ones, at the top one.
+    assert tx.irmaaTier(109_000.5, edges, slack=1.0) == 0
+    assert tx.irmaaTier(500_000 - 1e-6, edges, slack=1.0) == 5
+    assert tx.irmaaTier(499_998, edges, slack=1.0) == 4  # the optimizer's bracket 4 stops $2 short
+
+
+@pytest.mark.parametrize("status, edge", [(0, 500_000.0), (1, 750_000.0)])
+def test_mediCosts_at_the_top_edge(status, edge):
+    """#216 repro: Part B at exactly $500,000 ($750,000 joint) is the top tier, $689.90 (CMS 2026)."""
+    this_year = date.today().year
+    n_i = status + 1
+
+    def part_b(m):
+        return tx.mediCosts(np.array([this_year - 70] * n_i), np.array([3] * n_i), np.full(3, m), np.zeros(2),
+                            np.ones(3), 3, include_part_d=False)[2] / n_i / 12
+    assert part_b(edge - 1) == pytest.approx(649.20)
+    assert part_b(edge) == pytest.approx(689.90)
+    assert part_b(edge + 1) == pytest.approx(689.90)
+
+
+def test_mediCosts_pinned_years_use_the_top_edge():
+    """Years 0 and 1 read previousMAGIs: exactly $500,000 is the top tier there too."""
+    this_year = date.today().year
+    c = tx.mediCosts(np.array([this_year - 70]), np.array([3]), np.zeros(3), np.array([500_000.0, 499_999.0]),
+                     np.ones(3), 3, include_part_d=False)
+    assert c[0] / 12 == pytest.approx(689.90)
+    assert c[1] / 12 == pytest.approx(649.20)

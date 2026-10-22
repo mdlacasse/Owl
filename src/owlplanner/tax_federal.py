@@ -346,6 +346,23 @@ def irmaaStatus(horizons, n):
     return 1 if len(horizons) == 2 and n - 2 < min(horizons) else 0
 
 
+def irmaaTier(magi, thresholds, slack=0.0):
+    """
+    IRMAA tier (0 to len(thresholds)) of a MAGI against the tier edges `thresholds`.
+
+    Every tier but the top excludes its upper edge, and the top includes it: "More than $160,000
+    but less than $500,000" and "At least $500,000" (42 U.S.C. 1395r(i)(3)(C)(i)(III); 20 CFR
+    418.1115(b)-(c): "Greater than or equal to $500,000", $750,000 joint), so MAGI of exactly
+    $500,000 is the top tier (#216). `slack` reads a MAGI parked on an edge on its own side of it:
+    it is taken off for the lower edges and added for the top one, so it must stay below the
+    optimizer's BRACKET_MARGIN.
+    """
+    tier = int(np.sum(magi - slack > np.asarray(thresholds[:-1])))
+    if tier == len(thresholds) - 1 and magi + slack >= thresholds[-1]:
+        tier += 1
+    return tier
+
+
 def irmaaThresholds(status, gamma_n, n, thisyear):
     """
     Return the nominal IRMAA thresholds (tiers 1-5) for plan year n.
@@ -543,7 +560,7 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
 
 
 def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0,
-              medical_n=None, mobs=None, tobs=None):
+              medical_n=None, mobs=None, tobs=None, slack=0.0):
     """
     Compute Medicare costs directly (Part B + Part D when include_part_d is True).
 
@@ -551,6 +568,8 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
     Thresholds follow irmaaThresholds and premiums follow medical_n (default gamma_n), as in mediVals.
     Each individual pays for the months of coverage in the year (medicareMonths), as in mediVals.
+    The tier of each MAGI follows irmaaTier, with `slack` dollars toward the side of each edge it is
+    parked on (the top tier includes its edge).
     """
     if medical_n is None:
         medical_n = gamma_n
@@ -574,9 +593,8 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
-                for q in range(1, 6):
-                    if mymagi > thresholds[q - 1]:
-                        costs[n] += frac * medical_n[n] * (fees_b[q] + fees_d[q])
+                tier = irmaaTier(mymagi, thresholds, slack)
+                costs[n] += frac * medical_n[n] * (np.sum(fees_b[1:tier + 1]) + np.sum(fees_d[1:tier + 1]))
 
     return costs
 

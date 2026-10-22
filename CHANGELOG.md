@@ -1,5 +1,15 @@
 ### Version WIP
 
+#### Fixed: MAGI of exactly \$500,000 (\$750,000 joint) is the top IRMAA tier
+
+Every IRMAA tier excludes its upper edge except the top one: "More than \$160,000 but less than
+\$500,000" and "At least \$500,000" (42 U.S.C. 1395r(i)(3)(C)(i)(III); 20 CFR 418.1115, "greater than
+or equal to \$500,000", \$750,000 joint). **Owl** charged the tier below at exactly that MAGI, \$48.40 a
+month too little per enrollee. The top tier now includes its edge in the loop and optimize modes,
+in the first two years read from the previous MAGIs, in the check of the loop's fixed point, and in
+the assistant's IRMAA report. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the
+legal references and a fix (#216).
+
 #### Fixed: a spouse's own delayed credits come out of the spousal benefit instead of adding to it
 
 When someone receives their own retirement benefit with delayed credits and a spousal benefit,

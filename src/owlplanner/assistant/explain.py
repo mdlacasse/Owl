@@ -403,7 +403,7 @@ def _year0_thresholds(plan):
         if on_medicare:
             # The table of this year's return, which sets the premium (#213).
             thresholds = tx.irmaaThresholds(tx.irmaaStatus(plan.horizons, n_prem), plan.gamma_n, n_prem, thisyear)
-            tier = int(np.sum(magi0 - THRESHOLD_SLACK > thresholds))
+            tier = tx.irmaaTier(magi0, thresholds, THRESHOLD_SLACK)  # the top tier includes its edge (#216)
             entry = {
                 "affects_premium_year": thisyear + n_prem,
                 "current_tier": tier,
@@ -445,9 +445,9 @@ def _irmaa_step(plan, magi_year0, n_prem):
         mobs=plan.mobs,
         tobs=plan.tobs,
     )
-    magi = np.array(plan.MAGI_n[:N], dtype=float) - THRESHOLD_SLACK
-    now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
-    magi[0] = magi_year0
+    magi = np.array(plan.MAGI_n[:N], dtype=float)
+    now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, slack=THRESHOLD_SLACK, **kw)[n_prem]
+    magi[0] = magi_year0  # past the edge already: read as is
     then = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
     return (then - now) / float(g[n_prem])
 

@@ -4104,11 +4104,7 @@ class Plan:
                 # settles it. Without pre-fixing, the LP relaxation pushes h-values toward low-premium
                 # brackets (maximizer behaviour) so argmax(h) picks the wrong bracket for these
                 # years.
-                magi = self.prevMAGI[n]
-                qsel = 0
-                for q in range(1, self.N_irmaa):
-                    if magi > self.Lbar_nq[nn, q - 1]:
-                        qsel = q
+                qsel = tx.irmaaTier(self.prevMAGI[n], self.Lbar_nq[nn])  # the top tier includes its edge
 
                 for q in range(self.N_irmaa):
                     idx = self.vm["zm"].idx(nn, q)
@@ -4159,19 +4155,22 @@ class Plan:
             self.A.addRow(row, rhs, rhs, tag=("irmaa_magi_def", nn))
 
         # Bracket bounds: L_{q-1} z_q <= mg_q <= L_q z_q, the lower one raised by BRACKET_MARGIN
-        # except in the first two years, whose bracket is pinned from the known MAGI above.
+        # except in the first two years, whose bracket is pinned from the known MAGI above. The top
+        # tier includes its edge ("at least $500,000", tx.irmaaTier, #216): it starts at the edge
+        # itself, and the bracket below stops BRACKET_MARGIN short of it, the mirror of the others.
+        top = self.N_irmaa - 1
         for nn in range(Nmed):
             margin = BRACKET_MARGIN if self.nm + nn >= 2 else 0.0
             for q in range(self.N_irmaa):
                 mg_idx = self.vm["h"].idx(nn, q)
                 zm_idx = self.vm["zm"].idx(nn, q)
 
-                lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1] + margin
+                lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1] + (margin if q < top else 0.0)
                 if lower > 0:
                     self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf, tag=("irmaa_bracket_lb", nn, q))
 
-                if q < self.N_irmaa - 1:
-                    upper = self.Lbar_nq[nn, q]
+                if q < top:
+                    upper = self.Lbar_nq[nn, q] - (margin if q == top - 1 else 0.0)
                 else:
                     # Upper bound for last bracket so h_qn = 0 when z_q = 0.
                     upper = self._ceiling_n[self.nm + nn]  # the year's MAGI ceiling
@@ -5926,12 +5925,13 @@ class Plan:
 
         if includeMedicare or np.any(self.medicare_n > 0):
             # A dollar of slack at the thresholds: the optimizer parks income exactly there, and
-            # cent-level rounding would otherwise flip a bracket and show a phantom residual.
+            # cent-level rounding would otherwise flip a bracket and show a phantom residual. The slack
+            # reads MAGI on each edge's own side: below the lower ones, at or above the top one (#216).
             M_true = tx.mediCosts(
-                self.yobs, self.horizons, self.MAGI_n - 1.0, self.prevMAGI, g, Nn,
+                self.yobs, self.horizons, self.MAGI_n, self.prevMAGI, g, Nn,
                 include_part_d=getattr(self, "_include_medicare_part_d", True),
                 part_d_base_annual_per_person=getattr(self, "_medicare_part_d_base_annual_per_person", 0.0),
-                medical_n=self._medical_n(g), mobs=self.mobs, tobs=self.tobs,
+                medical_n=self._medical_n(g), mobs=self.mobs, tobs=self.tobs, slack=1.0,
             )
             res["IRMAA"] = (self.medicare_n - M_true) / g
 

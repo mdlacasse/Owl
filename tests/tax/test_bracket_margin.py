@@ -8,6 +8,8 @@ where the plan's money is worth almost nothing to the objective (a first spouse'
 non-spouse heirs, only the final bequest counted) nothing stopped it: Case_alex+jamie with
 Medicare and ACA exact was charged $622 of IRMAA its own MAGI did not owe (MOSEK), and
 Case_avery+quinn $21,812. Each higher bracket now starts BRACKET_MARGIN above its threshold.
+IRMAA's top tier is the exception, as it includes its edge ("at least $500,000", #216): it starts
+at the threshold, and the bracket below it stops BRACKET_MARGIN short of it.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -43,7 +45,8 @@ def _single(name, age, slcsp=0.0):
 
 
 def _lower_bound_rows(p, tag_name, z_name):
-    """{(nn, q): coefficient on the bracket binary} for every lower-bound row of a family."""
+    """{(nn, q): coefficient on the bracket binary} for every lower-bound row of a family (or any
+    family of rows tagged (name, nn, q), such as the upper bounds)."""
     out = {}
     for r, tag in enumerate(p.A.tags):
         if isinstance(tag, tuple) and tag and tag[0] == tag_name:
@@ -61,14 +64,22 @@ def test_irmaa_brackets_start_above_their_thresholds():
     # charged a bracket at its lowest MAGI still reads as that bracket.
     rows = _lower_bound_rows(p, "irmaa_bracket_lb", "zm")
     assert rows, "this plan should build IRMAA lower-bound rows"
+    top = p.N_irmaa - 1
     for (nn, q), coef in rows.items():
         margin = -coef - p.Lbar_nq[nn, q - 1]
-        if p.nm + nn < 2:
+        if p.nm + nn < 2 or q == top:
             # Pinned from previousMAGIs: a known MAGI just above a threshold must stay feasible.
+            # The top tier includes its edge, so it starts there.
             assert margin == pytest.approx(0.0), (nn, q)
         else:
             assert margin > 1.0, f"bracket {q} of year {nn} starts {margin:.2f} above its threshold"
     assert any(p.nm + nn >= 2 for nn, _ in rows), "no row past the pinned years was checked"
+    # The mirror at the top edge: the bracket below it stops short of it.
+    upper = _lower_bound_rows(p, "irmaa_bracket_ub", "zm")
+    for (nn, q), coef in upper.items():
+        if q == top - 1 and p.nm + nn >= 2:
+            short = p.Lbar_nq[nn, q] - (-coef)
+            assert short > 1.0, f"bracket {q} of year {nn} stops {short:.2f} below the top edge"
 
 
 def test_aca_brackets_start_above_their_thresholds():
