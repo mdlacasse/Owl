@@ -86,9 +86,9 @@ def test_irmaa_values_2026_cms():
     assert tx.irmaaBrackets[0][2] == 137_000
     assert tx.irmaaBrackets[0][5] == 500_000
     monthly_totals = tx.partB_irmaa_costs / 12
-    assert monthly_totals[0] == pytest.approx(202.90)
-    assert monthly_totals[1] == pytest.approx(284.10)
-    assert monthly_totals[2] == pytest.approx(405.80)
+    np.testing.assert_allclose(monthly_totals, [202.90, 284.10, 405.80, 527.50, 649.20, 689.90])
+    # Part D IRMAA, CMS 2026 fact sheet and SSA POMS HI 01101.020 (#214).
+    np.testing.assert_allclose(tx.partD_irmaa_costs / 12, [0.0, 14.50, 37.50, 60.40, 83.30, 91.00])
 
 
 def test_mediCosts_part_d_irmaa_increases_cost():

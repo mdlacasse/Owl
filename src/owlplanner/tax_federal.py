@@ -67,10 +67,11 @@ IRMAA_TOP_TIER_INDEXED_FROM = 2028
 partB_irmaa_fees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
 partB_irmaa_costs = np.cumsum(partB_irmaa_fees)
 
-# Part D IRMAA: same 6 brackets as Part B. Source: CMS 2026 Part D IRMAA.
-# Monthly surcharges per bracket (cumulative): $0, $14.50, $36.30, $58.10, $79.90, $91.00.
+# Part D IRMAA: same 6 brackets as Part B. Source: CMS 2026 Part D IRMAA (fact sheet, Nov 14, 2025;
+# also SSA POMS HI 01101.020), from 42 U.S.C. 1395w-113(a)(7)(B) on the $38.99 base premium.
+# Monthly surcharges per bracket (cumulative): $0, $14.50, $37.50, $60.40, $83.30, $91.00 (#214).
 # Stored as incremental monthly fees (bracket 0 = 0; brackets 1–5 = surcharge increments).
-partD_irmaa_monthly = np.array([0.0, 14.50, 21.80, 21.80, 21.80, 11.10])
+partD_irmaa_monthly = np.array([0.0, 14.50, 23.00, 22.90, 22.90, 7.70])
 partD_irmaa_fees = 12 * partD_irmaa_monthly
 partD_irmaa_costs = np.cumsum(partD_irmaa_fees)
 

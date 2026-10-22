@@ -1,5 +1,13 @@
 ### Version WIP
 
+#### Fixed: Part D IRMAA tiers 2 to 4 use the 2026 CMS amounts
+
+The 2026 Part D income-related monthly adjustments are \$14.50, \$37.50, \$60.40, \$83.30 and
+\$91.00 (CMS 2026 fact sheet, Nov 14, 2025; SSA POMS HI 01101.020). **Owl** had the first and last
+right but \$36.30, \$58.10 and \$79.90 for tiers 2 to 4, \$1.20, \$2.30 and \$3.40 a month too
+low per enrollee. Part B amounts were already correct. Examples whose income reaches those tiers pay
+slightly more for Medicare. Thanks to Marco Pignone (@rationalpiper) for reporting it (#214).
+
 #### Fixed: four cells of the joint life expectancy table follow the regulation
 
 The Joint and Last Survivor table used for RMDs when the spouse is the sole beneficiary and more
