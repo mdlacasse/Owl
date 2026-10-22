@@ -185,25 +185,31 @@ def getSurvivorFRAs(yobs, mobs, tobs):
     return fras
 
 
-def _survivor_factor(survivor_fra, survivor_age):
+def _survivor_factor(survivor_fra, survivor_age, bornOnFirstDays=False):
     """
     Return the benefit factor for a survivor claiming before their survivor FRA.
 
     Per SSA rules, a survivor claiming between age 60 and their survivor FRA receives a
-    reduced benefit, linearly interpolated from 100% at survivor FRA down to 71.5% at 60.
-    At or above survivor FRA the factor is 1.0; at age 60 it is always 0.715 regardless
-    of which survivor FRA schedule applies. Survivor benefits cannot be claimed before
-    age 60; ages below 60 are clamped to 60 (the SSA minimum claiming age for survivors).
+    reduced benefit, linearly interpolated from 100% at survivor FRA down to 71.5% at 60:
+    the months of entitlement before survivor FRA times .285, over the months from age 60 to
+    survivor FRA (20 CFR 404.410(c)(1)). At or above survivor FRA the factor is 1.0. Survivor
+    benefits cannot be claimed before age 60; ages below 60 are clamped to 60.
+
+    A survivor born on the 1st attains every age in the month before (20 CFR 404.102), so the
+    months are counted on the SSA age, one month more than the conventional age (#212): at a
+    conventional 60 they are 83 months before an FRA of 67, not 84.
 
     Parameters
     ----------
     survivor_fra : float
         Survivor full retirement age in fractional years.
     survivor_age : float
-        Survivor's age (fractional years) at the time the survivor benefit begins.
+        Survivor's conventional age (fractional years) when the survivor benefit begins.
         Values below 60 are treated as 60.
+    bornOnFirstDays : bool, optional
+        True if the survivor was born on the 1st of a month (see _ssa_age).
     """
-    survivor_age = max(survivor_age, 60)  # Cannot claim survivor benefits before age 60
+    survivor_age = _ssa_age(max(survivor_age, 60), bornOnFirstDays)  # No survivor benefits before 60
     if survivor_age >= survivor_fra:
         return 1.0
     return 1.0 - 0.285 * (survivor_fra - survivor_age) / (survivor_fra - 60)
@@ -295,7 +301,10 @@ def getSelfFactor(fra, convage, bornOnFirstDays):
     if convage < 62 or convage > 70:
         raise ValueError(f"Age {convage} out of range.")
 
-    diff = fra - _ssa_age(convage, bornOnFirstDays)
+    # Delayed credits end with the month before age 70 is attained (42 U.S.C. 402(w)(2)(A);
+    # POMS RS 00615.690): someone born on the 1st attains 70 a month before their conventional 70,
+    # so their SSA age is capped there and a claim at a conventional 70 gets no extra credit (#212).
+    diff = fra - min(_ssa_age(convage, bornOnFirstDays), 70)
     return _reduction_factor(diff, 0.08, _SELF_REDUCTION_RATE, 0.8)
 
 
@@ -556,6 +565,7 @@ def compute_survivor_stream(
     )[0]
     age_at_death = (thisyear + death_year_n) - yobs[survivor_idx] - (mobs[survivor_idx] - 1) / 12
     claim_age = _resolve_survivor_claim_age(survivor_claim_age, survivor_fra, age_at_death)
+    survivor_first = bool(tobs[survivor_idx] == 1)  # SSA age one month ahead (#212)
 
     # The deceased's own monthly benefit as of death, unaffected by any partial first year.
     fra_deceased = getFRAs(yobs, mobs, tobs)[deceased_idx]
@@ -563,7 +573,7 @@ def compute_survivor_stream(
     if started_n < death_year_n:
         factor = getSelfFactor(fra_deceased, ages[deceased_idx], bool(tobs[deceased_idx] == 1))
         # PIA, plus delayed retirement credits when claimed after FRA.
-        monthly = pias[deceased_idx] * max(1.0, factor) * _survivor_factor(survivor_fra, claim_age)
+        monthly = pias[deceased_idx] * max(1.0, factor) * _survivor_factor(survivor_fra, claim_age, survivor_first)
         if factor < 1.0:
             # Widow(er)'s limit, after the age reduction (SSA 202(e)(2)(D), #210).
             monthly = min(monthly, max(pias[deceased_idx] * factor, 0.825 * pias[deceased_idx]))
@@ -576,7 +586,7 @@ def compute_survivor_stream(
             1.0,
             getSelfFactor(fra_deceased, min(70.0, max(62.0, age_at_death_dec)), bool(tobs[deceased_idx] == 1)),
         )
-        monthly = base * _survivor_factor(survivor_fra, claim_age)
+        monthly = base * _survivor_factor(survivor_fra, claim_age, survivor_first)
 
     n_raw, frac = _payment_start(yobs[survivor_idx], mobs[survivor_idx], claim_age, thisyear)
     hs = min(int(horizons[survivor_idx]), N_n)

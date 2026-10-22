@@ -906,3 +906,43 @@ def test_survivor_claim_window_upper_bound_is_the_survivor_fra():
     assert window["survivor_idx"] == 1
     assert window["survivor_fra"] == pytest.approx(66 + 8 / 12)  # not 67
     assert ss.getFRAs([1960], [6], [15])[0] == pytest.approx(67.0)
+
+
+# ---------------------------------------------------------------------------
+# Born on the 1st: every age is attained the month before (20 CFR 404.102), #212
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "day, at_69y11m, at_70",
+    [
+        (1, 36, 36),  # attains 70 the month before: 36 credits at most (FRA 67), also at a conventional 70
+        (2, 35, 36),
+        (15, 35, 36),
+    ],
+)
+def test_delayed_credits_stop_at_age_70(day, at_69y11m, at_70):
+    """42 U.S.C. 402(w)(2)(A), POMS RS 00615.690: credits end the month before age 70 is attained."""
+    fra = ss.getFRAs([1964], [3], [day])[0]
+    assert fra == 67
+    for age, credits in ((69 + 11 / 12, at_69y11m), (70.0, at_70)):
+        assert ss.getSelfFactor(fra, age, day == 1) == pytest.approx(1 + credits * 0.08 / 12)
+
+
+def test_survivor_reduction_counts_months_on_the_ssa_age():
+    """20 CFR 404.410(c)(1): born 3/1/1962, survivor FRA 67 attained Feb 2029, age 60 in Feb 2022 (84 months).
+    A claim at a conventional 60 (March 2022) is 83 months early; at 66y11m it is at FRA."""
+    assert ss._survivor_factor(67, 60.0, True) == pytest.approx(1 - 0.285 * 83 / 84)
+    assert ss._survivor_factor(67, 66 + 11 / 12, True) == 1.0
+    assert ss._survivor_factor(67, 60.0) == pytest.approx(0.715)  # born on any other day: unchanged
+    assert ss._survivor_factor(67, 59.0, True) == pytest.approx(1 - 0.285 * 83 / 84)  # clamped to 60 first
+
+
+def test_survivor_stream_born_on_the_first():
+    """compute_survivor_stream passes the survivor's birth day: born 3/1/1974, the survivor is a
+    conventional 61y10m at the first death (end of 2035), 61 months before survivor FRA, not 62."""
+    zeta, _ = ss.compute_social_security_benefits(
+        np.array([3000, 0]), np.array([70.0, 67.0]), np.array([1966, 1974]), np.array([1, 3]),
+        np.array([15, 1]), np.array([10, 40]), 2, 40, thisyear=2026)
+    expected = 3000 * 1.24 * (1 - 0.285 * 61 / 84)  # deceased claimed at 70: DRCs, no limit (#210)
+    assert zeta[1, 16] / 12 == pytest.approx(expected, rel=1e-9)

@@ -1373,7 +1373,7 @@ class Plan:
             )
 
         if claim_age < fra - 1e-9:
-            pct = 100 * socsec._survivor_factor(fra, claim_age)
+            pct = 100 * socsec._survivor_factor(fra, claim_age, bool(self.tobs[survivor.survivor_idx] == 1))
             self.mylog.print(
                 f"Survivor benefit for {iname} starts at age {claim_age:.2f}, below their survivor FRA of "
                 f"{fra:.2f}, so it is permanently reduced to {pct:.1f}% of the full amount. "

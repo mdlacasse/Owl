@@ -1,5 +1,25 @@
 ### Version WIP
 
+#### Fixed: born on the 1st, delayed credits stop at age 70 and the survivor reduction counts one month less
+
+Social Security counts a person as reaching an age on the day before the birthday (20 CFR 404.102),
+so someone born on the 1st reaches every age in the month before their birth month. **Owl** already
+counted their retirement and spousal reductions on that age, but it did not stop there at 70:
+delayed credits end with the month before age 70 is attained (42 U.S.C. 402(w)(2)(A); POMS
+RS 00615.690), and a claim at a conventional 70 got a 37th credit, 2/3% of the PIA too much for life.
+Their survivor reduction, which is counted in months before the survivor FRA (20 CFR 404.410(c)(1)),
+used the conventional age instead and charged one month too many: 71.5% instead of 71.84% at a
+conventional 60. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal
+references and a fix (#212).
+
+#### Fixed: the earliest Social Security claiming age in the interface is the month the engine uses
+
+Benefits start in the first month one is 62 throughout (POMS RS 00201.001): the birth month for
+those born on the 1st or 2nd, the month after for everyone else. The engine already used those
+months, but the claiming-age fields offered one month earlier (61 years 11 months and 62 years), and
+the engine quietly raised such an age. The fields now start at 62 years and 62 years 1 month, and a
+saved age below the minimum is raised to it.
+
 #### Fixed: IRMAA in the survivor's first two years uses the joint table of the lookback return
 
 Medicare's income-related surcharge (IRMAA) is set from the MAGI of the tax year two years before

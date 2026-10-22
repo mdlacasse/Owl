@@ -764,6 +764,13 @@ according to the age (year and month) when benefits are claimed. Total amount re
 during the first year of benefits (if in the future) is adjusted for situations
 when benefits do not cover the full year.
 This is important for bridging the transition to retirement.
+The earliest claiming age is the first month one is 62 throughout: 62 years for those born on the
+1st or 2nd of a month, who are 62 for all of their birth month, and 62 years 1 month for everyone
+else. Social Security counts a person as reaching an age on the day before the birthday, so someone
+born on the 1st reaches every age in the month before their birth month. **Owl** counts their
+reductions and delayed credits on that age: delayed credits stop when they reach 70, one month
+before their conventional 70, and a survivor benefit claimed before the survivor FRA is reduced
+for one month less.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
 Complex cases involving divorce or deceased spouses are not considered.

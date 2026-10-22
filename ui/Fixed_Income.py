@@ -67,6 +67,16 @@ def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, pro
     )
 
 
+def raiseSSAgeToEligibility(i, born_first_days):
+    """Raise a stored claiming age below the first month one is 62 throughout to that month, years
+    and months together: clamping the years alone would turn 61 y 11 m into 62 y 11 m."""
+    first = 62 * 12 + (0 if born_first_days else 1)
+    years, months = kz.getCaseKey(f"ssAge_y{i}"), kz.getCaseKey(f"ssAge_m{i}") or 0
+    if years is not None and 12 * int(years) + int(months) < first:
+        kz.setCaseKey(f"ssAge_y{i}", first // 12)
+        kz.setCaseKey(f"ssAge_m{i}", first % 12)
+
+
 def getFloatInput(i, key, thing, defval=0.0):
     nkey = key + str(i)
     kz.initCaseKey(nkey, defval)
@@ -117,13 +127,16 @@ else:
         dob0 = kz.getCaseKey("dob0")
         specialcase0 = dob0.endswith("01") or dob0.endswith("02")
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
+        # Benefits start in the first month one is 62 throughout (POMS RS 00201.001): the birth month
+        # for those born on the 1st or 2nd, the month after for everyone else. The engine resets an
+        # earlier age to that month (socialsecurity.compute_social_security_benefits).
         if specialcase0:
             msg2 = (
                 "Claiming age in years and months. "
-                "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70."
+                "Minimum: 62 (born on the 1st or 2nd, one is 62 throughout the birth month). Maximum: 70."
             )
         else:
-            msg2 = "Claiming age in years and months. Minimum: 62, maximum: 70."
+            msg2 = "Claiming age in years and months. Minimum: 62 years 1 month, maximum: 70."
         if ss_age0_disabled:
             msg2 = msg2 + " (Set by optimizer — shown as last solved result.)"
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
@@ -131,9 +144,10 @@ else:
         with incol1:
             kz.initCaseKey("ssAge_y0", 67)
             kz.initCaseKey("ssAge_m0", 0)
+            raiseSSAgeToEligibility(0, specialcase0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
-            minyear = 61 if specialcase0 else 62
+            minyear = 62
             ret = getIntInput(
                 0,
                 "ssAge_y",
@@ -146,7 +160,7 @@ else:
             )
         with incol2:
             maxmonth = 0 if ret == 70 else 11
-            minmonth = 11 if (ret == 61 and specialcase0) else 0
+            minmonth = 1 if (ret == 62 and not specialcase0) else 0
             getIntInput(
                 0,
                 "ssAge_m",
@@ -167,19 +181,20 @@ else:
             if specialcase1:
                 msg2_spouse = (
                     "Claiming age in years and months. "
-                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd)."
+                    "Minimum: 62 (born on the 1st or 2nd, one is 62 throughout the birth month). Maximum: 70."
                 )
             else:
-                msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
+                msg2_spouse = "Claiming age in years and months. Minimum: 62 years 1 month, maximum: 70."
             if ss_age1_disabled:
                 msg2_spouse = msg2_spouse + " (Set by optimizer — shown as last solved result.)"
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("ssAge_y1", 67)
                 kz.initCaseKey("ssAge_m1", 0)
+                raiseSSAgeToEligibility(1, specialcase1)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
-                minyear = 61 if specialcase1 else 62
+                minyear = 62
                 ret = getIntInput(
                     1,
                     "ssAge_y",
@@ -192,7 +207,7 @@ else:
                 )
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
-                minmonth = 11 if (ret == 61 and specialcase1) else 0
+                minmonth = 1 if (ret == 62 and not specialcase1) else 0
                 getIntInput(
                     1,
                     "ssAge_m",
