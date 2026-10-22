@@ -675,8 +675,10 @@ When an asset is disposed of during the plan, its proceeds (the future value net
 into tax-free, ordinary-income, and capital-gains portions according to the asset *type*:
 - *fixed annuity* — any gain over basis is taxed as **ordinary income**; the basis itself is returned tax-free.
 - *residence* — treated as a primary residence: a capital-gains **exclusion of \\$250,000 (single) or
-  \\$500,000 (married)** is applied to the gain. Only the gain above the exclusion is taxed as capital gains,
-  while the basis plus the excluded portion of the gain is tax-free. If the sale is at a loss, the proceeds
+  \\$500,000 (married)** is applied to the gain. A surviving spouse keeps the \\$500,000 exclusion for a
+  sale within 2 years of the death and gets \\$250,000 after that (IRC 121(b)(4)); with **Owl**'s dates,
+  that is a sale in the year after the death or the next one. Only the gain above the exclusion is taxed
+  as capital gains, while the basis plus the excluded portion of the gain is tax-free. If the sale is at a loss, the proceeds
   are entirely tax-free.
 - *real estate*, *collectibles*, *precious metals*, and *stocks* — the gain over basis is taxed as **capital
   gains** and the basis is returned tax-free. If the sale is at a loss, the proceeds are entirely tax-free.

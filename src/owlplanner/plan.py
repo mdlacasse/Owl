@@ -2262,7 +2262,7 @@ class Plan:
             gamma_n = getattr(self, "gamma_n", None)
             (self.fixed_assets_tax_free_n, self.fixed_assets_ordinary_income_n, self.fixed_assets_capital_gains_n) = (
                 fxasst.get_fixed_assets_arrays(
-                    self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear, filing_status
+                    self.houseLists["Fixed Assets"], self.N_n, gamma_n, thisyear, filing_status, self.n_d
                 )
             )
             # Calculate bequest value for assets with yod past plan end
@@ -2281,6 +2281,7 @@ class Plan:
                 self.liquidationCapGainsRate,
                 thisyear,
                 filing_status,
+                self.n_d,
             )
         else:
             self.fixed_assets_tax_free_n = np.zeros(self.N_n)

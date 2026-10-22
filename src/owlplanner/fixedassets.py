@@ -40,6 +40,22 @@ RESIDENCE_EXCLUSION_MARRIED = 500_000
 REAL_RATE_TYPES = {"residence", "real estate", "collectibles", "precious metals"}
 
 
+def _residence_exclusion(filing_status, n, n_d=None):
+    """
+    Exclusion limit for the gain on a primary residence sold at the start of plan year n.
+
+    The limit is $250,000 (IRC 121(b)(1)), $500,000 for a married couple filing jointly
+    (121(b)(2)). A surviving spouse keeps $500,000 for a sale "not later than 2 years after the
+    date of death" (121(b)(4)), and gets $250,000 after that (#218). Owl places the death on
+    December 31 of year n_d - 1 and the sale on January 1 of its year, so a sale in year n is
+    within the window when n <= n_d + 1. n_d None (or a plan without a death, n_d = N_n) keeps the
+    joint limit in every year. The survivor is assumed not to remarry.
+    """
+    if filing_status == "married" and (n_d is None or n <= n_d + 1):
+        return RESIDENCE_EXCLUSION_MARRIED
+    return RESIDENCE_EXCLUSION_SINGLE
+
+
 def _get_reference_year(asset, thisyear):
     """Return asset reference year, defaulting to thisyear for backward compatibility."""
     if "year" in asset.index and not pd.isna(asset["year"]):
@@ -90,7 +106,7 @@ def calculate_future_value(current_value, annual_rate, years):
     return current_value * growth_factor
 
 
-def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing_status="single"):
+def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing_status="single", n_d=None):
     """
     Process fixed_assets_df to provide three arrays of length N_n containing:
     1) tax-free money, 2) ordinary income money, and 3) capital gains.
@@ -114,6 +130,10 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing
     filing_status : str, optional
         Filing status: "single" or "married" (defaults to "single").
         Affects primary residence exclusion limits.
+    n_d : int, optional
+        Plan year index of the first year with a surviving spouse (Plan.n_d). A married plan's
+        residence sold more than 2 years after the death gets the single exclusion
+        (IRC 121(b)(4); see _residence_exclusion). None keeps the married limit throughout.
 
     Returns:
     --------
@@ -132,12 +152,6 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing
     tax_free_n = np.zeros(N_n)
     ordinary_income_n = np.zeros(N_n)
     capital_gains_n = np.zeros(N_n)
-
-    # Determine residence exclusion limit
-    if filing_status == "married":
-        residence_exclusion = RESIDENCE_EXCLUSION_MARRIED
-    else:
-        residence_exclusion = RESIDENCE_EXCLUSION_SINGLE
 
     for _, asset in fixed_assets_df.iterrows():
         # Skip if active column exists and is False (treat NaN/None as True)
@@ -202,7 +216,8 @@ def get_fixed_assets_arrays(fixed_assets_df, N_n, gamma_n, thisyear=None, filing
             # Basis is returned tax-free (even if there's a loss)
             tax_free_n[n] += basis
         elif asset_type == "residence":
-            # Primary residence: exclusion up to $250k/$500k
+            # Primary residence: exclusion up to $250k/$500k, by the year of the sale
+            residence_exclusion = _residence_exclusion(filing_status, n, n_d)
             if gain > 0:
                 taxable_gain = max(0, gain - residence_exclusion)
                 if taxable_gain > 0:
@@ -376,7 +391,7 @@ def bequest_value_is_inflation_path_dependent(fixed_assets_df, N_n, thisyear=Non
 
 
 def get_fixed_assets_disposition_costs_array(
-    fixed_assets_df, N_n, gamma_n, capgains_rate, thisyear=None, filing_status="single"
+    fixed_assets_df, N_n, gamma_n, capgains_rate, thisyear=None, filing_status="single", n_d=None
 ):
     """
     Process fixed_assets_df to provide an array of length N_n containing the
@@ -415,6 +430,10 @@ def get_fixed_assets_disposition_costs_array(
     filing_status : str, optional
         Filing status: "single" or "married" (defaults to "single").
         Affects primary residence exclusion limits.
+    n_d : int, optional
+        Plan year index of the first year with a surviving spouse (Plan.n_d). A married plan's
+        residence sold more than 2 years after the death gets the single exclusion
+        (IRC 121(b)(4); see _residence_exclusion). None keeps the married limit throughout.
 
     Returns:
     --------
@@ -428,11 +447,6 @@ def get_fixed_assets_disposition_costs_array(
 
     if u.is_dataframe_empty(fixed_assets_df):
         return np.zeros(N_n)
-
-    if filing_status == "married":
-        residence_exclusion = RESIDENCE_EXCLUSION_MARRIED
-    else:
-        residence_exclusion = RESIDENCE_EXCLUSION_SINGLE
 
     end_year = thisyear + N_n - 1  # Last year of the plan
     costs_n = np.zeros(N_n)
@@ -484,7 +498,7 @@ def get_fixed_assets_disposition_costs_array(
             cost = commission_amount
             if gain > 0:
                 if asset_type == "residence":
-                    taxable_gain = max(0, gain - residence_exclusion)
+                    taxable_gain = max(0, gain - _residence_exclusion(filing_status, n, n_d))
                 else:
                     taxable_gain = gain
                 cost += capgains_rate * taxable_gain

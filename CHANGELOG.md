@@ -73,6 +73,17 @@ drops from \$504 to \$86 a month. Survivors filing at their survivor FRA, and de
 claimed at or after FRA or never claimed, are unchanged. Thanks to Marco Pignone (@rationalpiper)
 for reporting it, with the legal references and a fix (#210).
 
+#### Fixed: a surviving spouse's home sale more than 2 years after the death uses the \$250,000 exclusion
+
+**Owl** chose the primary-residence exclusion once per plan, so a couple's home sold by the survivor
+kept the \$500,000 exclusion however long after the death. The joint amount carries over only for a
+sale "not later than 2 years after the date of death" (IRC 121(b)(4)); after that the limit is
+\$250,000 (121(b)(1)). The exclusion is now chosen by the year of the sale, both for the gain and for
+the balance sheet's estimated disposition cost. With **Owl**'s dates (death on December 31, sale on
+January 1), the survivor keeps \$500,000 for a sale in the two years after the year of the death.
+A \$400,000 gain realized later now has \$150,000 taxed. Thanks to Marco Pignone (@rationalpiper)
+for reporting it, with the legal references and a fix (#218).
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle
