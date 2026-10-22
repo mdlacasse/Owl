@@ -1,3 +1,20 @@
+### Version WIP
+
+#### Fixed: IRMAA in the survivor's first two years uses the joint table of the lookback return
+
+Medicare's income-related surcharge (IRMAA) is set from the MAGI of the tax year two years before
+the premium year, and from the table of the filing status on that return: the joint ranges apply to
+individuals "who are married and filed a joint tax return for the tax year we use" (20 CFR
+418.1115(c), 418.1135(a)). **Owl** picked the table from the premium year instead, so after a
+death the survivor's first two years paired the couple's joint MAGI with the single thresholds. A
+couple files jointly in the year of the first death, so both of those years look back to joint
+returns, and the single table now starts in the third year, in both Medicare modes and in the
+assistant's IRMAA report. Example: a couple with \$190,000 of MAGI, below the \$218,000 joint edge,
+pays no surcharge, but **Owl** charged the survivor single tier 3 for two years, \$4,592 a year too
+much. A survivor's request to SSA to use a more recent year after the death (20 CFR 418.1205(a)) is
+not modeled. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal references
+and a fix (#213).
+
 ### Version 2026.10.21
 
 #### Fixed: a January 1 birthday gets the 65+ deductions a year earlier

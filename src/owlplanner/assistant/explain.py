@@ -401,8 +401,8 @@ def _year0_thresholds(plan):
         months = tx.medicareMonths(plan.yobs, plan.horizons, n_prem + 1, plan.mobs, plan.tobs, thisyear)
         on_medicare = [i for i in range(plan.N_i) if months[i, n_prem] > 0]
         if on_medicare:
-            status = 1 if (plan.N_i == 2 and plan.n_d > n_prem) else 0
-            thresholds = tx.irmaaThresholds(status, plan.gamma_n, n_prem, thisyear)
+            # The table of this year's return, which sets the premium (#213).
+            thresholds = tx.irmaaThresholds(tx.irmaaStatus(plan.horizons, n_prem), plan.gamma_n, n_prem, thisyear)
             tier = int(np.sum(magi0 - THRESHOLD_SLACK > thresholds))
             entry = {
                 "affects_premium_year": thisyear + n_prem,

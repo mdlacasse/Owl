@@ -121,6 +121,9 @@ def getHFP(exdir, case, check_exists=True):
 # reinvested dividends and interest and putting the unrealized gain in the equity share.
 # kim+sam-spending returned to 186_583 under HiGHS when residualTol became a per-year bar: at
 # $50/yr it converges where it did before the exit test, while MOSEK still settles at 186_519.
+# kim+sam-bequest 1_944_071 -> 1_946_663 (both solvers 1_946_662.67) when IRMAA started using the
+# filing status of the lookback return (#213): the survivor's first two years are on the joint
+# table, which cuts its lifetime Medicare by $2,297 in today's dollars.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
@@ -140,7 +143,7 @@ EXPECTED_OBJECTIVE_VALUES = {
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145_000,
-        "bequest": 1_944_071,
+        "bequest": 1_946_663,
     },
     "Case_robin": {
         "net_spending_basis": 44_013,

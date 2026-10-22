@@ -389,14 +389,44 @@ def test_irmaa_magi_parked_on_a_threshold_reads_as_below_it():
     import owlplanner.tax_federal as tx
 
     plan = _solved_plan(state="TX")
-    status = 1 if (plan.N_i == 2 and plan.n_d > 2) else 0
-    first = float(plan.gamma_n[2] * tx.irmaaBrackets[status][1])
+    first = float(plan.gamma_n[2] * tx.irmaaBrackets[tx.irmaaStatus(plan.horizons, 2)][1])
     plan.MAGI_n[0] = first + 0.0008
     irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
     assert irmaa["current_tier"] == 0
     assert irmaa["headroom_to_next_tier"] == 0
     step = (tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1]) * plan._medical_n(plan.gamma_n)[2] / plan.gamma_n[2]
     assert irmaa["next_tier_premium_increase_today"] == pytest.approx(step, abs=0.01)
+
+
+@pytest.mark.toml
+def test_irmaa_uses_this_years_joint_return_after_a_death():
+    """#213: this year's MAGI sets the premium in 2 years on this year's (joint) table, even when
+    the first death comes before then."""
+    import owlplanner.tax_federal as tx
+
+    plan = _build_plan_from_params(
+        names=["Lee", "Kim"],
+        birth_dates=["1955-07-01", "1956-07-01"],
+        life_expectancy=[THISYEAR - 1955, 92],  # Lee's horizon ends after this year: n_d = 1
+        state="TX",
+        taxable=[300_000, 300_000],
+        tax_deferred=[600_000, 600_000],
+        roth=[100_000, 100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500, 2000],
+        ss_ages=[70, 70],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+    )
+    plan.solve("maxSpending", {"units": "1", "withDuals": True})
+    assert plan.n_d < 2
+    single, joint = (float(plan.gamma_n[2] * tx.irmaaBrackets[s][1]) for s in (0, 1))
+    plan.MAGI_n[0] = 0.5 * (single + joint)  # above the single edge, below the joint one
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    assert irmaa["current_tier"] == 0
+    assert irmaa["headroom_to_next_tier"] == pytest.approx(joint - plan.MAGI_n[0], abs=0.01)
 
 
 @pytest.mark.toml

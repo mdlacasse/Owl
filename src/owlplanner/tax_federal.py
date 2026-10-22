@@ -329,6 +329,22 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     return new_Psi_n
 
 
+def irmaaStatus(horizons, n):
+    """
+    Filing status (0 single, 1 married filing jointly) of the IRMAA table for premium year n.
+
+    SSA uses the MAGI of the tax year 2 years before the premium year (20 CFR 418.1135(a)), and the
+    table of the filing status on that return: the joint ranges apply to individuals "who are married
+    and filed a joint tax return for the tax year we use" (418.1115(c)). A couple files jointly while
+    both are alive, and in the year of the first death (IRC 6013(a)(2)), the last year of the
+    shorter horizon. So the survivor's first two years alone still use the joint table, and the
+    single table starts in the third (#213); a qualifying widow(er) uses the single table
+    (418.1115(b)). The two years before the plan count as joint for a couple, as its previous MAGIs
+    are the couple's. Not modeled: a survivor's request to use a more recent year (418.1205(a)).
+    """
+    return 1 if len(horizons) == 2 and n - 2 < min(horizons) else 0
+
+
 def irmaaThresholds(status, gamma_n, n, thisyear):
     """
     Return the nominal IRMAA thresholds (tiers 1-5) for plan year n.
@@ -413,7 +429,6 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
     thisyear = date.today().year
     assert Nq == len(partB_irmaa_costs), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
-    Ni = len(yobs)
     # Combined per-person cumulative costs: Part B + Part D IRMAA when enabled
     costs_per_person = partB_irmaa_costs + (partD_irmaa_costs if include_part_d else 0.0)
     # What index year will Medicare start? The year of the first month of coverage.
@@ -434,11 +449,8 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
         # Individuals paying premiums this year, each for the fraction of the year covered.
         imed = np.sum(months_in[:, n]) / 12
         if imed:
-            if Ni == 1 or not (n < horizons[0] and n < horizons[1]):
-                status = 0  # single or one spouse deceased
-            else:
-                status = 1  # married filing jointly
-            Lbar[nn] = irmaaThresholds(status, gamma_n, n, thisyear)
+            # The filing status of the lookback return, two years back (#213).
+            Lbar[nn] = irmaaThresholds(irmaaStatus(horizons, n), gamma_n, n, thisyear)
             Cbar[nn] = imed * medical_n[n] * costs_per_person
             if include_part_d and part_d_base_annual_per_person != 0:
                 Cbar[nn] += imed * medical_n[n] * part_d_base_annual_per_person
@@ -548,8 +560,8 @@ def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=Tru
     costs = np.zeros(Nn)
     months_in = medicareMonths(yobs, horizons, Nn, mobs, tobs, thisyear)
     for n in range(Nn):
-        status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
-        thresholds = irmaaThresholds(status, gamma_n, n, thisyear)
+        # The filing status of the lookback return, two years back (#213).
+        thresholds = irmaaThresholds(irmaaStatus(horizons, n), gamma_n, n, thisyear)
         for i in range(Ni):
             if months_in[i, n]:
                 frac = months_in[i, n] / 12

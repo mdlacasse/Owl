@@ -351,3 +351,31 @@ def test_mediVals_prorates_the_first_year():
     nm, _, Cbar = tx.mediVals([thisyear - 64], [Nn], np.ones(Nn + 1), Nn, 6, mobs=[1], tobs=[1])
     assert nm == 0
     np.testing.assert_allclose(Cbar[0], Cbar[1] / 12)
+
+
+# ---------------------------------------------------------------------------
+# Filing status of the lookback return after a death (#213)
+# ---------------------------------------------------------------------------
+
+
+def test_irmaa_status_follows_the_lookback_return():
+    """20 CFR 418.1115(c), 418.1135(a): the table of the return 2 years back. First death at the end
+    of year 2: years 3 and 4 look back to joint returns; the single table starts in year 5."""
+    assert [tx.irmaaStatus([3, 6], n) for n in range(7)] == [1, 1, 1, 1, 1, 0, 0]
+    assert [tx.irmaaStatus([6, 3], n) for n in range(7)] == [1, 1, 1, 1, 1, 0, 0]
+    assert [tx.irmaaStatus([6], n) for n in range(3)] == [0, 0, 0]
+
+
+def test_survivor_keeps_the_joint_table_for_two_years():
+    """#213 repro: couple's MAGI $190k (single tier 3, below the $218k joint edge), then $120k alone."""
+    this_year = date.today().year
+    yobs, horizons = np.array([this_year - 70] * 2), np.array([3, 6])
+    magi = np.array([190_000.0] * 3 + [120_000.0] * 3)
+    costs = tx.mediCosts(yobs, horizons, magi, np.array([190_000.0] * 2), np.ones(6), 6)
+    # Annual fees: one survivor, no surcharge (12 x $202.90 = $2,434.80).
+    np.testing.assert_allclose(costs[3:5], tx.partB_irmaa_fees[0])
+    # Year 5 looks back to year 3, the survivor's own $120k on the single table: tier 1.
+    assert costs[5] == pytest.approx(tx.partB_irmaa_fees[0] + tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1])
+    _, L, _ = tx.mediVals(yobs, horizons, np.ones(6), 6, 6)
+    np.testing.assert_allclose(L[:5, 0], tx.irmaaBrackets[1][1])
+    assert L[5, 0] == pytest.approx(tx.irmaaBrackets[0][1])
