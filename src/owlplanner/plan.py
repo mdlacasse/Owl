@@ -2734,6 +2734,7 @@ class Plan:
         self._add_roth_conversion_constraints(options)
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
+        self._add_roth_early_withdrawal_limits()
         self._add_withdrawal_limits()
         self._add_hsa_medical_cap()
         self._add_withdrawal_ordering(options)
@@ -2925,6 +2926,7 @@ class Plan:
         withdrawals of contribution principal, and of conversions after 59½). This never
         allows a withdrawal that would violate IRS rules; it only restricts some withdrawals that
         would technically be permitted. Exact per-dollar basis tracking is out of scope for an LP.
+        The age condition on earnings is enforced separately, by _add_roth_early_withdrawal_limits.
         """
         # Assume 10% per year for contributions and conversions for past 5 years.
         # Future years will use the assumed returns.
@@ -2959,6 +2961,36 @@ class Plan:
                         rhs += max(0.0, cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
 
                 self.A.addRow(row, rhs, np.inf, tag=("roth_maturation", i, n))
+
+    @_fixedAcrossIterations
+    def _add_roth_early_withdrawal_limits(self):
+        """
+        Before 59 1/2, keep Roth withdrawals within what went into the account (#209).
+
+        A Roth IRA distribution comes from contributions first, then conversions oldest first, and
+        earnings last (IRC 408A(d)(4)(B)); before 59 1/2 it is not qualified (408A(d)(2)(A)), so its
+        earnings part is taxable and carries the 10% additional tax (Pub. 590-B). The maturation rows
+        retain only recent conversions, so without this the earnings could come out early with
+        neither. For each individual and year before the 59 1/2 year:
+
+            sum_{m<=n} w[i,2,m] <= b[i,2,0] + sum_{m<=n} (xnet * x[i,m] + kappa[i,2,m]),
+
+        which forbids early earnings rather than taxing them, conservative like the maturation rows.
+
+        Simplifications: the whole starting Roth balance counts as contributions and conversions
+        (Owl has no input for its basis), the rows stop at the first death (a surviving spouse can
+        keep the deceased's Roth as an inherited Roth, exempt from the 10%), and Roth 401(k) money is
+        treated as a Roth IRA's.
+        """
+        for i in range(self.N_i):
+            for n in range(min(int(self.n595[i]), int(self.n_d), int(self.horizons[i]))):
+                row = self.A.newRow()
+                row.addElem(self.vm["b"].idx(i, 2, 0), -1)
+                for m in range(n + 1):
+                    row.addElem(self.vm["w"].idx(i, 2, m), 1)
+                    row.addElem(self.vm["x"].idx(i, m), -self.xnet)
+                rhs = float(np.sum(self.kappa_ijn[i, 2, : n + 1]))
+                self.A.addRow(row, -np.inf, rhs, tag=("roth_early_basis", i, n))
 
     @_fixedAcrossIterations
     def _add_roth_conversion_constraints(self, options):

@@ -1,5 +1,17 @@
 ### Version WIP
 
+#### Fixed: Roth earnings can no longer be withdrawn before 59½ without tax or penalty
+
+A Roth distribution comes from contributions first, then conversions, and earnings last (IRC
+408A(d)(4)(B)), and before 59½ its earnings part is taxable and carries the 10% additional tax
+(408A(d)(2)(A); Pub. 590-B). **Owl**'s five-year retainer kept only recent conversions in the
+account, so once they had matured the earnings could come out early with neither: in the reported
+case, \$51,506 converted and \$74,387 withdrawn before 59½. Each person's Roth withdrawals before
+59½ are now kept within the starting Roth balance plus the conversions and contributions made
+since, which forbids early earnings rather than taxing them. The starting balance counts entirely
+as contributions and conversions, and the limit ends at the first passing. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the legal references and a fix (#209).
+
 #### Fixed: a previous-year MAGI above the year's income ceiling no longer makes optimize mode infeasible
 
 With *Solve Medicare brackets with MILP*, the first two plan years take their IRMAA bracket from the

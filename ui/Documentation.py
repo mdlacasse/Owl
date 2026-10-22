@@ -425,6 +425,12 @@ An exact calculation would require to know (and input) the annual rates of retur
 the last five years and asset allocation ratios, and the same for all future years.
 Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
 if Roth conversions took place in the five years before passing.
+Before age 59½, Roth earnings cannot come out tax- and penalty-free: a Roth distribution comes from
+contributions first, then conversions, and earnings last (IRC 408A(d)(4)(B)). **Owl** therefore
+keeps each person's Roth withdrawals before 59½ within the starting Roth balance plus the
+conversions and contributions made since, rather than taxing early earnings. The whole starting
+balance counts as contributions and conversions, and the limit stops at the first passing, since a
+surviving spouse can keep the deceased's Roth as an inherited one, free of the 10% additional tax.
 
 In the table above, year 20XX illustrates the last plan year for that person (from life expectancy in the *case*).
 While loading a workbook, missing years or empty cells in the allowed window are filled with zeros; years outside
