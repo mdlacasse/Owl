@@ -133,8 +133,12 @@ class TestSSAgesOptimize:
 
 
 class TestSurvivorClaimAge:
-    def test_optimize_solves_with_survivor_fra(self, jack_jill):
-        """A deferred survivor benefit still solves and is not better than claiming earlier."""
+    def test_optimize_solves_with_survivor_fra(self, jack_jill, few_ss_ages):
+        """A deferred survivor benefit still solves and is not better than claiming earlier.
+
+        The search's candidate solves must carry the survivor claim age; the size of the search is
+        irrelevant here, so it runs on a few candidate ages (few_ss_ages).
+        """
         survivor = jack_jill.inames[1]
         jack_jill.solve("maxSpending", options={"withSSAges": survivor})
         spending_immediate = float(jack_jill.g_n[0])

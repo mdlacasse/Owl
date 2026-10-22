@@ -1422,7 +1422,7 @@ def test_swap_roth_converters_value_no_first_name_defaults_positive():
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_single_name():
+def test_run_from_params_optimize_ss_ages_single_name(few_ss_ages):
     """optimize_ss_ages='Alice' optimizes only Alice; Bob is fixed at ss_ages value."""
     result = _run(
         run_from_params(
@@ -1442,10 +1442,11 @@ def test_run_from_params_optimize_ss_ages_single_name():
     data = json.loads(result)
     assert data["status"] == "solved"
     assert data["spending_year1_today_dollars"] > 0
+    assert set(few_ss_ages) == {"Alice"}
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_all():
+def test_run_from_params_optimize_ss_ages_all(few_ss_ages):
     """optimize_ss_ages=True optimizes claiming age for all persons."""
     result = _run(
         run_from_params(
@@ -1465,10 +1466,11 @@ def test_run_from_params_optimize_ss_ages_all():
     data = json.loads(result)
     assert data["status"] == "solved"
     assert data["spending_year1_today_dollars"] > 0
+    assert set(few_ss_ages) == {"Alice", "Bob"}
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_already_claimed():
+def test_run_from_params_optimize_ss_ages_already_claimed(few_ss_ages):
     """Selecting a person whose claiming age is already past is an error; selecting the other solves."""
     # Bob born 1955 → age 71 in 2026, already past any claiming age
     params = dict(
@@ -1485,8 +1487,10 @@ def test_run_from_params_optimize_ss_ages_already_claimed():
     )
     data = json.loads(_run(run_from_params(**params, optimize_ss_ages=True)))
     assert "Bob's SS claiming age" in data["error"]
+    assert few_ss_ages == []  # refused before any search
     data = json.loads(_run(run_from_params(**params, optimize_ss_ages="Alice")))
     assert data["status"] == "solved"
+    assert set(few_ss_ages) == {"Alice"}
 
 
 # ---------------------------------------------------------------------------

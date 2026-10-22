@@ -91,3 +91,26 @@ def freeze_year():
     yield
     for p in patches:
         p.stop()
+
+
+@pytest.fixture
+def few_ss_ages(monkeypatch):
+    """
+    Shrink the SS claiming-age search (withSSAges) to three candidate ages per searched person:
+    the first open month, the middle one, and 70. The whole search path still runs (option parsing,
+    the past-age check, the sweep on clones, the final solve), on a handful of solves instead of about
+    a hundred per person; tests of the search's choices use the full list. Yields the names
+    searched, in call order.
+    """
+    from owlplanner.plan import Plan
+
+    full = Plan._ssaOpenAges
+    searched = []
+
+    def few(self, i):
+        searched.append(self.inames[i])
+        ages = full(self, i)
+        return sorted({ages[0], ages[len(ages) // 2], ages[-1]})
+
+    monkeypatch.setattr(Plan, "_ssaOpenAges", few)
+    yield searched
