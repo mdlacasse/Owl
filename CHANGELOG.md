@@ -84,6 +84,14 @@ January 1), the survivor keeps \$500,000 for a sale in the two years after the y
 A \$400,000 gain realized later now has \$150,000 taxed. Thanks to Marco Pignone (@rationalpiper)
 for reporting it, with the legal references and a fix (#218).
 
+#### Fixed: the Social Security claiming-age search is no longer slow with MOSEK
+
+The claiming-age search (*withSSAges*) solves the plan at every open claiming month on parallel
+threads. **Owl** passed each model to MOSEK with one call per row and per bound, tens of thousands
+per solve, and those calls ran no faster on several threads than on one: the search took 89 s on
+Case_jack+jill with MOSEK against 20 s with HiGHS. The model now goes in with a few bulk calls, and
+the same search takes 17 s. The model MOSEK solves is unchanged.
+
 ### Version 2026.10.20
 
 #### New: the loop says when Social Security did not settle

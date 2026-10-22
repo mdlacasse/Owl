@@ -6380,7 +6380,7 @@ class Plan:
             "up": mosek.boundkey.up,
         }
 
-        Aind, Aval, clb, cub = A.lists()
+        _, _, clb, cub = A.lists()
         ckeys = A.keys()
         vlb, vub = B.arrays()
         vkeys = list(B.keys())  # copy so overrides don't mutate B
@@ -6410,21 +6410,27 @@ class Plan:
         cval = scaling.objective(cind, cval)
         vlb, vub = scaling.col_values(vlb), scaling.col_values(vub)
         clb, cub = scaling.row_values(clb), scaling.row_values(cub)
-        for ii in range(len(cind)):
-            task.putcj(cind[ii], cval[ii])
-        for ii in range(nvars):
-            task.putvarbound(ii, bdic[vkeys[ii]], float(vlb[ii]), float(vub[ii]))
+
+        # The model goes in with a few bulk calls, one per kind of data. One MOSEK call per row and
+        # per bound (tens of thousands per solve) made solves on parallel threads, as in the SS-age
+        # search, slower than running them one after another.
+        # A column set twice in the objective keeps its last value, as putcj and Objective.arrays do.
+        cdict = dict(zip(cind, cval, strict=True))
+        task.putclist(np.fromiter(cdict.keys(), dtype=np.int32, count=len(cdict)),
+                      np.fromiter(cdict.values(), dtype=np.float64, count=len(cdict)))
+        task.putvarboundslice(0, nvars, [bdic[k] for k in vkeys],
+                              np.asarray(vlb, dtype=np.float64), np.asarray(vub, dtype=np.float64))
         if int_vars:
-            for ii in int_vars:
-                task.putvartype(int(ii), mosek.variabletype.type_int)
-        if not scaling.identity:
-            # The scaling works on the whole matrix at once; MOSEK takes it row by row.
-            ends = np.cumsum([len(ind) for ind in Aind])
-            flat = scaling.coefficients(np.concatenate(Aind), np.concatenate(Aval))
-            Aval = np.split(flat, ends[:-1])
-        for i in range(ncons):
-            task.putarow(i, Aind[i], Aval[i])
-            task.putconbound(i, bdic[ckeys[i]], float(clb[i]), float(cub[i]))
+            int_idx = np.asarray(int_vars, dtype=np.int32)
+            task.putvartypelist(int_idx, [mosek.variabletype.type_int] * len(int_idx))
+        if ncons > 0:
+            a_start, a_index, a_value = A.to_csr()
+            a_value = scaling.coefficients(a_index, a_value)
+            ptrb = a_start.astype(np.int64)
+            ptre = np.append(ptrb[1:], len(a_index)).astype(np.int64)
+            task.putarowslice(0, ncons, ptrb, ptre, a_index, np.asarray(a_value, dtype=np.float64))
+            task.putconboundslice(0, ncons, [bdic[k] for k in ckeys],
+                                  np.asarray(clb, dtype=np.float64), np.asarray(cub, dtype=np.float64))
         task.putobjsense(mosek.objsense.minimize)
 
         return task, ncons, nvars
