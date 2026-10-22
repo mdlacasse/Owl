@@ -578,7 +578,7 @@ def conditionSpiaDF(df, is_married):
         return pd.DataFrame(columns=columns).astype(dtype_base)
 
     df = df.copy()
-    df.reset_index(drop=True, inplace=True)
+    df = df.reset_index(drop=True)
 
     if is_married and "Survivor (%)" not in df.columns:
         df["Survivor (%)"] = 0

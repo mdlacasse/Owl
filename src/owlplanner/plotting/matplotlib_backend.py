@@ -202,7 +202,7 @@ class MatplotlibBackend(PlotBackend):
         if (phi_j is not None and np.all((1 - phi_j) < 0.01)) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
                 print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
-            df.drop("partial", axis=1, inplace=True)
+            df = df.drop(columns="partial")
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
             my[0] = my[1]

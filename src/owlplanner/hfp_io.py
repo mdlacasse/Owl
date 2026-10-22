@@ -342,9 +342,9 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         if len(missing) > 0:
             mylog.vprint(f"Adding {len(missing)} missing years for {iname}: {missing}.")
 
-        df.sort_values("year", inplace=True)
+        df = df.sort_values("year")
         # Replace empty (NaN) cells with 0 value.
-        df.fillna(0, inplace=True)
+        df = df.fillna(0)
 
         # Excel round-trips a flag as TRUE/FALSE, 1/0, or a blank; settle on bool.
         for item in _booleanTimeHorizonItems:
@@ -516,7 +516,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
     df = u.ensure_dataframe(df, pd.DataFrame(columns=columnItems))
 
     df = df.copy()
-    df.reset_index(drop=True, inplace=True)
+    df = df.reset_index(drop=True)
 
     # Ensure all required columns exist
     for col in columnItems:
