@@ -565,6 +565,10 @@ def explain_case(
     Loads and validates the TOML case file, applies any overrides, and returns
     a JSON document with: individuals, time horizon, account balances, Social
     Security and pension income, rate method, objective, and solver options.
+    Each Social Security entry also carries an 'earnings_test' block: what the
+    SSA earnings test would withhold at the entered claiming ages (today's $),
+    and the ARF crediting months that replace it at FRA (every solve applies
+    the test).
 
     The 'overrides' list uses KEY.PATH=VALUE syntax, e.g.:
       ["basic_info.state=CA", "fixed_income.social_security_ages=[70,68]"]

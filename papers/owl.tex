@@ -404,8 +404,11 @@ via the option \code{withSSTaxability="optimize"} \cite{irs915}.
 
 The SSA family maximum benefit cap (CFR~§~404.403) is not modeled; this may
 overstate benefits when multiple beneficiaries claim on one worker's record.
-The SSA earnings test is not modeled; users are assumed to be fully retired
-before their FRA.
+The SSA earnings test is applied to the benefit streams before they enter the
+model: for a given claiming age, the amounts withheld before FRA and the higher
+benefit from FRA (the adjustment of the reduction factor) are fixed numbers, so
+the test adds no variable or constraint. It is not applied to checks paid from
+the year of the first death on.
 The survivor claiming date is a user setting rather than an optimized decision:
 the model evaluates whichever date is specified, but does not search for the one
 that maximizes the objective.
@@ -5315,8 +5318,9 @@ streams as in the base mode.
           later age is not optimized.
     \item The SSA family maximum benefit cap is not modeled; benefits may be
           overstated when multiple beneficiaries claim on one worker's record.
-    \item The SSA earnings test is not modeled; all individuals are assumed to
-          be fully retired before their FRA.
+    \item The SSA earnings test is applied to the benefit streams of each
+          claiming age, so the choice of age sees it; it is not applied to
+          survivor benefits.
     \item The claiming age grid is monthly (97 points).  Finer sub-monthly
           grids are not supported.
 \end{itemize}

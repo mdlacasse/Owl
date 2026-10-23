@@ -466,6 +466,29 @@ def build_summary_dic(plan, N=None):
                     prefix="»  ",
                 )
 
+    # SSA earnings test: benefits withheld before FRA and returned at FRA by the ARF.
+    # Reported for a household with earnings the test can reach, $0 / "none" included,
+    # so that two claiming ages of that household compare row by row.
+    if getattr(plan, "ss_earnings_reachable", False):
+        _summary_currency_pair(
+            dic,
+            "SS withheld by the earnings test",
+            float(np.sum(plan.ss_withheld_in[:, :N] * inv_gamma)),
+            float(np.sum(plan.ss_withheld_in[:, :N])),
+        )
+        # The ARF takes effect at FRA: counted only where FRA falls within the N years.
+        last_abs = (int(plan.year_n[0]) + N) * 12
+        fra_abs_i = plan._ssFRAStartAbs()
+        credited = []
+        for i in range(plan.N_i):
+            if fra_abs_i[i] >= last_abs:
+                continue
+            own, sp = int(plan.ss_arf_months_i[i]), int(plan.ss_arf_months_spousal_i[i])
+            parts = ([f"{own} own"] if own else []) + ([f"{sp} spouse"] if sp else [])
+            if parts:
+                credited.append(f"{plan.inames[i]} {' + '.join(parts)}")
+        dic["ARF months"] = ", ".join(credited) if credited else "none"
+
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Roth conversions", totRothNow, totRoth)
@@ -866,6 +889,9 @@ def plan_metrics(plan, N=None) -> dict:
         "aca_nominal": _s(plan.aca_costs_n[:N]),
         "debt_payments_today": _st(plan.debt_payments_n[:N]),
         "debt_payments_nominal": _s(plan.debt_payments_n[:N]),
+        # SSA earnings test: 0 when it withholds nothing.
+        "ss_withheld_today": _st(plan.ss_withheld_in[:, :N]),
+        "ss_withheld_nominal": _s(plan.ss_withheld_in[:, :N]),
         # Final bequest
         "final_bequest_today": total_estate / float(gamma[N]),
         "final_bequest_nominal": total_estate,
@@ -931,6 +957,8 @@ METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     "aca_nominal": (f"Total ACA premiums paid{_N}", "usd"),
     "debt_payments_today": (f"Total debt payments{_T}", "usd"),
     "debt_payments_nominal": (f"Total debt payments{_N}", "usd"),
+    "ss_withheld_today": (f"SS withheld by the earnings test{_T}", "usd"),
+    "ss_withheld_nominal": (f"SS withheld by the earnings test{_N}", "usd"),
     "final_bequest_today": (f"Total after-tax value of final bequest{_T}", "usd"),
     "final_bequest_nominal": (f"Total after-tax value of final bequest{_N}", "usd"),
     "heirs_tax_liability_nominal": (f"With heirs assuming tax liability of{_N}", "usd"),
@@ -1064,6 +1092,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "other inc": plan.sources_in["other inc"],
         "net inv": plan.sources_in["net inv"],
         "social sec": plan.sources_in["ssec"],
+        # SSA earnings-test withholding, next to the SS it reduces.
+        **({"SS withheld": plan.ss_withheld_in} if np.any(plan.ss_withheld_in > 0) else {}),
         "pension": plan.sources_in["pension"],
         "txbl acc wdrwl": plan.sources_in["txbl acc wdrwl"],
         "RMDs": plan.sources_in["RMD"],

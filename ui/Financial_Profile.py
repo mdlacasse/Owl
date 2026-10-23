@@ -25,7 +25,7 @@ import pandas as pd
 from datetime import date
 
 from owlplanner.debts import PROPERTY_TYPES
-from owlplanner.hfp_io import getTableTypes
+from owlplanner.hfp_io import derivedTimeHorizonItems, getTableTypes
 
 import sskeys as kz
 import owlbridge as owb
@@ -42,9 +42,21 @@ timetableHelp = {
         "contribution column to the right. Employer contributions were never part of your "
         "wages, so do not subtract those."
     ),
+    "gross earnings": (
+        "Earnings as the Social Security earnings test counts them (nominal \\$): W-2 box 5 "
+        "plus net self-employment earnings. 0 (or no column) means not given: Owl then uses "
+        "*anticipated wages* alone, which are net of contributions and leave out anything in *other inc* "
+        "(consulting or other self-employment income must be entered here to count)."
+    ),
+    "months worked": (
+        "Months of work at the start of this year (0-12). Earnings are taken as spread "
+        "evenly over those months; it decides the grace-year monthly test and the share of "
+        "FRA-year earnings that counts. 0 (or no column) means not given: 12 in a year with earnings."
+    ),
     "other inc": (
         "Other ordinary income that is not wages, pension, or Social Security (nominal \\$) — "
-        "e.g. consulting income, alimony, or rents you treat as ordinary."
+        "e.g. consulting income, alimony, or rents you treat as ordinary. Not seen by the Social "
+        "Security earnings test: add net self-employment earnings to *gross earnings*."
     ),
     "net inv": (
         "Net investment income such as rent or trust distributions (nominal \\$). Taxed as "
@@ -104,6 +116,11 @@ def timetableColumnConfig(df, helpdic):
             continue
         if col in owb.booleanTimeHorizonItems():
             formatdic[col] = st.column_config.CheckboxColumn(None, help=helpdic.get(col), default=False)
+            continue
+        if col == "months worked":
+            formatdic[col] = st.column_config.NumberColumn(
+                None, help=helpdic.get(col), min_value=0, max_value=12, format="%d"
+            )
             continue
         minValue = None if col in negativeOK else 0.0
         formatdic[col] = st.column_config.NumberColumn(
@@ -239,7 +256,13 @@ that has not yet been uploaded.""")
     # to the Logs page. The columns are already in the table by now, so point at
     # saving the workbook rather than asking for them to be added by hand.
     absentCols = kz.getCaseKey("hfpAbsentCols") or {}
-    reported = {iname: cols for iname, cols in absentCols.items() if cols}
+    # In these columns zero means "taken from other columns", so their
+    # absence changes nothing and is not reported.
+    derivedCols = derivedTimeHorizonItems()
+    reported = {
+        iname: [c for c in cols if c not in derivedCols] for iname, cols in absentCols.items()
+    }
+    reported = {iname: cols for iname, cols in reported.items() if cols}
     if reported:
         lines = "\n".join(f"- **{iname}**: {', '.join(cols)}" for iname, cols in reported.items())
         st.warning(

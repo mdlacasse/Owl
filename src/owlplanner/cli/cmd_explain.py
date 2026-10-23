@@ -116,11 +116,20 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
             lbl: int(sum(plan.beta_ij[i, j] for i in range(N_i))) for j, lbl in enumerate(account_labels)
         }
 
+    # The SSA earnings test is a fixed function of the claiming ages and the earnings
+    # columns, so both of its outputs are described without solving: what it would
+    # withhold here (today's $), and the ARF crediting months that replace it at FRA.
+    et = plan._earningsTestResult()
     social_security = [
         {
             "name": plan.inames[i],
             "claiming_age": round(float(plan.ssecAges[i]), 4),
             "monthly_pia": int(plan.ssecAmounts[i]),
+            "earnings_test": {
+                "ss_withheld_total_today": int(round(float(et.withheld_in[i].sum()))),
+                "arf_months": int(et.arf_months[i]),
+                "arf_months_spousal": int(et.arf_months_spousal[i]),
+            },
         }
         for i in range(N_i)
     ]
