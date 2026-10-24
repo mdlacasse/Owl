@@ -890,6 +890,14 @@ Short-term capital gains (assets held one year or less) are taxed as ordinary
 income.
 Owl does not separately model short-term versus long-term gains within the
 taxable account; all realized gains are treated as long-term.
+The last line of the Qualified Dividends and Capital Gain Tax Worksheet takes
+the lesser of the stacked tax and the regular tax on all taxable income
+(IRC~1(h)(1)); Owl keeps the stacked tax. The two differ only because the 0\%
+breakpoint is below the top of the 12\% bracket (\$49,450 and \$50,400 single,
+\$98,900 and \$100,800 joint in 2026): gains in that gap pay 15\% where the
+regular tax charges 12\%. The overstatement is at most 3\% of the gap, \$28.50
+single or \$57 joint a year, and only in a year whose gains fall in it, while
+taking the minimum exactly would need a binary variable per year.
 
 \section{Net Investment Income Tax}
 

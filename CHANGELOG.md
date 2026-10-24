@@ -1,5 +1,15 @@
 ### Version WIP
 
+#### Documented: the stacked capital-gains tax can exceed the worksheet's line 25 by up to \$57 a year
+
+The Qualified Dividends and Capital Gain Tax Worksheet ends with the lesser of the stacked tax
+and the regular tax on all taxable income (line 25, IRC 1(h)(1)). **Owl** keeps the stacked tax.
+They differ only for gains between the 0% breakpoint and the top of the 12% bracket, which pay
+15% there instead of 12%: at most \$28.50 (single) or \$57 (joint) a year, and \$0 in every one of
+the 18 examples. The limitation is now documented. Taking the minimum exactly would need a binary
+per year, at a solve-time cost out of proportion with the stakes. Thanks to Marco Pignone
+(@rationalpiper) for pointing it out, with the worksheet and the bound (#206).
+
 #### Fixed: wages are entered as they enter AGI, and an after-tax contribution is paid for by a big-ticket item
 
 **Owl** asked for *anticipated wages* net of every contribution column, because contributions are
