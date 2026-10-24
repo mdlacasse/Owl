@@ -2430,15 +2430,16 @@ class Plan:
         compare = self.timeLists
         if compare and all(iname in compare for iname in self.inames):
             # setContributions() prorates and zeroes HSA contributions from Medicare enrollment
-            # in the arrays only; apply the same scaling to a comparison copy so such
-            # rows do not flag the time lists as stale.
+            # in the arrays only. The rebuilt lists undo the proration (build_hfp_dataframes) but
+            # cannot recover a year Medicare zeroed: zero those in a comparison copy so such rows
+            # do not flag the time lists as stale.
             compare = {iname: compare[iname].copy() for iname in self.inames}
             for i, iname in enumerate(self.inames):
                 df = compare[iname]
                 h = self.horizons[i]
                 if "HSA ctrb" in df.columns:
                     col = df["HSA ctrb"].to_numpy(dtype=float, copy=True)
-                    col[5 : 5 + h] *= self.hsaFrac_in[i, :h]
+                    col[5 : 5 + h] *= self.hsaFrac_in[i, :h] > 0
                     df["HSA ctrb"] = col
         if not hfp_io.time_lists_agree(compare, rebuilt):
             self.timeLists = rebuilt

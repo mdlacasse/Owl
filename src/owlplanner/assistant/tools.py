@@ -1290,7 +1290,9 @@ def _build_plan_from_params(
             end_yr = int(_get_field(c, "end_year", thisyear + int(plan.horizons[i])))
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
-                    plan.kappa_ijn[i, j, n] += amount
+                    # HSA contributions stop at Medicare: the year it starts keeps the months
+                    # before it (Plan._setHSAStop), as for an HFP read by setContributions().
+                    plan.kappa_ijn[i, j, n] += amount * (plan.hsaFrac_in[i, n] if j == 3 else 1.0)
 
     # Time-series: big-ticket items → Lambda_in  (annual $/year, signed: negative = expense,
     # positive = inflow).  Passed through unchanged, the same convention as the HFP column.

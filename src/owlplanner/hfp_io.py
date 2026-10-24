@@ -638,7 +638,11 @@ def build_hfp_dataframes(plan):
             df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
             df.at[row, "401k ctrb"] = float(plan.kappa_ijn[i, 1, n])
             df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
-            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n])
+            # The array holds the share of the year before Medicare (Plan._setHSAStop); the workbook
+            # holds the amount entered, which reading it scales again. Nothing is left to recover
+            # once Medicare has started.
+            frac = float(plan.hsaFrac_in[i, n])
+            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n]) / frac if frac > 0 else 0.0
             df.at[row, "Roth conv"] = float(plan.myRothX_in[i, n])
             df.at[row, "Roth conv fixed"] = bool(plan.rothXfixed_in[i, n])
         # Lead-in years live in the last 5 slots of kappa_ijn and myRothX_in.

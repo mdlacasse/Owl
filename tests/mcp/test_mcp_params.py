@@ -364,6 +364,38 @@ def test_other_income_populates_other_inc_in():
     assert plan.other_inc_in[0, 3] == pytest.approx(12_000)
 
 
+def test_hsa_contributions_stop_at_medicare(tmp_path):
+    """An HSA contribution entered through MCP stops at Medicare like one read from an HFP: the year
+    it starts keeps the months before it (a June 15 birthday keeps 5/12), and save_case writes the
+    amount entered, so reading the workbook back scales it once, not twice."""
+    born = THISYEAR - 64  # 65, and on Medicare, from June of next year
+    kwargs = dict(
+        names=["Robin"],
+        birth_dates=[f"{born}-06-15"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        hsa=[10_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[67],
+        contributions=[{"person": 0, "account": "hsa", "annual_amount": 4_300, "end_year": THISYEAR + 4}],
+        state="TX",
+    )
+    plan = _single(**kwargs)
+    assert plan.kappa_ijn[0, 3, 0] == pytest.approx(4_300)
+    assert plan.kappa_ijn[0, 3, 1] == pytest.approx(4_300 * 5 / 12)
+    assert plan.kappa_ijn[0, 3, 2] == pytest.approx(0)
+
+    save_case(**kwargs, output_dir=str(tmp_path))
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR + 1, "HSA ctrb"].iloc[0] == pytest.approx(4_300)
+    from owlplanner.config import readConfig
+    reread = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert reread.kappa_ijn[0, 3, 1] == pytest.approx(4_300 * 5 / 12)
+    assert reread.kappa_ijn[0, 3, 2] == pytest.approx(0)
+
+
 def test_every_tool_with_big_ticket_items_takes_other_income():
     """The two signed time series travel together: a tool that takes one must take the other."""
     import inspect

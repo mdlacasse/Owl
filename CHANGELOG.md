@@ -1,5 +1,13 @@
 ### Version WIP
 
+#### Fixed: HSA contributions entered through the MCP tools stop at Medicare
+
+An HSA contribution read from the HFP stops at Medicare enrollment, the year it starts keeping
+the months before it, but one entered through the MCP tools' `contributions` was deposited every
+year it was listed, Medicare or not. The tools now apply the same cut. A workbook rebuilt from a
+plan's arrays (by `save_case`, or when saving a plan whose arrays were set directly) holds the
+amount entered rather than the share kept, so reading it back applies the cut once.
+
 #### The MCP tools take other income, so an assistant can enter an HSA deduction
 
 Every MCP tool that builds a plan from parameters (`run_from_params`, `save_case`, the
