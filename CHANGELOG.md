@@ -1,5 +1,17 @@
 ### Version WIP
 
+#### Fixed: falling back on an earlier iterate takes the most settled one, not the richest
+
+When an iterate of the self-consistent loop cannot be solved even with a shortened parameter
+step, the loop falls back on an earlier one. It took the one with the best objective. On a tight
+case the costs the loop feeds back (premiums, ACA costs, NIIT, the taxable part of Social Security,
+LTCG bracket room) start at nothing and catch up pass by pass, so the best objective belongs to the
+iterate least charged for what its own income brings: a case heading from \$6.6M down to a few
+thousand dollars reported \$1.1M, and a lower spending floor could report less left at the end
+than a higher one. The fallback now takes the iterate whose own income moves its parameters least,
+the latest of those tied, and every iterate's residual is kept in the trace. Thanks to Dmitry
+Fink (@finik) for the diagnosis and the fix (#186).
+
 #### Documented: the stacked capital-gains tax can exceed the worksheet's line 25 by up to \$57 a year
 
 The Qualified Dividends and Capital Gain Tax Worksheet ends with the lesser of the stacked tax

@@ -115,3 +115,25 @@ def test_max_iteration_check():
     assert p._check_max_iterations(5, 6) is None
     decision = p._check_max_iterations(6, 6)
     assert decision["reason"] == "max_iter"
+
+
+def _trace(objectives, residuals):
+    return {"scaledObjectives": list(objectives), "residuals": list(residuals)}
+
+
+def test_fallback_takes_the_most_settled_iterate_not_the_richest():
+    """When the next iterate cannot be solved, the loop falls back on an earlier one. On a tight
+    case costs catch up pass by pass, so each iterate is poorer and closer to its own costs than
+    the last: the richest is the least settled. The fallback takes the most settled."""
+    p = _make_plan()
+    # A real case: the loop heading from $6.6M down to a few thousand as premiums and taxes caught up.
+    trace = _trace([6_638_359, 1_109_295, 192_956, 9_547], [442_804, 377_518, 325_137, 313_859])
+    assert p._pick_settled_valid_index(trace, includeMedicare=True) == 3
+    assert p._pick_best_valid_index(trace["scaledObjectives"], includeMedicare=True) == 1
+
+
+def test_fallback_settled_ties_take_the_latest_and_skip_iteration_zero():
+    p = _make_plan()
+    assert p._pick_settled_valid_index(_trace([9.0, 8.0, 7.0, 6.0], [0.0, 5.0, 2.0, 2.0]), includeMedicare=True) == 3
+    assert p._pick_settled_valid_index(_trace([100.0], [0.0]), includeMedicare=True) is None
+    assert p._pick_settled_valid_index(_trace([100.0], [0.0]), includeMedicare=False) == 0
