@@ -48,7 +48,8 @@ import owlplanner as owl
 # linux and win32 take the same, not rerun there).
 # Updated when the Roth maturation rows started freeing a conversion in its sixth taxable year, as
 # 408A(d)(3)(F) does, rather than its seventh (#224): BEQUEST1 959_420 -> 959_477, the same with HiGHS
-# and MOSEK (recorded on darwin). Jack and Jill are past 59 1/2, so #223's basis rows do not apply.
+# and MOSEK (recorded on darwin; CI's linux gives the same 959_476.71, win32 assumed the same, not
+# rerun there). Jack and Jill are past 59 1/2, so #223's basis rows do not apply.
 if platform == "darwin":
     SPENDING1 = 89_154
     BEQUEST1 = 959_477
@@ -57,13 +58,13 @@ if platform == "darwin":
     BEQUEST1_FIXED = 500_000
 elif platform == "linux":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_420
+    BEQUEST1 = 959_477
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
 elif platform in "win32":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_420
+    BEQUEST1 = 959_477
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
