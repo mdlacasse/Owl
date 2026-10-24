@@ -1,5 +1,18 @@
 ### Version WIP
 
+#### Fixed: an LP that HiGHS ends without a verdict is solved again before it is called a solver failure
+
+HiGHS's default LP path (presolve, then the dual simplex) can stop on an LP that has no feasible
+point with "Solve error", "Unknown" or no status at all ("Not Set"), instead of "Infeasible".
+**Owl** then reported a solver error for a plan that simply cannot be paid for. On LPs that SCIP's
+exact (rational) mode proves infeasible, HiGHS 1.15.1 and its `latest` branch gave a verdict on 2
+of 62 (https://github.com/ERGO-Code/HiGHS/issues/3418). Such an LP is now solved once more with
+the interior-point method and presolve off, which said "Infeasible" on all 62. The re-solve runs
+only for a pure LP that ends with one of those statuses and without a feasible point, so every LP
+that solves today comes out the same; MIPs, limits and interrupts are untouched. It replaces the
+fallback of #184 (reverted), whose primal-simplex step could call a feasible LP infeasible, and
+takes in #188.
+
 #### Fixed: wages are entered as they enter AGI, and an after-tax contribution is paid for by a big-ticket item
 
 **Owl** asked for *anticipated wages* net of every contribution column, because contributions are

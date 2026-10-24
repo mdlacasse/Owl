@@ -190,6 +190,21 @@ _HIGHS_INFEASIBLE_RETRIES = (
     ("presolve_rule_off", 1 << 12, "presolve rule 12 off"),
     ("presolve", "off", "presolve off"),
 )
+# HiGHS's default LP path (presolve, then the dual simplex) can stop on an LP that has no feasible
+# point without a verdict: "Solve error", "Unknown", or no status at all ("Not Set"), and whether it
+# does can turn on rounding in the last digits (https://github.com/ERGO-Code/HiGHS/issues/3418).
+# Such an LP is solved once more with the interior-point method and presolve off, which settles it
+# either way. An LP that ends with a verdict, or with a feasible point, is left as it is; so are
+# limits and interrupts, where solving again would only spend more time.
+_HIGHS_LP_NO_VERDICT = (
+    "kNotset",
+    "kSolveError",
+    "kUnknown",
+    "kPresolveError",
+    "kPostsolveError",
+    "kUnboundedOrInfeasible",
+)
+_HIGHS_LP_FALLBACK = {"solver": "ipm", "presolve": "off"}
 LTCG_CONSISTENCY_MAX_PASSES = 5  # max monolithic re-solves to clear stale LTCG bracket room
 LTCG_CONSISTENCY_TOL = 1.0  # allowed U_n - 0.20*Q_n slack ($) before a re-solve is needed
 
@@ -6666,6 +6681,21 @@ class Plan:
                 ms = h.getModelStatus()
                 if ms != highspy.HighsModelStatus.kInfeasible:
                     break
+        no_verdict = tuple(getattr(highspy.HighsModelStatus, name) for name in _HIGHS_LP_NO_VERDICT)
+        if (
+            not is_mip
+            and ms in no_verdict
+            and h.getInfoValue("primal_solution_status")[1] != highspy.kSolutionStatusFeasible
+        ):
+            self.mylog.vprint(
+                f"HiGHS ended the LP with status '{h.modelStatusToString(ms)}'; "
+                "solving it again with the interior-point method, presolve off."
+            )
+            h.clearSolver()
+            for option, value in _HIGHS_LP_FALLBACK.items():
+                h.setOptionValue(option, value)
+            h.run()
+            ms = h.getModelStatus()
         self._lastMipNodes = nodes
 
         _, pstatus = h.getInfoValue("primal_solution_status")
