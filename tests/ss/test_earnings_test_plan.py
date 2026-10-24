@@ -281,20 +281,22 @@ def _warn_lines(buf):
     return [line.split(" | ", 3)[-1] for line in buf.getvalue().splitlines() if "| WARNING |" in line]
 
 
-def test_earnings_are_the_wages_before_contributions():
-    """The test counts wages before contributions (W-2 box 5), and `anticipated wages` are
-    entered net of every contribution column: in a year with wages, the earnings add back the
-    taxable, tax-deferred and Roth contributions, not the HSA. Without wages, contributions
-    (from savings) are not earnings."""
+def test_earnings_are_the_wages_before_pre_tax_deferrals():
+    """The test counts wages before pre-tax deferrals (W-2 box 5), and `anticipated wages` are
+    the wages in AGI, net of them (#221): in a year with wages, the earnings add back the
+    tax-deferred contributions. After-tax ones (taxable, Roth) are already in the wages, and a
+    payroll HSA is not box 5. Without wages, contributions are not earnings."""
     p = _load("chris+pat")
     earnings, months = p._earnings_test_inputs()
     pat, n = 1, int(np.argmax(p.year_n == 2028))
-    contributed = p.kappa_ijn[pat, 0, n] + p.kappa_ijn[pat, 1, n] + p.kappa_ijn[pat, 2, n]
-    assert contributed > 0, "test setup: Pat contributes in 2028"
-    assert earnings[pat, n] == pytest.approx(p.omega_in[pat, n] + contributed)
+    deferred = p.kappa_ijn[pat, 1, n]
+    assert deferred > 0, "test setup: Pat defers in 2028"
+    assert earnings[pat, n] == pytest.approx(p.omega_in[pat, n] + deferred)
     assert months[pat, n] == 12
+    p.kappa_ijn[pat, 0, n] = 3_000.0  # taxable, from pay: already in the wages
+    p.kappa_ijn[pat, 2, n] = 4_000.0  # Roth: already in the wages
     p.kappa_ijn[pat, 3, n] = 5_000.0  # an HSA contribution is not box 5
-    assert p._earnings_test_inputs()[0][pat, n] == pytest.approx(p.omega_in[pat, n] + contributed)
+    assert p._earnings_test_inputs()[0][pat, n] == pytest.approx(p.omega_in[pat, n] + deferred)
     p.omega_in[pat, n] = 0.0
     earnings, months = p._earnings_test_inputs()
     assert earnings[pat, n] == 0.0 and months[pat, n] == 0

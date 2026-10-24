@@ -258,14 +258,20 @@ Each individual has their own sheet with the following year-indexed columns:
 \begin{itemize}[nosep]
   \item \textit{year} --- calendar year;
   \item \textit{anticipated wages} --- earned income expected for that year,
-    entered net of all amounts listed in the \textit{ctrb} columns (employer
-    portions included in the \textit{ctrb} columns are not subtracted, as
-    they were never part of wages). This single amount serves
-    both as cash available to the plan and as taxable employment income; as a
-    known simplification, income tax on the dollars contributed to Roth and
-    taxable accounts is therefore not modeled during the working years;
+    as it enters AGI: pay net of the pre-tax contributions (traditional 401(k)
+    deferrals, deductible IRA and payroll HSA contributions; employer portions
+    included in the \textit{ctrb} columns are not subtracted, as they were never
+    part of wages). This single amount serves both as cash available to the plan
+    and as taxable employment income. An after-tax contribution paid from pay
+    (Roth 401(k), Roth IRA, taxable) therefore stays in the wages, where it is
+    taxed, and is paid for by a negative \textit{big-ticket items} entry of the
+    same amount;
+  \item \textit{months worked} --- months of work at the start of the year,
+    from 0 to 12 (12 when absent in a year with wages), read by the earnings test
+    (Section~\ref{sec:ss});
   \item \textit{other inc} --- other ordinary income not captured elsewhere
-    (enter 0 if not applicable);
+    (enter 0 if not applicable); a negative amount is an above-the-line deduction
+    paid from cash, such as an HSA contribution made without wages;
   \item \textit{net inv} --- rent and trust distributions that count as net
     investment income for NIIT (enter 0 if not applicable);
   \item \textit{taxable ctrb} --- contributions to the taxable brokerage
@@ -275,7 +281,8 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{IRA ctrb} --- traditional IRA contributions;
   \item \textit{Roth IRA ctrb} --- Roth IRA contributions;
   \item \textit{HSA ctrb} --- Health Savings Account contributions (enter 0 if
-    not applicable; automatically zeroed at Medicare enrollment age; entries past age~65 are ignored);
+    not applicable); the year of Medicare enrollment keeps the months before it,
+    and later entries are ignored;
   \item \textit{Roth conv} --- planned or historical Roth conversion amounts;
     the five years preceding the plan start date are used to implement the
     five-year lookback rule (Section~\ref{sec:roth});
@@ -283,7 +290,8 @@ Each individual has their own sheet with the following year-indexed columns:
     the tax-deferred account to a charity (Section~\ref{sec:qcd});
   \item \textit{big-ticket items} --- large planned expenses such as a home
     purchase or college tuition that must be funded from the portfolio in a
-    specific year.
+    specific year (negative), or inflows such as an inheritance (positive); a
+    negative entry also pays for an after-tax contribution made from pay.
 \end{itemize}
 
 Only \textit{year} is required. Any other column may be omitted from a person
@@ -315,8 +323,9 @@ Spending plus all taxes, Medicare premiums, and debt payments
 must equal income from wages, Social Security benefits,
 account withdrawals, fixed-asset sale proceeds, and other income.
 Account contributions do not appear in this balance: anticipated wages are
-entered net of contributions (see the Wages and Contributions table above),
-and the contributed amounts are deposited directly into their accounts
+entered net of pre-tax contributions, an after-tax contribution paid from pay
+is offset by a negative big-ticket item (see the Wages and Contributions table
+above), and the contributed amounts are deposited directly into their accounts
 through the account-evolution equations.
 Big-ticket expenses shift additional spending into specific years.
 The optimizer determines the combination of account withdrawals and Roth
@@ -324,6 +333,7 @@ conversions---across all account types and both spouses---that satisfies
 this constraint while maximizing the chosen objective.
 
 \section{Social Security Benefits}
+\label{sec:ss}
 
 \subsection*{Rules}
 
@@ -407,8 +417,10 @@ overstate benefits when multiple beneficiaries claim on one worker's record.
 The SSA earnings test is applied to the benefit streams before they enter the
 model: for a given claiming age, the amounts withheld before FRA and the higher
 benefit from FRA (the adjustment of the reduction factor) are fixed numbers, so
-the test adds no variable or constraint. It is not applied to checks paid from
-the year of the first death on.
+the test adds no variable or constraint. The earnings it counts are the
+anticipated wages plus the year's tax-deferred contributions, which those wages
+are net of, spread over the \textit{months worked}. It is not applied to checks
+paid from the year of the first death on.
 The survivor claiming date is a user setting rather than an optimized decision:
 the model evaluates whichever date is specified, but does not search for the one
 that maximizes the objective.
@@ -621,11 +633,14 @@ HSA withdrawals are treated as tax-free (simplified model); see Limitations belo
 The key modeling choices are as follows.
 \begin{itemize}[nosep]
   \item \textit{Contributions are pre-tax.}
-    As with all contributions, anticipated wages are entered net of HSA
-    contributions (Section~\ref{sec:cfhfp}), which excludes the contributed
-    dollars from ordinary taxable income, from provisional income used to
-    compute Social Security taxability, and from the modified adjusted gross
-    income (MAGI) used in the two-year Medicare IRMAA lookback.
+    Made through payroll, HSA contributions are netted out of the anticipated
+    wages, like the other pre-tax contributions (Section~\ref{sec:cfhfp}), which
+    excludes the contributed dollars from ordinary taxable income, from
+    provisional income used to compute Social Security taxability, and from the
+    modified adjusted gross income (MAGI) used in the two-year Medicare IRMAA
+    lookback. Made from savings without wages, they are entered as a negative
+    \textit{other inc} as well, an above-the-line deduction (IRC~223(a)) that
+    pays for them.
     Contributions are zeroed automatically at Medicare enrollment age; HFP entries past age~65 are ignored.
   \item \textit{Withdrawals are tax-free and fund any expense.}
     HSA withdrawals enter the annual cash-flow balance at full dollar value,
@@ -1837,15 +1852,16 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 		\kappa_{ijkn} = \alpha_{ijkn}\kappa_{ijn}.
 	\end{equation}
 	as savings account balances are assumed to be rebalanced periodically.
-	For the $(j=3)$ HSA, contributions $\kappa_{i3n}$ are pre-tax: as with all
-	contributions, wages $\omega_{in}$ are entered net of these amounts, which
-	excludes them from taxable income, provisional income for Social Security
-	taxability, and MAGI for Medicare IRMAA purposes in year $n$.
-	HSA contributions are zeroed for $n \ge \mathcal{N}^{\mathrm{hsa}}_i$, when
-	individual $i$ enrolls in Medicare (typically at age~65).
+	For the $(j=3)$ HSA, contributions $\kappa_{i3n}$ are pre-tax: as with the
+	other pre-tax contributions, wages $\omega_{in}$ are entered net of these
+	amounts, which excludes them from taxable income, provisional income for
+	Social Security taxability, and MAGI for Medicare IRMAA purposes in year $n$.
+	HSA contributions stop when individual $i$ enrolls in Medicare (typically at
+	age~65): the year $\mathcal{N}^{\mathrm{hsa}}_i$ of enrollment keeps the
+	months before it, and later years are zero.
 \item [$\omega_{in}$]
-	Sum of wages earned by individual $i$ during year $n$, net of all account
-	contributions (see Section~\ref{sec:cfhfp}).
+	Sum of wages earned by individual $i$ during year $n$, as they enter AGI:
+	net of the pre-tax account contributions (see Section~\ref{sec:cfhfp}).
 	Do not confuse wages $\omega$ with withdrawals $w$.
 \item [$\upsilon_{in}$]
 	Other ordinary income for individual $i$ in year $n$, beyond wages, pension, and Social Security.

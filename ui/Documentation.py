@@ -443,21 +443,24 @@ those rows in the file.
 The fifteen columns after *year* are described below, in the order they appear in the table (fill a column with 0 or
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
-- *anticipated wages* is the annual employment income you anticipate, entered **net of all
-  contributions** listed in the *ctrb* columns (employer portions included in the *ctrb* columns
-  were never part of your wages and are therefore not subtracted).
-  **Owl** uses this single amount both as cash available to the plan and as taxable employment
-  income. As a known simplification, income tax on the dollars contributed to Roth and taxable
-  accounts is therefore not modeled during the working years. This column is not meant to include
-  all your ordinary income; for example, interest from your taxable investment accounts is
-  calculated automatically based on the assumptions you made for future return rates.
+- *anticipated wages* is the annual employment income you anticipate, as it enters your AGI: your
+  pay **minus your pre-tax contributions**, that is your traditional 401k/403b deferrals (*401k
+  ctrb*), deductible IRA contributions (*IRA ctrb*), and HSA contributions through payroll (*HSA
+  ctrb*). Employer contributions included in the *ctrb* columns were never part of your wages and
+  are therefore not subtracted. After-tax contributions paid from your pay (*Roth 401k ctrb*,
+  *Roth IRA ctrb*, *taxable ctrb*) stay in the wages, as they are taxed, and are paid for with a
+  negative *big-ticket items* entry of the same amount (see below). **Owl** uses this single
+  amount both as cash available to the plan and as taxable employment income. With only pre-tax
+  contributions, there is nothing to offset. This column is not meant to include all your
+  ordinary income; for example, interest from your taxable investment accounts is calculated
+  automatically based on the assumptions you made for future return rates.
 - **Owl** always applies the Social Security earnings test: the benefits a claim before full
   retirement age would lose to it are withheld in the earning years, and the withheld months come
   back at full retirement age through the adjustment of the reduction factor. The test counts
-  wages before contributions (W-2 box 5), so in a year with *anticipated wages* **Owl** adds back
-  that year's *taxable*, *401k*, *Roth 401k*, *IRA* and *Roth IRA ctrb*, which those wages are net
-  of. Employer contributions included in *401k ctrb* were never wages, so they make the earnings
-  slightly high; HSA contributions are left out, as a payroll HSA is not in box 5. Self-employment
+  wages before pre-tax deferrals (W-2 box 5), so in a year with *anticipated wages* **Owl** adds
+  back that year's *401k ctrb* and *IRA ctrb*, which those wages are net of. Employer
+  contributions included in *401k ctrb* were never wages, so they make the earnings slightly high;
+  HSA contributions are left out, as a payroll HSA is not in box 5. Self-employment
   earnings count only when entered in *anticipated wages*: the test does not read *other inc*.
 - *months worked* is how many months of that year the person works (a whole number from 0 to 12).
   Earnings are taken as spread evenly over those months. It decides whether a month counts for the
@@ -481,13 +484,18 @@ leave it blank where it does not apply), where:
   employer's contributions, if any. As these data can be entered in Excel, you can use the native
   calculator to enter a percentage of the anticipated wages as an easier way to enter the data.
   Contributions are deposited into their respective accounts but are **not** subtracted from the
-  annual cash flow: **Owl** assumes you already netted them out of *anticipated wages* as described
-  above. Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
+  annual cash flow: a pre-tax contribution was already netted out of *anticipated wages*, and an
+  after-tax one paid from your pay is paid for by a negative *big-ticket items* entry, as
+  described above. A contribution that does not come from your pay (from savings, or a gift) is
+  paid for the same way, with a negative *big-ticket items* entry. A deductible one with no wages to
+  net it from (an HSA contribution from savings, or a spousal IRA for a spouse without wages) goes
+  in *other inc* instead, as a negative amount, which both deducts it and pays for it (see *other
+  inc* and *HSA ctrb*). Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
   supported: amounts entered in *401k ctrb* or *IRA ctrb* are treated as pre-tax, and no cost basis
   is tracked (every dollar later withdrawn or converted is fully taxable).
-- *HSA ctrb* is HSA contributions in nominal dollars. Like the other *ctrb* columns, subtract them
-  from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
-  taxable income. Enter the full annual amount you plan to contribute: **Owl** applies the
+- *HSA ctrb* is HSA contributions in nominal dollars. Made through payroll, they are pre-tax:
+  subtract them from *anticipated wages*, which excludes them from both cash flow and taxable
+  income. Enter the full annual amount you plan to contribute: **Owl** applies the
   Medicare cutoff itself. If you have no wages to net the contribution from (for instance, a
   retiree or early retiree contributing from savings), enter it in *HSA ctrb* and the same amount
   as a negative *other inc*: the column alone deposits it without deducting it or paying for it. The HSA limit is counted by the month, and no contribution is allowed
@@ -531,7 +539,10 @@ leave it blank where it does not apply), where:
   Therefore, the **sign (+/-) of entries in this column is important**: positive numbers are considered
   in the cash flow for that year and the surplus, if any, is deposited in the taxable savings accounts;
   negative numbers will potentially generate additional withdrawals and distributions from retirement
-  accounts.
+  accounts. A negative entry also pays for an after-tax contribution made from your pay (*Roth 401k
+  ctrb*, *Roth IRA ctrb*, *taxable ctrb*), which stays in *anticipated wages* and is taxed: for
+  \\$20,000 into a Roth 401k from \\$100,000 of pay, enter \\$100,000 of wages, \\$20,000 in *Roth 401k
+  ctrb*, and -\\$20,000 in *big-ticket items*.
 
 *big-ticket items* and *other inc* are the only columns that can contain negative numbers; every other
 amount must be zero or positive. *Roth conv fixed* holds a checkbox rather than an amount.

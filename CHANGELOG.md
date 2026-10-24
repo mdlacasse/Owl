@@ -1,5 +1,25 @@
 ### Version WIP
 
+#### Fixed: wages are entered as they enter AGI, and an after-tax contribution is paid for by a big-ticket item
+
+**Owl** asked for *anticipated wages* net of every contribution column, because contributions are
+deposited without leaving the cash flow. But the same wages are the taxable wages, and an
+after-tax contribution paid from pay (Roth 401k, Roth IRA, taxable) is still income: netting it
+out dropped it from AGI, from federal and state tax, and from the MAGI used for IRMAA, the ACA
+and Social Security taxation, by the full contribution (\$4,400 of federal tax on \$20,000 of Roth
+401k out of \$100,000 of pay). PARAMETERS.md meanwhile described a third convention. All the
+documentation now gives the one that gets both tax and cash right: *anticipated wages* are the
+wages in AGI, pay minus pre-tax 401k/403b, deductible IRA and payroll HSA contributions; each
+contribution goes in its column; and each after-tax contribution paid from pay is paid for by a
+negative *big-ticket items* entry of the same amount. With only pre-tax contributions nothing
+changes. The SSA earnings test, which counts wages before pre-tax deferrals, now adds back only
+the tax-deferred contributions. The MCP tools and the intake checklist say the same. Of the
+examples, only jon+jane had an after-tax contribution from pay, \$2,000 a year into taxable
+savings in 2026-2030: its workbook now enters \$122,000 of wages and \$-2,000 of big-ticket items
+in those years, which adds \$1,993 to the 2026 MAGI and \$440 to that year's federal tax, and
+lowers spending by \$148 a year (0.09%). Thanks to Marco Pignone (@rationalpiper) for the report
+and for the convention (#221).
+
 #### Fixed: a Roth conversion is free from the fifth year after it, and its own year cannot release earnings
 
 A conversion's 5-year period is five taxable years starting with the year of the conversion (IRC
@@ -67,9 +87,9 @@ month against everything paid on the worker's record, the spouse's benefit inclu
 the spouse's own benefit; non-service months of the initial grace year are paid; and the reduction
 factor is recomputed at FRA on each record. For a given claiming age these are fixed numbers, so
 the model has no new variable, constraint, binary or loop quantity, and `withSSAges` sees the test
-in every candidate. The earnings it counts are the wages before contributions: *anticipated
-wages* plus that year's taxable, tax-deferred and Roth contributions, which those wages are entered
-net of (an employer contribution makes them slightly high; HSA contributions stay out). A new
+in every candidate. The earnings it counts are the wages before pre-tax deferrals: *anticipated
+wages* plus that year's tax-deferred contributions, which those wages are entered net of (an
+employer contribution makes them slightly high; HSA contributions stay out). A new
 optional column, *months worked*, says how much of the year was worked (12 when absent): it decides
 the grace year, the year someone stops working and claims, where the months after work are paid;
 the MCP tools take it as `months_worked`.

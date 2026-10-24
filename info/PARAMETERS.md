@@ -78,8 +78,8 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 | Header | Meaning |
 |--------|---------|
 | `year` | Calendar year (**required**) |
-| `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal \$ |
-| `months worked` | Whole months of work at the start of the year, 0–12. Optional; 0 or absent → 12 in a year with wages, else 0. Read by the SSA earnings test, which counts `anticipated wages` plus that year's taxable, 401k, Roth 401k, IRA and Roth IRA contributions (the wages before contributions; an employer contribution makes them slightly high) |
+| `anticipated wages` | Expected annual wages as they enter AGI: pay minus pre-tax 401(k)/403(b) deferrals, deductible IRA contributions and payroll HSA contributions, nominal \$. Employer contributions are not subtracted. An after-tax contribution paid from pay (Roth 401(k), Roth IRA, taxable) stays in, and is paid for by a negative `big-ticket items` entry of the same amount (see below) |
+| `months worked` | Whole months of work at the start of the year, 0–12. Optional; 0 or absent → 12 in a year with wages, else 0. Read by the SSA earnings test, which counts `anticipated wages` plus that year's 401k and IRA contributions (the wages before pre-tax deferrals; an employer contribution makes them slightly high) |
 | `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$. May be negative: a negative amount is an above-the-line deduction paid from cash, such as an HSA contribution made without wages (see `HSA ctrb`). Not read by the SSA earnings test: enter net SE earnings in `anticipated wages` for them to count |
 | `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal \$ |
 | `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal \$ |
@@ -90,9 +90,11 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 | `HSA ctrb` | HSA contributions, nominal **dollars** (not \$k). The column only deposits them in the HSA: like the other contribution columns, it neither deducts them nor pays them from cash. Through payroll, enter `anticipated wages` net of the contribution, which keeps it out of AGI, MAGI, and SS provisional income. Without wages to net it from (a retiree contributing from savings), also enter the same amount as a negative `other inc`, the above-the-line deduction of IRC 223(a). The year Medicare starts keeps the months before it; later years are ignored. 2026 IRS limits: \$4,400 (self-only) / \$8,750 (family); +\$1,000 catch-up if 55+ |
 | `Roth conv` | Roth conversions from tax-deferred accounts, nominal \$ |
 | `QCD` | Qualified Charitable Distributions: money sent from the tax-deferred account straight to a charity, nominal \$. See below |
-| `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal \$ |
+| `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal \$. A negative entry also pays for an after-tax contribution paid from pay |
 
 Only `other inc` and `big-ticket items` may be negative; every other amount must be zero or positive. A deduction larger than the year's income is lost, not carried forward: taxable income stops at zero, while MAGI can fall below it.
+
+**Wages and contributions (#221).** Contributions are deposited in their accounts without leaving the cash flow, and `anticipated wages` count both as cash and as taxable wages. So a pre-tax contribution is netted out of the wages, which removes it from both, while an after-tax one stays in the wages, where it is taxed, and is paid for by a negative `big-ticket items` entry: \$20,000 into a Roth 401(k) from \$100,000 of pay is `anticipated wages` 100,000, `Roth 401k ctrb` 20,000, `big-ticket items` −20,000. A contribution not paid from pay (from savings) is paid for the same way. A deductible one without wages to net it from (an HSA contribution from savings, a spousal IRA) goes in `other inc` as a negative amount instead, which deducts it and pays for it.
 
 #### Qualified Charitable Distributions (`QCD`)
 

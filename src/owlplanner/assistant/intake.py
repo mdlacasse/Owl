@@ -85,9 +85,13 @@ those entries to the user and refine the ones that could change their decisions.
 ## Units and conventions
 - Social Security and pensions are $/month; wages, contributions, and expenses are
   $/year; balances are $.
-- Wages must be net of the retirement contributions listed separately — Owl deposits
-  contributions into their accounts without subtracting them from wages, so gross wages
-  plus contributions would double-count.
+- Wages are the wages in AGI: pay minus pre-tax 401k/403b deferrals, deductible IRA and
+  payroll HSA contributions.  Owl deposits contributions into their accounts without
+  subtracting them from wages or cash, so gross wages plus pre-tax contributions would
+  double-count.  An after-tax contribution paid from pay (Roth 401k, Roth IRA, taxable)
+  stays in the wages, since it is taxed, and is paid for with a NEGATIVE big_ticket_items
+  entry of the same amount and years: $20k into a Roth 401k from $100k of pay is wages
+  100000, contribution 20000 (account "roth"), big_ticket_items -20000.
 - An HSA contribution made without wages (a retiree or early retiree paying from savings)
   has no wages to be netted from: list it under contributions (account "hsa") and the same
   amount as a negative other_income, the above-the-line deduction that also pays it from

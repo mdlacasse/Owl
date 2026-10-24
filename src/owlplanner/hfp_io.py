@@ -152,8 +152,9 @@ def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
     that differs from a recognized one only by case, spacing, or punctuation is
     rejected as a typo rather than silently dropped.
     Legacy header "other inc." is accepted as "other inc".
-    "anticipated wages" is expected net of all contribution columns
-    (see Plan.readHFP). Only "other inc" (a deduction) and "big-ticket
+    "anticipated wages" are the wages in AGI, net of pre-tax deferrals; an
+    after-tax contribution paid from pay is offset by a negative "big-ticket
+    items" entry (see Plan.readHFP). Only "other inc" (a deduction) and "big-ticket
     items" (an expense) may be negative.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return the input handle, the time lists by individual's name, the household

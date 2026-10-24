@@ -1833,7 +1833,10 @@ async def run_from_params(
                         after the pensioner dies (0–1), one value per person, e.g. [0.5, 0.0].
                         Default: all 0 (single-life, no survivor benefit).
         wages:          List of wage streams.  Each entry: {"person": 0, "annual_amount": 120000,
-                        "start_year": 2026, "end_year": 2032}.  person defaults to 0.
+                        "start_year": 2026, "end_year": 2032}.  person defaults to 0.  The
+                        wages in AGI: pay minus pre-tax 401k, deductible IRA and payroll HSA
+                        contributions.  After-tax contributions (Roth, taxable) paid from pay
+                        stay in, paid for by a negative big_ticket_items entry (see there).
         contributions:  List of retirement contributions.  Each entry: {"person": 0,
                         "account": "tax_deferred", "annual_amount": 23000, "end_year": 2032}.
                         account is one of: taxable, tax_deferred, roth, hsa.  For
@@ -1844,7 +1847,11 @@ async def run_from_params(
                         annual_amount is SIGNED: a NEGATIVE amount is an expense (it must be
                         funded, reducing the spending budget); a POSITIVE amount is an inflow
                         (inheritance, gift received, sale proceeds) that adds to the cash flow,
-                        any surplus going to the taxable account.  Enter expenses as negative
+                        any surplus going to the taxable account.  A negative entry also pays
+                        for an after-tax contribution made from pay (account "roth" or
+                        "taxable"): contributions are deposited without leaving the cash flow,
+                        and the wages still hold the money, so enter the same amount and
+                        years here, negative.  Enter expenses as negative
                         numbers -- a positive "expense" is modeled as income.  Each entry:
                         {"person": 0, "annual_amount": -15000, "start_year": 2026,
                         "end_year": 2030, "label": "healthcare"}.  Use for planned large
@@ -3577,7 +3584,8 @@ async def run_stochastic(
         pension_ages:         Pension commencement ages per person.
         pension_indexed:      CPI-indexed pension flags per person, e.g. [True, False].
         pension_survivor_fractions: Survivor benefit fractions per person (0–1), e.g. [0.5, 0.0].
-        wages:                Wage streams: [{"person":0,"annual_amount":90000,"end_year":2030}].
+        wages:                Wage streams: [{"person":0,"annual_amount":90000,"end_year":2030}],
+                              the wages in AGI (net of pre-tax contributions; see run_from_params).
         contributions:        Contributions: [{"person":0,"account":"tax_deferred","annual_amount":23000}].
                               Use list_contribution_limits to find IRS max amounts (incl. catch-up).
         big_ticket_items:     Signed annual cash flows, negative = expense, positive = inflow:

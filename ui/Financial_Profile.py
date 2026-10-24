@@ -38,9 +38,10 @@ import case_progress as cp
 timetableHelp = {
     "year": "Calendar year of this row",
     "anticipated wages": (
-        "Employment income you anticipate this year (nominal \\$), entered net of every "
-        "contribution column to the right. Employer contributions were never part of your "
-        "wages, so do not subtract those."
+        "Employment income you anticipate this year as it enters your AGI (nominal \\$): pay "
+        "minus pre-tax 401k, deductible IRA and payroll HSA contributions. After-tax ones (Roth, "
+        "taxable) stay in, paid for by a negative big-ticket item. Employer contributions were "
+        "never part of your wages, so do not subtract those."
     ),
     "months worked": (
         "Months of work at the start of this year (0-12). Earnings are taken as spread "
@@ -57,14 +58,26 @@ timetableHelp = {
         "Net investment income such as rent or trust distributions (nominal \\$). Taxed as "
         "ordinary income and also counted toward the Net Investment Income Tax."
     ),
-    "taxable ctrb": "Contributions to your taxable savings account (nominal \\$)",
+    "taxable ctrb": (
+        "Contributions to your taxable savings account (nominal \\$). Paid from pay, they stay in "
+        "your wages: enter the same amount as a negative big-ticket item."
+    ),
     "401k ctrb": (
         "Contributions to 401k, 403b, and any other tax-deferred account other than an IRA "
-        "(nominal \\$). Include your employer's contributions."
+        "(nominal \\$). Include your employer's contributions; net your own out of your wages."
     ),
-    "Roth 401k ctrb": "Contributions to your Roth 401k or Roth 403b account (nominal \\$)",
-    "IRA ctrb": "Contributions to your traditional IRA (nominal \\$), treated as pre-tax",
-    "Roth IRA ctrb": "Contributions to your Roth IRA (nominal \\$)",
+    "Roth 401k ctrb": (
+        "Contributions to your Roth 401k or Roth 403b account (nominal \\$). They are taxed, so "
+        "they stay in your wages: enter the same amount as a negative big-ticket item."
+    ),
+    "IRA ctrb": (
+        "Contributions to your traditional IRA (nominal \\$), treated as pre-tax: net them out of "
+        "your wages."
+    ),
+    "Roth IRA ctrb": (
+        "Contributions to your Roth IRA (nominal \\$). Paid from pay, they stay in your wages: "
+        "enter the same amount as a negative big-ticket item."
+    ),
     "HSA ctrb": (
         "Contributions to your health savings account (nominal \\$), netted out of your wages. "
         "Without wages, also enter the same amount as a negative other inc. Stopped automatically "
@@ -86,7 +99,8 @@ timetableHelp = {
     ),
     "big-ticket items": (
         "A major one-time amount (nominal \\$): the sign matters. Positive is money received, "
-        "such as an inheritance or the sale of a house; negative is a major expense."
+        "such as an inheritance or the sale of a house; negative is a major expense, or pays for "
+        "an after-tax contribution (Roth, taxable) made from your pay."
     ),
 }
 
@@ -272,7 +286,8 @@ that has not yet been uploaded.""")
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual, in two tables.
-Enter *anticipated wages* net of all contribution columns (see the Documentation page for details).
+Enter *anticipated wages* as they enter your AGI, net of pre-tax contributions; pay for after-tax ones (Roth,
+taxable) with a negative *big-ticket items* entry (see the Documentation page for details).
 The first table holds the five years before this one. Only its Roth entries are read, to comply with the IRS
 five-year maturation rule, but every column is yours to keep: the figures stay in your workbook as the history
 you carry forward and extrapolate from. Because those conversions have already happened, *Roth conv fixed*

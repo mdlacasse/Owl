@@ -2184,9 +2184,13 @@ class Plan:
         A template is provided as an example.
         Missing rows (years) are populated with zero values.
 
-        Convention: 'anticipated wages' must be entered net of all
-        contribution columns. Contributions are deposited into their
-        accounts and are not subtracted from the annual cash flow.
+        Convention (#221): 'anticipated wages' are the wages in AGI, that is
+        pay minus pre-tax 401k/403b deferrals and deductible IRA contributions
+        (and payroll HSA contributions). Contributions are deposited into their
+        accounts and are not subtracted from the annual cash flow, so each
+        after-tax contribution paid from pay (Roth 401k, Roth IRA, taxable) is
+        paid for by a negative 'big-ticket items' entry of the same amount.
+        With only pre-tax contributions there is nothing to offset.
         Only 'other inc' and 'big-ticket items' may be negative: a negative
         'other inc' is an above-the-line deduction paid from cash (an HSA
         contribution without wages), a negative 'big-ticket items' an expense.
@@ -2248,18 +2252,19 @@ class Plan:
         Return the SSA earnings test's inputs, ``(earnings_in, months_in)``, shape
         (N_i, N_n), earnings in nominal dollars.
 
-        The test counts wages before contributions (W-2 box 5), while ``anticipated wages``
-        are entered net of every contribution column: in a year with wages, the earnings are
-        the wages plus that year's taxable, tax-deferred and Roth contributions, payroll
-        deferrals and contributions paid from pay alike. An employer contribution was never
-        wages, so a plan whose contributions include one overstates the earnings by it. HSA
-        contributions are left out: a payroll HSA is not in box 5. Read from the plan arrays,
-        which the MCP tools fill directly, so the rule holds however the plan got its wages.
+        The test counts wages before pre-tax deferrals (W-2 box 5), while ``anticipated wages``
+        are the wages in AGI, net of the pre-tax 401k and deductible IRA contributions (#221):
+        in a year with wages, the earnings are the wages plus that year's tax-deferred
+        contributions. After-tax contributions (Roth, taxable) are already in the wages. An
+        employer contribution was never wages, so a plan whose 401k column includes one
+        overstates the earnings by it. HSA contributions are left out: a payroll HSA is not in
+        box 5. Read from the plan arrays, which the MCP tools fill directly, so the rule holds
+        however the plan got its wages.
         Months are ``months worked`` where positive, else 12 in a year with earnings, else 0.
         """
         Nn = self.N_n
-        contributed = np.sum(self.kappa_ijn[:, :3, :Nn], axis=1)
-        earnings = np.where(self.omega_in > 0, self.omega_in + contributed, 0.0)
+        deferred = self.kappa_ijn[:, 1, :Nn]  # 401k + IRA (setContributions)
+        earnings = np.where(self.omega_in > 0, self.omega_in + deferred, 0.0)
         months = np.where(self.etMonths_in > 0, self.etMonths_in, np.where(earnings > 0, 12.0, 0.0))
         return earnings, months
 

@@ -4,9 +4,9 @@ test derives from the other columns (round trip, defaults, refusals), following 
 optional-column conventions of ``hfp_io.py``.
 
 Month / money conventions:
-  earnings             not a column: ``anticipated wages`` plus that year's taxable,
-                       tax-deferred and Roth contributions (wages are entered net of them),
-                       in a year with wages; nominal $.
+  earnings             not a column: ``anticipated wages`` plus that year's tax-deferred
+                       contributions (wages are the wages in AGI, net of them, #221), in a
+                       year with wages; nominal $.
   ``months worked``    0-12, months of work at the start of the year. Absent or 0 →
                        12 when that year's earnings are positive, else 0.
 
@@ -111,11 +111,11 @@ def test_months_worked_lands_in_its_array():
     assert list(p.etMonths_in[0, :3]) == [6, 12, 0]
 
 
-def test_earnings_add_back_the_contributions_wages_are_net_of():
-    """``anticipated wages`` are entered net of every contribution column, while the test
-    counts wages before them (W-2 box 5): the earnings add back the year's taxable, 401k,
-    Roth 401k, IRA and Roth IRA contributions, not an HSA one (a payroll HSA is not in box 5).
-    Contributions in a year without wages are not earnings."""
+def test_earnings_add_back_the_pre_tax_contributions_wages_are_net_of():
+    """``anticipated wages`` are the wages in AGI, net of pre-tax contributions (#221), while
+    the test counts wages before them (W-2 box 5): the earnings add back the year's 401k and
+    IRA contributions. After-tax ones (taxable, Roth 401k, Roth IRA) stay in the wages, and a
+    payroll HSA is not in box 5. Contributions in a year without wages are not earnings."""
     p = _plan()
     p.zeroWagesAndContributions()
     df = p.timeLists["Alice"]
@@ -126,7 +126,7 @@ def test_earnings_add_back_the_contributions_wages_are_net_of():
     df.loc[df.index[6], "IRA ctrb"] = 7_000.0  # no wages that year
     p.setContributions()
     earnings, months = p._earnings_test_inputs()
-    assert earnings[0, 0] == pytest.approx(60_000.0 + 15_000.0)
+    assert earnings[0, 0] == pytest.approx(60_000.0 + 2_000.0 + 4_000.0)
     assert earnings[0, 1] == 0.0
     assert list(months[0, :2]) == [12, 0]
 

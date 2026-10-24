@@ -77,8 +77,9 @@ def test_hsa_increases_spending():
 
 
 def test_hsa_contribution_no_explicit_deduction():
-    """HSA contributions get no explicit deduction: wages are entered net of
-    all contributions, so taxable income must not drop when only kappa changes."""
+    """HSA contributions get no explicit deduction: wages are entered net of the
+    pre-tax contributions, payroll HSA included, so taxable income must not drop when
+    only kappa changes."""
     # Younger person so contributions actually occur before Medicare age.
     young = {"inames": ["TestUser"], "dobs": ["1980-01-15"], "expectancy": [88]}
     hsa_ctrb = 4.3  # $4,300/yr HSA contributions
