@@ -20,6 +20,38 @@ the test can reach, the per-person worksheets a *SS withheld* column, and `owlcl
 are paid as before. A case without earnings before someone's FRA is unchanged; of the examples,
 alex+jamie, chris+pat and jack+jill change (#220).
 
+#### Faster local search, keeping the #197 fix
+
+The fix for #197 freed the LTCG binaries in every round of the search's Social Security step,
+which made local search up to 1.7x slower (4x with MOSEK). Most of that cost came from one half
+of the LTCG link rows, "binary at 0 means ordinary income at or above the threshold": it is
+redundant for the optimum, since a binary at 0 only closes the bracket below, but once pinned it
+held income above a threshold that the better plan needed to cross. The search now relaxes that
+half in its own copy of the problem, pins the LTCG binaries in the SS step again, and frees them
+alongside the SS step once per loop iteration, only when the rounds stall. Branch-and-bound keeps
+the full rows: without them, one example ran 23x slower. Before returning, the search sets back to 1
+every binary left at 0 below its threshold, so that the repair, polish and dual solves stay
+feasible. On the 18 examples: local search takes 45% less time with MOSEK (726 s to 396 s) and 6%
+less with HiGHS (740 s to 695 s). Case_john+sally still reaches the branch-and-bound plan, and
+every other example is within 0.07% (Case_morgan −0.066% and Case_kim+sam-bequest −0.028% with
+MOSEK; Case_chris+pat +0.068% with HiGHS).
+
+#### Fixed: the Roth conversion regret sweep can no longer report a negative regret
+
+Pinning a scenario's first-year conversion restricts its unconstrained problem, so regret
+cannot be negative. But a baseline solve could stop short of a plan its own sweep found
+(local search carries no certificate, and the tax loop can settle on another fixed point),
+and every cell above that baseline then read below zero. Each scenario's baseline is now
+raised to the best plan of its sweep, pinned or never-convert, with its first-year
+conversion, so the regret is non-negative by construction. The solves' own values and
+conversions are kept as `v_star_solved` and `x_star_solved` (an automatic grid is still sized
+from them), and the amount raised as `v_star_lift`. The lift still counts as the method's
+error: the largest one enters the resolution floor, and the summary reports how many
+baselines were raised and by how much (`baseline_lift`). `summarize_conversion_regret` lifts
+sweeps saved before this change, and `lift_regret_baselines` does it for any saved result.
+Lifting removes the sign error but not the shortfall: a baseline can still sit below the true
+optimum by more than its best pinned plan reveals.
+
 #### Fixed: an unused standard deduction now lowers the tax on capital gains
 
 **Owl** stacked long-term gains and qualified dividends on top of ordinary taxable income, so when

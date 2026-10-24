@@ -17,6 +17,7 @@ import io
 import pathlib
 import time
 
+import numpy as np
 import pytest
 
 import owlplanner as owl
@@ -229,3 +230,44 @@ def test_repeated_problem_is_not_searched_again():
     log = p.localSearchLog
     assert len(log) >= 2 and log[0]["steps"], log
     assert log[-1]["steps"] == [], log[-1]
+
+
+@pytest.mark.toml
+def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability():
+    """#197: the better plan moves ordinary income across T15 in the same years as it changes SS
+    taxability. Step (b) pins the LTCG binaries, but the search relaxes the half of their link
+    rows that held income above a threshold, and (b') frees them with the SS ball once the rounds
+    stall, so it reaches the branch-and-bound plan (bequest 31,778; 20,004 when blocked)."""
+    p = _load("Case_john+sally.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    assert p.bequest > 31_000.0, p.bequest
+
+
+def test_returned_ltcg_binaries_satisfy_the_full_rows(jack_jill_pair):
+    """The search solves with the LTCG links relaxed, but the repair, polish and dual solves pin
+    its binaries on the full rows: a binary at 0 with income below its threshold is set back to 1,
+    and one with income above it is left alone."""
+    _, p = jack_jill_pair
+    search = localsearch.LocalSearch(p, p.w_ijn, p.x_in)
+    links = [k for k, tag in enumerate(p.A.tags) if tag is not None and tag[0] in localsearch._RELAXED_LINKS]
+    assert links, "jack+jill carries the LTCG binaries"
+    zl = set(int(c) for c in search._cols("zl"))
+    gn = set(int(c) for c in search._cols("gn"))
+
+    def lhs(x, k):
+        return sum(v * x[i] for i, v in zip(p.A.Aind[k], p.A.Aval[k]))
+
+    # Income nil and every binary at 0: each link's lower half is violated, and restored.
+    x = np.zeros(p.nvars)
+    y = search._restore_links(x)
+    assert all(lhs(y, k) >= p.A.lb[k] - 1e-6 and lhs(y, k) <= p.A.ub[k] + 1e-6 for k in links)
+    assert all(y[c] == 1.0 for c in zl)
+    # Income far above every threshold with the binaries at 0: nothing to restore.
+    x = np.zeros(p.nvars)
+    for c in gn:
+        x[c] = 1e7
+    y = search._restore_links(x)
+    assert all(y[c] == 0.0 for c in zl)
+    assert (y == x).all()

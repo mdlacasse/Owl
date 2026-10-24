@@ -647,6 +647,68 @@ def _build_regret_grid(x_star, n_grid, pad):
     return [float(round(top * k / (n_grid - 1))) for k in range(n_grid)]
 
 
+def lift_regret_baselines(result):
+    """
+    Raise each scenario's clairvoyant baseline to the best plan its sweep found.
+
+    Every pinned solve, and the never-convert solve, is a restriction of the unconstrained
+    problem, so the plan it returns is also a feasible plan for the baseline: the clairvoyant
+    optimum is at least the best of them. A baseline solve left short of that (the solver
+    stops without a certificate, or the tax loop settles on another fixed point) would
+    otherwise make the regret negative in that scenario. Lifting makes R >= 0 by
+    construction; it does not close the shortfall, which can exceed the best plan the sweep
+    found.
+
+    Returns a copy of `result` in which, for every lifted scenario:
+      "v_star"       - the best value found: the baseline's, a pinned one, or v_noconv
+      "x_star"       - the first-year conversion of that plan (0 for never-convert)
+      "v_star_osc"   - the winning pinned solve's oscillation bar, when it was recorded
+    and three keys added:
+      "v_star_solved" - the baseline solves' own values, as first returned
+      "x_star_solved" - their first-year conversions (what an automatic grid is sized from)
+      "v_star_lift"   - ndarray (S,) the cumulative amount each baseline was raised (0 when not)
+    Applying it to a result already lifted changes nothing. Works on saved results that
+    carry "v_star", "x_star", "v_at", "grid" and "v_noconv".
+    """
+    out = dict(result)
+    grid = np.asarray(result["grid"], dtype=float)
+    v_star = np.array(result["v_star"], dtype=float)
+    x_star = np.array(result["x_star"], dtype=float)
+    v_at = np.asarray(result["v_at"], dtype=float)
+    v_noconv = result.get("v_noconv")
+    v_noconv = None if v_noconv is None else np.asarray(v_noconv, dtype=float)
+    lift = np.array(result.get("v_star_lift", np.zeros(len(v_star))), dtype=float)
+    vso = result.get("v_star_osc")
+    vso = None if vso is None else np.array(vso, dtype=float)
+    vao = result.get("v_at_osc")
+    vao = None if vao is None else np.asarray(vao, dtype=float)
+
+    for s in range(len(v_star)):
+        if np.isnan(v_star[s]):
+            continue  # a failed baseline was never swept
+        row = v_at[s]
+        best, x_best, j_best = v_star[s], None, None
+        if np.isfinite(row).any():
+            j = int(np.nanargmax(row))
+            if row[j] > best:
+                best, x_best, j_best = float(row[j]), float(grid[j]), j
+        if v_noconv is not None and np.isfinite(v_noconv[s]) and v_noconv[s] > best:
+            best, x_best, j_best = float(v_noconv[s]), 0.0, None
+        if x_best is None:
+            continue
+        lift[s] += best - v_star[s]
+        v_star[s], x_star[s] = best, x_best
+        if vso is not None:
+            vso[s] = vao[s, j_best] if (vao is not None and j_best is not None and np.isfinite(vao[s, j_best])) else 0.0
+
+    out["v_star_solved"] = result.get("v_star_solved", np.array(result["v_star"], dtype=float))
+    out["x_star_solved"] = result.get("x_star_solved", np.array(result["x_star"], dtype=float))
+    out["v_star"], out["x_star"], out["v_star_lift"] = v_star, x_star, lift
+    if vso is not None:
+        out["v_star_osc"] = vso
+    return out
+
+
 def run_conversion_regret_sweep(
     plan,
     objective,
@@ -703,8 +765,13 @@ def run_conversion_regret_sweep(
     Returns a dict:
       "grid"        - list of committed amounts ($)
       "start_years" - ndarray (S,) of scenario starting years actually swept
-      "v_star"      - ndarray (S,) clairvoyant optima; NaN if the baseline failed
-      "x_star"      - ndarray (S,) baseline first-year conversions ($)
+      "v_star"      - ndarray (S,) clairvoyant optima; NaN if the baseline failed. Each is the
+                      best plan found in its scenario, so a baseline solve left short of one
+                      of its own pinned solves is raised to it (lift_regret_baselines)
+      "x_star"      - ndarray (S,) first-year conversions of those plans ($)
+      "v_star_solved" - ndarray (S,) the baseline solves' own values, before any lift
+      "x_star_solved" - ndarray (S,) their first-year conversions, which size an automatic grid
+      "v_star_lift" - ndarray (S,) the amount each baseline was raised (0 when not)
       "v_at"        - ndarray (S, X); NaN where the pinned solve was infeasible
       "v_noconv"    - ndarray (S,) or None
       "max_gap"     - ndarray (S,) largest achieved MIP gap per scenario (-1 when no MIP
@@ -895,7 +962,7 @@ def run_conversion_regret_sweep(
     if n_failed:
         plan.mylog.print(f"{n_failed} of {total} scenario baselines failed to solve.", tag="WARNING")
 
-    return {
+    result = {
         "engine": engine_provenance(),
         "grid": grid,
         "start_years": np.array(years),
@@ -915,6 +982,16 @@ def run_conversion_regret_sweep(
         "milp_downgraded": downgraded,
         "solver_gap": options["gap"],
     }
+    # A pinned plan is feasible for its baseline: no baseline may end below one.
+    result = lift_regret_baselines(result)
+    lifted = result["v_star_lift"] > 0
+    if lifted.any():
+        plan.mylog.print(
+            f"{int(lifted.sum())} of {total} baselines raised to a better plan found by their own sweep "
+            f"(largest by {u.d(float(result['v_star_lift'].max()))}).",
+            tag="INFO",
+        )
+    return result
 
 
 def summarize_conversion_regret(
@@ -934,7 +1011,13 @@ def summarize_conversion_regret(
     value of the entire conversion strategy (regret of never converting), and
     the over/under asymmetry: mean regret of committing delta above vs below
     each scenario's own optimum x*_s, interpolated on the grid.
+
+    Baselines are lifted first (lift_regret_baselines), so a sweep saved before lifting
+    summarizes the same as a new one; "baseline_lift" counts the scenarios raised and the
+    largest raise, which also enters the resolution floor.
     """
+    # Sweeps saved before baselines were lifted are lifted here; a lifted one is unchanged.
+    result = lift_regret_baselines(result)
     grid = np.array(result["grid"])
     v_star = result["v_star"]
     ok = ~np.isnan(v_star)
@@ -1072,8 +1155,18 @@ def summarize_conversion_regret(
     # dominant uncertainty here - halving the scenarios moves the valley by $10-35k while
     # the tax-loop oscillation bar is worth tens of dollars - so this is what turns a
     # cheap preset from an approximation into an honest one.
+    # Baselines raised to a plan of their own sweep. Each lift is the negative regret that
+    # scenario would otherwise have shown: the method's own error, measured.
+    lift = np.asarray(result["v_star_lift"], dtype=float)[ok]
+    out["baseline_lift"] = {
+        "n_lifted": int(np.sum(lift > 0)),
+        "max": float(np.round(lift.max(), 2)) if lift.size else 0.0,
+    }
+
     nc_mean = out.get("never_convert_regret", {}).get("mean")
-    out.update(_regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, bootstrap, bootstrap_seed, band_frac))
+    worst_lift = float(lift.max()) if lift.size else 0.0
+    out.update(_regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, bootstrap, bootstrap_seed, band_frac,
+                                 worst_lift))
     return out
 
 
@@ -1090,10 +1183,13 @@ def _summarize_node_limit_hits(hits):
     }
 
 
-def _regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, n_boot, seed, band_frac):
+def _regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, n_boot, seed, band_frac, worst_lift=0.0):
     """
     Resample the scenario axis of the regret array to put confidence intervals on the
     mean curve and on the valley location, and derive the readouts that depend on them.
+
+    worst_lift is the largest amount a baseline was raised by lift_regret_baselines: the
+    negative regret it removed, which still bounds the method's error.
 
     Returns a dict of keys to merge into the summary:
       "valley_ci"        - 80% interval on the argmin location ($)
@@ -1146,14 +1242,15 @@ def _regret_bootstrap(R, grid, means, j_valley, by_grid, nc_mean, n_boot, seed, 
     floor = max(valley_half, max(osc_bars) if osc_bars else 0.0)
 
     # Regret is non-negative by construction: pinning the first year is a restriction of the
-    # unconstrained problem, so v(x) <= v*. Any negative value is therefore a direct
-    # measurement of the method's own error - chiefly the self-consistent tax loop settling on
-    # a different fixed point for the constrained and unconstrained solves. It is deterministic
-    # and survives an arbitrarily tight solver gap, so it must be read off the data rather than
-    # inferred from the solver.
+    # unconstrained problem, so v(x) <= v*. A baseline found below one of its pinned plans is
+    # therefore a direct measurement of the method's own error - the solver stopping short, or
+    # the self-consistent tax loop settling on a different fixed point for the constrained and
+    # unconstrained solves. It is deterministic and survives an arbitrarily tight solver gap, so
+    # it must be read off the data rather than inferred from the solver. Lifting the baseline
+    # removes the negative cell, not the error: the lift is that cell, and counts as one.
     finite_R = R[np.isfinite(R)]
     if finite_R.size:
-        worst_cell = float(min(finite_R.min(), 0.0))
+        worst_cell = float(min(finite_R.min(), 0.0, -worst_lift))
         # Cell-level error averages down across scenarios, so the mean curve carries
         # |worst cell| / sqrt(n). A negative mean is noise at face value.
         n_eff = max(int(np.isfinite(R).any(axis=1).sum()), 1)

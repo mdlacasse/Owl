@@ -22,7 +22,7 @@ from itertools import pairwise
 import numpy as np
 import pytest
 
-from owlplanner import run_conversion_regret_sweep, summarize_conversion_regret
+from owlplanner import lift_regret_baselines, run_conversion_regret_sweep, summarize_conversion_regret
 from owlplanner.stresstests import (
     REGRET_MAX_GAP,
     _regret_objective_value,
@@ -88,6 +88,74 @@ def test_summarize_conversion_regret_pure():
     assert s["never_convert_regret"]["max"] == 1500.0
     # A result that predates the node-limit counts summarizes them as absent, not as zero.
     assert s["node_limit_hits"] is None
+
+
+def _short_baseline_result():
+    """Scenario 0's baseline is $1,500 short of its own pin at 50k; scenario 1's never-convert
+    solve beats its baseline by $200; scenario 2's baseline failed."""
+    return {
+        "grid": [0.0, 50_000.0, 100_000.0],
+        "start_years": np.array([1990, 1991, 1992]),
+        "v_star": np.array([100_000.0, 80_000.0, np.nan]),
+        "x_star": np.array([0.0, 30_000.0, np.nan]),
+        "v_at": np.array(
+            [
+                [99_000.0, 101_500.0, 98_000.0],
+                [80_000.0, 79_000.0, np.nan],
+                [np.nan, np.nan, np.nan],
+            ]
+        ),
+        "v_at_osc": np.array([[0.0, 12.0, 0.0], [0.0, 0.0, np.nan], [np.nan, np.nan, np.nan]]),
+        "v_star_osc": np.array([5.0, 7.0, 0.0]),
+        "v_noconv": np.array([97_000.0, 80_200.0, np.nan]),
+        "person": 0,
+    }
+
+
+def test_lift_raises_a_short_baseline_to_its_best_pinned_plan():
+    """A pinned plan is feasible for the unconstrained problem, so no baseline may end below one."""
+    r = _short_baseline_result()
+    lifted = lift_regret_baselines(r)
+
+    np.testing.assert_array_equal(lifted["v_star"][:2], [101_500.0, 80_200.0])
+    np.testing.assert_array_equal(lifted["x_star"][:2], [50_000.0, 0.0])  # never-convert: no first-year conversion
+    np.testing.assert_array_equal(lifted["v_star_lift"][:2], [1_500.0, 200.0])
+    np.testing.assert_array_equal(lifted["v_star_osc"][:2], [12.0, 0.0])  # the winning solve's bar
+    # The solves' own values are kept, and a failed baseline stays failed.
+    np.testing.assert_array_equal(lifted["v_star_solved"][:2], [100_000.0, 80_000.0])
+    np.testing.assert_array_equal(lifted["x_star_solved"][:2], [0.0, 30_000.0])
+    assert np.isnan(lifted["v_star"][2]) and lifted["v_star_lift"][2] == 0.0
+    # Regret is non-negative everywhere it is defined.
+    R = lifted["v_star"][:, None] - lifted["v_at"]
+    assert np.nanmin(R) >= 0.0
+    # The input is not modified.
+    assert r["v_star"][0] == 100_000.0 and "v_star_lift" not in r
+
+
+def test_lift_is_idempotent_and_leaves_ties_alone():
+    once = lift_regret_baselines(_short_baseline_result())
+    twice = lift_regret_baselines(once)
+    for key in ("v_star", "x_star", "v_star_lift", "v_star_solved", "x_star_solved"):
+        np.testing.assert_array_equal(twice[key], once[key])
+    # A pinned value equal to the baseline is no improvement.
+    r = _short_baseline_result()
+    r["v_at"][0, 1] = 100_000.0
+    r["v_noconv"][1] = 80_000.0
+    tie = lift_regret_baselines(r)
+    np.testing.assert_array_equal(tie["v_star_lift"][:2], [0.0, 0.0])
+    np.testing.assert_array_equal(tie["x_star"][:2], [0.0, 30_000.0])
+
+
+def test_summary_of_a_short_baseline_has_no_negative_regret():
+    """A sweep saved before lifting is lifted when summarized; the lift still counts as error."""
+    s = summarize_conversion_regret(_short_baseline_result(), asymmetry_deltas=(50_000,))
+    for g in s["regret_by_grid"]:
+        if g["mean"] is not None:
+            assert g["mean"] >= 0.0 and g["median"] >= 0.0
+    assert s["never_convert_regret"]["mean"] >= 0.0
+    assert s["baseline_lift"] == {"n_lifted": 2, "max": 1_500.0}
+    # |worst lift| / sqrt(n) with n = 2 scenarios: the floor keeps the error the lift removed.
+    assert s["resolution_floor"] >= 1_500.0 / np.sqrt(2) - 0.01
 
 
 def test_summarize_node_limit_hits():
@@ -501,7 +569,8 @@ def test_auto_grid_end_to_end(dana):
 
     assert len(res["grid"]) == 5
     assert res["grid"][0] == 0.0
-    assert res["grid"][-1] == pytest.approx(float(np.nanmax(res["x_star"])) + 45_000.0, abs=1.0)
+    # The grid is sized from the baseline solves, before any is lifted to a pinned plan.
+    assert res["grid"][-1] == pytest.approx(float(np.nanmax(res["x_star_solved"])) + 45_000.0, abs=1.0)
     assert res["v_at"].shape == (2, 5)
     assert res["milp_downgraded"] == []
 
