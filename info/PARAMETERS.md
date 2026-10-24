@@ -79,7 +79,8 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 |--------|---------|
 | `year` | Calendar year (**required**) |
 | `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal \$ |
-| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$. May be negative: a negative amount is an above-the-line deduction paid from cash, such as an HSA contribution made without wages (see `HSA ctrb`) |
+| `months worked` | Whole months of work at the start of the year, 0–12. Optional; 0 or absent → 12 in a year with wages, else 0. Read by the SSA earnings test, which counts `anticipated wages` plus that year's taxable, 401k, Roth 401k, IRA and Roth IRA contributions (the wages before contributions; an employer contribution makes them slightly high) |
+| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$. May be negative: a negative amount is an above-the-line deduction paid from cash, such as an HSA contribution made without wages (see `HSA ctrb`). Not read by the SSA earnings test: enter net SE earnings in `anticipated wages` for them to count |
 | `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal \$ |
 | `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal \$ |
 | `401k ctrb` | Traditional employer plan / 401(k) deferrals, nominal \$ |

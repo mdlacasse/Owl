@@ -179,10 +179,11 @@ This Excel workbook holds year-by-year data that are not stored in the case TOML
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
 (e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table with the following
 headers (they must match exactly, including capitalization; column order may vary):
-`year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
+`year`, `anticipated wages`, `months worked`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
 `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`. Only `year` **must be
 present**: enter `0` where a column does not apply, or leave the column out of the workbook entirely and it is
-read as zero for every year, with **Owl** reporting which columns were absent.
+read as zero for every year, with **Owl** reporting which columns were absent. The exception is
+`months worked`, where zero (or an absent column) means *not given* (see below).
 The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
 On load, the planner keeps rows from five calendar years before the **current** year through each person's
@@ -377,20 +378,20 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 14 columns titled as follows:
+The **Wages and Contributions** table contains 16 columns titled as follows:
 
 In the workbook this is a single sheet per person. In the user interface it is shown as two
 tables, the five lead-in years and the plan years, so that *Roth conv fixed* can be disabled
 on the past rows where those conversions have already happened.
 
-|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | |
-|2026 | | | | | | | | | | | | | |
-|2027 | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | |
-|20XX | | | | | | | | | | | | | |
+|year|anticipated wages|months worked|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|2026 | | | | | | | | | | | | | | | |
+|2027 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|20XX | | | | | | | | | | | | | | | |
 
 Only the *year* column **must be present** on each person's sheet; fill any other column with 0 or
 leave it blank where it does not apply, or leave the column out altogether (see below).
@@ -438,7 +439,7 @@ each person's plan span (plus the five-year lookback) are ignored.
 After loading, each person's table always runs through that individual's final plan year—even if you omitted
 those rows in the file.
 
-The thirteen columns are described below, in the order they appear in the table (fill a column with 0 or
+The fifteen columns after *year* are described below, in the order they appear in the table (fill a column with 0 or
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
 - *anticipated wages* is the annual employment income you anticipate, entered **net of all
@@ -449,11 +450,26 @@ leave it blank where it does not apply), where:
   accounts is therefore not modeled during the working years. This column is not meant to include
   all your ordinary income; for example, interest from your taxable investment accounts is
   calculated automatically based on the assumptions you made for future return rates.
+- **Owl** always applies the Social Security earnings test: the benefits a claim before full
+  retirement age would lose to it are withheld in the earning years, and the withheld months come
+  back at full retirement age through the adjustment of the reduction factor. The test counts
+  wages before contributions (W-2 box 5), so in a year with *anticipated wages* **Owl** adds back
+  that year's *taxable*, *401k*, *Roth 401k*, *IRA* and *Roth IRA ctrb*, which those wages are net
+  of. Employer contributions included in *401k ctrb* were never wages, so they make the earnings
+  slightly high; HSA contributions are left out, as a payroll HSA is not in box 5. Self-employment
+  earnings count only when entered in *anticipated wages*: the test does not read *other inc*.
+- *months worked* is how many months of that year the person works (a whole number from 0 to 12).
+  Earnings are taken as spread evenly over those months. It decides whether a month counts for the
+  earnings test's monthly grace-year rule and how much of a full-retirement-age year's earnings
+  counts. Where it is 0 or blank, or the column is absent, **Owl** uses 12 in a year with
+  earnings.
 - *other inc* is other **ordinary** income that is not wages, pension, or Social Security—e.g.
   part-time or consulting income, alimony, or rental flows you treat as ordinary. It is included in
   cash flow and ordinary-income tax logic like wages. A **negative** amount is an above-the-line
   deduction paid from your cash, such as an HSA contribution made without wages (see *HSA ctrb*).
-  A deduction larger than the year's income is lost: taxable income stops at zero.
+  A deduction larger than the year's income is lost: taxable income stops at zero. The Social
+  Security earnings test does not read it: enter net self-employment earnings in *anticipated
+  wages* instead for them to count.
 - *net inv* is net investment income such as rent or trust distributions that the model counts as
   ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
   (NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.

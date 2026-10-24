@@ -32,7 +32,9 @@ first solve, confirm a short summary of everything collected.
 - Planning horizon: life expectancy per person (this sets the plan length).
 - Balances per person: taxable brokerage, tax-deferred (401k/IRA/403b), Roth, HSA.
 - State of residence — state income tax materially changes results.
-- Work: annual wages and expected retirement year, if still working.
+- Work: annual wages and expected retirement year, if still working.  If someone will claim
+  Social Security before full retirement age while still working, the earnings test applies:
+  ask in which month work stops that year (months_worked), as the months after it are paid.
 - Social Security: monthly PIA at full retirement age per person (from the SSA statement)
   and intended claiming ages — or offer optimize_ss_ages to let the optimizer choose.
 - Objective: maximize retirement spending (optionally with a bequest floor), or maximize

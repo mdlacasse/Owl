@@ -34,6 +34,7 @@ from . import utils as u
 _timeHorizonItems = [
     "year",
     "anticipated wages",
+    "months worked",
     "other inc",
     "net inv",
     "taxable ctrb",
@@ -52,6 +53,11 @@ _timeHorizonItems = [
 # zero, so it stays a hard error. Every other column means zero when absent.
 _requiredTimeHorizonItems = ["year"]
 _optionalTimeHorizonItems = [c for c in _timeHorizonItems if c not in _requiredTimeHorizonItems]
+
+# Input of the SSA earnings test where zero means "not given", so a year's value is
+# derived from other columns (Plan._earnings_test_inputs). An absent one is read as zero
+# like any other but not reported as "treated as zero": most households have no use for it.
+_derivedTimeHorizonItems = ["months worked"]
 
 # Columns holding a flag rather than an amount. They are excluded from the
 # non-negativity check below and coerced to bool on load.
@@ -215,6 +221,11 @@ def booleanTimeHorizonItems():
     return list(_booleanTimeHorizonItems)
 
 
+def derivedTimeHorizonItems():
+    """Person-sheet columns where zero means "not given" (a value derived from other columns)."""
+    return list(_derivedTimeHorizonItems)
+
+
 def _normalizeHeader(col):
     """
     Fold a column header for near-miss comparison: case, surrounding and internal
@@ -300,9 +311,10 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         for col in absent:
             df[col] = 0
         absentCols[iname] = absent
-        if absent:
+        zeroed = [col for col in absent if col not in _derivedTimeHorizonItems]
+        if zeroed:
             mylog.print(
-                f"Column(s) absent from HFP sheet {iname!r}, treated as zero: {absent}.",
+                f"Column(s) absent from HFP sheet {iname!r}, treated as zero: {zeroed}.",
                 tag="WARNING",
             )
 
@@ -328,7 +340,18 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                     # Flags carry no magnitude, so the sign check does not apply.
                     if item in _booleanTimeHorizonItems:
                         continue
-                    if year_rows[item].iloc[0] < 0:
+                    val = year_rows[item].iloc[0]
+                    if pd.isna(val):
+                        continue  # a blank cell; read as zero below
+                    if item == "months worked":
+                        # A count of months, not an amount: integer in [0, 12].
+                        if val < 0 or val > 12 or float(val) != int(float(val)):
+                            raise ValueError(
+                                f"Item {item} for {iname} in year {year} is {val}: "
+                                "months worked must be a whole number of months from 0 to 12."
+                            )
+                        continue
+                    if val < 0:
                         # A negative big-ticket item is an expense; a negative "other inc" is an
                         # above-the-line deduction, such as an HSA contribution without wages.
                         if item in ("big-ticket items", "other inc"):
@@ -631,6 +654,7 @@ def build_hfp_dataframes(plan):
         for n in range(h):
             row = lead_in + n
             df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
+            df.at[row, "months worked"] = float(plan.etMonths_in[i, n])
             df.at[row, "other inc"] = float(plan.other_inc_in[i, n])
             df.at[row, "net inv"] = float(plan.netinv_in[i, n])
             df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
@@ -702,6 +726,7 @@ def time_lists_agree(a, b):
     # Carried by the arrays for plan years only (see the note above).
     planOnlyCols = [
         "anticipated wages",
+        "months worked",
         "other inc",
         "net inv",
         "QCD",

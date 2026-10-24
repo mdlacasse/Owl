@@ -70,6 +70,9 @@ def _metrics_to_summary(m: dict) -> dict:
         "federal_income_tax_today_dollars": r("federal_income_tax_today"),
         "ltcg_tax_nominal": r("ltcg_tax_nominal"),
         "niit_nominal": r("niit_nominal"),
+        # SSA earnings test: 0 when it withholds nothing.
+        "ss_withheld_nominal": r("ss_withheld_nominal"),
+        "ss_withheld_today_dollars": r("ss_withheld_today"),
         "state_tax_nominal": r("state_tax_nominal"),
         "medicare_nominal": r("medicare_nominal"),
         "aca_nominal": r("aca_nominal"),

@@ -566,6 +566,10 @@ def explain_case(
     Loads and validates the TOML case file, applies any overrides, and returns
     a JSON document with: individuals, time horizon, account balances, Social
     Security and pension income, rate method, objective, and solver options.
+    Each Social Security entry also carries an 'earnings_test' block: what the
+    SSA earnings test would withhold at the entered claiming ages (today's $),
+    and the ARF crediting months that replace it at FRA (every solve applies
+    the test).
 
     The 'overrides' list uses KEY.PATH=VALUE syntax, e.g.:
       ["basic_info.state=CA", "fixed_income.social_security_ages=[70,68]"]
@@ -1082,6 +1086,7 @@ def _build_plan_from_params(
     other_medical_expenses=None,
     medical_inflation_excess=None,
     other_income=None,
+    months_worked=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
@@ -1278,6 +1283,20 @@ def _build_plan_from_params(
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.other_inc_in[i, n] += amount
+
+    # Months of work in a year, for the SSA earnings test (the HFP "months worked"): the year
+    # someone stops working and claims, the months after work are paid (the grace year).
+    if months_worked:
+        for mw in months_worked:
+            i = int(mw.get("person", 0))
+            _check_person_index(i, N_i, "months_worked")
+            year = int(_get_field(mw, "start_year"))
+            months = int(mw.get("months", mw.get("months_worked", 12)))
+            if not 0 <= months <= 12:
+                raise ValueError(f"months_worked: months must be a whole number from 0 to 12, got {months}.")
+            n = year - thisyear
+            if 0 <= n < plan.N_n:
+                plan.etMonths_in[i, n] = months
 
     # Time-series: contributions → kappa_ijn  (annual $/year)
     if contributions:
@@ -1514,6 +1533,7 @@ def _run_from_params_blocking(
     include_medicare_part_d=None,
     medicare_part_d_base_premium=None,
     other_income=None,
+    months_worked=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1573,6 +1593,7 @@ def _run_from_params_blocking(
         other_medical_expenses=other_medical_expenses,
         medical_inflation_excess=medical_inflation_excess,
         other_income=other_income,
+        months_worked=months_worked,
     )
     if (
         assumed is not None
@@ -1776,6 +1797,7 @@ async def run_from_params(
         ),
     ] = None,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -1838,6 +1860,12 @@ async def run_from_params(
                         from savings.  With wages, net the contribution out of wages instead.  A
                         deduction larger than the year's income is lost.  Each entry:
                         {"person": 0, "annual_amount": -5400, "start_year": 2026, "end_year": 2027}.
+        months_worked:  Months of work at the start of a year, for the Social Security earnings
+                        test (the HFP "months worked"): use it for the year someone stops
+                        working, especially if they claim Social Security that year before full
+                        retirement age, since the months after work are then paid.  A year
+                        with wages and no entry counts as 12 months.  Each entry:
+                        {"person": 1, "year": 2028, "months": 6}.
         qcds:           Qualified charitable distributions: money paid from the tax-deferred
                         account straight to a charity.  Each entry: {"person": 0,
                         "annual_amount": 20000, "start_year": 2029, "end_year": 2040,
@@ -2095,7 +2123,7 @@ async def run_from_params(
     try:
         plan = await asyncio.get_running_loop().run_in_executor(
             None,
-            functools.partial(_run_from_params_blocking, other_income=other_income),
+            functools.partial(_run_from_params_blocking, other_income=other_income, months_worked=months_worked),
             names,
             birth_dates,
             life_expectancy,
@@ -2273,6 +2301,7 @@ def save_case(
     output_dir: str = ".",
     case_name: str | None = None,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Save a retirement planning case to a TOML file and an HFP Excel file.
 
@@ -2348,6 +2377,7 @@ def save_case(
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
             other_income=other_income,
+            months_worked=months_worked,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -2640,6 +2670,7 @@ async def compare_to_baseline(
     max_time: float | None = None,
     seed: int | None = None,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Quantify the dollar value of Owl's joint optimization against a conventional baseline.
 
@@ -2792,6 +2823,7 @@ async def compare_to_baseline(
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
             other_income=other_income,
+            months_worked=months_worked,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2937,6 +2969,7 @@ async def explain_results(
     solver: str | None = None,
     max_time: float | None = None,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Explain WHY the optimized plan looks the way it does, using LP shadow prices.
 
@@ -3087,6 +3120,7 @@ async def explain_results(
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
             other_income=other_income,
+            months_worked=months_worked,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -3509,6 +3543,7 @@ async def run_stochastic(
     seed: int | None = None,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Run multi-scenario spending optimization and return an efficient frontier.
 
@@ -3548,6 +3583,7 @@ async def run_stochastic(
         big_ticket_items:     Signed annual cash flows, negative = expense, positive = inflow:
                               [{"person":0,"annual_amount":-5000,"start_year":2027}].
         other_income:         Signed other ordinary income; negative = deduction (see run_from_params).
+        months_worked:        Months of work in a year, earnings test (see run_from_params).
         qcds:                 Qualified charitable distributions, same shape. IRA-to-charity:
                               excluded from AGI and credited against the RMD.
         debts:                Debts: [{"label":"mortgage","type":"mortgage","balance":300000,
@@ -3738,6 +3774,7 @@ async def run_stochastic(
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
                 other_income=other_income,
+                months_worked=months_worked,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4008,6 +4045,7 @@ async def run_spending_bequest_frontier(
     with_duals: bool = False,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Trace the trade-off between net spending and the bequest left behind.
 
@@ -4208,6 +4246,7 @@ async def run_spending_bequest_frontier(
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
                 other_income=other_income,
+                months_worked=months_worked,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4451,6 +4490,7 @@ async def run_year1_robustness(
     seed: int | None = None,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Quantify how robust the FIRST YEAR's decisions are across return scenarios.
 
@@ -4576,6 +4616,7 @@ async def run_year1_robustness(
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
                 other_income=other_income,
+                months_worked=months_worked,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4716,6 +4757,7 @@ def _longevity_stochastic_blocking(
     medical_inflation_excess=None,
     confirm_long_run=True,
     other_income=None,
+    months_worked=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4779,6 +4821,7 @@ def _longevity_stochastic_blocking(
         other_medical_expenses=other_medical_expenses,
         medical_inflation_excess=medical_inflation_excess,
         other_income=other_income,
+        months_worked=months_worked,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4913,6 +4956,7 @@ async def run_longevity_stochastic(
     seed: int | None = None,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Run a spending frontier that jointly samples market sequences AND random lifespans.
 
@@ -4957,6 +5001,7 @@ async def run_longevity_stochastic(
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
+        months_worked:    Months of work in a year, earnings test (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5070,7 +5115,7 @@ async def run_longevity_stochastic(
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
-            functools.partial(_longevity_stochastic_blocking, other_income=other_income),
+            functools.partial(_longevity_stochastic_blocking, other_income=other_income, months_worked=months_worked),
             names,
             birth_dates,
             life_expectancy,
@@ -5236,6 +5281,7 @@ async def run_historical(
     max_time: float | None = None,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Backtest a plan across historical rate sequences and return a distribution of outcomes.
 
@@ -5272,6 +5318,7 @@ async def run_historical(
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
+        months_worked:    Months of work in a year, earnings test (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5441,6 +5488,7 @@ async def run_historical(
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
                 other_income=other_income,
+                months_worked=months_worked,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5585,6 +5633,7 @@ async def run_monte_carlo(
     seed: int | None = None,
     confirm_long_run: bool = False,
     other_income: list[dict] | None = None,
+    months_worked: list[dict] | None = None,
 ) -> str:
     """Run Monte Carlo simulations and return a distribution of optimal outcomes.
 
@@ -5626,6 +5675,7 @@ async def run_monte_carlo(
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
         other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
+        months_worked:    Months of work in a year, earnings test (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5802,6 +5852,7 @@ async def run_monte_carlo(
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
                 other_income=other_income,
+                months_worked=months_worked,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})

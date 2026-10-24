@@ -397,13 +397,40 @@ def test_hsa_contributions_stop_at_medicare(tmp_path):
 
 
 def test_every_tool_with_big_ticket_items_takes_other_income():
-    """The two signed time series travel together: a tool that takes one must take the other."""
+    """The HFP time series travel together: a tool that takes one takes the others."""
     import inspect
     from owlplanner.assistant.tools import MCP_TOOLS
     for tool in MCP_TOOLS:
         params = inspect.signature(tool).parameters
         if "big_ticket_items" in params:
             assert "other_income" in params, tool.__name__
+            assert "months_worked" in params, tool.__name__
+
+
+def test_months_worked_populates_et_months_in(tmp_path):
+    """months_worked feeds the earnings test's grace year, as the HFP column does, and
+    save_case writes it to the workbook."""
+    plan = _single(months_worked=[{"person": 0, "year": THISYEAR + 1, "months": 6}])
+    assert plan.etMonths_in[0, 1] == 6
+    assert plan.etMonths_in[0, 0] == 0
+    with pytest.raises(ValueError, match="months_worked"):
+        _single(months_worked=[{"person": 0, "year": THISYEAR, "months": 13}])
+    save_case(
+        names=["Robin"],
+        birth_dates=["1966-07-01"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[62],
+        wages=[{"person": 0, "annual_amount": 80_000, "end_year": THISYEAR + 2}],
+        months_worked=[{"person": 0, "year": THISYEAR + 1, "months": 6}],
+        state="TX",
+        output_dir=str(tmp_path),
+    )
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR + 1, "months worked"].iloc[0] == 6
 
 
 def test_save_case_keeps_a_negative_other_income(tmp_path):
