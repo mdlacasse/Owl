@@ -35,6 +35,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 import asyncio
 import datetime
+import functools
 import json
 import os
 import sys
@@ -1080,6 +1081,7 @@ def _build_plan_from_params(
     spousal_deposit_fraction=None,
     other_medical_expenses=None,
     medical_inflation_excess=None,
+    other_income=None,
 ):
     """Build and configure a Plan from structured parameters.  Does not solve.
 
@@ -1263,6 +1265,19 @@ def _build_plan_from_params(
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.omega_in[i, n] += amount
+
+    # Time-series: other ordinary income → other_inc_in  (annual $/year, signed: a negative amount is an
+    # above-the-line deduction paid from cash, e.g. an HSA contribution without wages; the HFP "other inc").
+    if other_income:
+        for oi in other_income:
+            i = int(oi.get("person", 0))
+            _check_person_index(i, N_i, "other_income")
+            amount = float(_get_field(oi, "annual_amount"))
+            start_yr = int(_get_field(oi, "start_year", thisyear))
+            end_yr = int(_get_field(oi, "end_year", thisyear + int(plan.horizons[i])))
+            for n in range(plan.N_n):
+                if start_yr <= thisyear + n < end_yr:
+                    plan.other_inc_in[i, n] += amount
 
     # Time-series: contributions → kappa_ijn  (annual $/year)
     if contributions:
@@ -1496,6 +1511,7 @@ def _run_from_params_blocking(
     medical_inflation_excess=None,
     include_medicare_part_d=None,
     medicare_part_d_base_premium=None,
+    other_income=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1554,6 +1570,7 @@ def _run_from_params_blocking(
         spousal_deposit_fraction=spousal_deposit_fraction,
         other_medical_expenses=other_medical_expenses,
         medical_inflation_excess=medical_inflation_excess,
+        other_income=other_income,
     )
     if (
         assumed is not None
@@ -1756,6 +1773,7 @@ async def run_from_params(
             "liquid balance sheet (default 15)."
         ),
     ] = None,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -1808,6 +1826,16 @@ async def run_from_params(
                         "end_year": 2030, "label": "healthcare"}.  Use for planned large
                         purchases or recurring costs NOT covered by the spending floor.
                         Distinct from debts (which have an amortization schedule).
+        other_income:   Other ordinary income outside wages, pension and Social Security, the HFP
+                        "other inc" column.  annual_amount is SIGNED: a positive amount is taxable
+                        income received in cash (consulting, alimony, rents taxed as ordinary); a
+                        NEGATIVE amount is an above-the-line deduction paid from cash.  Use it for an
+                        HSA contribution made without wages: list the contribution under
+                        contributions (account "hsa") AND the same amount here as a negative
+                        other_income, which deducts it from AGI and MAGI (IRC 223(a)) and pays it
+                        from savings.  With wages, net the contribution out of wages instead.  A
+                        deduction larger than the year's income is lost.  Each entry:
+                        {"person": 0, "annual_amount": -5400, "start_year": 2026, "end_year": 2027}.
         qcds:           Qualified charitable distributions: money paid from the tax-deferred
                         account straight to a charity.  Each entry: {"person": 0,
                         "annual_amount": 20000, "start_year": 2029, "end_year": 2040,
@@ -2065,7 +2093,7 @@ async def run_from_params(
     try:
         plan = await asyncio.get_running_loop().run_in_executor(
             None,
-            _run_from_params_blocking,
+            functools.partial(_run_from_params_blocking, other_income=other_income),
             names,
             birth_dates,
             life_expectancy,
@@ -2242,6 +2270,7 @@ def save_case(
     liquidation_capgains_rate: float | None = None,
     output_dir: str = ".",
     case_name: str | None = None,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Save a retirement planning case to a TOML file and an HFP Excel file.
 
@@ -2316,6 +2345,7 @@ def save_case(
             spousal_deposit_fraction=spousal_deposit_fraction,
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
+            other_income=other_income,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
@@ -2607,6 +2637,7 @@ async def compare_to_baseline(
     solver: str | None = None,
     max_time: float | None = None,
     seed: int | None = None,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Quantify the dollar value of Owl's joint optimization against a conventional baseline.
 
@@ -2758,6 +2789,7 @@ async def compare_to_baseline(
             spousal_deposit_fraction=spousal_deposit_fraction,
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
+            other_income=other_income,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -2902,6 +2934,7 @@ async def explain_results(
     constrain_mean: bool = False,
     solver: str | None = None,
     max_time: float | None = None,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Explain WHY the optimized plan looks the way it does, using LP shadow prices.
 
@@ -3051,6 +3084,7 @@ async def explain_results(
             spousal_deposit_fraction=spousal_deposit_fraction,
             other_medical_expenses=other_medical_expenses,
             medical_inflation_excess=medical_inflation_excess,
+            other_income=other_income,
         )
         opts_kwargs = dict(
             solver=solver,
@@ -3472,6 +3506,7 @@ async def run_stochastic(
     max_time: float | None = None,
     seed: int | None = None,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Run multi-scenario spending optimization and return an efficient frontier.
 
@@ -3510,6 +3545,7 @@ async def run_stochastic(
                               Use list_contribution_limits to find IRS max amounts (incl. catch-up).
         big_ticket_items:     Signed annual cash flows, negative = expense, positive = inflow:
                               [{"person":0,"annual_amount":-5000,"start_year":2027}].
+        other_income:         Signed other ordinary income; negative = deduction (see run_from_params).
         qcds:                 Qualified charitable distributions, same shape. IRA-to-charity:
                               excluded from AGI and credited against the RMD.
         debts:                Debts: [{"label":"mortgage","type":"mortgage","balance":300000,
@@ -3699,6 +3735,7 @@ async def run_stochastic(
                 spousal_deposit_fraction=spousal_deposit_fraction,
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
+                other_income=other_income,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -3968,6 +4005,7 @@ async def run_spending_bequest_frontier(
     seed: int | None = None,
     with_duals: bool = False,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Trace the trade-off between net spending and the bequest left behind.
 
@@ -4167,6 +4205,7 @@ async def run_spending_bequest_frontier(
                 spousal_deposit_fraction=spousal_deposit_fraction,
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
+                other_income=other_income,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4409,6 +4448,7 @@ async def run_year1_robustness(
     max_time: float | None = None,
     seed: int | None = None,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Quantify how robust the FIRST YEAR's decisions are across return scenarios.
 
@@ -4533,6 +4573,7 @@ async def run_year1_robustness(
                 spousal_deposit_fraction=spousal_deposit_fraction,
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
+                other_income=other_income,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -4672,6 +4713,7 @@ def _longevity_stochastic_blocking(
     other_medical_expenses=None,
     medical_inflation_excess=None,
     confirm_long_run=True,
+    other_income=None,
 ):
     """Build plan, configure longevity sampling, solve, run stochastic frontier."""
     from owlplanner.stresstests import run_stochastic_spending
@@ -4734,6 +4776,7 @@ def _longevity_stochastic_blocking(
         spousal_deposit_fraction=spousal_deposit_fraction,
         other_medical_expenses=other_medical_expenses,
         medical_inflation_excess=medical_inflation_excess,
+        other_income=other_income,
     )
     _scrub_optimized_ss_ages(assumed, opts)
 
@@ -4867,6 +4910,7 @@ async def run_longevity_stochastic(
     max_time: float | None = None,
     seed: int | None = None,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Run a spending frontier that jointly samples market sequences AND random lifespans.
 
@@ -4910,6 +4954,7 @@ async def run_longevity_stochastic(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
+        other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5023,7 +5068,7 @@ async def run_longevity_stochastic(
     try:
         plan, result = await asyncio.get_running_loop().run_in_executor(
             None,
-            _longevity_stochastic_blocking,
+            functools.partial(_longevity_stochastic_blocking, other_income=other_income),
             names,
             birth_dates,
             life_expectancy,
@@ -5188,6 +5233,7 @@ async def run_historical(
     solver: str | None = None,
     max_time: float | None = None,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Backtest a plan across historical rate sequences and return a distribution of outcomes.
 
@@ -5223,6 +5269,7 @@ async def run_historical(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
+        other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5391,6 +5438,7 @@ async def run_historical(
                 spousal_deposit_fraction=spousal_deposit_fraction,
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
+                other_income=other_income,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})
@@ -5534,6 +5582,7 @@ async def run_monte_carlo(
     max_time: float | None = None,
     seed: int | None = None,
     confirm_long_run: bool = False,
+    other_income: list[dict] | None = None,
 ) -> str:
     """Run Monte Carlo simulations and return a distribution of optimal outcomes.
 
@@ -5574,6 +5623,7 @@ async def run_monte_carlo(
         wages:            Wage streams (see run_from_params for format).
         contributions:    Retirement contributions (see run_from_params).
         big_ticket_items: Signed cash flows, negative = expense (see run_from_params).
+        other_income:     Signed other ordinary income; negative = deduction (see run_from_params).
         qcds: Qualified charitable distributions (see run_from_params).
         debts:            Amortizing loans (see run_from_params).
         fixed_assets:     Assets to be sold (see run_from_params).
@@ -5749,6 +5799,7 @@ async def run_monte_carlo(
                 spousal_deposit_fraction=spousal_deposit_fraction,
                 other_medical_expenses=other_medical_expenses,
                 medical_inflation_excess=medical_inflation_excess,
+                other_income=other_income,
             )
         except Exception as e:
             return json.dumps({"error": f"Plan build error: {e}"})

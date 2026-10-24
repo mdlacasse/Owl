@@ -350,6 +350,54 @@ def test_big_ticket_items_single_year():
     assert plan.Lambda_in[0, 6] == pytest.approx(0)
 
 
+def test_other_income_populates_other_inc_in():
+    """Signed pass-through to the HFP "other inc": a negative amount is an above-the-line deduction (#225)."""
+    plan = _single(
+        other_income=[
+            {"person": 0, "annual_amount": -5_400, "start_year": THISYEAR, "end_year": THISYEAR + 2},
+            {"person": 0, "annual_amount": 12_000, "start_year": THISYEAR + 3, "end_year": THISYEAR + 4},
+        ]
+    )
+    assert plan.other_inc_in[0, 0] == pytest.approx(-5_400)
+    assert plan.other_inc_in[0, 1] == pytest.approx(-5_400)
+    assert plan.other_inc_in[0, 2] == pytest.approx(0)
+    assert plan.other_inc_in[0, 3] == pytest.approx(12_000)
+
+
+def test_every_tool_with_big_ticket_items_takes_other_income():
+    """The two signed time series travel together: a tool that takes one must take the other."""
+    import inspect
+    from owlplanner.assistant.tools import MCP_TOOLS
+    for tool in MCP_TOOLS:
+        params = inspect.signature(tool).parameters
+        if "big_ticket_items" in params:
+            assert "other_income" in params, tool.__name__
+
+
+def test_save_case_keeps_a_negative_other_income(tmp_path):
+    """A deduction saved by save_case lands in the HFP "other inc" column and reads back."""
+    save_case(
+        names=["Robin"],
+        birth_dates=["1966-07-01"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        hsa=[10_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[67],
+        contributions=[{"person": 0, "account": "hsa", "annual_amount": 5_400, "end_year": THISYEAR + 2}],
+        other_income=[{"person": 0, "annual_amount": -5_400, "end_year": THISYEAR + 2}],
+        state="TX",
+        output_dir=str(tmp_path),
+    )
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR, "other inc"].iloc[0] == pytest.approx(-5_400)
+    from owlplanner.config import readConfig
+    plan = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert plan.other_inc_in[0, 0] == pytest.approx(-5_400)
+
+
 # ---------------------------------------------------------------------------
 # _build_plan_from_params — roth_conversions (per-year pins)
 # ---------------------------------------------------------------------------

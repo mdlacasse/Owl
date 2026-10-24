@@ -1,5 +1,14 @@
 ### Version WIP
 
+#### The MCP tools take other income, so an assistant can enter an HSA deduction
+
+Every MCP tool that builds a plan from parameters (`run_from_params`, `save_case`, the
+stochastic and comparison tools) now takes `other_income`, the HFP *other inc* column: signed
+annual amounts, a negative one being an above-the-line deduction paid from cash. Without it an
+assistant could not enter the deduction for an HSA contribution made without wages (#225), nor
+any other ordinary income outside wages. The intake checklist asks about it, and `save_case`
+writes it to the HFP.
+
 #### Fixed: an HSA contribution without wages can now be deducted, by entering a negative *other inc*
 
 An HSA contribution is deducted above the line whether or not there are wages (IRC 223(a),

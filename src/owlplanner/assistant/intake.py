@@ -50,6 +50,10 @@ first solve, confirm a short summary of everything collected.
   collectibles: basis, value, planned sale year).  For each mortgage or home loan, ask
   which property it is on: a loan linked to a property (debts "property" = that fixed
   asset's label) is paid off from the proceeds when the property is sold.
+- Other ordinary income outside wages (other_income): consulting, part-time work, alimony.
+  Before 65 without wages, ask whether they contribute to an HSA from savings (an ACA bronze
+  plan qualifies from 2026): that contribution is a NEGATIVE other_income beside the "hsa"
+  contribution, which lowers the MAGI the ACA credit is figured on.
 - Planned large expenses and windfalls (big_ticket_items): weddings, cars, travel
   budgets; inheritances, gifts received.  Amounts are signed: enter an expense as a
   NEGATIVE annual_amount and an inflow as a positive one.
@@ -83,9 +87,10 @@ those entries to the user and refine the ones that could change their decisions.
   contributions into their accounts without subtracting them from wages, so gross wages
   plus contributions would double-count.
 - An HSA contribution made without wages (a retiree or early retiree paying from savings)
-  has no wages to be netted from: in an HFP or case file, enter it in "HSA ctrb" and the
-  same amount as a negative "other inc", the above-the-line deduction that also pays it
-  from cash. "other inc" and "big-ticket items" are the only columns that may be negative.
+  has no wages to be netted from: list it under contributions (account "hsa") and the same
+  amount as a negative other_income, the above-the-line deduction that also pays it from
+  cash. In an HFP file these are the "HSA ctrb" and "other inc" columns. other_income and
+  big_ticket_items ("other inc" and "big-ticket items") are the only signed inputs.
 - Allocation arrays are [equities, corporate_bonds, t_notes, cash]; ask whether "bonds"
   means corporate bonds or Treasuries before filling one in.
 
