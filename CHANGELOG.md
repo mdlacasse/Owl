@@ -1,5 +1,24 @@
 ### Version WIP
 
+#### Fixed: a Roth conversion is free from the fifth year after it, and its own year cannot release earnings
+
+A conversion's 5-year period is five taxable years starting with the year of the conversion (IRC
+408A(d)(3)(F)), so a 2026 conversion can be withdrawn without the 10% from 2031. **Owl** held it
+back a year more, through 2031, so a conversion ladder reached each rung a year late and paid the
+10% on tax-deferred withdrawals in the meantime (#224). The early-withdrawal rows of #209, on the
+other hand, counted every conversion made so far as withdrawable before 59½, the year's own
+included: a plan could convert an amount and withdraw the same amount from a Roth holding only
+earnings, which the ordering rules (conversions oldest first, then earnings, 408A(d)(4)(B)) charge
+the 10%, and **Owl** charged nothing (#223). Both now follow the rules: a conversion is held through
+the year of the conversion and the four after it, and before 59½ only conversions past that period
+count toward what can be withdrawn. In the reported ladder, the 10% paid before 59½ falls by
+\$2,113 and spending rises by \$79 a year, with nothing the law charges left uncharged; in the
+reported recapture case, the \$748 of 10% that went uncharged is gone. Of the examples, jack+jill's
+bequest rises by \$57; Case_morgan used the same-year route (\$567 of 10% uncharged) and no longer
+does, at a cost of \$70 a year of spending when solved exactly (its self-consistent loop lands
+elsewhere, 1.1% higher). Thanks to Marco Pignone (@rationalpiper) for both reports, with the
+statute, the Form 5329 instructions, the repros and the fixes (#223, #224).
+
 #### Fixed: HSA contributions entered through the MCP tools stop at Medicare
 
 An HSA contribution read from the HFP stops at Medicare enrollment, the year it starts keeping

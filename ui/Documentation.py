@@ -411,9 +411,10 @@ Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the five-year maturation rule.
 For that purpose, a retainer on the tax-free account
-is put as the sum of all Roth conversions performed
-during the last five years plus an additional amount for potential
-compounded gains. These gains are assumed to be 10% per year for the past
+is put as the sum of the Roth conversions still within their five-year period plus an
+additional amount for potential compounded gains. The period is five taxable years starting with
+the year of the conversion, so a conversion made in 2026 can be withdrawn without the 10% from
+2031. Before 59½, only conversions past their period count toward what can be withdrawn. These gains are assumed to be 10% per year for the past
 years, and use the predicted returns for future years.
 Unlike conversions, contributions can be withdrawn, but a retainer is
 put covering the sum of all potential gains resulting from contributions

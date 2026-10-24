@@ -5370,12 +5370,12 @@
   },
   "Case_morgan": {
    "HiGHS": {
-    "_rerecorded": "2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
+    "_rerecorded": "2026-10-24 basis only, after the Roth maturation rows free a conversion in its sixth taxable year (#224) and only matured conversions count as basis before 59 1/2 (#223). The loop oscillates on this case (SS residual ~$1,800): the move is its fixed point, not the rule; the exact MILP goes 44,077.72 -> 44,007.27. Earlier: 2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 40888.78,
+    "basis": 41340.55,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,
@@ -5630,12 +5630,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
+    "_rerecorded": "2026-10-24 basis only, after the Roth maturation rows free a conversion in its sixth taxable year (#224) and only matured conversions count as basis before 59 1/2 (#223). The loop oscillates on this case (SS residual ~$1,800): the move is its fixed point, not the rule; the exact MILP goes 44,077.72 -> 44,007.27. Earlier: 2026-10-05 from Owl.dev LP after ACA costs nothing up to 138% FPL (Medicaid, #165): 2033-2036 at 133% FPL no longer pay the full $14,000 SLCSP",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 40888.79,
+    "basis": 41335.22,
     "bequest": 75000.0,
     "conversions_n": [
      50000.0,

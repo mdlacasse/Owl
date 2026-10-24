@@ -3142,14 +3142,19 @@ class Plan:
         - Roth contribution *principal* can be withdrawn tax- and penalty-free at any time.
         - Roth *earnings* on contributions require both (a) account age ≥ 5 years AND
           (b) age ≥ 59½ (or other exception) to be penalty-free.
-        - Each Roth *conversion* carries its own 5-year clock; conversion principal withdrawn
-          within 5 years of conversion is subject to the 10% penalty if the owner is under 59½
-          at the time of the withdrawal. The age that matters is the age at withdrawal, not at
-          conversion: converting at 58 and withdrawing at 61 incurs no penalty.
+        - Each Roth *conversion* carries its own 5-year clock: the 5-taxable-year period that
+          begins with the year of the conversion (IRC 408A(d)(3)(F)), so a conversion made in
+          year m is free from year m+5. Conversion principal withdrawn within it is subject to the
+          10% penalty if the owner is under 59½ at the time of the withdrawal. The age that matters
+          is the age at withdrawal, not at conversion: converting at 58 and withdrawing at 61 incurs
+          no penalty.
 
-        Simplification: This implementation applies a single unified 5-year lookback that retains
-        all recent conversions (at compounded value, losses included) and the gains-only portion of recent
-        contributions as a minimum balance floor, at every age, including after 59½. Contribution
+        Simplification: This implementation keeps a minimum balance floor of recent conversions (at
+        compounded value, losses included) and the gains-only portion of recent contributions, at
+        every age, including after 59½. A year-m conversion enters the balance in year m+1 (the
+        carryover rows) and is held through year m+4, the end of its period (#224). Contribution
+        gains are held five years, as the 5-year period of 408A(d)(2)(B) runs from the first
+        contribution rather than from each one. Contribution
         *principal* is not separately tracked and freed — the constraint treats it as part of the
         5-year retainer. Both choices make it intentionally conservative (preventing some valid
         withdrawals of contribution principal, and of conversions after 59½). This never
@@ -3178,16 +3183,21 @@ class Plan:
                 row.addElem(self.vm["w"].idx(i, 2, n), -1)
                 for dn in range(1, 6):
                     nn = n - dn
+                    # A year-m conversion's period is years m to m+4 (408A(d)(3)(F)): it is free in m+5.
+                    held = dn <= 4
                     if nn >= 0:  # Past of future is now or in the future: use variables or parameters.
                         cgains *= Tau1_in[i, nn]
-                        row.addElem(self.vm["x"].idx(i, nn), -cgains)
+                        if held:
+                            row.addElem(self.vm["x"].idx(i, nn), -cgains)
                         # A contribution is retained for its gains only, and after a loss it has none.
                         rhs += max(0.0, cgains - 1) * self.kappa_ijn[i, 2, nn]
                     else:  # Past of future is in the past:
                         cgains *= oldTau1
                         # Past years are stored at the end of the contributions and conversions
                         # arrays, accessed via negative indexing.
-                        rhs += max(0.0, cgains - 1) * self.kappa_ijn[i, 2, nn] + cgains * self.myRothX_in[i, nn]
+                        rhs += max(0.0, cgains - 1) * self.kappa_ijn[i, 2, nn]
+                        if held:
+                            rhs += cgains * self.myRothX_in[i, nn]
 
                 self.A.addRow(row, rhs, np.inf, tag=("roth_maturation", i, n))
 
@@ -3202,9 +3212,14 @@ class Plan:
         retain only recent conversions, so without this the earnings could come out early with
         neither. For each individual and year before the 59 1/2 year:
 
-            sum_{m<=n} w[i,2,m] <= b[i,2,0] + sum_{m<=n} (xnet * x[i,m] + kappa[i,2,m]),
+            sum_{m<=n} w[i,2,m] <= b[i,2,0] + sum_{m<=n} kappa[i,2,m] + sum_{m<=n-5} xnet * x[i,m],
 
         which forbids early earnings rather than taxing them, conservative like the maturation rows.
+        Only matured conversions count (#223): a conversion within its 5-taxable-year period, the
+        year's own included, is charged the 10% when it comes out before 59 1/2 (408A(d)(3)(F)), and
+        by the ordering rules it is what a withdrawal beyond the matured ones takes first. Counting
+        it let a year convert X and withdraw X from a Roth holding only earnings, charged nothing.
+        The m <= n-5 timing matches the maturation rows, which free a year-m conversion in m+5.
 
         Simplifications: the whole starting Roth balance counts as contributions and conversions
         (Owl has no input for its basis), the rows stop at the first death (a surviving spouse can
@@ -3217,7 +3232,8 @@ class Plan:
                 row.addElem(self.vm["b"].idx(i, 2, 0), -1)
                 for m in range(n + 1):
                     row.addElem(self.vm["w"].idx(i, 2, m), 1)
-                    row.addElem(self.vm["x"].idx(i, m), -self.xnet)
+                    if m <= n - 5:  # matured conversions only (#223)
+                        row.addElem(self.vm["x"].idx(i, m), -self.xnet)
                 rhs = float(np.sum(self.kappa_ijn[i, 2, : n + 1]))
                 self.A.addRow(row, -np.inf, rhs, tag=("roth_early_basis", i, n))
 

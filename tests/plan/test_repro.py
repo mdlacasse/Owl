@@ -46,9 +46,12 @@ import owlplanner as owl
 # Updated when the Roth 5-year rule started compounding recent conversions at real returns, losses
 # included (#184): BEQUEST1 959_220 -> 959_420, the same with HiGHS and MOSEK (recorded on darwin;
 # linux and win32 take the same, not rerun there).
+# Updated when the Roth maturation rows started freeing a conversion in its sixth taxable year, as
+# 408A(d)(3)(F) does, rather than its seventh (#224): BEQUEST1 959_420 -> 959_477, the same with HiGHS
+# and MOSEK (recorded on darwin). Jack and Jill are past 59 1/2, so #223's basis rows do not apply.
 if platform == "darwin":
     SPENDING1 = 89_154
-    BEQUEST1 = 959_420
+    BEQUEST1 = 959_477
     SPENDING2 = 99_246
     SPENDING1_FIXED = 93_255
     BEQUEST1_FIXED = 500_000
