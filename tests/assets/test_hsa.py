@@ -451,3 +451,8 @@ def test_a_deduction_larger_than_all_income(options):
                  taxable=200, deferred=0)
     assert p.T_n[0] == pytest.approx(0, abs=1)
     assert p.st_T_n[0] == pytest.approx(0, abs=1)
+    # AGI can fall below zero where taxable income cannot: the reported MAGI is the year's income less
+    # the deduction, and in optimize mode it is the MAGI the ACA rows priced.
+    assert p.MAGI_n[0] == pytest.approx(p.Q_n[0] - 8000, abs=1)
+    if "haca" in p.vm:
+        assert p.MAGI_aca_n[0] == pytest.approx(p.haca_qn[0].sum(), abs=1)

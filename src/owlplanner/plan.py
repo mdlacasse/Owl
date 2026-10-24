@@ -7076,6 +7076,10 @@ class Plan:
             self.MAGI_n = vm["magi"].extract(x)
         else:
             self.MAGI_n = self.G_n + self.e_n + self.Q_n
+        if "dl" in vm:
+            # G_n + e_n carries the deduction the year's income could not absorb, since taxable
+            # income stops at zero; AGI does not. Report the MAGI that the ACA and IRMAA rows price.
+            self.MAGI_n = self.MAGI_n - vm["dl"].extract(x)[0]
         if "sbp" in vm:
             # The deduction the LP allowed, bonus and phase-out included (the residual compares it
             # with the one this MAGI implies).

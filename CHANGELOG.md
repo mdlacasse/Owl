@@ -22,7 +22,8 @@ deduction paid from cash: enter the contribution in *HSA ctrb* and the same amou
 infeasible: taxable income stops at zero in the federal and state bases (in PA, which leaves
 conversions out of state income, an \$8,000 contribution beside a \$30,000 conversion made every
 mode infeasible), and in optimize mode an ACA or IRMAA MAGI below zero stays in the bottom
-bracket. Cases with no negative entry solve exactly as before. The documentation now says which
+bracket. The reported MAGI is then below zero too, the MAGI those brackets priced, while taxable
+income stays at zero. Cases with no negative entry solve exactly as before. The documentation now says which
 columns may be negative (*other inc* and *big-ticket items*) and how an HSA contribution reaches
 AGI, and no longer says that the year Medicare starts is zeroed: it keeps the months before.
 Thanks to Marco Pignone (@rationalpiper) for reporting it, with the references, and for testing
