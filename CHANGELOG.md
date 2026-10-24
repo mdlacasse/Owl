@@ -1,5 +1,21 @@
 ### Version WIP
 
+#### Faster local search, keeping the #197 fix
+
+The fix for #197 freed the LTCG binaries in every round of the search's Social Security step,
+which made local search up to 1.7x slower (4x with MOSEK). Most of that cost came from one half
+of the LTCG link rows, "binary at 0 means ordinary income at or above the threshold": it is
+redundant for the optimum, since a binary at 0 only closes the bracket below, but once pinned it
+held income above a threshold that the better plan needed to cross. The search now relaxes that
+half in its own copy of the problem, pins the LTCG binaries in the SS step again, and frees them
+alongside the SS step once per loop iteration, only when the rounds stall. Branch-and-bound keeps
+the full rows: without them, one example ran 23x slower. Before returning, the search sets back to 1
+every binary left at 0 below its threshold, so that the repair, polish and dual solves stay
+feasible. On the 18 examples: local search takes 45% less time with MOSEK (726 s to 396 s) and 6%
+less with HiGHS (740 s to 695 s). Case_john+sally still reaches the branch-and-bound plan, and
+every other example is within 0.07% (Case_morgan −0.066% and Case_kim+sam-bequest −0.028% with
+MOSEK; Case_chris+pat +0.068% with HiGHS).
+
 #### Fixed: the Roth conversion regret sweep can no longer report a negative regret
 
 Pinning a scenario's first-year conversion restricts its unconstrained problem, so regret

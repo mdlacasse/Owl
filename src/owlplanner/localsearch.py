@@ -13,13 +13,22 @@ by a sequence of small restricted problems, each solved with most binaries pinne
    search stops and the caller keeps the loop's plan.
 2. (a) Social Security taxability pinned; the other families freed one at a time.
    (b) Social Security taxability free within a local-branching ball of at most `radius` flips
-       from the current plan, with the LTCG binaries free alongside it; the other families pinned.
-       The LTCG binaries hold ordinary income on one side of each LTCG threshold, so moving
-       income across a threshold and SS taxability with it takes both at once.
-   (a') When neither moved: the other families freed jointly, once.
+       from the current plan; the other families pinned.
+   (b') When neither moved: the same ball with the LTCG binaries free alongside it, once per
+       loop iteration. Moving ordinary income across an LTCG threshold and SS taxability with
+       it takes both families at once; freeing them together in every round is far slower.
+   (a') When nothing moved: the other families freed jointly, once.
    (c)  The binaries of every family freed in the years where the plan's own income implies a
         different cost than the one charged.
    Repeat until no step improves the objective.
+
+The LTCG link rows tie each regime binary to ordinary income in both directions, but only one is
+needed: a binary at 0 closes the bracket below its threshold, which never lowers the tax, so
+"at 0, income at or above the threshold" is redundant for the optimum. Branch-and-bound keeps it
+(without it, one example's branch-and-bound ran 23x slower), but pinned it holds income
+above a threshold, blocking a move that drops below one. The search relaxes it in its own copy of
+the rows, and sets back to 1 every binary its plan leaves at 0 below its threshold, so that the
+repair, polish and dual solves, which pin the binaries on the full rows, stay feasible.
 
 Every restricted problem contains the current plan, so it is feasible and can never return a
 worse one: the search only descends. It carries no certificate, and it can stop short of the
@@ -61,6 +70,10 @@ FAMILIES = ("zm", "zs", "za", "zl", "zj")
 # Binaries the search never pins: the senior-bonus phase-out has one per bonus year, two or three
 # in all, so every restricted problem keeps them free. Only an LP solve, which relaxes them, pins them.
 ALWAYS_FREE = ("zsb",)
+# Rows the search relaxes: the half "zl = 0 => ordinary income at or above the threshold". It is
+# redundant for the optimum (zl = 0 only closes the bracket below), and branch-and-bound wants it,
+# but pinned it holds income above a threshold that a move needs to cross.
+_RELAXED_LINKS = ("ltcg_zl15_link", "ltcg_zl20_link")
 RESIDUAL_FAMILY = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zj": "NIIT", "zl": "LTCG"}
 FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NIIT"}
 
@@ -106,6 +119,7 @@ class LocalSearch:
         self.deadline = time.time() + float(total_time)
         self.use_mosek = False  # set by Plan.solve() from the solver asked for
         self.prev = None  # the previous loop iteration's plan
+        self.A = None  # the plan's rows with the LTCG links relaxed (_relax_links)
         self._last = None  # (problem fingerprint, objective, plan) of the previous loop iteration
         self.iteration = 0
         self.log = []  # one entry per loop iteration: {"steps": [...], "time": s}
@@ -148,7 +162,7 @@ class LocalSearch:
         p._use_mosek = self.use_mosek
         t = time.time()
         try:
-            res = p._run_mip(A if A is not None else p.A, p.B, p.c, opts, lp_relax=lp,
+            res = p._run_mip(A if A is not None else self.A, p.B, p.c, opts, lp_relax=lp,
                              col_overrides=overrides, update_warm=False)
         except Exception as e:  # a solver API error is a failed step, not a failed solve
             res = (None, None, False, str(e)[:120], -1.0)
@@ -156,6 +170,32 @@ class LocalSearch:
             p._mip_warm_start = None
             p._localSearchStep = False
         return res, time.time() - t
+
+    def _relax_links(self):
+        """Copy of the plan's rows with the lower half of the LTCG link rows dropped."""
+        A = copy.deepcopy(self.plan.A)
+        for k, tag in enumerate(A.tags):
+            if tag is not None and tag[0] in _RELAXED_LINKS:
+                A.lb[k] = -np.inf
+                A.key[k] = "up"
+        return A
+
+    def _restore_links(self, x):
+        """Set back to 1 every LTCG binary left at 0 with income below its threshold, so that the
+        plan satisfies the full rows (the repair, polish and dual solves pin the binaries). A
+        binary at 0 already holds the bracket below it empty, so 1 is feasible and costs nothing."""
+        p = self.plan
+        zl = set(int(c) for c in self._cols("zl"))
+        x = x.copy()
+        for k, tag in enumerate(p.A.tags):
+            if tag is None or tag[0] not in _RELAXED_LINKS:
+                continue
+            ind, val = p.A.Aind[k], p.A.Aval[k]
+            if sum(v * x[i] for i, v in zip(ind, val)) < p.A.lb[k] - 1e-6:
+                for i in ind:
+                    if int(i) in zl:
+                        x[i] = 1.0
+        return x
 
     def _fingerprint(self):
         """Digest of the problem as built: equal digests mean the same restricted problems."""
@@ -258,6 +298,7 @@ class LocalSearch:
             _, obj, x = self._last
             p._highs_warm_start = x.copy()
             return obj, x.copy(), True, "Local search", -1.0
+        self.A = self._relax_links()
         try:
             best = self._incumbent(options, steps)
         except NoIncumbent:
@@ -266,6 +307,7 @@ class LocalSearch:
 
         fams = self._families()
         others = [f for f in fams if f != "zs"]
+        joint_done = False
         for rnd in range(8):
             if time.time() > self.deadline:
                 p.mylog.vprint("Local search: time budget spent; keeping the current plan.")
@@ -277,9 +319,9 @@ class LocalSearch:
                 self._step(steps, f"round {rnd} (a): {FAMILY_LABEL[f]} free", res, dt)
                 if self._better(res, best):
                     best, improved = res, True
-            # (b) SS taxability within a local-branching ball, LTCG free with it; the others pinned.
+            # (b) SS taxability within a local-branching ball; the others pinned.
             if "zs" in fams:
-                A = copy.deepcopy(p.A)
+                A = copy.deepcopy(self.A)
                 row, ones = {}, 0
                 for c in self._cols("zs"):
                     if round(best[1][c]) >= 1:
@@ -288,13 +330,21 @@ class LocalSearch:
                     else:
                         row[int(c)] = 1.0
                 A.addNewRow(row, -np.inf, self.radius - ones, tag=("local_branching", 0))
-                pinned = [f for f in others if f != "zl"]
-                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), A=A, warm=best[1])
+                res, dt = self._mip(options, overrides=self._pin(best[1], others), A=A, warm=best[1])
                 self._step(steps, f"round {rnd} (b): SS within {self.radius} flips", res, dt)
                 if self._better(res, best):
                     best, improved = res, True
             if improved:
                 continue
+            # (b') nothing moved: SS within the ball with LTCG free alongside it, once per iteration.
+            if "zs" in fams and "zl" in fams and not joint_done:
+                joint_done = True
+                pinned = [f for f in others if f != "zl"]
+                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), A=A, warm=best[1])
+                self._step(steps, f"round {rnd} (b'): SS within {self.radius} flips, LTCG free", res, dt)
+                if self._better(res, best):
+                    best = res
+                    continue
             # (a') nothing moved one family at a time: the others jointly, once.
             if len(others) > 1:
                 pinned = [f for f in fams if f not in others]
@@ -316,6 +366,7 @@ class LocalSearch:
                 continue
             break
 
+        best = (best[0], self._restore_links(best[1]), *best[2:])
         self.prev = best[1].copy()
         p._highs_warm_start = best[1].copy()
         self._last = (fp, best[0], best[1].copy())
