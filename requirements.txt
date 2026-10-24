@@ -16,7 +16,7 @@ attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
-certifi==2026.10.19
+certifi==2026.10.23
     # via requests
 cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
@@ -186,9 +186,9 @@ seaborn==0.13.2
     # via owlplanner
 six==1.17.0
     # via python-dateutil
-sse-starlette==3.5.0
+sse-starlette==3.5.1
     # via mcp
-starlette==1.9.0
+starlette==1.10.0
     # via
     #   mcp
     #   sse-starlette
