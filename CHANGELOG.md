@@ -1,5 +1,21 @@
 ### Version WIP
 
+#### Fixed: the Roth conversion regret sweep can no longer report a negative regret
+
+Pinning a scenario's first-year conversion restricts its unconstrained problem, so regret
+cannot be negative. But a baseline solve could stop short of a plan its own sweep found
+(local search carries no certificate, and the tax loop can settle on another fixed point),
+and every cell above that baseline then read below zero. Each scenario's baseline is now
+raised to the best plan of its sweep, pinned or never-convert, with its first-year
+conversion, so the regret is non-negative by construction. The solves' own values and
+conversions are kept as `v_star_solved` and `x_star_solved` (an automatic grid is still sized
+from them), and the amount raised as `v_star_lift`. The lift still counts as the method's
+error: the largest one enters the resolution floor, and the summary reports how many
+baselines were raised and by how much (`baseline_lift`). `summarize_conversion_regret` lifts
+sweeps saved before this change, and `lift_regret_baselines` does it for any saved result.
+Lifting removes the sign error but not the shortfall: a baseline can still sit below the true
+optimum by more than its best pinned plan reveals.
+
 #### Fixed: an unused standard deduction now lowers the tax on capital gains
 
 **Owl** stacked long-term gains and qualified dividends on top of ordinary taxable income, so when
