@@ -394,3 +394,60 @@ def test_hsa_cap_pre_medicare_with_expenses():
             hsa_n = float(np.sum(p.w_ijn[:, 3, n]))
             cap_n = float(p.other_medical_n[n])  # M_n = 0 pre-Medicare
             assert hsa_n <= cap_n + 1.0, f"Year {n}: HSA ${hsa_n:.0f} exceeds pre-Medicare cap ${cap_n:.0f}"
+
+
+def _retiree(rows, state=None, options=None, aca=None, taxable=0, deferred=30):
+    """A 60-year-old in 2026 living on savings: a fixed $30,000 Roth conversion is the year's income."""
+    import io
+    p = Plan(["A"], ["1966-07-01"], [62], "HSA retiree", verbose=False, logstreams=[io.StringIO()])
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[taxable], taxDeferred=[deferred], taxFree=[300], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.setDividendRate(0)
+    if state:
+        p.setStateTax(state)
+    if aca:
+        p.setACA(aca)
+    base = {"year": int(p.year_n[0])}
+    if deferred:
+        base.update({"Roth conv": deferred * 1000, "Roth conv fixed": True})
+    p.readHFP({"A": pd.DataFrame([{**base, **rows}])})
+    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", **(options or {})})
+    assert p.caseStatus == "solved", p.caseStatus
+    return p
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_negative_other_inc_deducts_an_hsa_contribution_without_wages(options):
+    """#225: with no wages to net it from, an HSA contribution entered with the same amount as a
+    negative "other inc" is deducted from AGI (IRC 223(a), 62(a)(19)) and paid from cash."""
+    base = _retiree({}, options=options)
+    hsa = _retiree({"HSA ctrb": 5400, "other inc": -5400}, options=options)
+    assert hsa.MAGI_n[0] == pytest.approx(base.MAGI_n[0] - 5400, abs=1)
+    assert hsa.T_n[0] < base.T_n[0]
+    assert hsa.b_ijn[0, 3, 1] > 5400  # deposited, with a year's growth
+    # Paid from cash: everything that came in went out, the contribution included.
+    for p in (base, hsa):
+        cash_in = p.w_ijn[0, :, 0].sum() + p.omega_in[0, 0] + p.other_inc_in[0, 0]
+        cash_out = p.g_n[0] + p.s_n[0] + p.T_n[0] + p.U_n[0] + p.J_n[0] + p.st_T_n[0]
+        assert cash_in == pytest.approx(cash_out, abs=1)
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_a_deduction_below_the_state_base_is_lost_not_infeasible(options):
+    """PA leaves the conversion out of state income, so an $8,000 deduction brings the state base to
+    -$8,000 while the federal one stays at $22,000. The state base stops at zero."""
+    p = _retiree({"HSA ctrb": 8000, "other inc": -8000}, state="PA", options=options)
+    assert p.MAGI_n[0] == pytest.approx(22_000, abs=1)
+    assert p.st_T_n[0] == pytest.approx(0, abs=1)
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_a_deduction_larger_than_all_income(options):
+    """No income at all: the deduction is lost federally and in the state, and an ACA MAGI below zero
+    stays in the bottom bracket."""
+    p = _retiree({"HSA ctrb": 8000, "other inc": -8000}, state="CA", options=options, aca=9,
+                 taxable=200, deferred=0)
+    assert p.T_n[0] == pytest.approx(0, abs=1)
+    assert p.st_T_n[0] == pytest.approx(0, abs=1)

@@ -186,6 +186,19 @@ def test_condition_timetables_big_ticket_can_be_negative():
     assert "Joe" in result
 
 
+def test_condition_timetables_other_inc_can_be_negative():
+    """A negative "other inc" is an above-the-line deduction (an HSA contribution without wages, #225)."""
+    mylog = type("Logger", (), {"vprint": lambda self, *a, **k: None, "print": lambda self, *a, **k: None})()
+    thisyear = date.today().year
+    df = pd.DataFrame({"year": [thisyear, thisyear + 1], "other inc": [-5400, 0], "HSA ctrb": [5400, 0]})
+    result, _ = hfp_io._conditionTimetables({"Joe": df}, ["Joe"], [20], mylog)
+    assert "Joe" in result
+    # Wages stay non-negative: the deduction belongs in "other inc".
+    df = pd.DataFrame({"year": [thisyear], "anticipated wages": [-5400]})
+    with pytest.raises(ValueError, match="anticipated wages.*is < 0"):
+        hfp_io._conditionTimetables({"Joe": df}, ["Joe"], [20], mylog)
+
+
 def test_condition_timetables_roth_conv_negative_rejected():
     """Test _conditionTimetables rejects a negative Roth conv amount."""
     inames = ["Joe"]

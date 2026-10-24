@@ -1,5 +1,24 @@
 ### Version WIP
 
+#### Fixed: an HSA contribution without wages can now be deducted, by entering a negative *other inc*
+
+An HSA contribution is deducted above the line whether or not there are wages (IRC 223(a),
+62(a)(19)), and since 2026 every bronze exchange plan qualifies, so early retirees on the ACA can
+contribute from savings and lower the MAGI their credit is figured on. **Owl** only deducted a
+contribution netted out of *anticipated wages*: without wages there was nothing to net it from,
+the HFP rejected a negative amount, and the *HSA ctrb* column alone deposited the money without
+deducting it or paying for it. *other inc* now accepts a negative amount, an above-the-line
+deduction paid from cash: enter the contribution in *HSA ctrb* and the same amount as a negative
+*other inc*. A deduction larger than the year's income is lost rather than making the plan
+infeasible: taxable income stops at zero in the federal and state bases (in PA, which leaves
+conversions out of state income, an \$8,000 contribution beside a \$30,000 conversion made every
+mode infeasible), and in optimize mode an ACA or IRMAA MAGI below zero stays in the bottom
+bracket. Cases with no negative entry solve exactly as before. The documentation now says which
+columns may be negative (*other inc* and *big-ticket items*) and how an HSA contribution reaches
+AGI, and no longer says that the year Medicare starts is zeroed: it keeps the months before.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with the references, and for testing
+the route (#225).
+
 #### Faster local search, keeping the #197 fix
 
 The fix for #197 freed the LTCG binaries in every round of the search's Social Security step,

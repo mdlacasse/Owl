@@ -79,17 +79,19 @@ Reference to the **Household Financial Profile (HFP)** workbook: wages, contribu
 |--------|---------|
 | `year` | Calendar year (**required**) |
 | `anticipated wages` | Expected annual wages (gross minus tax-deferred contributions through payroll), nominal \$ |
-| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$ |
+| `other inc` | Other ordinary income (e.g. part-time work, consulting, royalties), nominal \$. May be negative: a negative amount is an above-the-line deduction paid from cash, such as an HSA contribution made without wages (see `HSA ctrb`) |
 | `net inv` | Net investment income from rent or trust distributions treated as ordinary income; also feeds NIIT, nominal \$ |
 | `taxable ctrb` | Contributions to taxable / after-tax investment accounts, nominal \$ |
 | `401k ctrb` | Traditional employer plan / 401(k) deferrals, nominal \$ |
 | `Roth 401k ctrb` | Roth employer plan contributions, nominal \$ |
 | `IRA ctrb` | Traditional IRA contributions, nominal \$ |
 | `Roth IRA ctrb` | Roth IRA contributions, nominal \$ |
-| `HSA ctrb` | HSA contributions, nominal **dollars** (not \$k). Pre-tax; reduce AGI, MAGI, and SS provisional income. Values after Medicare enrollment (~65) are ignored. 2026 IRS limits: \$4,400 (self-only) / \$8,750 (family); +\$1,000 catch-up if 55+ |
+| `HSA ctrb` | HSA contributions, nominal **dollars** (not \$k). The column only deposits them in the HSA: like the other contribution columns, it neither deducts them nor pays them from cash. Through payroll, enter `anticipated wages` net of the contribution, which keeps it out of AGI, MAGI, and SS provisional income. Without wages to net it from (a retiree contributing from savings), also enter the same amount as a negative `other inc`, the above-the-line deduction of IRC 223(a). The year Medicare starts keeps the months before it; later years are ignored. 2026 IRS limits: \$4,400 (self-only) / \$8,750 (family); +\$1,000 catch-up if 55+ |
 | `Roth conv` | Roth conversions from tax-deferred accounts, nominal \$ |
 | `QCD` | Qualified Charitable Distributions: money sent from the tax-deferred account straight to a charity, nominal \$. See below |
 | `big-ticket items` | Large one-off expenses or after-tax inflows (may be negative), nominal \$ |
+
+Only `other inc` and `big-ticket items` may be negative; every other amount must be zero or positive. A deduction larger than the year's income is lost, not carried forward: taxable income stops at zero, while MAGI can fall below it.
 
 #### Qualified Charitable Distributions (`QCD`)
 

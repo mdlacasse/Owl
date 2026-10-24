@@ -82,6 +82,10 @@ those entries to the user and refine the ones that could change their decisions.
 - Wages must be net of the retirement contributions listed separately — Owl deposits
   contributions into their accounts without subtracting them from wages, so gross wages
   plus contributions would double-count.
+- An HSA contribution made without wages (a retiree or early retiree paying from savings)
+  has no wages to be netted from: in an HFP or case file, enter it in "HSA ctrb" and the
+  same amount as a negative "other inc", the above-the-line deduction that also pays it
+  from cash. "other inc" and "big-ticket items" are the only columns that may be negative.
 - Allocation arrays are [equities, corporate_bonds, t_notes, cash]; ask whether "bonds"
   means corporate bonds or Treasuries before filling one in.
 

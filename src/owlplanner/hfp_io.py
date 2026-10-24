@@ -147,7 +147,8 @@ def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
     rejected as a typo rather than silently dropped.
     Legacy header "other inc." is accepted as "other inc".
     "anticipated wages" is expected net of all contribution columns
-    (see Plan.readHFP).
+    (see Plan.readHFP). Only "other inc" (a deduction) and "big-ticket
+    items" (an expense) may be negative.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return the input handle, the time lists by individual's name, the household
     tables, the raw sheet dictionary, and the absent optional columns per
@@ -328,7 +329,9 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                     if item in _booleanTimeHorizonItems:
                         continue
                     if year_rows[item].iloc[0] < 0:
-                        if item == "big-ticket items":
+                        # A negative big-ticket item is an expense; a negative "other inc" is an
+                        # above-the-line deduction, such as an HSA contribution without wages.
+                        if item in ("big-ticket items", "other inc"):
                             continue
                         if item == "Roth conv":
                             # A negative amount used to mean "force no conversion this

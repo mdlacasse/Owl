@@ -451,7 +451,9 @@ leave it blank where it does not apply), where:
   calculated automatically based on the assumptions you made for future return rates.
 - *other inc* is other **ordinary** income that is not wages, pension, or Social Security—e.g.
   part-time or consulting income, alimony, or rental flows you treat as ordinary. It is included in
-  cash flow and ordinary-income tax logic like wages.
+  cash flow and ordinary-income tax logic like wages. A **negative** amount is an above-the-line
+  deduction paid from your cash, such as an HSA contribution made without wages (see *HSA ctrb*).
+  A deduction larger than the year's income is lost: taxable income stops at zero.
 - *net inv* is net investment income such as rent or trust distributions that the model counts as
   ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
   (NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
@@ -469,7 +471,9 @@ leave it blank where it does not apply), where:
 - *HSA ctrb* is HSA contributions in nominal dollars. Like the other *ctrb* columns, subtract them
   from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
   taxable income. Enter the full annual amount you plan to contribute: **Owl** applies the
-  Medicare cutoff itself. The HSA limit is counted by the month, and no contribution is allowed
+  Medicare cutoff itself. If you have no wages to net the contribution from (for instance, a
+  retiree or early retiree contributing from savings), enter it in *HSA ctrb* and the same amount
+  as a negative *other inc*: the column alone deposits it without deducting it or paying for it. The HSA limit is counted by the month, and no contribution is allowed
   for a month with Medicare (IRC 223(b)(2) and (b)(7)). Medicare starts in the month of the
   65th birthday, or in the month before when the birthday falls on the 1st. In the year it
   starts, **Owl** keeps the share of your entry for the months before Medicare and drops the rest:
@@ -512,8 +516,8 @@ leave it blank where it does not apply), where:
   negative numbers will potentially generate additional withdrawals and distributions from retirement
   accounts.
 
-*big-ticket items* is the only column that can contain negative numbers; every other amount must be
-positive. *Roth conv fixed* holds a checkbox rather than an amount.
+*big-ticket items* and *other inc* are the only columns that can contain negative numbers; every other
+amount must be zero or positive. *Roth conv fixed* holds a checkbox rather than an amount.
 
 Only the *year* column is required. If your household has no use for a column, you can leave it out of
 the workbook entirely and it is read as zero for every year; **Owl** reports which columns were absent

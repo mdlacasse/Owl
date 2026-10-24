@@ -44,7 +44,8 @@ timetableHelp = {
     ),
     "other inc": (
         "Other ordinary income that is not wages, pension, or Social Security (nominal \\$) — "
-        "e.g. consulting income, alimony, or rents you treat as ordinary."
+        "e.g. consulting income, alimony, or rents you treat as ordinary. A negative amount is a "
+        "deduction paid from cash, such as an HSA contribution made without wages."
     ),
     "net inv": (
         "Net investment income such as rent or trust distributions (nominal \\$). Taxed as "
@@ -59,8 +60,9 @@ timetableHelp = {
     "IRA ctrb": "Contributions to your traditional IRA (nominal \\$), treated as pre-tax",
     "Roth IRA ctrb": "Contributions to your Roth IRA (nominal \\$)",
     "HSA ctrb": (
-        "Contributions to your health savings account (nominal \\$). Zeroed automatically at "
-        "Medicare enrollment (~age 65)."
+        "Contributions to your health savings account (nominal \\$), netted out of your wages. "
+        "Without wages, also enter the same amount as a negative other inc. Stopped automatically "
+        "at Medicare enrollment (~age 65)."
     ),
     "Roth conv": (
         "Roth conversion amount for this year (nominal \\$), never negative. Documentation only "
@@ -96,8 +98,8 @@ timetableHelpPast["Roth conv fixed"] = (
 def timetableColumnConfig(df, helpdic):
     """Column configuration for a Wages and Contributions editor, with bubble help."""
     # Keyed by name, not position: the column list is free to grow.
-    # "big-ticket items" can be an expense; every other amount is >= 0.
-    negativeOK = ("big-ticket items",)
+    # "big-ticket items" can be an expense and "other inc" a deduction; every other amount is >= 0.
+    negativeOK = ("big-ticket items", "other inc")
     formatdic = {"year": st.column_config.NumberColumn(None, help=helpdic.get("year"), format="%d", disabled=True)}
     for col in df.columns:
         if col == "year":

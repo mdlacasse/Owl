@@ -2088,6 +2088,9 @@ class Plan:
         Convention: 'anticipated wages' must be entered net of all
         contribution columns. Contributions are deposited into their
         accounts and are not subtracted from the annual cash flow.
+        Only 'other inc' and 'big-ticket items' may be negative: a negative
+        'other inc' is an above-the-line deduction paid from cash (an HSA
+        contribution without wages), a negative 'big-ticket items' an expense.
 
         Parameters
         ----------
@@ -2697,6 +2700,12 @@ class Plan:
         vm.add_if(st_re_lp, "st_re", self.N_i, self.N_n)  # retirement income exemption (per person)
         st_c_lp = st_lp and bool(np.any(self.st_credit_n > 0))
         vm.add_if(st_c_lp, "st_c", self.N_n)  # state personal credit used (<= credit, <= state tax)
+        # A negative "other inc" is an above-the-line deduction (an HSA contribution without wages,
+        # #225). Taxable income cannot go below zero, so the part the year's income cannot absorb
+        # is lost: dl[0, n] in the federal base, dl[1, n] in the state base, each at most the
+        # deduction. Only cases with a negative entry carry the columns.
+        self._other_ded_n = np.sum(np.maximum(0.0, -self.other_inc_in), axis=0)
+        vm.add_if(bool(np.any(self._other_ded_n > 0)), "dl", 2, self.N_n)
         vm.mark_binary_start()
         vm.add_if(medi, "zm", Nmed, self.N_irmaa)  # IRMAA bracket selection binaries
         vm.add_if(ss_lp, "zs", self.N_n, 2)  # z^σ family (2 per year) for SS min() ops
@@ -2809,6 +2818,11 @@ class Plan:
         self._sigma_lp_n = sigma_n  # widens the capital-gains brackets (_configure_ltcg_constraints)
         for n in range(self.N_n):
             self.B.setRange(self.vm["e"].idx(n), 0, sigma_n[n])
+        if "dl" in self.vm:
+            for n in range(self.N_n):
+                self.B.setRange(self.vm["dl"].idx(0, n), 0, self._other_ded_n[n])
+                # The state slack only exists where a state row does.
+                self.B.setRange(self.vm["dl"].idx(1, n), 0, self._other_ded_n[n] if self._st_lp else 0)
 
     def _add_state_tax_bounds(self):
         """Set variable bounds for state income tax LP variables.
@@ -2884,6 +2898,10 @@ class Plan:
             if self.st_conv_n[n] == "excluded":
                 for i in range(self.N_i):
                     row.addElem(vm["x"].idx(i, n), 1)  # exclude Roth conversions (PA, MS)
+            if "dl" in vm:
+                # A deduction can bring the state base below zero where the federal one is not:
+                # PA leaves out a conversion that federal income carries (#225).
+                row.addElem(vm["dl"].idx(1, n), -1)
             self.A.addRow(row, rhs, rhs, tag=("state_taxable_income", n))
 
         # A personal credit only offsets tax: the credit used stays below the year's state tax.
@@ -3354,7 +3372,8 @@ class Plan:
         Nn = self.N_n
         ss_in = self.zetaBar_in
         fixed = (
-            np.sum(self.omega_in + self.other_inc_in + self.netinv_in, axis=0)
+            # A negative "other inc" is a deduction: leaving it out keeps the ceiling an upper bound.
+            np.sum(self.omega_in + np.maximum(self.other_inc_in, 0) + self.netinv_in, axis=0)
             + np.sum(self.piBar_in + self.spiaBar_in + ss_in + self.Lambda_in, axis=0)
             + self.fixed_assets_ordinary_income_n
             + np.maximum(self.fixed_assets_capital_gains_n, 0.0)
@@ -3576,6 +3595,8 @@ class Plan:
                 # t^σ_n = taxable SS LP variable replaces Psi_n*zetaBar_n in the constraint:
                 # e_n - t^σ_n + sum_t(f_tn) = non_SS_ordinary_income
                 row.addElem(self.vm["tss"].idx(n), -1)
+            if "dl" in self.vm:
+                row.addElem(self.vm["dl"].idx(0, n), -1)  # deduction the year's income cannot absorb
             self.A.addRow(row, rhs, rhs, tag=("taxable_income", n))
 
     def _configure_ss_taxability_lp(self, options):
@@ -4246,6 +4267,11 @@ class Plan:
                 lower = 0 if q == 0 else self.Lbar_nq[nn, q - 1] + (margin if q < top else 0.0)
                 if lower > 0:
                     self.A.addNewRow({mg_idx: 1, zm_idx: -lower}, 0, np.inf, tag=("irmaa_bracket_lb", nn, q))
+                elif q == 0 and "dl" in self.vm and self.nm + nn >= 2 and self._other_ded_n[self.nm + nn - 2] > 0:
+                    # A deduction in the lookback year can bring MAGI below zero (#225).
+                    ded = float(self._other_ded_n[self.nm + nn - 2])
+                    self.B.setRange(mg_idx, -ded, np.inf)
+                    self.A.addNewRow({mg_idx: 1, zm_idx: ded}, 0, np.inf, tag=("irmaa_bracket_lb", nn, q))
 
                 if q < top:
                     upper = self.Lbar_nq[nn, q] - (margin if q == top - 1 else 0.0)
@@ -4360,6 +4386,11 @@ class Plan:
                 lower = 0 if r == 0 else edge[r - 1] + BRACKET_MARGIN
                 if lower > 0:
                     self.A.addNewRow({haca_idx: 1, za_idx: -lower}, 0, np.inf, tag=("aca_bracket_lb", nn, r))
+                elif r == 0 and "dl" in self.vm and self._other_ded_n[nn] > 0:
+                    # A deduction can bring MAGI below zero: the bottom bracket reaches down by it.
+                    ded = float(self._other_ded_n[nn])
+                    self.B.setRange(haca_idx, -ded, np.inf)
+                    self.A.addNewRow({haca_idx: 1, za_idx: ded}, 0, np.inf, tag=("aca_bracket_lb", nn, r))
 
                 if r < tx.N_ACA_R - 1:
                     upper = edge[r]
@@ -4444,6 +4475,12 @@ class Plan:
         if "sbp" in self.vm:
             for j, n in enumerate(self._sb_years):
                 c_arr[self.vm["sbp"].idx(j)] += MIP_TIEBREAK / self.gamma_n[n]
+        # A lost deduction is only bounded below too: lose no more of it than the year's income makes
+        # necessary, which would otherwise be arbitrary where the loss costs nothing.
+        if "dl" in self.vm:
+            for k in range(2):
+                for n in range(self.N_n):
+                    c_arr[self.vm["dl"].idx(k, n)] += MIP_TIEBREAK / self.gamma_n[n]
 
         # Turn on epsilon by default to reduce churn and frontload Roth conversions.
         default_epsilon = EPSILON
