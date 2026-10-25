@@ -316,10 +316,7 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     if ssec_tax_fraction is not None:
         return np.full(N_n, ssec_tax_fraction)
 
-    # Filing status per year: for couples, switch from MFJ (1) to Single (0) at n_d.
-    status_n = np.full(N_n, N_i - 1)
-    if N_i == 2 and n_d is not None and n_d < N_n:
-        status_n[n_d:] = 0
+    status_n = filingStatus_n(N_i, n_d, N_n)
 
     lo_n = ssTaxabilityLo[status_n]
     hi_n = ssTaxabilityHi[status_n]
@@ -1166,23 +1163,27 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     return data
 
 
+def filingStatus_n(N_i, n_d, N_n):
+    """
+    Filing status of each plan year as an index into the [single, MFJ] tables: a couple
+    files jointly through the year of the first death (n < n_d) and single after; a single
+    person files single throughout. n_d of None or past the plan means no death in it.
+    """
+    if n_d is None:
+        n_d = N_n
+    return np.where(np.arange(N_n) < n_d, N_i - 1, 0)
+
+
 def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     """
     Compute ACA tax on dividends (Q), interest (I), and other net investment income.
     I_n already includes rent and trust income from the 'net inv' column of the HFP.
     """
-    J_n = np.zeros(N_n)
-    status = N_i - 1
+    MAGI_n = np.asarray(MAGI_n, dtype=float)[:N_n]
+    nii_n = np.asarray(I_n, dtype=float)[:N_n] + np.asarray(Q_n, dtype=float)[:N_n]
+    Gmax_n = niitThreshold[filingStatus_n(N_i, n_d, N_n)]
 
-    for n in range(N_n):
-        if status and n == n_d:
-            status -= 1
-
-        Gmax = niitThreshold[status]
-        if MAGI_n[n] > Gmax:
-            J_n[n] = niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
-
-    return J_n
+    return np.where(MAGI_n > Gmax_n, niitRate * np.minimum(MAGI_n - Gmax_n, nii_n), 0.0)
 
 
 def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
@@ -1192,22 +1193,17 @@ def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
     Social security tax is per person, on earnings up to the wage base (held at its 2026
     level in today's dollars, so ``payrollWageBase * gamma_n``). Medicare tax is on all
     earnings. The Additional Medicare Tax is on the household's combined earnings above
-    the threshold, joint through the year of the first death and single after, as in
-    computeNIIT. Self-employment tax is not modeled: all earnings are taken as wages.
+    the threshold, joint through the year of the first death and single after
+    (filingStatus_n). Self-employment tax is not modeled: all earnings are taken as wages.
     The tax is not deductible, so it enters no income-tax computation.
     """
     earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
     base_n = payrollWageBase * np.asarray(gamma_n, dtype=float)[:N_n]
-    payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
-    status = N_i - 1
+    ss_medicare_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
+    threshold_n = payrollAddlThreshold[filingStatus_n(N_i, n_d, N_n)]
+    addl_n = payrollAddlRate * np.maximum(0.0, np.sum(earnings_in, axis=0) - threshold_n)
 
-    for n in range(N_n):
-        if status and n == n_d:
-            status -= 1
-
-        payroll_n[n] += payrollAddlRate * max(0.0, np.sum(earnings_in[:, n]) - payrollAddlThreshold[status])
-
-    return payroll_n
+    return ss_medicare_n + addl_n
 
 
 def rho_in(yobs, longevity, N_n):

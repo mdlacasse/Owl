@@ -207,6 +207,14 @@ def test_outputs_report_it(tmp_path, monkeypatch):
     n = _n(p, 2026)
     assert income.cell(row=2 + n, column=col + 1).value == pytest.approx(bills[n] * inv_g[n])
 
+    # The Taxes sheet lists it beside the other taxes, outside its "total" (the bracket sum).
+    taxes = p.saveWorkbook(saveToFile=False)["Taxes"]
+    head = [c.value for c in taxes[1]]
+    assert head.index("payroll tax") == head.index("10% penalty") + 1
+    row = [c.value for c in taxes[2 + n]]
+    assert row[head.index("payroll tax")] == pytest.approx(JJ_PAYROLL[2026] * inv_g[n], abs=0.01)
+    assert row[head.index("total")] == pytest.approx(p.T_n[n] * inv_g[n], abs=0.01)
+
     monkeypatch.chdir(tmp_path)
     plan_to_csv(p, "jj", p.mylog)
     import pandas as pd
@@ -217,8 +225,8 @@ def test_outputs_report_it(tmp_path, monkeypatch):
 
 
 def test_summary_line_for_every_case():
-    """Present, at \\$0, for a case without earnings, so plans compare row for row; no Cash Flow
-    or CSV column then."""
+    """Present, at \\$0, for a case without earnings, so plans compare row for row; no Cash Flow,
+    Taxes or CSV column then."""
     p = _solve(_load("jack+jill"))
     dic = build_summary_dic(p)
     nominal = float(dic["Total payroll tax paid (nominal)"].lstrip("$").replace(",", ""))
@@ -231,8 +239,9 @@ def test_summary_line_for_every_case():
     dic = build_summary_dic(q)
     assert dic["Total payroll tax paid (nominal)"] == "$0"
     assert plan_metrics(q)["payroll_tax_nominal"] == 0.0
-    ws = q.saveWorkbook(saveToFile=False)["Cash Flow"]
-    assert "payroll tax" not in [c.value for c in ws[1]]
+    wb = q.saveWorkbook(saveToFile=False)
+    for sheet in ("Cash Flow", "Taxes"):
+        assert "payroll tax" not in [c.value for c in wb[sheet][1]]
 
 
 def _no_earnings_examples():

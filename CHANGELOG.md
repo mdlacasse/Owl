@@ -12,9 +12,10 @@ the first death and \$200,000 after (not indexed). The tax is not deductible: it
 the year's cash-flow balance, next to debt payments, with no variable, constraint, or binary, and
 it enters no income-tax computation, `T_n` or the effective tax rate. There is no option. It is
 reported as *Total payroll tax paid* in the Summary (\$0 for a case without earnings, so plans
-compare row for row), a *payroll tax* column of the Cash Flow worksheet and the CSV export, in
-*Tax bills + Med.* of the Income worksheet, in the *Taxes* slice of the lifetime allocation, and
-as `payroll_tax_today` / `payroll_tax_nominal` in the plan metrics that `owlcli compare` reports.
+compare row for row), a *payroll tax* column of the Cash Flow and Taxes worksheets and the CSV
+export, in *Tax bills + Med.* of the Income worksheet, in the *Taxes* slice of the lifetime
+allocation, and as `payroll_tax_today` / `payroll_tax_nominal` in the plan metrics that
+`owlcli compare` reports.
 Self-employment tax is not modeled (a documented limitation). The twelve examples without wages
 are unchanged to the cent. The seven with wages pay \$3,672 to \$100,138 over their working
 years: alex+jamie, chris+pat, jack+jill, joe, jon+jane and riley+casey spend \$242 to \$5,156
@@ -22,8 +23,14 @@ a year less (0.2% to 3.2%), and john+sally's bequest goes from \$16,803 to \$21.
 had little to spare: its \$8,798 of tax, compounded to the horizon, costs \$17,300 of bequest, so
 in loop mode the bequest reaches zero at 97% of the tax, after which the loop ends on a plan that
 undercharges IRMAA by \$374 (its fixed-point residual). Local search gives \$31,778 without the
-tax and \$14,013 with it, both with no residual. Thanks to Florin Mateoc (@fmateoc) for the
-issue and the PR (#227).
+tax and \$14,013 with it, both with no residual. The tax leaves john+sally no room for the moves
+of #197, so its two local-search tests now solve the case without it: one checks that the search
+reaches the branch-and-bound plan (31,778; 30,823 with the full LTCG link rows), the other that
+step (b') matters on its own (30,823 with the full rows; 20,004 without it either), which the first
+test did not show. The filing status of each year (joint through the year of the first death)
+is now one function, `filingStatus_n`, read by the payroll tax, the NIIT (no longer a loop over
+years; unchanged to the bit) and the taxability of Social Security. Thanks to Florin Mateoc
+(@fmateoc) for the issue and the PR (#227).
 
 #### Fixed: a mixed-integer plan can no longer pay a lower IRMAA tier than its MAGI
 

@@ -1253,6 +1253,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["NIIT"] = plan.J_n
     TxDic["LTCG tax"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
+    if np.any(plan.payroll_n > 0):
+        TxDic["payroll tax"] = plan.payroll_n
     if np.any(plan.st_T_n > 0):
         TxDic["State tax"] = plan.st_T_n
     TxDic["Medicare+IRMAA"] = plan.medicare_n

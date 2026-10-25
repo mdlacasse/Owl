@@ -13,6 +13,7 @@ the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 """
 
+import copy
 import io
 import pathlib
 import time
@@ -21,7 +22,7 @@ import numpy as np
 import pytest
 
 import owlplanner as owl
-from owlplanner import localsearch
+from owlplanner import localsearch, tax_federal
 from owlplanner.config import config_to_ui, ui_to_config, load_toml
 
 _EXAMPLES = pathlib.Path(__file__).resolve().parents[2] / "examples"
@@ -235,19 +236,41 @@ def test_repeated_problem_is_not_searched_again():
     assert log[-1]["steps"] == [], log[-1]
 
 
+def _john_sally_without_payroll_tax(monkeypatch):
+    """john+sally as #197 found it. The payroll tax on John's 2026 wages (#227) costs this plan the
+    room the moves below need: with it, the full search, the search without (b'), the search with
+    the full link rows and the search with neither all give 14,013.49, so nothing would be tested."""
+    monkeypatch.setattr(tax_federal, "payrollTax", lambda N_i, earnings_in, gamma_n, n_d, N_n: np.zeros(N_n))
+    return _load("Case_john+sally.toml")
+
+
 @pytest.mark.toml
 @pytest.mark.deep
-def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability():
+def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability(monkeypatch):
     """#197: the better plan moves ordinary income across T15 in the same years as it changes SS
     taxability. Step (b) pins the LTCG binaries, but the search relaxes the half of their link
     rows that held income above a threshold, and (b') frees them with the SS ball once the rounds
-    stall, so it reaches the branch-and-bound plan (bequest 31,778; 20,004 when blocked). With the
-    payroll tax on John's 2026 wages (#227), both give 14,013.49."""
-    p = _load("Case_john+sally.toml")
+    stall, so it reaches the branch-and-bound plan (bequest 31,778). With the full link rows it
+    stops at 30,823, and with neither the relaxation nor (b') at 20,004."""
+    p = _john_sally_without_payroll_tax(monkeypatch)
     p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
     assert p.caseStatus == "solved"
     assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
-    assert p.bequest > 14_000.0, p.bequest
+    assert p.bequest > 31_500.0, p.bequest
+
+
+@pytest.mark.toml
+@pytest.mark.deep
+def test_b_prime_crosses_an_ltcg_threshold_on_the_full_link_rows(monkeypatch):
+    """(b') on its own: with the link rows left whole, freeing LTCG with the SS ball still takes
+    john+sally from 20,004 (without (b')) to 30,823. On this case the relaxation alone reaches the
+    branch-and-bound plan, so the test above does not show (b') is needed; this one does."""
+    p = _john_sally_without_payroll_tax(monkeypatch)
+    monkeypatch.setattr(localsearch.LocalSearch, "_relax_links", lambda self: copy.deepcopy(self.plan.A))
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    assert p.bequest > 30_000.0, p.bequest
 
 
 def test_returned_ltcg_binaries_satisfy_the_full_rows(jack_jill_pair):

@@ -467,7 +467,8 @@ leave it blank where it does not apply), where:
   held at that level in today's dollars), 1.45% Medicare tax on all of them, and the 0.9%
   Additional Medicare Tax on the household's combined earnings above \\$250,000 (\\$200,000 after
   the first death). It is not deductible, so it changes no income tax, and it is reported as
-  *Total payroll tax paid* in the Summary and as a *payroll tax* column of the Cash Flow worksheet.
+  *Total payroll tax paid* in the Summary and as a *payroll tax* column of the Cash Flow and Taxes
+  worksheets.
   Self-employment tax is not modeled: self-employment earnings entered in *anticipated wages* pay
   only the employee's share.
 - *months worked* is how many months of that year the person works (a whole number from 0 to 12).
