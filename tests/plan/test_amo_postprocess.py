@@ -276,6 +276,7 @@ class TestMatchesRecordedOptimum:
     standard deduction. Only their ``basis``, ``bequest`` and per-year flows changed; for them
     the fixture pins the corrected tax model rather than the binary-constrained optimum.
     Cases in no-income-tax states were unaffected and keep their original MIP records.
+    A case whose record for the active solver is empty (null) is skipped under that solver.
     """
 
     @pytest.mark.toml
