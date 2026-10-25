@@ -5,6 +5,8 @@
   "Case_dana",
   "Case_devon",
   "Case_helen+ruth",
+  "Case_jack+jill",
+  "Case_joe",
   "Case_john+sally",
   "Case_jon+jane",
   "Case_jordan+taylor",
@@ -20,12 +22,12 @@
  "cases": {
   "Case_alex+jamie": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only, HiGHS, linux, frozen test date, when the employee's payroll tax started being paid on wages (#227); other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 228132.48,
+    "basis": 225076.85,
     "bequest": 0.0,
     "conversions_n": [
      241763.6,
@@ -202,12 +204,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only: the MOSEK record moved by the HiGHS change from the payroll tax (#227), an estimate, not run under MOSEK; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 228132.48,
+    "basis": 225132.57,
     "bequest": 0.0,
     "conversions_n": [
      241763.6,
@@ -2308,11 +2310,12 @@
   },
   "Case_jack+jill": {
    "HiGHS": {
+    "_rerecorded": "2026-10-25 basis and bequest only, HiGHS, linux, frozen test date, when the employee's payroll tax started being paid on wages (#227); other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 102582.05,
+    "basis": 100669.12,
     "bequest": 400000.0,
     "conversions_n": [
      0.0,
@@ -2531,11 +2534,12 @@
     ]
    },
    "MOSEK": {
+    "_rerecorded": "2026-10-25 basis and bequest only: the MOSEK record moved by the HiGHS change from the payroll tax (#227), an estimate, not run under MOSEK; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 103027.62,
+    "basis": 101124.65,
     "bequest": 400000.0,
     "conversions_n": [
      0.0,
@@ -2756,11 +2760,12 @@
   },
   "Case_joe": {
    "HiGHS": {
+    "_rerecorded": "2026-10-25 basis and bequest only, HiGHS, linux, frozen test date, when the employee's payroll tax started being paid on wages (#227); other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 93043.84,
+    "basis": 91275.84,
     "bequest": 300000.0,
     "conversions_n": [
      10998.41,
@@ -2967,11 +2972,12 @@
     ]
    },
    "MOSEK": {
+    "_rerecorded": "2026-10-25 basis and bequest only: the MOSEK record moved by the HiGHS change from the payroll tax (#227), an estimate, not run under MOSEK; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 93043.84,
+    "basis": 91745.5,
     "bequest": 300000.0,
     "conversions_n": [
      10998.41,
@@ -3180,13 +3186,13 @@
   },
   "Case_john+sally": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only, HiGHS, linux, frozen test date, when the employee's payroll tax started being paid on wages (#227); other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
     "basis": 145000.0,
-    "bequest": 16802.68,
+    "bequest": 21.0,
     "conversions_n": [
      113501.91,
      221887.77,
@@ -3386,13 +3392,13 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only: the MOSEK record moved by the HiGHS change from the payroll tax (#227), an estimate, not run under MOSEK; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
     "basis": 145000.0,
-    "bequest": 16802.68,
+    "bequest": 21.0,
     "conversions_n": [
      113501.91,
      221887.77,
@@ -3594,12 +3600,12 @@
   },
   "Case_jon+jane": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only, HiGHS, linux, frozen test date, when the employee's payroll tax started being paid on wages (#227); other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 160677.41,
+    "basis": 155455.03,
     "bequest": 30000.0,
     "conversions_n": [
      0.0,
@@ -3836,12 +3842,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-10-25 basis and bequest only: the MOSEK record moved by the HiGHS change from the payroll tax (#227), an estimate, not run under MOSEK; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 160677.41,
+    "basis": 155521.24,
     "bequest": 30000.0,
     "conversions_n": [
      0.0,

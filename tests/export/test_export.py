@@ -563,6 +563,7 @@ def test_cash_flow_sheet_balances_to_zero(joe_plan):
         + p.fixed_assets_capital_gains_n
         + p.fixed_assets_tax_free_n
         - p.debt_payments_n  # debt pmts (negative flow)
+        - p.payroll_n  # payroll tax (negative flow)
         + np.sum(p.w_ijn, axis=(0, 1))  # all wdrwls
         - np.sum(p.d_in, axis=0)  # all deposits (negative flow)
         - p.T_n  # ord taxes (negative flow)

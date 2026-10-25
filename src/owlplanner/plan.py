@@ -612,6 +612,8 @@ class Plan:
 
         # Debt payments array (length N_n)
         self.debt_payments_n = np.zeros(self.N_n)
+        # Employee payroll tax on earnings (nominal, length N_n), built at solve time.
+        self.payroll_n = np.zeros(self.N_n)
         # Remaining debt balance at the start of each year (length N_n)
         self.fixed_assets_debt_balances_remaining_n = np.zeros(self.N_n)
 
@@ -1092,6 +1094,7 @@ class Plan:
           'income'    — {portfolio, ss, pension, wages, spia, other}
           'total'     — total lifetime outflows (today's $)
 
+        'taxes' is the federal income tax (ordinary, gains, NIIT) plus the payroll tax.
         The portfolio slice = total_outflows - sum(guaranteed income).
         Both dicts sum to 'total'.
         """
@@ -1107,7 +1110,7 @@ class Plan:
         )
         outflows = {
             "living": float(np.sum(self.g_n * inv_g)),
-            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
+            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g)),
             "state_taxes": float(np.sum(self.st_T_n * inv_g)),
             "healthcare": float(np.sum((self.medicare_n + self.aca_costs_n) * inv_g)),
             "debt": float(np.sum(self.debt_payments_n * inv_g)),
@@ -1158,7 +1161,7 @@ class Plan:
         ) * inv_g
         outflows = {
             "living": self.g_n * inv_g,
-            "taxes": (self.T_n + self.U_n + self.J_n) * inv_g,
+            "taxes": (self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g,
             "state_taxes": self.st_T_n * inv_g,
             "healthcare": (self.medicare_n + self.aca_costs_n) * inv_g,
             "debt": self.debt_payments_n * inv_g,
@@ -2775,6 +2778,8 @@ class Plan:
             # earnings test.
             self._ss_streams(self.ssecAges, gamma_n)
             self.zetaBar_in = self.zeta_in * gamma_n[:-1]
+            # Payroll tax on the same earnings, rebuilt here for the same reason.
+            self.payroll_n = tx.payrollTax(self.N_i, self._earnings_test_inputs()[0], gamma_n, self.n_d, self.N_n)
             self.xiBar_n = self.xi_n * gamma_n[:-1]
             self.piBar_in = pension.compute_piBar_in(
                 self.pi_in,
@@ -3734,8 +3739,8 @@ class Plan:
                 + self.fixed_assets_ordinary_income_n[n]
                 + self.fixed_assets_capital_gains_n[n]
             )
-            # Subtract debt payments (negative cash flow)
-            rhs -= self.debt_payments_n[n]
+            # Subtract debt payments and the payroll tax (negative cash flow)
+            rhs -= self.debt_payments_n[n] + self.payroll_n[n]
             row = self.A.newRow({self.vm["g"].idx(n): 1})
             row.addElem(self.vm["s"].idx(n), 1)
             row.addElem(self.vm["m"].idx(n), 1)
@@ -5899,6 +5904,7 @@ class Plan:
             + self.medicare_n
             + self.aca_costs_n
             + self.debt_payments_n
+            + self.payroll_n
         )
         rhs = (
             np.sum(self.omega_in, axis=0)

@@ -241,12 +241,13 @@ def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability():
     """#197: the better plan moves ordinary income across T15 in the same years as it changes SS
     taxability. Step (b) pins the LTCG binaries, but the search relaxes the half of their link
     rows that held income above a threshold, and (b') frees them with the SS ball once the rounds
-    stall, so it reaches the branch-and-bound plan (bequest 31,778; 20,004 when blocked)."""
+    stall, so it reaches the branch-and-bound plan (bequest 31,778; 20,004 when blocked). With the
+    payroll tax on John's 2026 wages (#227), both give 14,013.49."""
     p = _load("Case_john+sally.toml")
     p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
     assert p.caseStatus == "solved"
     assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
-    assert p.bequest > 31_000.0, p.bequest
+    assert p.bequest > 14_000.0, p.bequest
 
 
 def test_returned_ltcg_binaries_satisfy_the_full_rows(jack_jill_pair):

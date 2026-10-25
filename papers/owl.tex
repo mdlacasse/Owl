@@ -262,7 +262,8 @@ Each individual has their own sheet with the following year-indexed columns:
     deferrals, deductible IRA and payroll HSA contributions; employer portions
     included in the \textit{ctrb} columns are not subtracted, as they were never
     part of wages). This single amount serves both as cash available to the plan
-    and as taxable employment income. An after-tax contribution paid from pay
+    and as taxable employment income, and the employee's payroll tax is charged on it
+    (plus the year's tax-deferred contributions) as a cash outflow. An after-tax contribution paid from pay
     (Roth 401(k), Roth IRA, taxable) therefore stays in the wages, where it is
     taxed, and is paid for by a negative \textit{big-ticket items} entry of the
     same amount;
@@ -319,8 +320,8 @@ outflows.
 \subsection*{Cash-flow balance}
 
 In every plan year, Owl enforces an annual cash-flow balance.
-Spending plus all taxes, Medicare premiums, and debt payments
-must equal income from wages, Social Security benefits,
+Spending plus all taxes (the employee's payroll tax on wages included), Medicare premiums,
+and debt payments must equal income from wages, Social Security benefits,
 account withdrawals, fixed-asset sale proceeds, and other income.
 Account contributions do not appear in this balance: anticipated wages are
 entered net of pre-tax contributions, an after-tax contribution paid from pay
@@ -1899,6 +1900,15 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 \item [$\mathcal{D}_n$]
 	Debt payment in year $n$ to be considered in the cash flow. This allows the cash flow to account
 	for a mortgage or a car loan, for example.
+\item [$\mathcal{F}_n$]
+	Employee payroll tax in year $n$ on the household's earnings: 6.2\% of each person's earnings
+	up to the social security wage base (\$184,500 in 2026, held at that level in today's dollars),
+	1.45\% of all earnings, and 0.9\% of the combined earnings above \$250,000 through the year
+	of the first death and \$200,000 after (not indexed).
+	Earnings are those the earnings test reads, the anticipated wages plus the year's
+	tax-deferred contributions (Section~\ref{sec:ss}).
+	The tax is not deductible, so it is a fixed outflow of the cash flow and enters no
+	income-tax computation. Self-employment tax is not modeled.
 \item [$\mathcal{L}_{q}$]
 	Upper bounds for brackets used to determine Medicare adjustments
 	based on the modified adjusted gross income (MAGI) $\mathbb{G}$.
@@ -2643,7 +2653,7 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
 	\begin{eqnarray}
 		g_n &=& \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ]
 		+ \sum_{i,j} w_{ijn} + \sum_i \Lambda^\pm_{in} + \sum_{*=x,c,f} \mathcal{A}_n^*  \nonumber \\
-		&& - s_{n} - P_n - T_n - U_n - J_n - m_n - m^{\mathrm{aca}}_n - \mathcal{D}_n.
+		&& - s_{n} - P_n - T_n - U_n - J_n - m_n - m^{\mathrm{aca}}_n - \mathcal{D}_n - \mathcal{F}_n.
 	\end{eqnarray}
 	Here $m^{\mathrm{aca}}_n$ is the ACA net premium cost.
 	It is a decision variable when \code{withACA="optimize"},
@@ -2659,7 +2669,7 @@ binary variables excluding simultaneous overwithdrawals and deposits, and
                 + m_n + m^{\mathrm{aca}}_n + s_n + \sum_{t=0}^{N_t-1} f_{tn} \theta^x_{tn} + U_n
 		&=& \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in} \nonumber\\
                 && + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\zeta}_{in} + \bar{\pi}_{in} ] \nonumber \\
-                && - \mathcal{D}_n - J_n.
+                && - \mathcal{D}_n - \mathcal{F}_n - J_n.
 	\end{eqnarray}
 	When \code{withACA="loop"}, $m^{\mathrm{aca}}_n$ is not an LP variable; the ACA cost is
 	computed in the SC loop and subtracted on the RHS (omitted from the equation above for clarity).
@@ -3630,7 +3640,7 @@ where $q_q(p, n)$ is the flat index of $q_{pn}$ in the solution vector, and $v$ 
 \begin{equation}
 	v[J_5(n)] = \sum_{*=x,c,f} \mathcal{A}^*_n + \sum_i \Lambda^\pm_{in}
 	+ \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar\zeta_{in} + \bar{\pi}_{in}]
-	- \mathcal{D}_n.
+	- \mathcal{D}_n - \mathcal{F}_n.
 \end{equation}
 
 The condition of having a predictable net spending expressed as an

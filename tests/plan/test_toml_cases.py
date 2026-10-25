@@ -128,17 +128,23 @@ def getHFP(exdir, case, check_exists=True):
 # in 2028, her last work year at $85k, so $14,302 (nominal) is withheld that year and its 11 months
 # come back at FRA through the adjustment of the reduction factor, which here outweighs the
 # withholding. 102_531.46 with the test run on zero earnings, under the frozen test date.
+# Re-pinned when the employee's payroll tax started being paid on wages (#227), the three cases
+# with wages (HiGHS, linux, frozen test date): jack+jill 102_621 -> 100_669 and joe 92_575 -> 91_276
+# (spending), john+sally 16_803 -> 21 (bequest). john+sally's $8,798 of tax costs about $17,300 of
+# bequest compounded to the horizon, more than the loop's plan had left: past 97% of the tax its
+# bequest sits at zero and the loop ends on a plan that undercharges IRMAA by $374 (fixed-point
+# residual). kim+sam-* and robin have no wages and are unchanged to the cent.
 EXPECTED_OBJECTIVE_VALUES = {
     "Case_john+sally": {
         "net_spending_basis": 145_000,
-        "bequest": 16_803,
+        "bequest": 21,
     },
     "Case_jack+jill": {
-        "net_spending_basis": 102_621,
+        "net_spending_basis": 100_669,
         "bequest": 400_000,
     },
     "Case_joe": {
-        "net_spending_basis": 92_575,
+        "net_spending_basis": 91_276,
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {

@@ -240,6 +240,18 @@ _ACA_LP_TANGENTS = 4
 niitThreshold = np.array([200_000, 250_000])
 niitRate = 0.038
 
+# Employee payroll tax (FICA). IRS Pub. 15 (2026), "What's New": social security tax 6.2% of
+# wages up to the $184,500 wage base, Medicare tax 1.45% of all wages. Instructions for Form
+# 8959: Additional Medicare Tax 0.9% of the combined Medicare wages above $200,000 (single,
+# qualifying surviving spouse) or $250,000 (MFJ), thresholds not indexed for inflation.
+# The wage base follows the national average wage index (20 CFR 404.1048); it is held at its
+# 2026 level in today's dollars, like the earnings test's exempt amounts.
+payrollSSRate = 0.062
+payrollMedicareRate = 0.0145
+payrollWageBase = 184_500.0
+payrollAddlRate = 0.009
+payrollAddlThreshold = np.array([200_000, 250_000])
+
 # Thresholds for 65+ bonus of $6k per individual for circumventing tax
 # on social security for low-income households. This expires in 2029.
 # These numbers are hard-coded below as the tax code will likely change
@@ -1171,6 +1183,31 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
             J_n[n] = niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
 
     return J_n
+
+
+def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
+    """
+    Compute the employee's payroll tax on earnings (nominal), one total per year.
+
+    Social security tax is per person, on earnings up to the wage base (held at its 2026
+    level in today's dollars, so ``payrollWageBase * gamma_n``). Medicare tax is on all
+    earnings. The Additional Medicare Tax is on the household's combined earnings above
+    the threshold, joint through the year of the first death and single after, as in
+    computeNIIT. Self-employment tax is not modeled: all earnings are taken as wages.
+    The tax is not deductible, so it enters no income-tax computation.
+    """
+    earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
+    base_n = payrollWageBase * np.asarray(gamma_n, dtype=float)[:N_n]
+    payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
+    status = N_i - 1
+
+    for n in range(N_n):
+        if status and n == n_d:
+            status -= 1
+
+        payroll_n[n] += payrollAddlRate * max(0.0, np.sum(earnings_in[:, n]) - payrollAddlThreshold[status])
+
+    return payroll_n
 
 
 def rho_in(yobs, longevity, N_n):
