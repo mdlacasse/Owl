@@ -197,8 +197,18 @@ def test_outputs_report_it(tmp_path, monkeypatch):
     for key in ("payroll_tax_today", "payroll_tax_nominal"):
         assert METRICS_COLUMN_MAP[key][0] in columns
 
-    taxes = float(np.sum((p.T_n + p.U_n + p.J_n + p.payroll_n) * inv_g))
-    assert p.lifetime_allocation()["outflows"]["taxes"] == pytest.approx(taxes)
+    # Its own slice and band, beside the federal income tax rather than inside it; both sides balance.
+    alloc = p.lifetime_allocation()
+    assert alloc["outflows"]["taxes"] == pytest.approx(float(np.sum((p.T_n + p.U_n + p.J_n) * inv_g)))
+    assert alloc["outflows"]["payroll"] == pytest.approx(float(np.sum(p.payroll_n * inv_g)))
+    assert sum(alloc["outflows"].values()) == pytest.approx(sum(alloc["income"].values()), abs=1.0)
+    mix = p.annual_cashflow_mix()
+    np.testing.assert_allclose(mix["outflows"]["payroll"], p.payroll_n * inv_g)
+    np.testing.assert_allclose(mix["outflows"]["taxes"], (p.T_n + p.U_n + p.J_n) * inv_g)
+    for backend in ("plotly", "matplotlib"):
+        p.setPlotBackend(backend)
+        assert p.showLifetimeAllocation(figure=True) is not None
+        assert p.showCashFlowMix(figure=True) is not None
 
     bills = p.T_n + p.U_n + p.medicare_n + p.J_n + p.aca_costs_n + p.st_T_n + p.payroll_n
     income = p.saveWorkbook(saveToFile=False)["Income"]

@@ -1090,11 +1090,12 @@ class Plan:
         Return lifetime cash flow breakdown in today's dollars as two dicts.
 
         Returns a dict with keys:
-          'outflows'  — {living, taxes, state_taxes, healthcare, debt, bequest}
+          'outflows'  — {living, taxes, payroll, state_taxes, healthcare, debt, bequest}
           'income'    — {portfolio, ss, pension, wages, spia, other}
           'total'     — total lifetime outflows (today's $)
 
-        'taxes' is the federal income tax (ordinary, gains, NIIT) plus the payroll tax.
+        'taxes' is the federal income tax (ordinary, gains, NIIT); 'payroll' is the employee's
+        payroll tax, its own slice because it is not an income tax.
         The portfolio slice = total_outflows - sum(guaranteed income).
         Both dicts sum to 'total'.
         """
@@ -1110,7 +1111,8 @@ class Plan:
         )
         outflows = {
             "living": float(np.sum(self.g_n * inv_g)),
-            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g)),
+            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
+            "payroll": float(np.sum(self.payroll_n * inv_g)),
             "state_taxes": float(np.sum(self.st_T_n * inv_g)),
             "healthcare": float(np.sum((self.medicare_n + self.aca_costs_n) * inv_g)),
             "debt": float(np.sum(self.debt_payments_n * inv_g)),
@@ -1147,7 +1149,7 @@ class Plan:
         Return year-by-year cash flow breakdown in today's dollars.
 
         Returns a dict with keys:
-          'outflows' — {living, taxes, state_taxes, healthcare, debt}  (arrays of length N_n)
+          'outflows' — {living, taxes, payroll, state_taxes, healthcare, debt}  (arrays of length N_n)
           'income'   — {ss, pension, wages, spia, other, portfolio}  (arrays of length N_n)
           'year_n'   — calendar year array
 
@@ -1161,7 +1163,8 @@ class Plan:
         ) * inv_g
         outflows = {
             "living": self.g_n * inv_g,
-            "taxes": (self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g,
+            "taxes": (self.T_n + self.U_n + self.J_n) * inv_g,
+            "payroll": self.payroll_n * inv_g,
             "state_taxes": self.st_T_n * inv_g,
             "healthcare": (self.medicare_n + self.aca_costs_n) * inv_g,
             "debt": self.debt_payments_n * inv_g,

@@ -13,10 +13,11 @@ the year's cash-flow balance, next to debt payments, with no variable, constrain
 it enters no income-tax computation, `T_n` or the effective tax rate. There is no option. It is
 reported as *Total payroll tax paid* in the Summary (\$0 for a case without earnings, so plans
 compare row for row), a *payroll tax* column of the Cash Flow and Taxes worksheets and the CSV
-export, in *Tax bills + Med.* of the Income worksheet, in the *Taxes* slice of the lifetime
-allocation, as `payroll_tax_today` / `payroll_tax_nominal` in the plan metrics that
-`owlcli compare` reports, and as its own *payroll tax* line in the taxes plot, beside the income
-tax rather than inside it.
+export, in *Tax bills + Med.* of the Income worksheet, as `payroll_tax_today` /
+`payroll_tax_nominal` in the plan metrics that `owlcli compare` reports, and on its own, beside
+the income tax rather than inside it: a *payroll tax* line in the taxes plot (now titled *Taxes and
+Premiums*), and a *Payroll tax* slice and band in the lifetime allocation and the annual cash-flow
+mix.
 Self-employment tax is not modeled (a documented limitation). The twelve examples without wages
 are unchanged to the cent. The seven with wages pay \$3,672 to \$100,138 over their working
 years: alex+jamie, chris+pat, jack+jill, joe, jon+jane and riley+casey spend \$242 to \$5,156

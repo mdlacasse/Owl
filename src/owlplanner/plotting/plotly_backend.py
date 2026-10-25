@@ -53,6 +53,7 @@ _INCOME_COLORS = {
 _OUTFLOW_COLORS = {
     "living": "#2196F3",
     "taxes": "#F44336",
+    "payroll": "#E57373",
     "state_taxes": "#C62828",
     "healthcare": "#FF9800",
     "debt": "#9E9E9E",
@@ -2062,6 +2063,7 @@ class PlotlyBackend(PlotBackend):
         outflow_labels_map = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",
@@ -2142,6 +2144,7 @@ class PlotlyBackend(PlotBackend):
         outflow_labels = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",
