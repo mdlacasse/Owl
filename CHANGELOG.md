@@ -27,10 +27,12 @@ tax and \$14,013 with it, both with no residual. The tax leaves john+sally no ro
 of #197, so its two local-search tests now solve the case without it: one checks that the search
 reaches the branch-and-bound plan (31,778; 30,823 with the full LTCG link rows), the other that
 step (b') matters on its own (30,823 with the full rows; 20,004 without it either), which the first
-test did not show. The filing status of each year (joint through the year of the first death)
-is now one function, `filingStatus_n`, read by the payroll tax, the NIIT (no longer a loop over
-years; unchanged to the bit) and the taxability of Social Security. Thanks to Florin Mateoc
-(@fmateoc) for the issue and the PR (#227).
+test did not show. The filing status of each year (joint through the year of the first death and
+single after) is now one function, `filingStatus_n`, in place of the ten copies of that rule in
+the federal brackets, deduction and senior bonus, the gains tax and its rows, the NIIT and its
+rows, the taxability of Social Security and its rows, and the state brackets; the payroll tax
+reads it too. Every pinned plan is unchanged. Thanks to Florin Mateoc (@fmateoc) for the issue
+and the PR (#227).
 
 #### Fixed: a mixed-integer plan can no longer pay a lower IRMAA tier than its MAGI
 

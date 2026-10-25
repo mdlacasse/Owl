@@ -31,6 +31,8 @@ from pathlib import Path
 
 import numpy as np
 
+from . import tax_federal
+
 _TOML_PATH = Path(__file__).parent / "data" / "taxes_state.toml"
 
 # Sentinel width for the last (open-ended) bracket, in base-year dollars.
@@ -290,13 +292,10 @@ def st_taxParams(
     st_sigmaBar_n = np.zeros(N_n)
 
     thisyear = date.today().year
-    filing_status = N_i - 1  # 1 = MFJ, 0 = Single
+    filing_status_n = tax_federal.filingStatus_n(N_i, n_d, N_n)  # 1 = MFJ, 0 = Single
 
     for n in range(N_n):
-        if n == n_d:
-            filing_status = max(0, filing_status - 1)
-
-        if filing_status == 1:
+        if filing_status_n[n] == 1:
             st_theta_tn[:, n] = rates_m
             st_DeltaBar_tn[:, n] = widths_m * g_brackets[n]
             st_sigmaBar_n[n] = _deduction_amount(entry_mfj) * g_deduction[n]

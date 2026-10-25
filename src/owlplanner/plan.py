@@ -3859,6 +3859,7 @@ class Plan:
         if options.get("withSSTaxability", "loop") != "optimize":
             return
 
+        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
@@ -3871,8 +3872,7 @@ class Plan:
                 self.B.setRange(self.vm["zs"].idx(n, 1), 0, 0)
                 continue
 
-            # Per-year filing status: for couple, switch to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            status_n = filing_n[n]
             ss_lo_n = tx.ssTaxabilityLo[status_n]
             ss_hi_n = tx.ssTaxabilityHi[status_n]
             delta_p_n = ss_hi_n - ss_lo_n
@@ -4095,9 +4095,9 @@ class Plan:
         """
         sb_year = {n: j for j, n in enumerate(self._sb_years)} if self._sb_lp else {}
         prev_e_n = getattr(self, "e_n", None)
+        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
-            # Per-year filing status: couple switches to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            status_n = filing_n[n]
 
             # Inflation-adjusted bracket thresholds.
             T15_n = self.gamma_n[n] * tx.capGainRates[status_n][0]
@@ -4360,10 +4360,9 @@ class Plan:
 
         fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
 
+        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
-            # Per-year filing status: couple switches to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
-            T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
+            T_niit = float(tx.niitThreshold[filing_n[n]])  # NOT inflation-adjusted
 
             # Each row is relaxed by at most 3.8% of the year's income: MAGI and NII are both
             # bounded by the income ceiling.
