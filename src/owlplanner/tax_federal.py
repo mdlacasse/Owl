@@ -316,7 +316,7 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     if ssec_tax_fraction is not None:
         return np.full(N_n, ssec_tax_fraction)
 
-    status_n = filingStatus_n(N_i, n_d, N_n)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     lo_n = ssTaxabilityLo[status_n]
     hi_n = ssTaxabilityHi[status_n]
@@ -528,7 +528,7 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     Capital gains "stack on top" of ordinary income, so the portion of gains that
     pushes total income above each threshold is taxed at the corresponding rate.
     """
-    status_n = filingStatus_n(Ni, nd, Nn)
+    status_n = filingStatusIndex_n(Ni, nd, Nn)
     cgTax_n = np.zeros(Nn)
 
     for n in range(Nn):
@@ -1069,15 +1069,15 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
     Delta = np.zeros((N_n, 7))
     theta = np.zeros((N_n, 7))
 
-    status_n = filingStatus_n(len(yobs), n_d, N_n)
+    filingStatus = len(yobs) - 1
     souls = list(range(len(yobs)))
     thisyear = date.today().year
 
     for n in range(N_n):
-        filingStatus = status_n[n]
         # First check if shortest-lived individual is still with us.
         if n == n_d:
             souls.remove(i_d)
+            filingStatus -= 1
 
         if thisyear + n < yOBBBA:
             sigmaBar[n] = stdDeduction_OBBBA[filingStatus] * gamma_n[n]
@@ -1119,13 +1119,14 @@ def seniorBonusSchedule(yobs, i_d, n_d, N_n):
     """
     count_n = np.zeros(N_n, dtype=int)
     threshold_n = np.zeros(N_n)
-    status_n = filingStatus_n(len(yobs), n_d, N_n)
+    filingStatus = len(yobs) - 1
     souls = list(range(len(yobs)))
     thisyear = date.today().year
     for n in range(N_n):
         if n == n_d:
             souls.remove(i_d)
-        threshold_n[n] = bonusThreshold[status_n[n]]
+            filingStatus -= 1
+        threshold_n[n] = bonusThreshold[filingStatus]
         if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
             count_n[n] = sum(1 for i in souls if thisyear + n - yobs[i] >= 65)
     return count_n, threshold_n
@@ -1139,7 +1140,7 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     if not (0 < N_i <= 2):
         raise ValueError(f"Cannot process {N_i} individuals.")
 
-    status_n = filingStatus_n(N_i, n_d, N_n)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     # Number of years left in OBBBA from this year.
     thisyear = date.today().year
@@ -1160,7 +1161,7 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     return data
 
 
-def filingStatus_n(N_i, n_d, N_n):
+def filingStatusIndex_n(N_i, n_d, N_n):
     """
     Filing status of each plan year as an index into the [single, MFJ] tables: a couple
     files jointly through the year of the first death (n < n_d) and single after; a single
@@ -1177,7 +1178,7 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     I_n already includes rent and trust income from the 'net inv' column of the HFP.
     """
     J_n = np.zeros(N_n)
-    status_n = filingStatus_n(N_i, n_d, N_n)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     for n in range(N_n):
         Gmax = niitThreshold[status_n[n]]
@@ -1195,13 +1196,13 @@ def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
     level in today's dollars, so ``payrollWageBase * gamma_n``). Medicare tax is on all
     earnings. The Additional Medicare Tax is on the household's combined earnings above
     the threshold, joint through the year of the first death and single after
-    (filingStatus_n). Self-employment tax is not modeled: all earnings are taken as wages.
+    (filingStatusIndex_n). Self-employment tax is not modeled: all earnings are taken as wages.
     The tax is not deductible, so it enters no income-tax computation.
     """
     earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
     base_n = payrollWageBase * np.asarray(gamma_n, dtype=float)[:N_n]
     payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
-    status_n = filingStatus_n(N_i, n_d, N_n)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     for n in range(N_n):
         payroll_n[n] += payrollAddlRate * max(0.0, np.sum(earnings_in[:, n]) - payrollAddlThreshold[status_n[n]])

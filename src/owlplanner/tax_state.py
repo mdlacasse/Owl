@@ -292,7 +292,7 @@ def st_taxParams(
     st_sigmaBar_n = np.zeros(N_n)
 
     thisyear = date.today().year
-    filing_status_n = tax_federal.filingStatus_n(N_i, n_d, N_n)  # 1 = MFJ, 0 = Single
+    filing_status_n = tax_federal.filingStatusIndex_n(N_i, n_d, N_n)  # 1 = MFJ, 0 = Single
 
     for n in range(N_n):
         if filing_status_n[n] == 1:

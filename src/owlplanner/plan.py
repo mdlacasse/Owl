@@ -3859,7 +3859,7 @@ class Plan:
         if options.get("withSSTaxability", "loop") != "optimize":
             return
 
-        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
@@ -4095,7 +4095,7 @@ class Plan:
         """
         sb_year = {n: j for j, n in enumerate(self._sb_years)} if self._sb_lp else {}
         prev_e_n = getattr(self, "e_n", None)
-        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
             status_n = filing_n[n]
 
@@ -4360,7 +4360,7 @@ class Plan:
 
         fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
 
-        filing_n = tx.filingStatus_n(self.N_i, self.n_d, self.N_n)
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
             T_niit = float(tx.niitThreshold[filing_n[n]])  # NOT inflation-adjusted
 
