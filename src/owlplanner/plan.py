@@ -7050,6 +7050,47 @@ class Plan:
         }
         self.mylog.vprint("Computed constraint duals from binaries-fixed LP re-solve.")
 
+    def _snapBinaries(self, result, options, col_overrides=None, A=None, B=None, c=None, use_mosek=None):
+        """Re-solve a MIP's answer as an LP with its binaries pinned at exactly 0 or 1.
+
+        A solver accepts a binary within its integrality tolerance (~1e-6 to 1e-5) of 0 or 1. Times a
+        big-M in the millions, that lets dollars into a bracket whose binary counts as off: IRMAA's top
+        tier held $17-$287 of MAGI at z = 1e-6 in Case_jordan+taylor, so a year a few dollars past a
+        tier edge paid the tier below ($63,522 of IRMAA residual under local search). Pinning the
+        rounded binaries closes every such bracket exactly; the LP re-solve is skipped when the
+        binaries are already exact. If it fails, the MIP's answer is kept, with a warning.
+        """
+        obj, x, ok, msg, gap = result
+        if not ok or x is None:
+            return result
+        A = self.A if A is None else A
+        B = self.B if B is None else B
+        c = self.c if c is None else c
+        bins = np.nonzero(B.integralityArray())[0]
+        if not len(bins):
+            return result
+        x = np.asarray(x, dtype=float)
+        frac = np.abs(x[bins] - np.round(x[bins]))
+        if frac.max() <= 1e-9:
+            return result
+        ov = dict(col_overrides or {})
+        for j in bins:
+            v = float(np.round(x[j]))
+            ov[int(j)] = (v, v)
+        saved = getattr(self, "_use_mosek", False)
+        if use_mosek is not None:
+            self._use_mosek = use_mosek
+        try:
+            r = self._run_mip(A, B, c, options, lp_relax=True, col_overrides=ov, update_warm=False)
+        finally:
+            self._use_mosek = saved
+        if r[2] and r[1] is not None:
+            self.mylog.vprint(f"Binaries snapped (largest fractional part {frac.max():.1e}); "
+                              f"objective {obj:,.2f} -> {r[0]:,.2f}.")
+            return r[0], np.asarray(r[1]), True, msg, gap
+        self.mylog.print(f"Pinned-binary re-solve failed ({r[3]}); keeping the MIP answer.", tag="WARNING")
+        return result
+
     def _run_mip(self, A, B, c_obj, options, lp_relax=False, col_overrides=None, update_warm=True):
         """
         Dispatcher: MIP (or LP when lp_relax=True) solve for decomposition methods.
@@ -7058,7 +7099,8 @@ class Plan:
         For MOSEK, delegates to _run_mosek_mip (no warm-start management needed).
         """
         if getattr(self, "_use_mosek", False):
-            return self._run_mosek_mip(A, B, c_obj, options, lp_relax=lp_relax, col_overrides=col_overrides)
+            res = self._run_mosek_mip(A, B, c_obj, options, lp_relax=lp_relax, col_overrides=col_overrides)
+            return res if lp_relax else self._snapBinaries(res, options, col_overrides, A, B, c_obj, use_mosek=True)
         # HiGHS path: extract CSR arrays from abcapi objects.
         a_start, a_index, a_value = A.to_csr()
         Lb, Ub = B.arrays()
@@ -7074,6 +7116,8 @@ class Plan:
         if warm is None or len(warm) != A.nvars:
             warm = self._highs_warm_start if update_warm else None
         result = self._run_highs(c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=warm)
+        if not lp_relax:
+            result = self._snapBinaries(result, options, col_overrides, A, B, c_obj, use_mosek=False)
         if result[2] and update_warm:
             self._highs_warm_start = result[1].copy()
         return result
@@ -7096,6 +7140,7 @@ class Plan:
         result = self._run_highs(
             c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=self._highs_warm_start
         )
+        result = self._snapBinaries(result, options, use_mosek=False)
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
         return result
@@ -7164,7 +7209,7 @@ class Plan:
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 
-        return solution, xx, solverSuccess, solverMsg, rel_gap
+        return self._snapBinaries((solution, xx, solverSuccess, solverMsg, rel_gap), options, use_mosek=True)
 
     def _update_Psi_n(self):
         """

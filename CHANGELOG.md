@@ -1,5 +1,20 @@
 ### Version WIP
 
+#### Fixed: a mixed-integer plan can no longer pay a lower IRMAA tier than its MAGI
+
+A solver accepts a binary within its integrality tolerance of 0 or 1, about one millionth. Times
+a bracket's big-M, the year's income ceiling in the tens of millions, that let a few dollars into
+a bracket whose binary counted as off: in Case_jordan+taylor under local search, IRMAA's top tier
+held \$17 to \$287 of MAGI, so years a few dollars past a tier edge paid the tier below, and the
+plan's premiums were \$2,300 to \$3,470 a year lower than its own MAGI implies (\$63,522 of IRMAA
+residual over the plan). After every mixed-integer solve (branch-and-bound, local search, and
+the solves around them, with either solver), the binaries are now rounded and the plan re-solved
+as an LP with them pinned, which closes every such bracket exactly; the re-solve is skipped when
+the binaries are already exact. Across the 19 examples under local search, jordan+taylor's
+residual goes to \$0 for \$66 less bequest (0.004%), three others lose a few dollars of hidden
+residual, and the other 15 are unchanged, at the same run time. Under branch-and-bound,
+jordan+taylor's \$4,593 residual goes too, and both methods now give the same plan.
+
 #### New: Case_riley+casey, bridging to Medicare on the ACA in Georgia
 
 A married couple, 62 and 54, in a state without the Medicaid expansion, with most of their savings
