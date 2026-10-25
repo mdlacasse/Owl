@@ -1,3 +1,41 @@
+### Version WIP
+
+#### New: the employee's payroll tax is paid on wages
+
+*Anticipated wages* count as cash, and **Owl** charged no payroll tax on them, so each working
+year brought in 7.65% more cash than it does. Every solve now charges the employee's share on the
+earnings the SSA earnings test reads (*anticipated wages* plus the year's 401k and IRA
+contributions): 6.2% social security tax on each person's earnings up to the wage base (\$184,500
+in 2026, held at that level in today's dollars), 1.45% Medicare tax on all of them, and the 0.9%
+Additional Medicare Tax on the household's combined earnings above \$250,000 through the year of
+the first death and \$200,000 after (not indexed). The tax is not deductible: it is a constant of
+the year's cash-flow balance, next to debt payments, with no variable, constraint, or binary, and
+it enters no income-tax computation, `T_n` or the effective tax rate. There is no option. It is
+reported as *Total payroll tax paid* in the Summary (\$0 for a case without earnings, so plans
+compare row for row), a *payroll tax* column of the Cash Flow and Taxes worksheets and the CSV
+export, in *Tax bills + Med.* of the Income worksheet, in the *Taxes* slice of the lifetime
+allocation, and as `payroll_tax_today` / `payroll_tax_nominal` in the plan metrics that
+`owlcli compare` reports.
+Self-employment tax is not modeled (a documented limitation). The twelve examples without wages
+are unchanged to the cent. The seven with wages pay \$3,672 to \$100,138 over their working
+years: alex+jamie, chris+pat, jack+jill, joe, jon+jane and riley+casey spend \$242 to \$5,156
+a year less (0.2% to 3.2%), and john+sally's bequest goes from \$16,803 to \$21. That last case
+had little to spare: its \$8,798 of tax, compounded to the horizon, costs \$17,300 of bequest, so
+in loop mode the bequest reaches zero at 97% of the tax, after which the loop ends on a plan that
+undercharges IRMAA by \$374 (its fixed-point residual). Local search gives \$31,778 without the
+tax and \$14,013 with it, both with no residual, so john+sally's reproducibility pin now solves it
+under local search, a `deep` test (\$14,013), instead of pinning the loop's \$21. The tax leaves john+sally no room for the moves
+of #197, so its two local-search tests now solve the case without it: one checks that the search
+reaches the branch-and-bound plan (31,778; 30,823 with the full LTCG link rows), the other that
+step (b') matters on its own (30,823 with the full rows; 20,004 without it either), which the first
+test did not show. The filing status of each year (joint through the year of the first death and
+single after) is now one function, `filingStatusIndex_n`, in place of eight copies of that rule in
+the federal brackets, the gains tax and its rows, the NIIT and its rows, the taxability of Social
+Security and its rows, and the state brackets; the payroll tax reads it too. The standard deduction
+and the senior bonus (`taxParams`, `seniorBonusSchedule`) keep their own, where the same death also
+removes the deceased from the people counted. Every pinned plan is unchanged. Thanks to Florin
+Mateoc (@fmateoc) for the issue and the PR (#227).
+
 ### Version 2026.10.25
 
 #### Fixed: branch-and-bound no longer keeps a plan that charges a cost its own income does not imply

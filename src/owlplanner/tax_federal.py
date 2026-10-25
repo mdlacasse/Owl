@@ -240,6 +240,18 @@ _ACA_LP_TANGENTS = 4
 niitThreshold = np.array([200_000, 250_000])
 niitRate = 0.038
 
+# Employee payroll tax (FICA). IRS Pub. 15 (2026), "What's New": social security tax 6.2% of
+# wages up to the $184,500 wage base, Medicare tax 1.45% of all wages. Instructions for Form
+# 8959: Additional Medicare Tax 0.9% of the combined Medicare wages above $200,000 (single,
+# qualifying surviving spouse) or $250,000 (MFJ), thresholds not indexed for inflation.
+# The wage base follows the national average wage index (20 CFR 404.1048); it is held at its
+# 2026 level in today's dollars, like the earnings test's exempt amounts.
+payrollSSRate = 0.062
+payrollMedicareRate = 0.0145
+payrollWageBase = 184_500.0
+payrollAddlRate = 0.009
+payrollAddlThreshold = np.array([200_000, 250_000])
+
 # Thresholds for 65+ bonus of $6k per individual for circumventing tax
 # on social security for low-income households. This expires in 2029.
 # These numbers are hard-coded below as the tax code will likely change
@@ -304,10 +316,7 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     if ssec_tax_fraction is not None:
         return np.full(N_n, ssec_tax_fraction)
 
-    # Filing status per year: for couples, switch from MFJ (1) to Single (0) at n_d.
-    status_n = np.full(N_n, N_i - 1)
-    if N_i == 2 and n_d is not None and n_d < N_n:
-        status_n[n_d:] = 0
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     lo_n = ssTaxabilityLo[status_n]
     hi_n = ssTaxabilityHi[status_n]
@@ -519,12 +528,11 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     Capital gains "stack on top" of ordinary income, so the portion of gains that
     pushes total income above each threshold is taxed at the corresponding rate.
     """
-    status = Ni - 1
+    status_n = filingStatusIndex_n(Ni, nd, Nn)
     cgTax_n = np.zeros(Nn)
 
     for n in range(Nn):
-        if status and n == nd:
-            status -= 1
+        status = status_n[n]
 
         # Calculate ordinary income (taxable income minus capital gains).
         ordIncome = txIncome_n[n] - ltcg_n[n]
@@ -1132,8 +1140,7 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     if not (0 < N_i <= 2):
         raise ValueError(f"Cannot process {N_i} individuals.")
 
-    n_d = min(n_d, N_n)
-    status = N_i - 1
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     # Number of years left in OBBBA from this year.
     thisyear = date.today().year
@@ -1146,12 +1153,23 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
         for n in range(N_n):
-            stat = status if n < n_d else 0
+            stat = status_n[n]
             array[n] = taxBrackets_OBBBA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
 
         data[taxBracketNames[t]] = array
 
     return data
+
+
+def filingStatusIndex_n(N_i, n_d, N_n):
+    """
+    Filing status of each plan year as an index into the [single, MFJ] tables: a couple
+    files jointly through the year of the first death (n < n_d) and single after; a single
+    person files single throughout. n_d of None or past the plan means no death in it.
+    """
+    if n_d is None:
+        n_d = N_n
+    return np.where(np.arange(N_n) < n_d, N_i - 1, 0)
 
 
 def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
@@ -1160,17 +1178,36 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     I_n already includes rent and trust income from the 'net inv' column of the HFP.
     """
     J_n = np.zeros(N_n)
-    status = N_i - 1
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     for n in range(N_n):
-        if status and n == n_d:
-            status -= 1
-
-        Gmax = niitThreshold[status]
+        Gmax = niitThreshold[status_n[n]]
         if MAGI_n[n] > Gmax:
             J_n[n] = niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
 
     return J_n
+
+
+def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
+    """
+    Compute the employee's payroll tax on earnings (nominal), one total per year.
+
+    Social security tax is per person, on earnings up to the wage base (held at its 2026
+    level in today's dollars, so ``payrollWageBase * gamma_n``). Medicare tax is on all
+    earnings. The Additional Medicare Tax is on the household's combined earnings above
+    the threshold, joint through the year of the first death and single after
+    (filingStatusIndex_n). Self-employment tax is not modeled: all earnings are taken as wages.
+    The tax is not deductible, so it enters no income-tax computation.
+    """
+    earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
+    base_n = payrollWageBase * np.asarray(gamma_n, dtype=float)[:N_n]
+    payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
+
+    for n in range(N_n):
+        payroll_n[n] += payrollAddlRate * max(0.0, np.sum(earnings_in[:, n]) - payrollAddlThreshold[status_n[n]])
+
+    return payroll_n
 
 
 def rho_in(yobs, longevity, N_n):

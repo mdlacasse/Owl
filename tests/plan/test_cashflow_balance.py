@@ -4,7 +4,7 @@ Cash flow balance tests.
 Verifies that for every year of a solved plan the LP cash flow constraint
 holds in aggregated post-solve form:
 
-    g_n + T_n + U_n + J_n + (m_n + M_n) + ACA_n + debt_n
+    g_n + T_n + U_n + J_n + (m_n + M_n) + ACA_n + debt_n + payroll_n
         == wages + other_inc + net_inv + SS + pensions + BTI
            + FA_ord + FA_cap + FA_taxfree + sum(w_ijn)
 
@@ -43,6 +43,7 @@ def _assert_cashflow_balance(p, atol=1.0):
 
     """
     lhs = p.g_n + p.s_n + p.T_n + p.st_T_n + p.U_n + p.J_n + p.m_n + p.M_n + p.aca_costs_n + p.debt_payments_n
+    lhs = lhs + p.payroll_n
     rhs = (
         np.sum(p.omega_in, axis=0)
         + np.sum(p.other_inc_in, axis=0)

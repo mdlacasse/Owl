@@ -70,6 +70,8 @@ def _metrics_to_summary(m: dict) -> dict:
         "federal_income_tax_today_dollars": r("federal_income_tax_today"),
         "ltcg_tax_nominal": r("ltcg_tax_nominal"),
         "niit_nominal": r("niit_nominal"),
+        "payroll_tax_nominal": r("payroll_tax_nominal"),
+        "payroll_tax_today_dollars": r("payroll_tax_today"),
         # SSA earnings test: 0 when it withholds nothing.
         "ss_withheld_nominal": r("ss_withheld_nominal"),
         "ss_withheld_today_dollars": r("ss_withheld_today"),
@@ -139,6 +141,7 @@ def plan_to_dict(plan) -> dict:
     fed_tax = plan.T_n[:N]
     ltcg_tax = plan.U_n[:N]
     niit = plan.J_n[:N]
+    payroll = plan.payroll_n[:N]
     state_tax = plan.st_T_n[:N]
     medicare = plan.medicare_n[:N]
     aca = plan.aca_costs_n[:N]
@@ -161,6 +164,7 @@ def plan_to_dict(plan) -> dict:
                 "federal_income_tax": _round(fed_tax[n]),
                 "ltcg_tax": _round(ltcg_tax[n]),
                 "niit": _round(niit[n]),
+                "payroll_tax": _round(payroll[n]),
                 "state_tax": _round(state_tax[n]),
                 "medicare_premiums": _round(medicare[n]),
                 "aca_premiums": _round(aca[n]),

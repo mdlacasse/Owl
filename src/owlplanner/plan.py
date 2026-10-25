@@ -612,6 +612,8 @@ class Plan:
 
         # Debt payments array (length N_n)
         self.debt_payments_n = np.zeros(self.N_n)
+        # Employee payroll tax on earnings (nominal, length N_n), built at solve time.
+        self.payroll_n = np.zeros(self.N_n)
         # Remaining debt balance at the start of each year (length N_n)
         self.fixed_assets_debt_balances_remaining_n = np.zeros(self.N_n)
 
@@ -1092,6 +1094,7 @@ class Plan:
           'income'    — {portfolio, ss, pension, wages, spia, other}
           'total'     — total lifetime outflows (today's $)
 
+        'taxes' is the federal income tax (ordinary, gains, NIIT) plus the payroll tax.
         The portfolio slice = total_outflows - sum(guaranteed income).
         Both dicts sum to 'total'.
         """
@@ -1107,7 +1110,7 @@ class Plan:
         )
         outflows = {
             "living": float(np.sum(self.g_n * inv_g)),
-            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n) * inv_g)),
+            "taxes": float(np.sum((self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g)),
             "state_taxes": float(np.sum(self.st_T_n * inv_g)),
             "healthcare": float(np.sum((self.medicare_n + self.aca_costs_n) * inv_g)),
             "debt": float(np.sum(self.debt_payments_n * inv_g)),
@@ -1158,7 +1161,7 @@ class Plan:
         ) * inv_g
         outflows = {
             "living": self.g_n * inv_g,
-            "taxes": (self.T_n + self.U_n + self.J_n) * inv_g,
+            "taxes": (self.T_n + self.U_n + self.J_n + self.payroll_n) * inv_g,
             "state_taxes": self.st_T_n * inv_g,
             "healthcare": (self.medicare_n + self.aca_costs_n) * inv_g,
             "debt": self.debt_payments_n * inv_g,
@@ -2775,6 +2778,8 @@ class Plan:
             # earnings test.
             self._ss_streams(self.ssecAges, gamma_n)
             self.zetaBar_in = self.zeta_in * gamma_n[:-1]
+            # Payroll tax on the same earnings, rebuilt here for the same reason.
+            self.payroll_n = tx.payrollTax(self.N_i, self._earnings_test_inputs()[0], gamma_n, self.n_d, self.N_n)
             self.xiBar_n = self.xi_n * gamma_n[:-1]
             self.piBar_in = pension.compute_piBar_in(
                 self.pi_in,
@@ -3734,8 +3739,8 @@ class Plan:
                 + self.fixed_assets_ordinary_income_n[n]
                 + self.fixed_assets_capital_gains_n[n]
             )
-            # Subtract debt payments (negative cash flow)
-            rhs -= self.debt_payments_n[n]
+            # Subtract debt payments and the payroll tax (negative cash flow)
+            rhs -= self.debt_payments_n[n] + self.payroll_n[n]
             row = self.A.newRow({self.vm["g"].idx(n): 1})
             row.addElem(self.vm["s"].idx(n), 1)
             row.addElem(self.vm["m"].idx(n), 1)
@@ -3854,6 +3859,7 @@ class Plan:
         if options.get("withSSTaxability", "loop") != "optimize":
             return
 
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
             zetaBar_n = np.sum(self.zetaBar_in[:, n])
 
@@ -3866,8 +3872,7 @@ class Plan:
                 self.B.setRange(self.vm["zs"].idx(n, 1), 0, 0)
                 continue
 
-            # Per-year filing status: for couple, switch to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            status_n = filing_n[n]
             ss_lo_n = tx.ssTaxabilityLo[status_n]
             ss_hi_n = tx.ssTaxabilityHi[status_n]
             delta_p_n = ss_hi_n - ss_lo_n
@@ -4090,9 +4095,9 @@ class Plan:
         """
         sb_year = {n: j for j, n in enumerate(self._sb_years)} if self._sb_lp else {}
         prev_e_n = getattr(self, "e_n", None)
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
-            # Per-year filing status: couple switches to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
+            status_n = filing_n[n]
 
             # Inflation-adjusted bracket thresholds.
             T15_n = self.gamma_n[n] * tx.capGainRates[status_n][0]
@@ -4355,10 +4360,9 @@ class Plan:
 
         fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
 
+        filing_n = tx.filingStatusIndex_n(self.N_i, self.n_d, self.N_n)
         for n in range(self.N_n):
-            # Per-year filing status: couple switches to Single at n_d.
-            status_n = 0 if (self.N_i == 2 and n >= self.n_d) else self.N_i - 1
-            T_niit = 200000.0 if status_n == 0 else 250000.0  # NOT inflation-adjusted
+            T_niit = float(tx.niitThreshold[filing_n[n]])  # NOT inflation-adjusted
 
             # Each row is relaxed by at most 3.8% of the year's income: MAGI and NII are both
             # bounded by the income ceiling.
@@ -5899,6 +5903,7 @@ class Plan:
             + self.medicare_n
             + self.aca_costs_n
             + self.debt_payments_n
+            + self.payroll_n
         )
         rhs = (
             np.sum(self.omega_in, axis=0)
