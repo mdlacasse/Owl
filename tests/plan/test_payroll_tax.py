@@ -244,6 +244,40 @@ def test_summary_line_for_every_case():
         assert "payroll tax" not in [c.value for c in wb[sheet][1]]
 
 
+def _tax_plot_lines(p, backend):
+    """Line labels and today's-dollar values of the taxes plot, for either backend."""
+    import matplotlib
+    import matplotlib.pyplot as plt
+
+    matplotlib.use("Agg")
+    p.setPlotBackend(backend)
+    fig = p.showTaxes(value="today", figure=True)
+    if backend == "plotly":
+        return {t.name: np.asarray(t.y, dtype=float) * 1000 for t in fig.data}
+    # matplotlib plots dollars and formats the axis in $k; plotly plots $k.
+    lines = {ln.get_label(): np.asarray(ln.get_ydata(), dtype=float) for ln in fig.axes[0].get_lines()}
+    plt.close(fig)
+    return lines
+
+
+@pytest.mark.parametrize("backend", ["plotly", "matplotlib"])
+def test_taxes_plot_has_a_payroll_tax_line(backend):
+    """Its own line, in today's dollars, beside the income tax rather than inside it; none for a case
+    without earnings."""
+    p = _solve(_load("jack+jill"))
+    lines = _tax_plot_lines(p, backend)
+    assert "payroll tax" in lines
+    g = p.gamma_n[: p.N_n]
+    for year, amount in JJ_PAYROLL.items():
+        assert lines["payroll tax"][_n(p, year)] == pytest.approx(amount / g[_n(p, year)], rel=1e-3)
+    assert lines["income tax"] == pytest.approx((p.T_n + p.U_n + p.J_n) / g, rel=1e-6, abs=1.0)
+
+    q = _load("jack+jill")
+    q.omega_in[:, :] = 0.0
+    _solve(q)
+    assert "payroll tax" not in _tax_plot_lines(q, backend)
+
+
 def _no_earnings_examples():
     cases = sorted(os.path.basename(f)[len("Case_"):-len(".toml")]
                    for f in glob.glob(os.path.join(_EXAMPLES, "Case_*.toml")))

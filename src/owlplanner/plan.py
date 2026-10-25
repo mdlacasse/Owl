@@ -8126,12 +8126,14 @@ class Plan:
         title = self._name + "\nIncome Tax"
         if tag:
             title += " - " + tag
-        # All taxes: ordinary income, dividends, NIIT, and state income tax.
+        # Federal income tax: ordinary income, dividends and NIIT. State income tax and the
+        # payroll tax get their own lines; the payroll tax is not an income tax.
         allTaxes = self.T_n + self.U_n + self.J_n
         aca_n = self.aca_costs_n if self.slcsp_annual > 0 else None
         st_n = self.st_T_n if any(self._states_n()) else None
         fig = self._plotter.plot_taxes(
-            self.year_n, allTaxes, self.medicare_n, self.gamma_n, value, title, self.inames, A_n=aca_n, ST_n=st_n
+            self.year_n, allTaxes, self.medicare_n, self.gamma_n, value, title, self.inames,
+            A_n=aca_n, ST_n=st_n, P_n=self.payroll_n,
         )
         if figure:
             return fig
