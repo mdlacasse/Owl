@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.25
 
 #### Fixed: branch-and-bound no longer keeps a plan that charges a cost its own income does not imply
 
