@@ -1,5 +1,18 @@
 ### Version WIP
 
+#### Changed: the Summary has the same rows for every plan, so variants compare row for row
+
+The side-by-side comparison keeps only the rows all its cases share, and several Summary rows were
+reported only when nonzero: *Total fixed income* and each of its lines (Social Security, pension,
+SPIA, wages, other income, fixed assets), *SS withheld by the earnings test* and *ARF months*,
+*Total qualified charitable distributions* and the RMDs it satisfies, *Total state income tax
+paid*, and each person's *SS claiming age*. A row one variant lacked vanished from the comparison
+of all of them: Case_jordan+taylor-qcd, built to be compared with Case_jordan+taylor, lost its QCD
+rows, and retiring now lost *Wages*. They are now always there, at \$0 or "none" (a claiming age
+reads "none" for a person with no benefit of their own and no spousal one). Rows set by the plan's
+shape still vary: the people's names, the partial bequest when the first death falls inside the
+plan, and the final bequest on a summary shorter than the plan.
+
 #### New: the employee's payroll tax is paid on wages
 
 *Anticipated wages* count as cash, and **Owl** charged no payroll tax on them, so each working

@@ -443,65 +443,60 @@ def build_summary_dic(plan, N=None):
 
     streams = fixedIncomeStreams(plan, N)
     inv_gamma = 1.0 / plan.gamma_n[:N]
+    # Every row below is reported for every plan, $0 or "none" included: the side-by-side
+    # comparison keeps only the rows all its cases have, so a row present in one variant only
+    # (wages, a pension, giving, a state tax) would drop out of the comparison of all of them.
     totFixed = float(np.sum(streams["total"]))
-    if totFixed > 0:
-        tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
-        _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
-        labels = [
-            ("ss", "Social Security"),
-            ("pension", "Pension"),
-            ("spia", "SPIA income"),
-            ("wages", "Wages"),
-            ("other", "Other income"),
-            ("fa_income", "Fixed assets income"),
-        ]
-        for key, label in labels:
-            tot = float(np.sum(streams[key]))
-            if tot > 0:
-                _summary_currency_pair(
-                    dic,
-                    label,
-                    float(np.sum(streams[key] * inv_gamma)),
-                    tot,
-                    prefix="»  ",
-                )
-
-    # SSA earnings test: benefits withheld before FRA and returned at FRA by the ARF.
-    # Reported for a household with earnings the test can reach, $0 / "none" included,
-    # so that two claiming ages of that household compare row by row.
-    if getattr(plan, "ss_earnings_reachable", False):
+    tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
+    _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
+    labels = [
+        ("ss", "Social Security"),
+        ("pension", "Pension"),
+        ("spia", "SPIA income"),
+        ("wages", "Wages"),
+        ("other", "Other income"),
+        ("fa_income", "Fixed assets income"),
+    ]
+    for key, label in labels:
         _summary_currency_pair(
             dic,
-            "SS withheld by the earnings test",
-            float(np.sum(plan.ss_withheld_in[:, :N] * inv_gamma)),
-            float(np.sum(plan.ss_withheld_in[:, :N])),
+            label,
+            float(np.sum(streams[key] * inv_gamma)),
+            float(np.sum(streams[key])),
+            prefix="»  ",
         )
-        # The ARF takes effect at FRA: counted only where FRA falls within the N years.
-        last_abs = (int(plan.year_n[0]) + N) * 12
-        fra_abs_i = plan._ssFRAStartAbs()
-        credited = []
-        for i in range(plan.N_i):
-            if fra_abs_i[i] >= last_abs:
-                continue
-            own, sp = int(plan.ss_arf_months_i[i]), int(plan.ss_arf_months_spousal_i[i])
-            parts = ([f"{own} own"] if own else []) + ([f"{sp} spouse"] if sp else [])
-            if parts:
-                credited.append(f"{plan.inames[i]} {' + '.join(parts)}")
-        dic["ARF months"] = ", ".join(credited) if credited else "none"
+
+    # SSA earnings test: benefits withheld before FRA and returned at FRA by the ARF.
+    _summary_currency_pair(
+        dic,
+        "SS withheld by the earnings test",
+        float(np.sum(plan.ss_withheld_in[:, :N] * inv_gamma)),
+        float(np.sum(plan.ss_withheld_in[:, :N])),
+    )
+    # The ARF takes effect at FRA: counted only where FRA falls within the N years.
+    last_abs = (int(plan.year_n[0]) + N) * 12
+    fra_abs_i = plan._ssFRAStartAbs()
+    credited = []
+    for i in range(plan.N_i):
+        if fra_abs_i[i] >= last_abs:
+            continue
+        own, sp = int(plan.ss_arf_months_i[i]), int(plan.ss_arf_months_spousal_i[i])
+        parts = ([f"{own} own"] if own else []) + ([f"{sp} spouse"] if sp else [])
+        if parts:
+            credited.append(f"{plan.inames[i]} {' + '.join(parts)}")
+    dic["ARF months"] = ", ".join(credited) if credited else "none"
 
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Roth conversions", totRothNow, totRoth)
 
-    # Only reported when the household actually gives this way, to keep the
-    # summary of an ordinary plan unchanged.
+    # Reported with or without giving, so that a plan with QCDs compares against one without.
     totQCD = np.sum(plan.qcd_in[:, :N], axis=(0, 1))
-    if totQCD > 0:
-        totQCDNow = np.sum(np.sum(plan.qcd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total qualified charitable distributions", totQCDNow, totQCD)
-        totQCDRmd = np.sum(plan.qcd_rmd_in[:, :N], axis=(0, 1))
-        totQCDRmdNow = np.sum(np.sum(plan.qcd_rmd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Satisfying RMDs", totQCDRmdNow, totQCDRmd, prefix="»  ")
+    totQCDNow = np.sum(np.sum(plan.qcd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total qualified charitable distributions", totQCDNow, totQCD)
+    totQCDRmd = np.sum(plan.qcd_rmd_in[:, :N], axis=(0, 1))
+    totQCDRmdNow = np.sum(np.sum(plan.qcd_rmd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Satisfying RMDs", totQCDRmdNow, totQCDRmd, prefix="»  ")
 
     _summary_section(dic, SUMMARY_SECTION_TAXES)
     taxPaid = np.sum(plan.T_n[:N], axis=0)
@@ -529,10 +524,10 @@ def build_summary_dic(plan, N=None):
     taxPaidNow = np.sum(plan.payroll_n[:N] / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total payroll tax paid", taxPaidNow, taxPaid)
 
-    if np.any(plan.st_T_n > 0):
-        stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
-        stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
+    # $0 in a state without income tax, so a move to one compares against staying.
+    stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
+    stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
 
     taxPaid = np.sum(plan.medicare_n[:N], axis=0)
     taxPaidNow = np.sum(plan.medicare_n[:N] / plan.gamma_n[:N], axis=0)
@@ -688,10 +683,14 @@ def build_summary_dic(plan, N=None):
     for i in range(plan.N_i):
         dic[f"{plan.inames[i]:>14}'s life horizon"] = f"{now} -> {now + plan.horizons[i] - 1}"
         dic[f"{plan.inames[i]:>14}'s years planned"] = f"{plan.horizons[i]}"
-        if hasattr(plan, "ssecAges") and plan.ssecAmounts[i] > 0:
+        # A claiming age matters with a benefit of one's own or a spousal one on the other record.
+        has_benefit = plan.ssecAmounts[i] > 0 or (plan.N_i == 2 and plan.ssecAmounts[1 - i] > 0)
+        if has_benefit:
             age_y = int(plan.ssecAges[i])
             age_m = round((plan.ssecAges[i] - age_y) * 12)
             dic[f"{plan.inames[i]:>14}'s SS claiming age"] = f"{age_y}y {age_m:02d}m"
+        else:
+            dic[f"{plan.inames[i]:>14}'s SS claiming age"] = "none"
 
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)

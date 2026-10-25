@@ -87,7 +87,8 @@ def test_streams_are_the_builders_where_nothing_is_withheld(monkeypatch):
 def test_summary_rows_where_earnings_can_meet_the_test():
     """jack+jill has wages before both FRAs: the rows are there, and still there ($0,
     'none') when Jill claims at 67, after her work, so the two claiming ages compare row
-    by row. With no earnings at all the household gets none."""
+    by row. With no earnings at all they are still there, at $0 and 'none': the Summary has
+    the same rows for every plan, so working and not working compare row by row too."""
     p = _solve(_load("jack+jill"))
     dic = build_summary_dic(p)
     assert any(k.startswith("SS withheld by the earnings test") for k in dic)
@@ -103,8 +104,9 @@ def test_summary_rows_where_earnings_can_meet_the_test():
     none = _load("jack+jill")
     none.omega_in[:, :] = 0.0
     dic = build_summary_dic(_solve(none))
-    assert not any(k.startswith("SS withheld by the earnings test") for k in dic)
-    assert "ARF months" not in dic
+    rows = [k for k in dic if k.startswith("SS withheld by the earnings test")]
+    assert len(rows) == 2 and all(dic[k] == "$0" for k in rows)
+    assert dic["ARF months"] == "none"
 
 
 def test_explain_block_has_no_applied_flag():
