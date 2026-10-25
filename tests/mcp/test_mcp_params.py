@@ -1985,6 +1985,7 @@ def test_state_move_is_validated():
 
 
 @pytest.mark.toml
+@pytest.mark.deep
 def test_run_from_params_with_a_move_and_local_search():
     year = datetime.date.today().year + 3
     result = _run(

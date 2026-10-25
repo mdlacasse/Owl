@@ -1,5 +1,28 @@
 ### Version WIP
 
+#### New: Case_riley+casey, bridging to Medicare on the ACA in Georgia
+
+A married couple, 62 and 54, in a state without the Medicaid expansion, with most of their savings
+in high-basis taxable accounts. It gathers rules no other example reaches: the Social Security
+earnings test's grace year (Riley claims in July after six months of part-time work, so nothing is
+withheld; without *months worked*, \$9,876 would be), Roth 401(k) contributions paid from pay with
+their big-ticket offset (#221), an HSA contribution from savings deducted through a negative
+*other inc* (#225), and ACA pricing with the coverage gap and the 400% cliff (#202). It ships in
+loop mode, like the other examples, and costs about a second in the test suite. In loop mode it
+spends \$116,758 a year and pays the full benchmark in 2026-2028; local search prices the cliff
+exactly and spends 2% more for \$58k less in premiums. The docs now also say that in the year
+Medicare starts, an HSA deduction entered as a negative *other inc* covers only the months before
+it, the share of the contribution **Owl** keeps.
+
+#### Tests: slow quality checks run on demand
+
+A `deep` marker holds checks of solution quality that take minutes, left out of the default run,
+CI included (`pytest.ini`): run them with `pytest -m deep` or `make tests-deep` when changing an
+algorithm or a feature they cover. They are the riley+casey comparison of loop and local search,
+the two-spouse claiming-age search, the #197 reach of local search, and local search through the
+MCP tools. The local-search fixture of `test_local_search.py` now runs with a 30 s budget: its
+tests hold whatever the search reaches, and with HiGHS it spent the whole 300 s default.
+
 #### Fixed: falling back on an earlier iterate takes the most settled one, not the richest
 
 When an iterate of the self-consistent loop cannot be solved even with a shortened parameter

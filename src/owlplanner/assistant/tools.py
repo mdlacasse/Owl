@@ -1864,7 +1864,8 @@ async def run_from_params(
                         HSA contribution made without wages: list the contribution under
                         contributions (account "hsa") AND the same amount here as a negative
                         other_income, which deducts it from AGI and MAGI (IRC 223(a)) and pays it
-                        from savings.  With wages, net the contribution out of wages instead.  A
+                        from savings; in the year Medicare starts, enter only the months before
+                        it.  With wages, net the contribution out of wages instead.  A
                         deduction larger than the year's income is lost.  Each entry:
                         {"person": 0, "annual_amount": -5400, "start_year": 2026, "end_year": 2027}.
         months_worked:  Months of work at the start of a year, for the Social Security earnings

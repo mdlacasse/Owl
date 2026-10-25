@@ -95,7 +95,8 @@ those entries to the user and refine the ones that could change their decisions.
 - An HSA contribution made without wages (a retiree or early retiree paying from savings)
   has no wages to be netted from: list it under contributions (account "hsa") and the same
   amount as a negative other_income, the above-the-line deduction that also pays it from
-  cash. In an HFP file these are the "HSA ctrb" and "other inc" columns. other_income and
+  cash (in the year Medicare starts, only the months before it). In an HFP file these are the
+  "HSA ctrb" and "other inc" columns. other_income and
   big_ticket_items ("other inc" and "big-ticket items") are the only signed inputs.
 - Allocation arrays are [equities, corporate_bonds, t_notes, cash]; ask whether "bonds"
   means corporate bonds or Treasuries before filling one in.

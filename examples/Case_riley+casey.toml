@@ -1,0 +1,75 @@
+case_name = "riley+casey"
+description = """
+Riley (62) and Casey (54) live in Georgia and are bridging to Medicare. Georgia did not expand Medicaid, so below 100% of the poverty line they would owe the full benchmark premium, and above 400% they lose the premium tax credit. Most of their savings sit in taxable accounts with a high cost basis, which keeps their ordinary income low.
+
+Riley works part-time through June 2026 for $48,000, $8,000 of it into a Roth 401(k): the wages are entered as they enter AGI, and the Roth contribution is paid for by a negative big-ticket item. Riley claims Social Security in July, at 62 and 3 months, right after work stops. This is the earnings test's grace year: with "months worked" set to 6, the months after work are paid and nothing is withheld (without it, Owl would withhold $9,876 and credit 6 months at full retirement age). Casey is retired and contributes to an HSA from savings with their high-deductible marketplace plan, entered as HSA ctrb plus the same amount as a negative other inc, which deducts it (2026 MAGI about $9,200 lower) and pays for it.
+
+In loop mode, the default, the plan spends $116,758/yr, converts about $388k to Roth, and pays about $148k of ACA premiums, the full benchmark in 2026-2028 because MAGI lands above 400% of the poverty line. With breakpointMethod = "local-search", the ACA cliff is priced exactly: MAGI stays under 400% in several years, premiums fall to about $90k, and spending rises to about $119,100/yr (+2%). Owl charges the benchmark silver premium net of the credit, a conservative stand-in for their bronze plan.
+
+Key features: ACA in a state without the Medicaid expansion, the Social Security earnings test and its grace year, Roth 401(k) contributions from pay, an HSA deduction without wages, and the gap between loop and exact ACA pricing.
+"""
+
+[basic_info]
+status = "married"
+names = [ "Riley", "Casey",]
+date_of_birth = [ "1964-04-10", "1971-09-20",]
+life_expectancy = [ 88, 92,]
+start_date = "2026-01-01"
+state = "GA"
+
+[savings_assets]
+taxable_savings_balances = [ 650.0, 350.0,]
+tax_deferred_savings_balances = [ 300.0, 120.0,]
+tax_free_savings_balances = [ 60.0, 40.0,]
+hsa_savings_balances = [ 0.0, 30.0,]
+taxable_cost_basis = [ 520.0, 300.0,]
+beneficiary_fractions = [ 1.0, 1.0, 1.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.5
+
+[household_financial_profile]
+HFP_file_name = "HFP_riley+casey.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ false, false,]
+pension_survivor_fraction = [ 0.0, 0.0,]
+social_security_pia_amounts = [ 2_300, 1_400,]
+social_security_ages = [ 62.25, 67.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 30.0
+dividend_rate = 1.8
+obbba_expiration_year = 2032
+method = "historical_average"
+from = 1990
+to = 2025
+
+[asset_allocation]
+interpolation_method = "s-curve"
+type = "individual"
+interpolation_center = 15.0
+interpolation_width = 5.0
+generic = [ [ [ 60.0, 40.0, 0.0, 0.0,], [ 50.0, 50.0, 0.0, 0.0,],], [ [ 60.0, 40.0, 0.0, 0.0,], [ 50.0, 50.0, 0.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "flat"
+surviving_spouse_spending_percent = 60
+objective = "maxSpending"
+
+[aca_settings]
+slcsp_annual = 22.0
+
+[solver_options]
+maxRothConversion = 60
+startRothConversions = 2026
+bequest = 400
+solver = "default"
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withSSTaxability = "loop"
+
+[results]
+default_plots = "today"

@@ -50,3 +50,9 @@ tests-highs:
 	OWL_TEST_SOLVER=highs uv --verbose run pytest -n 2
 
 tests: tests-mosek tests-highs
+
+# Slow checks of solution quality, left out of the default run (pytest.ini): run them when changing
+# an algorithm or a feature they cover.
+tests-deep:
+	OWL_TEST_SOLVER=mosek uv --verbose run pytest -n 2 -m deep
+	OWL_TEST_SOLVER=highs uv --verbose run pytest -n 2 -m deep

@@ -43,6 +43,7 @@ CASES = [
     "kim+sam-bequest",
     "kim+sam-spending",
     "morgan",
+    "riley+casey",
     "robin",
 ]
 

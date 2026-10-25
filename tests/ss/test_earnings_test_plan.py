@@ -136,20 +136,21 @@ def test_no_earnings_is_a_no_op():
     assert np.all(p.ss_withheld_in == 0)
 
 
-def _other_fifteen():
+def _other_examples():
     cases = []
     for path in sorted(glob.glob(os.path.join(_EXAMPLES, "Case_*.toml"))):
         case = os.path.basename(path)[len("Case_") : -len(".toml")]
         if case not in THE_THREE:
             cases.append(case)
-    assert len(cases) == 15
+    assert len(cases) == 16  # an empty glob would make the test below check nothing
     return cases
 
 
-@pytest.mark.parametrize("case", _other_fifteen())
-def test_no_op_objective_on_the_other_fifteen(case):
-    """No-op on the other fifteen examples, objective identical to the
-    cent. Nobody there claims before FRA in a year with wages above the exempt amount."""
+@pytest.mark.parametrize("case", _other_examples())
+def test_no_op_objective_on_the_other_examples(case):
+    """No-op on the other sixteen examples, objective identical to the cent. Nobody there claims
+    before FRA in a year with wages above the exempt amount, except Riley (riley+casey), who
+    claims in July after six months of work: the grace year pays every month of entitlement."""
     off = _solve(_load(case), test_on=False)
     on = _solve(_load(case), test_on=True)
     assert round(float(on.basis), 2) == round(float(off.basis), 2)

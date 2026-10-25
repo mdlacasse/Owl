@@ -50,7 +50,10 @@ def jack_jill_pair():
     loop = _load()
     loop.solve(loop.objective, options=_loop_options(loop))
     ls = _load()
-    ls.solve(ls.objective, options={**ls.solverOptions, "breakpointMethod": "local-search"})
+    # A 30 s budget: what these tests check (never worse than the loop, no full MILP, the Summary label,
+    # the restored LTCG binaries) holds whatever the search reaches, and HiGHS otherwise spends the
+    # whole 300 s default here.
+    ls.solve(ls.objective, options={**ls.solverOptions, "breakpointMethod": "local-search", "localSearchTime": 30})
     return loop, ls
 
 
@@ -233,6 +236,7 @@ def test_repeated_problem_is_not_searched_again():
 
 
 @pytest.mark.toml
+@pytest.mark.deep
 def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability():
     """#197: the better plan moves ordinary income across T15 in the same years as it changes SS
     taxability. Step (b) pins the LTCG binaries, but the search relaxes the half of their link

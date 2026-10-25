@@ -93,6 +93,7 @@ class TestSSAgesOptimize:
             f"Optimize ({spending_opt:.0f}) worse than fixed ({spending_fixed:.0f})"
         )
 
+    @pytest.mark.deep
     def test_couple_both(self, jack_jill):
         """Both ages searched in turn: the solve completes, both ages are in [62, 70], and the plan
         is at least as good as at the ages entered."""

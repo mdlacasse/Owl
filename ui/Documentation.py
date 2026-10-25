@@ -498,7 +498,9 @@ leave it blank where it does not apply), where:
   income. Enter the full annual amount you plan to contribute: **Owl** applies the
   Medicare cutoff itself. If you have no wages to net the contribution from (for instance, a
   retiree or early retiree contributing from savings), enter it in *HSA ctrb* and the same amount
-  as a negative *other inc*: the column alone deposits it without deducting it or paying for it. The HSA limit is counted by the month, and no contribution is allowed
+  as a negative *other inc*: the column alone deposits it without deducting it or paying for it.
+  In the year Medicare starts, enter in *other inc* only the share **Owl** keeps (below), since
+  only that much is contributed and deducted. The HSA limit is counted by the month, and no contribution is allowed
   for a month with Medicare (IRC 223(b)(2) and (b)(7)). Medicare starts in the month of the
   65th birthday, or in the month before when the birthday falls on the 1st. In the year it
   starts, **Owl** keeps the share of your entry for the months before Medicare and drops the rest:
