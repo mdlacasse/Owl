@@ -233,5 +233,5 @@ watchdog==6.0.0 ; sys_platform != 'darwin'
     # via streamlit
 websockets==17.3
     # via streamlit
-win32-setctime==1.2.0 ; sys_platform == 'win32'
+win32-setctime==1.2.1 ; sys_platform == 'win32'
     # via loguru
