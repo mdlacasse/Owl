@@ -23,7 +23,8 @@ a year less (0.2% to 3.2%), and john+sally's bequest goes from \$16,803 to \$21.
 had little to spare: its \$8,798 of tax, compounded to the horizon, costs \$17,300 of bequest, so
 in loop mode the bequest reaches zero at 97% of the tax, after which the loop ends on a plan that
 undercharges IRMAA by \$374 (its fixed-point residual). Local search gives \$31,778 without the
-tax and \$14,013 with it, both with no residual. The tax leaves john+sally no room for the moves
+tax and \$14,013 with it, both with no residual, so john+sally's reproducibility pin now solves it
+under local search, a `deep` test (\$14,013), instead of pinning the loop's \$21. The tax leaves john+sally no room for the moves
 of #197, so its two local-search tests now solve the case without it: one checks that the search
 reaches the branch-and-bound plan (31,778; 30,823 with the full LTCG link rows), the other that
 step (b') matters on its own (30,823 with the full rows; 20,004 without it either), which the first

@@ -130,15 +130,13 @@ def getHFP(exdir, case, check_exists=True):
 # withholding. 102_531.46 with the test run on zero earnings, under the frozen test date.
 # Re-pinned when the employee's payroll tax started being paid on wages (#227), the three cases
 # with wages (HiGHS, linux, frozen test date): jack+jill 102_621 -> 100_669 and joe 92_575 -> 91_276
-# (spending), john+sally 16_803 -> 21 (bequest). john+sally's $8,798 of tax costs about $17,300 of
-# bequest compounded to the horizon, more than the loop's plan had left: past 97% of the tax its
-# bequest sits at zero and the loop ends on a plan that undercharges IRMAA by $374 (fixed-point
-# residual). kim+sam-* and robin have no wages and are unchanged to the cent.
+# (spending). kim+sam-* and robin have no wages and are unchanged to the cent. john+sally left this
+# table then: its $8,798 of tax costs about $17,300 of bequest compounded to the horizon, more than
+# the loop's plan had left (16_803), so past 97% of the tax its bequest sits at zero and the loop
+# ends on a plan that undercharges IRMAA by $374 (fixed-point residual), bequest $21. That value is
+# the loop's failure mode, not a plan, so john+sally is pinned under local search instead
+# (test_john_sally_under_local_search, a deep test: about 45 s).
 EXPECTED_OBJECTIVE_VALUES = {
-    "Case_john+sally": {
-        "net_spending_basis": 145_000,
-        "bequest": 21,
-    },
     "Case_jack+jill": {
         "net_spending_basis": 100_669,
         "bequest": 400_000,
@@ -264,6 +262,25 @@ def test_reproducibility():
                 rel=rel_tol,
                 abs=rel_tol,
             ), f"{case}: Bequest mismatch."
+
+
+@pytest.mark.deep
+def test_john_sally_under_local_search():
+    """
+    john+sally's reproducibility pin, under local search. With the payroll tax (#227) the loop's
+    plan runs out of bequest and ends on an inconsistent iterate ($21, IRMAA undercharged by $374),
+    so the loop's value is not pinned. Local search reaches the branch-and-bound plan, 14,013.49,
+    with no fixed-point residual (HiGHS, linux, frozen test date).
+    """
+    p = owl.readConfig(os.path.join("./examples/", "Case_john+sally"))
+    p.solverOptions["absTol"] = 50
+    p.solverOptions["relTol"] = 2e-5
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    rel_tol = 5e-4
+    assert p.basis == pytest.approx(145_000, rel=rel_tol, abs=50)
+    assert p.bequest == pytest.approx(14_013, rel=rel_tol, abs=50)
 
 
 @pytest.mark.toml
