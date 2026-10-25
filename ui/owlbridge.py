@@ -1527,7 +1527,7 @@ def plotTaxGraphs(plan):
     fig = plan.showTaxes(figure=True)
     if fig:
         has_aca = getattr(plan, "slcsp_annual", 0) > 0
-        taxes = "Income Taxes"
+        taxes = "Income and Payroll Taxes" if np.any(getattr(plan, "payroll_n", 0) > 0) else "Income Taxes"
         if has_aca:
             tax_title = f"{taxes}, Medicare (+IRMAA), and ACA"
         else:

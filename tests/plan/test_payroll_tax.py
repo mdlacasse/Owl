@@ -253,7 +253,9 @@ def _tax_plot_lines(p, backend):
     p.setPlotBackend(backend)
     fig = p.showTaxes(value="today", figure=True)
     if backend == "plotly":
+        assert "Taxes and Premiums" in fig.layout.title.text
         return {t.name: np.asarray(t.y, dtype=float) * 1000 for t in fig.data}
+    assert "Taxes and Premiums" in fig.axes[0].get_title()
     # matplotlib plots dollars and formats the axis in $k; plotly plots $k.
     lines = {ln.get_label(): np.asarray(ln.get_ydata(), dtype=float) for ln in fig.axes[0].get_lines()}
     plt.close(fig)

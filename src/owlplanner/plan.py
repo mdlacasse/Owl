@@ -8115,7 +8115,8 @@ class Plan:
     @_checkCaseStatus
     def showTaxes(self, tag="", value=None, figure=False):
         """
-        Plot income tax paid over time.
+        Plot taxes and health premiums paid over time: federal income tax, Medicare, and when
+        present the ACA premium, state income tax and payroll tax, each its own line.
 
         A tag string can be set to add information to the title of the plot.
 
@@ -8123,7 +8124,7 @@ class Plan:
         the default behavior of setDefaultPlots().
         """
         value = self._checkValueType(value)
-        title = self._name + "\nIncome Tax"
+        title = self._name + "\nTaxes and Premiums"
         if tag:
             title += " - " + tag
         # Federal income tax: ordinary income, dividends and NIIT. State income tax and the

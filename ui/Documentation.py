@@ -1787,7 +1787,7 @@ Graphs are organized into four tabs:
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
-- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it.
+- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it; it starts with *Income and Payroll Taxes* when the plan has wages, and the chart then shows the payroll tax as its own line.
 - *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
 - *Charitable Giving (QCD)* *(when the household gives this way)* — annual qualified charitable distributions by
   individual, split into the part that satisfies that year's required minimum distribution and the part beyond it,
