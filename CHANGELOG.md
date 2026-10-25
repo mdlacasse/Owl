@@ -1,21 +1,4 @@
-### Version 2026.10.25
-
-#### Fixed: branch-and-bound no longer keeps a plan that charges a cost its own income does not imply
-
-Branch-and-bound stops at a relative gap, 3e-3 when Medicare is solved as MILP, and a plan inside
-that gap can charge a threshold cost its own income contradicts. In Case_robin (MOSEK) it taxed
-85% of Social Security in 2042 and 2045, years whose provisional income is below the base amount:
-\$1.6k of federal tax a year not owed, \$47,323 of SS residual over the plan. After each
-branch-and-bound solve, the years where the plan's own income implies a different cost than the
-one charged are now solved again, every family's binaries free in those years and pinned in the
-others, and the result is kept when it is better: the step local search already takes. The
-problem contains the plan it repairs, so it cannot return a worse one. Across 18 of the 19
-examples (MOSEK; riley+casey runs past 40 minutes either way), robin goes to a \$0 residual for
-\$67 a year more spending (0.15%), chris+pat, morgan and jon+jane gain \$12 to \$43 and keep
-at most \$18 of residual, 13 are unchanged, and each repair takes a tenth of a second. The two
-cases whose cost basis keeps the loop from settling (avery+quinn, jack+jill) still stop at the
-iteration limit, within \$6 of the same value. The default gap stays: at 1e-4, plans gain up to
-0.08% more where nothing is inconsistent (alex+jamie, dana), for up to 24 times the run time.
+### Version WIP
 
 #### New: the employee's payroll tax is paid on wages
 
@@ -50,8 +33,27 @@ single after) is now one function, `filingStatusIndex_n`, in place of eight copi
 the federal brackets, the gains tax and its rows, the NIIT and its rows, the taxability of Social
 Security and its rows, and the state brackets; the payroll tax reads it too. The standard deduction
 and the senior bonus (`taxParams`, `seniorBonusSchedule`) keep their own, where the same death also
-removes the deceased from the people counted. Every pinned plan is unchanged. Thanks to Florin Mateoc (@fmateoc) for the issue
-and the PR (#227).
+removes the deceased from the people counted. Every pinned plan is unchanged. Thanks to Florin
+Mateoc (@fmateoc) for the issue and the PR (#227).
+
+### Version 2026.10.25
+
+#### Fixed: branch-and-bound no longer keeps a plan that charges a cost its own income does not imply
+
+Branch-and-bound stops at a relative gap, 3e-3 when Medicare is solved as MILP, and a plan inside
+that gap can charge a threshold cost its own income contradicts. In Case_robin (MOSEK) it taxed
+85% of Social Security in 2042 and 2045, years whose provisional income is below the base amount:
+\$1.6k of federal tax a year not owed, \$47,323 of SS residual over the plan. After each
+branch-and-bound solve, the years where the plan's own income implies a different cost than the
+one charged are now solved again, every family's binaries free in those years and pinned in the
+others, and the result is kept when it is better: the step local search already takes. The
+problem contains the plan it repairs, so it cannot return a worse one. Across 18 of the 19
+examples (MOSEK; riley+casey runs past 40 minutes either way), robin goes to a \$0 residual for
+\$67 a year more spending (0.15%), chris+pat, morgan and jon+jane gain \$12 to \$43 and keep
+at most \$18 of residual, 13 are unchanged, and each repair takes a tenth of a second. The two
+cases whose cost basis keeps the loop from settling (avery+quinn, jack+jill) still stop at the
+iteration limit, within \$6 of the same value. The default gap stays: at 1e-4, plans gain up to
+0.08% more where nothing is inconsistent (alex+jamie, dana), for up to 24 times the run time.
 
 #### Fixed: a mixed-integer plan can no longer pay a lower IRMAA tier than its MAGI
 
