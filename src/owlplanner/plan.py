@@ -7146,6 +7146,7 @@ class Plan:
             c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=self._highs_warm_start
         )
         result = self._snapBinaries(result, options, use_mosek=False)
+        result = self._repairInconsistentYears(result, options, use_mosek=False)
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
         return result
@@ -7214,7 +7215,15 @@ class Plan:
         task.solutionsummary(mosek.streamtype.msg)
         # task.writedata(self._name+'.ptf')
 
-        return self._snapBinaries((solution, xx, solverSuccess, solverMsg, rel_gap), options, use_mosek=True)
+        result = self._snapBinaries((solution, xx, solverSuccess, solverMsg, rel_gap), options, use_mosek=True)
+        return self._repairInconsistentYears(result, options, use_mosek=True)
+
+    def _repairInconsistentYears(self, result, options, use_mosek):
+        """Branch-and-bound only: re-solve the years whose charged costs the plan's own income
+        contradicts (localsearch.repair_inconsistent_years). Not inside the local search's seeding."""
+        if getattr(self, "_localSearchSeeding", False) or getattr(self, "_noRepair", False):
+            return result
+        return localsearch.repair_inconsistent_years(self, result, options, use_mosek)
 
     def _update_Psi_n(self):
         """

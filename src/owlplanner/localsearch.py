@@ -105,6 +105,52 @@ class NoIncumbent(Exception):
     """No feasible starting plan: the caller keeps the self-consistent loop's plan."""
 
 
+# Rounds of the repair below. One nearly always settles it; a second catches a year the first
+# move pushes across another threshold.
+REPAIR_ROUNDS = 3
+
+
+def repair_inconsistent_years(plan, result, options, use_mosek):
+    """After a branch-and-bound solve, step (c) of the search: free every family's binaries in the
+    years where the plan's own income implies a different cost than the one charged, the others
+    pinned, and keep the result when it is better.
+
+    Branch-and-bound stops at a relative gap (3e-3 when Medicare is solved as MILP), and inside it
+    an incumbent can charge a cost its own income does not imply: in Case_robin, 85% of Social
+    Security taxed in two years whose provisional income is below the base amount, $1.6k of federal
+    tax a year that is not owed. A tighter gap finds the better plan, for up to 24x the time on
+    other cases; this restricted problem finds it in one small solve. It contains the incumbent,
+    so it is feasible and never worse. On the full rows, unlike the search's relaxed copy: the
+    pinned binaries already satisfy them. Returns the result with its message and gap unchanged.
+    """
+    if not result[2] or result[1] is None:
+        return result
+    ls = LocalSearch(plan, np.zeros(1), np.zeros(1))
+    ls.use_mosek = use_mosek
+    fams = ls._families()
+    if not fams:
+        return result
+    ls.A = plan.A
+    best = result
+    for rnd in range(REPAIR_ROUNDS):
+        free, where = ls._inconsistent_columns(best[1])
+        if not free:
+            break
+        ov = {c: v for c, v in ls._pin(best[1], fams).items() if c not in free}
+        res, dt = ls._mip(options, overrides=ov, warm=best[1])
+        desc = "; ".join(f"{k} {v}" for k, v in where.items())
+        moved = LocalSearch._better(res, best)
+        plan.mylog.vprint(f"Repair {rnd}: inconsistent years free [{desc}] -> "
+                          f"{'improved' if moved else 'no better plan'} ({dt:.1f}s).")
+        if not moved:
+            break
+        best = res
+    if best is result:
+        return result
+    plan._highs_warm_start = best[1].copy()
+    return (best[0], best[1], True, result[3], result[4])
+
+
 class LocalSearch:
     """Fix-and-optimize over the threshold binaries; one instance per Plan.solve()."""
 
