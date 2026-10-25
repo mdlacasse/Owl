@@ -1,5 +1,24 @@
 ### Version WIP
 
+#### Fixed: branch-and-bound loops that never settled, although their parameters had
+
+Branch-and-bound returns any plan within its gap of the optimum, 0.3% when Medicare is solved as
+MILP. When the self-consistent loop changed the problem by a few dollars, MOSEK returned a
+different plan along a direction where the objective is nearly flat (Case_jack+jill: \$3k to
+\$120k of taxable withdrawals moving among 2036-2038 every iteration), and the loop's test, a
+change in objective 60 times finer than the gap, could not be met: jack+jill, avery+quinn and joe
+ran to the 30-iteration limit. The fed-back gain fraction was not the cause; it settles in three
+iterations once the plan stops moving. Each branch-and-bound solve now re-solves the LP with the
+previous iteration's binaries and keeps them when they tie the new plan, within the loop's
+relative tolerance: the noise goes, and nothing worse than the new plan is kept. Convergence is
+judged on what is fed back: the gain fraction joins the residual, an exact NIIT leaves it (it is
+not fed back), and a change in objective below the solve's own gap no longer holds the loop. On
+the 18 examples measured under MOSEK, jack+jill settles in 4 iterations (from 30) and 15 s (from
+105 s) with no residual, joe in 4 (from 30), avery+quinn in 7 (from 30) and 45 s (from 189 s) at
+the same value, alex+jamie gains \$66 in 2 iterations, and the other 14 are unchanged; total
+time 677 s -> 415 s. Under HiGHS these cases already settled in 3 to 5 iterations and stay within
+a few dollars. Local search is not affected.
+
 #### Changed: the Summary has the same rows for every plan, so variants compare row for row
 
 The side-by-side comparison keeps only the rows all its cases share, and several Summary rows were

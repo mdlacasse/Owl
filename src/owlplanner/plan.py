@@ -6025,6 +6025,12 @@ class Plan:
 
         self._computeNLstuff(None, includeMedicare, fixedPsi=fixed_psi)
         self._init_gain_fraction()
+        # Branch-and-bound returns any plan inside its gap, so the loop's binaries stick when tied
+        # (_stickyBinaries) and its convergence is judged on the fed-back parameters. Local search
+        # carries no gap and keeps its own plan from one iteration to the next.
+        self._bb_strategy = options.get("mipStrategy", "branch-and-bound") != "local-search"
+        self._stickyPrev = None
+        self._sticky_tol = rel_tol
         self._tax_tiebreak_on = False
         M_n_lp = self.M_n.copy()
         ACA_n_lp = self.ACA_n.copy()
@@ -6123,6 +6129,7 @@ class Plan:
                 self.mylog.vprint(f"Iteration {it} filled tax brackets out of order; pricing tax from now on.")
 
             self._computeNLstuff(xx, includeMedicare, fixedPsi=fixed_psi)
+            gf_used = None if self.gain_fraction_in is None else self.gain_fraction_in.copy()
             self._update_gain_fraction()
 
             delta = xx - old_x
@@ -6150,8 +6157,13 @@ class Plan:
                 if fixed_psi is not None or "tss" in self.vm
                 else tx.compute_social_security_taxability(self.N_i, self.MAGI_aca_n, ss_n, n_d=self.n_d)
             )
-            moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today),
-                     np.sum(np.abs(self.J_n - J_n_lp) / g_today)]
+            moves = [np.sum(np.abs(psi_implied - Psi_n_lp) * ss_n / g_today)]
+            if not (self._bbLoop() and "Jn" in self.vm):  # exact NIIT is not fed back: its change is the plan's
+                moves.append(np.sum(np.abs(self.J_n - J_n_lp) / g_today))
+            if self._bbLoop() and gf_used is not None:
+                # Realized gains priced at a fraction this iterate's own basis does not imply.
+                a0w = self.alpha_ijkn[:, 0, 0, : self.N_n] * self.w_ijn[:, 0, :]
+                moves.append(float(np.nansum(np.abs(self.gain_fraction_in - gf_used) * a0w / g_today)))
             if includeMedicare:
                 moves.append(np.sum(np.abs(self.M_n - M_n_lp) / g_today))
             if self.slcsp_annual > 0:
@@ -6174,8 +6186,14 @@ class Plan:
             # since it scales with problem size and can prevent convergence for large cases.
             scale = max(1.0, abs(scaled_obj), abs(prev_scaled_obj))
             tol = max(abs_tol, rel_tol * scale)
+            conv_tol = tol
+            if self._bbLoop() and solgap is not None and solgap > 0:
+                # Below the solve's own gap, a change in objective is not a change in the plan's value.
+                # Only the convergence test widens: the cycle and stagnation tests keep their tolerance.
+                prev_gap = trace["gaps"][-2] if len(trace["gaps"]) > 1 else solgap
+                conv_tol = max(tol, max(solgap, prev_gap if prev_gap and prev_gap > 0 else 0.0) * scale)
             decision = self._check_obj_convergence(
-                it, absObjDiff, tol, includeMedicare, trace["scaledObjectives"], scResidual
+                it, absObjDiff, conv_tol, includeMedicare, trace["scaledObjectives"], scResidual
             )
             if decision is None:
                 decision = self._check_cycle(it, trace["scaledObjectives"], tol)
@@ -7149,6 +7167,7 @@ class Plan:
             c, Lb, Ub, lbvec, ubvec, a_start, a_index, a_value, integrality, options, warm_x=self._highs_warm_start
         )
         result = self._snapBinaries(result, options, use_mosek=False)
+        result = self._stickyBinaries(result, options, use_mosek=False)
         result = self._repairInconsistentYears(result, options, use_mosek=False)
         if result[2]:  # success — store for next SC iteration
             self._highs_warm_start = result[1].copy()
@@ -7219,7 +7238,50 @@ class Plan:
         # task.writedata(self._name+'.ptf')
 
         result = self._snapBinaries((solution, xx, solverSuccess, solverMsg, rel_gap), options, use_mosek=True)
+        result = self._stickyBinaries(result, options, use_mosek=True)
         return self._repairInconsistentYears(result, options, use_mosek=True)
+
+    def _bbLoop(self):
+        """True inside a self-consistent loop whose mixed-integer problems branch-and-bound solves."""
+        return getattr(self, "_bb_strategy", False) and getattr(self, "nbins", 0) > 0
+
+    def _stickyBinaries(self, result, options, use_mosek):
+        """Keep the previous iteration's binaries when they tie the new plan.
+
+        Branch-and-bound returns any plan within its gap of the optimum. When the loop changes the
+        problem by a few dollars, it can return a different one, moved along a direction where the
+        objective is nearly flat (Case_jack+jill: $3k-$120k of taxable withdrawals among 2036-2038 each
+        iteration, at the 3e-3 gap), so the loop never settles although its parameters have. Re-solve
+        the LP with the previous binaries pinned and keep it when its objective is within the loop's
+        relative tolerance of the new plan's: a tie, not anything inside the gap, which would keep
+        worse plans. The plan then moves only with the parameters, and the loop converges.
+        """
+        if not self._bbLoop() or getattr(self, "_localSearchSeeding", False):
+            return result
+        if not result[2] or result[1] is None:
+            return result
+        prev = self._stickyPrev
+        bins = np.nonzero(self.B.integralityArray())[0]
+        chosen = result
+        if prev is not None and len(prev) == self.nvars and not np.array_equal(
+            np.round(prev[bins]), np.round(result[1][bins])
+        ):
+            ov = {int(j): (float(np.round(prev[j])),) * 2 for j in bins}
+            saved = getattr(self, "_use_mosek", False)
+            self._use_mosek = use_mosek
+            try:
+                res = self._run_mip(self.A, self.B, self.c, options, lp_relax=True, col_overrides=ov, update_warm=False)
+            finally:
+                self._use_mosek = saved
+            obj, gap = result[0], result[4]
+            if res[2] and res[0] is not None and res[0] <= obj + self._sticky_tol * abs(obj):
+                if gap is not None and gap >= 0:  # the same bound, against the kept plan
+                    bound = obj - gap * abs(obj)
+                    gap = (res[0] - bound) / max(abs(res[0]), 1e-12)
+                chosen = (res[0], res[1], True, result[3], gap)
+                self.mylog.vprint(f"Kept the previous binaries (objective {res[0] - obj:+.2e} against the new plan).")
+        self._stickyPrev = chosen[1].copy()
+        return chosen
 
     def _repairInconsistentYears(self, result, options, use_mosek):
         """Branch-and-bound only: re-solve the years whose charged costs the plan's own income
