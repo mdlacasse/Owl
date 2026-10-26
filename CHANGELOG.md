@@ -1,4 +1,4 @@
-### Version WIP
+### Version 2026.10.26
 
 #### Fixed: branch-and-bound loops that never settled, although their parameters had
 
