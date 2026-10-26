@@ -47,7 +47,8 @@ paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/exampl
 `run_spending_bequest_frontier`, `run_longevity_stochastic`, `run_historical`,
 and `run_monte_carlo` accept the
 full set of plan parameters directly, eliminating the need to write a TOML file
-first.
+first. The one exception is `run_historical`, which replays history and so takes
+neither `rate_params` nor `constrain_mean`.
 
 **Unit conventions:** All monetary balances and solver limits are in full dollars (\$);
 time-series amounts (wages, contributions, big-ticket items) are in \$ per year; Social
@@ -102,6 +103,8 @@ as commands and lets you attach resources to the conversation):
 | **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
 | | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa`. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
 | | `big_ticket_items` | One-time or recurring cash flows outside the spending budget. `annual_amount` is signed: **negative for an expense**, positive for an inflow (inheritance, gift, sale proceeds): `[{"person":0,"annual_amount":-15_000,"start_year":2027,"end_year":2030}]` |
+| | `other_income` | Other ordinary income outside wages, pensions and Social Security (the HFP *other inc* column): `[{"person":0,"annual_amount":-5_400,"start_year":2026,"end_year":2027}]`. `annual_amount` is signed: positive is taxable income received in cash; **negative is an above-the-line deduction paid from cash**, e.g. an HSA contribution made without wages (list it under `contributions` too). A deduction larger than the year's income is lost |
+| | `months_worked` | Months of work at the start of a year, for the Social Security earnings test (the HFP *months worked* column): `[{"person":1,"year":2028,"months":6}]`. Use it for the year someone stops working, especially when they claim before full retirement age that year. A year with wages and no entry counts as 12 months |
 | | `qcds` | Qualified charitable distributions from the tax-deferred account: `[{"person","annual_amount","start_year","end_year"}]`. Excluded from AGI and counted toward the RMD; donor must be 70½ or older |
 | **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining","property"}`. Optional `property` names a residence or real estate in `fixed_assets` (by its `label`) whose sale pays the loan off; a link to a missing or ineligible property is an error |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
@@ -120,7 +123,7 @@ as commands and lets you attach resources to the conversation):
 | | `rate_values` | Fixed rates `[equities, corp_bonds, t_notes, inflation]` in % for `rate_method="user"` |
 | | `rate_frm` | First year of historical rate window (e.g. `1966`) |
 | | `rate_to` | Last year of historical rate window |
-| | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}` |
+| | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}`; kept in the TOML written by `save_case` |
 | | `constrain_mean` | Pin stochastic series means to historical averages (isolates SOR risk) |
 | **Allocation** | `initial_allocation` | Starting `[equities, corp_bonds, t_notes, cash]` in % (default `[60,40,0,0]`) |
 | | `final_allocation` | Ending allocation % (default `[40,60, 0,0]`) |
@@ -162,6 +165,15 @@ as commands and lets you attach resources to the conversation):
 | | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`); ignored in historical mode |
 | | `ystart` / `yend` | Historical window start/end years (historical mode) |
 | | `seed` | Random seed for reproducibility |
+| | `confirm_long_run` | Run a sweep whose projected time exceeds the confirmation threshold (default `false`). Without it, a long sweep runs one pilot solve and returns `needs_confirmation` with the estimate; the AI should ask the user before calling again with `true` |
+| **`run_historical` only** | `augmented` | Run every combination of `reverse` and `roll` for each start year: a much larger, slower sample (default `false`) |
+| | `reverse` / `roll` | Reverse the rate sequence in time, or shift it by this many years (non-augmented runs only) |
+| **`run_longevity_stochastic` only** | `sexes` * | Sex of each individual (`"M"` or `"F"`) for the mortality table lookup |
+| | `mortality_table` | Table key from `list_mortality_tables` (default `"SSA2025"`, general US population) |
+| **`run_spending_bequest_frontier` only** | `bequest_grid` | Bequest floors to trace in today's \$, e.g. `[0, 500_000, 1_000_000]` (default: five points from zero to about the plan's reachable maximum) |
+| | `scenario_method` | `"deterministic"` (default: one solve per level on the plan's own rates), `"historical"`, or `"mc"`. Cost is levels × scenarios |
+| | `success_rates_pct` | Success percentages to trace, each in `(1, 100]` (default `[50, 75, 90]`; ignored when deterministic); `target_success_rate_pct` must be one of them |
+| | `with_duals` | Also report the bequest shadow price per level (default `false`: an extra solve per level) |
 | **`compare_to_baseline` only** | `baseline_policies` | Restrictions defining the baseline (default all): `"no_roth_conversions"`, `"no_ss_age_optimization"`, `"taxable_first_ordering"` |
 | | `seed` | Shared rate-series seed applied to both runs so stochastic methods see identical markets (auto-generated when omitted) |
 | **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
@@ -647,10 +659,10 @@ translate your description into `--set` overrides, and interpret the results.
 ### Discovery
 
 > *"What cases are in my examples folder?"*
-> → calls `list_cases("examples/")`
+> → calls `list_cases("/path/to/Owl/examples/")`
 
 > *"Describe the jack+jill case."*
-> → calls `explain_case("examples/Case_jack+jill.toml")`
+> → calls `explain_case("/path/to/Owl/examples/Case_jack+jill.toml")`
 
 > *"What stochastic rate models are available?"*
 > → calls `list_rate_models("stochastic")`
@@ -715,10 +727,10 @@ translate your description into `--set` overrides, and interpret the results.
 ### Sensitivity and comparisons
 
 > *"Run the jack+jill case and tell me the optimal spending."*
-> → calls `run_case("examples/Case_jack+jill.toml")`
+> → calls `run_case("/path/to/Owl/examples/Case_jack+jill.toml")`
 
 > *"How much does moving to Minnesota change their spending?"*
-> → calls `compare_cases("examples/Case_jack+jill.toml", ["basic_info.state=MN"])`
+> → calls `compare_cases("/path/to/Owl/examples/Case_jack+jill.toml", ["basic_info.state=MN"])`
 
 > *"Compare delaying both SS claims to age 70 vs. the current plan."*
 > → calls `compare_cases(..., ["fixed_income.social_security_ages=[70,70]"])`
@@ -758,7 +770,7 @@ translate your description into `--set` overrides, and interpret the results.
   Historical mode is rejected because random lifespans can exceed the data window.
 - **Solver output** (progress, timing) goes to stderr and is never sent to the AI.
   Only the structured JSON result is returned as the tool output.
-- **Long solves**: `run_case` and `compare_cases` run the LP/MIP solver in a
+- **Long solves**: every tool that solves runs the LP/MIP solver in a
   background thread so the MCP event loop stays responsive. Complex cases can
   take 30 seconds to several minutes.
 - **Rate method parameters**: use `list_rate_models` to find the exact parameter
