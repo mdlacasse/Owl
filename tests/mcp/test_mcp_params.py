@@ -457,6 +457,42 @@ def test_save_case_keeps_a_negative_other_income(tmp_path):
     assert plan.other_inc_in[0, 0] == pytest.approx(-5_400)
 
 
+def test_rate_params_reach_run_from_params_and_save_case(tmp_path, monkeypatch):
+    """run_from_params passes rate_params to the plan builder, and save_case writes them
+    to the TOML, so a block bootstrap is not silently replaced by the iid default."""
+    import owlplanner.assistant.tools as tools_mod
+
+    seen = {}
+
+    def _capture(*args, **kwargs):
+        seen.update(kwargs)
+        raise RuntimeError("captured")
+
+    monkeypatch.setattr(tools_mod, "_build_plan_from_params", _capture)
+    out = json.loads(asyncio.run(run_from_params(
+        names=["Robin"], birth_dates=["1966-07-01"], life_expectancy=[90],
+        taxable=[200_000], tax_deferred=[300_000], roth=[100_000], state="TX",
+        rate_method="historical_bootstrap", rate_frm=1950, rate_to=2020,
+        rate_params={"bootstrap_type": "block", "block_size": 7},
+    )))
+    assert "captured" in out["error"]
+    assert seen["rate_params"] == {"bootstrap_type": "block", "block_size": 7}
+    monkeypatch.undo()
+
+    save_case(
+        names=["Robin"], birth_dates=["1966-07-01"], life_expectancy=[90],
+        taxable=[200_000], tax_deferred=[300_000], roth=[100_000], state="TX",
+        rate_method="historical_bootstrap", rate_frm=1950, rate_to=2020,
+        rate_params={"bootstrap_type": "block", "block_size": 7},
+        output_dir=str(tmp_path),
+    )
+    from owlplanner.config import readConfig
+    plan = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert plan.rateMethod == "historical_bootstrap"
+    assert plan.rateModel.params["bootstrap_type"] == "block"
+    assert plan.rateModel.params["block_size"] == 7
+
+
 # ---------------------------------------------------------------------------
 # _build_plan_from_params — roth_conversions (per-year pins)
 # ---------------------------------------------------------------------------

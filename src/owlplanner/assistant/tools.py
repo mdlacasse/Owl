@@ -1534,6 +1534,7 @@ def _run_from_params_blocking(
     medicare_part_d_base_premium=None,
     other_income=None,
     months_worked=None,
+    rate_params=None,
 ):
     plan = _build_plan_from_params(
         names,
@@ -1594,6 +1595,7 @@ def _run_from_params_blocking(
         medical_inflation_excess=medical_inflation_excess,
         other_income=other_income,
         months_worked=months_worked,
+        rate_params=rate_params,
     )
     if (
         assumed is not None
@@ -1798,6 +1800,7 @@ async def run_from_params(
     ] = None,
     other_income: list[dict] | None = None,
     months_worked: list[dict] | None = None,
+    rate_params: dict | None = None,
 ) -> str:
     """Build and solve a retirement plan from structured parameters — no TOML file needed.
 
@@ -1971,6 +1974,8 @@ async def run_from_params(
                         Defaults to the earliest available year (1928).
         rate_to:        Last calendar year of the historical window, e.g. 1996.  Defaults
                         to the most recent available year.
+        rate_params:    Extra rate model parameters as a dict, e.g.
+                        {"bootstrap_type": "block", "block_size": 5}.
         survivor_fraction: Surviving-spouse spending as percent of joint spending (default 60).
         initial_allocation: Starting allocation as [i0, i1, i2, i3] in percent (must sum to 100).
                         The four indices are FIXED and order-sensitive:
@@ -2131,7 +2136,12 @@ async def run_from_params(
     try:
         plan = await asyncio.get_running_loop().run_in_executor(
             None,
-            functools.partial(_run_from_params_blocking, other_income=other_income, months_worked=months_worked),
+            functools.partial(
+                _run_from_params_blocking,
+                other_income=other_income,
+                months_worked=months_worked,
+                rate_params=rate_params,
+            ),
             names,
             birth_dates,
             life_expectancy,
@@ -2310,6 +2320,7 @@ def save_case(
     case_name: str | None = None,
     other_income: list[dict] | None = None,
     months_worked: list[dict] | None = None,
+    rate_params: dict | None = None,
 ) -> str:
     """Save a retirement planning case to a TOML file and an HFP Excel file.
 
@@ -2386,6 +2397,7 @@ def save_case(
             medical_inflation_excess=medical_inflation_excess,
             other_income=other_income,
             months_worked=months_worked,
+            rate_params=rate_params,
         )
     except Exception as e:
         return json.dumps({"error": f"Plan build error: {e}"})
