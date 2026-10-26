@@ -13,8 +13,8 @@ This documentation is licensed under Creative Commons Attribution-NonCommercial-
 ------------------------------------------------------------------------------------
 ### About
 This document describes the underlying Owl package and how to use it within
-Python scripts or in Jupyter notebooks. Owl models federal tax laws, ACA
-marketplace premiums (pre-65), Medicare IRMAA, Social Security, pension
+Python scripts or in Jupyter notebooks. Owl models federal and state income
+taxes, ACA marketplace premiums (pre-65), Medicare IRMAA, Social Security, pension
 income, Roth conversions, and account dynamics.
 
 -----------------------------------------------------------------------
@@ -22,7 +22,8 @@ income, Roth conversions, and account dynamics.
 With about 10 lines of Python code, one can generate a full case study.
 Here is a typical plan with some comments.
 A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
-Dollar amounts are in k\$ (i.e. thousands) and ratios in percentage.
+Account balances and solver amounts are in k\$ (i.e. thousands), while Social Security and pensions
+are monthly amounts in dollars, as on SSA statements; ratios are in percentage.
 For longevity-risk sampling (stochastic spending with longevity), you should also set each individual's biological sex
 so Owl can query the correct mortality table curve (`M` or `F`). In Python, use `plan.setSexes([...])`; in TOML, set
 `[basic_info].sexes = [...]`.
@@ -35,19 +36,20 @@ year = datetime.date.today().year
 plan = owl.Plan(['Jack', 'Jill'], [f"{year-63}-01-15", f"{year-60}-01-15"], [89, 92], 'jack & jill - tutorial')
 plan.setSexes(["M", "F"])
 # On January 1st, Jack has $90.5k in a taxable investment account,
-# $600.5k in a tax-deferred account and $70k from 2 tax-free accounts.
-# Jill has $60.2k in her taxable account, $150k in a 403b, and $40k in a Roth IRA.
+# $600.5k in a tax-deferred account and $70.6k from 2 tax-free accounts.
+# Jill has $60.2k in her taxable account, $150k in a 403b, and $40.8k in a Roth IRA.
 plan.setAccountBalances(taxable=[90.5, 60.2], taxDeferred=[600.5, 150], taxFree=[50.6 + 20, 40.8], startDate="01-01")
-# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions.
+# An Excel file contains 2 tabs (one for Jill, one for Jack) describing anticipated wages and contributions,
+# and two household tabs: a mortgage, and a vacation condo to be sold in 2035.
 plan.readHFP('examples/HFP_jack+jill.xlsx')
 # Jack will glide an s-curve for asset allocations from a 60/40 -> 70/30  stocks/bonds portfolio.
 # Jill will do the same thing but is a bit more conservative from 50/50 -> 70/30 stocks/bonds portfolio.
 plan.setInterpolationMethod('s-curve')
 plan.setAllocationRatios('individual', generic=[[[60, 40, 0, 0], [70, 30, 0, 0]], [[50, 50, 0, 0], [70, 30, 0, 0]]])
-# Jack has no pension, but Jill will receive $10k per year at 65 yo.
-plan.setPension([0, 10.5], [65, 65])
+# Jack has no pension, but Jill will receive $875 a month ($10.5k a year) from age 65.
+plan.setPension([0, 875], [65, 65])
 # Jack anticipates receiving social security at age 70 and has a monthly Primary Insurance Amount of $2,360,
-# while Jill will claim at age 62 with a PIA of $1,642. All values are in today's $.
+# while Jill will claim at age 62 and 1 month with a PIA of $1,642. All values are in today's $.
 plan.setSocialSecurity([2360, 1642], [70, 62.083])
 # Instead of a 'flat' profile, we select a 'smile' spending profile, with 60% needs for the survivor.
 plan.setSpendingProfile('smile', 60)
@@ -72,15 +74,17 @@ plan.showAssetComposition()
 ```
 Two summary charts give a high-level view of the lifetime cash flow in today's dollars.
 `showLifetimeAllocation()` displays a pair of pie charts: the left shows where money comes from
-(portfolio withdrawals, Social Security, pension, wages, SPIA, and other income), and the right
-shows where it goes (living expenses, federal taxes, state taxes when configured, healthcare, debt payments, and bequest).
+(portfolio withdrawals, Social Security, pension, wages, SPIA, fixed assets, big-ticket items, and other income),
+and the right shows where it goes (living expenses, federal taxes, payroll tax when the plan has wages,
+state taxes when configured, healthcare, debt payments, big-ticket items, charitable giving,
+estimated heir taxes, and bequest).
 ```python
 plan.showLifetimeAllocation()
 ```
 
 `showCashFlowMix()` complements the pie charts with year-by-year normalized stacked-area charts
 showing how the composition of income sources and outflows evolves over the plan horizon.
-Colors are consistent with the lifetime allocation pie charts for easy cross-reference, including a separate State taxes band when configured.
+Colors are consistent with the lifetime allocation pie charts for easy cross-reference, including separate Payroll tax and State taxes bands when present.
 Bequest is excluded since it is a lump-sum event rather than an annual flow.
 ```python
 plan.showCashFlowMix()
@@ -100,11 +104,12 @@ plan.showGrossIncome(value='nominal')
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/taxIncomePlot.png?raw=true" width="75%">
 
-The optimal spending profile is shown in the next plot (in today's dollars). Notice the drop
+The optimal net spending is shown in the next plot (in today's dollars). Notice the drop
 (recall we selected 60% survivor needs) at the passing of the first spouse.
 ```python
-plan.showProfile('today')
+plan.showNetSpending(value='today')
 ```
+The shape of the selected profile alone, before any optimization, can be displayed with `plan.showProfile()`.
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/spendingPlot.png?raw=true" width="75%">
 
@@ -121,9 +126,9 @@ plan.showSources(value='nominal')
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/sourcesPlot.png?raw=true" width="75%">
 
-For taxes, the following call will display federal income tax, Medicare premiums
-(including Part B IRMAA fees), and ACA marketplace premiums when configured via
-`plan.setACA()`. ACA costs also appear in the summary (`summaryString()`) and in the
+For taxes, the following call will display the *Taxes and Premiums* plot: federal income tax, Medicare
+premiums (Part B and Part D, including IRMAA), and, when present, state income tax, the payroll tax on
+wages, and ACA marketplace premiums configured via `plan.setACA()`. ACA costs also appear in the summary (`summaryString()`) and in the
 Excel export (Cash Flow sheet).
 ```python
 plan.showTaxes(value='nominal')
@@ -166,103 +171,125 @@ print(plan.summaryString())
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of
- \\$100k starting this year
-(with a basis of \\$91.8k - the basis multiplies the profile which can vary over the course of the plan).
-The summary also contains some details:
+ \\$104k starting this year
+(with a basis of \\$95.1k - the basis multiplies the profile which can vary over the course of the plan).
+The summary also contains some details, in today's and nominal dollars:
 ```
 Synopsis
-                                                                    Case name: jack & jill - tutorial
-Net yearly spending basis . . . . . . . . . . . . . . . . . . . . . . . . . .: $91,804
-                                                   Net spending for year 2026: $100,439
-                                          Net spending remaining in year 2026: $100,439
-                                                           Total net spending: $2,809,192
-                                                         [Total net spending]: $7,756,371
-                                                       Total Roth conversions: $265,487
-                                                     [Total Roth conversions]: $329,719
-                                            Total tax paid on ordinary income: $177,820
-                                          [Total tax paid on ordinary income]: $342,415
-                                               »  Subtotal in tax bracket 10%: $75,360
-                                              » [Subtotal in tax bracket 10%]: $204,198
-                                            »  Subtotal in tax bracket 12/15%: $70,102
-                                           » [Subtotal in tax bracket 12/15%]: $103,742
-                                            »  Subtotal in tax bracket 22/25%: $32,358
-                                           » [Subtotal in tax bracket 22/25%]: $34,474
-                                            »  Subtotal in tax bracket 24/28%: $0
-                                           » [Subtotal in tax bracket 24/28%]: $0
-                                            »  Subtotal in tax bracket 32/33%: $0
-                                           » [Subtotal in tax bracket 32/33%]: $0
-                                               »  Subtotal in tax bracket 35%: $0
-                                              » [Subtotal in tax bracket 35%]: $0
-                                            »  Subtotal in tax bracket 37/40%: $0
-                                           » [Subtotal in tax bracket 37/40%]: $0
-                                      »  Subtotal in early withdrawal penalty: $0
-                                     » [Subtotal in early withdrawal penalty]: $0
-                                        Total tax paid on gains and dividends: $0
-                                      [Total tax paid on gains and dividends]: $0
-                                         Total net investment income tax paid: $0
-                                       [Total net investment income tax paid]: $0
-                                                 Total Medicare premiums paid: $129,044
-                                               [Total Medicare premiums paid]: $376,613
-                                                      Year of partial bequest: 2052
-                                              Sum of spousal transfer to Jill: $385,453
-                                            [Sum of spousal transfer to Jill]: $1,666,891
-                                        »  Spousal transfer to Jill - taxable: $0
-                                       » [Spousal transfer to Jill - taxable]: $0
-                                        »  Spousal transfer to Jill - tax-def: $47,595
-                                       » [Spousal transfer to Jill - tax-def]: $205,825
-                                       »  Spousal transfer to Jill - tax-free: $337,858
-                                      » [Spousal transfer to Jill - tax-free]: $1,461,066
-                                Sum of post-tax non-spousal bequest from Jack: $0
-                              [Sum of post-tax non-spousal bequest from Jack]: $0
-                          »  Post-tax non-spousal bequest from Jack - taxable: $0
-                         » [Post-tax non-spousal bequest from Jack - taxable]: $0
-                          »  Post-tax non-spousal bequest from Jack - tax-def: $0
-                         » [Post-tax non-spousal bequest from Jack - tax-def]: $0
-                         »  Post-tax non-spousal bequest from Jack - tax-free: $0
-                        » [Post-tax non-spousal bequest from Jack - tax-free]: $0
-                                                        Year of final bequest: 2058
-                                       Total after-tax value of final bequest: $400,000
-                                          » After-tax value of savings assets: $400,000
-                                     » Fixed assets liquidated at end of plan: $0
-                                       » With heirs assuming tax liability of: $0
-                                            » After paying remaining debts of: $0
-                                     [Total after-tax value of final bequest]: $1,991,047
-                                        [» After-tax value of savings assets]: $1,991,047
-                                   [» Fixed assets liquidated at end of plan]: $0
-                                     [» With heirs assuming tax liability of]: $0
-                                          [» After paying remaining debts of]: $0
-                            »  Post-tax final bequest account value - taxable: $0
-                           » [Post-tax final bequest account value - taxable]: $0
-                            »  Post-tax final bequest account value - tax-def: $0
-                           » [Post-tax final bequest account value - tax-def]: $0
-                           »  Post-tax final bequest account value - tax-free: $400,000
-                          » [Post-tax final bequest account value - tax-free]: $1,991,047
-                                                           Case starting date: 01-01
-                             Cumulative inflation factor at end of final year: 4.98
-                                                          Jack's life horizon: 2026 -> 2052
-                                                         Jack's years planned: 27
-                                                          Jill's life horizon: 2026 -> 2058
-                                                         Jill's years planned: 33
-                                                 Number of decision variables: 1029
-                                                        Number of constraints: 893
-                                                                  Convergence: oscillatory
-                                                             Case executed on: 2026-02-28 at 15:08:39
+
+Metric                                                                   Today's $               Nominal $
+----------------------------------------------------------------------------------------------------------
+Case name                                                   jack & jill - tutorial
+
+--- Overview ---
+
+Net yearly spending basis                                                  $95,127
+Effective tax rate (plan average)                                            11.5%
+Net spending for year 2026                                                $104,075
+Net spending remaining in year 2026                                       $104,075
+
+--- Spending & income (horizon totals) ---
+
+Total net spending                                                      $2,910,880              $8,037,140
+Total fixed income                                                      $1,881,433              $4,818,850
+»  Social Security                                                      $1,259,939              $3,979,850
+»  Pension                                                                $106,994                $294,000
+»  SPIA income                                                                  $0                      $0
+»  Wages                                                                  $514,500                $545,000
+»  Other income                                                                 $0                      $0
+»  Fixed assets income                                                          $0                      $0
+SS withheld by the earnings test                                           $12,719                 $14,302
+ARF months                                                             Jill 11 own
+Total Roth conversions                                                    $246,234                $386,810
+Total qualified charitable distributions                                        $0                      $0
+»  Satisfying RMDs                                                              $0                      $0
+
+--- Taxes & premiums (horizon totals) ---
+
+Total tax paid on ordinary income                                         $186,648                $343,883
+»  Tax bracket 10%                                                         $75,360                $204,198
+»  Tax bracket 12/15%                                                      $82,986                $109,743
+»  Tax bracket 22/25%                                                      $28,301                 $29,941
+»  Tax bracket 24/28%                                                           $0                      $0
+»  Tax bracket 32/33%                                                           $0                      $0
+»  Tax bracket 35%                                                              $0                      $0
+»  Tax bracket 37/40%                                                           $0                      $0
+»  Early withdrawal penalty                                                     $0                      $0
+Total tax paid on gains and dividends                                      $17,284                 $29,076
+Total net investment income tax paid                                        $3,134                  $5,483
+Total payroll tax paid                                                     $41,587                 $43,988
+Total state income tax paid                                                     $0                      $0
+Total Medicare premiums paid                                              $129,044                $376,613
+»  Covered by HSA                                                          $29,076                 $64,603
+Total ACA premiums paid                                                         $0                      $0
+Total debt payments                                                       $130,935                $191,313
+
+--- Partial bequest ---
+
+Year of partial bequest                                                       2052
+Sum of spousal transfer to Jill                                           $382,887              $1,655,792
+»  Spousal transfer to Jill - taxable                                           $0                      $0
+»  Spousal transfer to Jill - tax-def                                      $21,647                 $93,611
+»  Spousal transfer to Jill - tax-free                                    $361,240              $1,562,182
+»  Spousal transfer to Jill - HSA                                               $0                      $0
+Sum of post-tax non-spousal bequest from Jack                                   $0                      $0
+»  Post-tax non-spousal bequest from Jack - taxable                             $0                      $0
+»  Post-tax non-spousal bequest from Jack - tax-def                             $0                      $0
+»  Post-tax non-spousal bequest from Jack - tax-free                            $0                      $0
+»  Post-tax non-spousal bequest from Jack - HSA                                 $0                      $0
+
+--- Final bequest ---
+
+Year of final bequest                                                         2058
+Total after-tax value of final bequest                                    $400,000              $1,991,047
+» After-tax value of savings assets                                       $400,000              $1,991,047
+» Fixed assets liquidated at end of plan                                        $0                      $0
+» With heirs assuming tax liability of                                          $0                      $0
+» After paying remaining debts of                                               $0                      $0
+»  Post-tax final bequest account value - taxable                               $0                      $0
+»  Post-tax final bequest account value - tax-def                               $0                      $0
+»  Post-tax final bequest account value - tax-free                        $400,000              $1,991,047
+»  Post-tax final bequest account value - HSA                                   $0                      $0
+
+--- Plan & solver ---
+
+Case starting date                                                           01-01
+Cumulative inflation factor at end of final year                              4.98
+          Jack's life horizon                                         2026 -> 2052
+          Jack's years planned                                                  27
+          Jack's SS claiming age                                           70y 00m
+          Jill's life horizon                                         2026 -> 2058
+          Jill's years planned                                                  33
+          Jill's SS claiming age                                           62y 01m
+Number of decision variables                                                  1130
+Number of constraints                                                          953
+Convergence                                                            oscillatory
+Breakpoint method                                                             loop
+Objective error bar (spending basis, today's $)                      ± $0 (± 0.0%)
+MIP nodes (accepted solution / whole solve)                 n/a (no mixed-integer solve)
+MIP node limit                                              1,000,000 nodes (HiGHS)
+Local search step node limit                                 n/a (no local search)
+MIP solves stopped at node limit                            n/a (no mixed-integer solve)
+Case executed on                                            2026-10-26 at 00:21:12
+Solve time                                                  0.4 s wall clock (CPU 0.4 s)
+Owl version                                                 2026.10.26 (fd563234)
 ```
 And an Excel workbook can be saved with all the detailed amounts over the years by using the following command:
 ```python
 plan.saveWorkbook(overwrite=True)
 ```
-For Monte Carlo simulations, the mean return rates, their volatility and covariance are specified
-and used to generate random scenarios. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
+For Monte Carlo simulations, a stochastic rate method generates random scenarios: with *gaussian* or
+*lognormal* the mean return rates, their volatility and correlations are specified, while the
+*historical_* and other methods fit them to a window of history. A histogram of outcomes is generated such as this one for Jack and Jill, which was generated
 by selecting *gaussian* or another stochastic rate method and using
 ```
-plan.runMC('maxSpending', ...)
+plan.runMC('maxSpending', options, N)
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2a.png?raw=true" width="75%">
 
 Similarly, the next one was generated using
 ```
-plan.runMC('maxBequest', ...)
+plan.runMC('maxBequest', options, N)
 ```
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/MC-tutorial2b.png?raw=true" width="75%">
 
@@ -292,13 +319,13 @@ Here is a screenshot of one of the multiple tabs of the interface:
 
 <img src="https://github.com/mdlacasse/Owl/blob/main/info/images/OwlUI.png?raw=true" width="100%">
 
-Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the `examples` directory
-contains many files as a tutorial. The Jupyter Notebook interface is a browser-based application
+Alternatively, one can prefer using Owl from Jupyter notebooks. For that purpose, the `notebooks` directory
+contains several tutorials, and the `examples` directory holds case files and their HFP workbooks. The Jupyter Notebook interface is a browser-based application
 for authoring documents that combines live-code with narrative text, equations and visualizations.
 Jupyter will run in your default web browser, from your computer to your browser,
 and therefore no data is ever transferred on the Internet (your computer, i.e., `localhost`, is the server).
 
-For simulating your own realizations, use the files beginning with the word *template*.
+For simulating your own realizations, start from `notebooks/template.ipynb` and `examples/HFP_template.xlsx`.
 Make a copy and rename them with your own names while keeping the same extension.
 Then you'll be able to personalize a case with your own numbers and start experimenting with Owl.
 Notebooks with detailed explanations can be found in
