@@ -738,8 +738,10 @@ where:
 **Asset Lifecycle:**
 - An asset is listed from the first year it is **present in January** — the *year* column.
 - An asset is **sold during** the year in *yod* (if within the plan duration). It was present that
-  January, so it is still listed in that year, and the proceeds reach the savings accounts the
-  following January.
+  January, so it is still listed in that year. The proceeds are part of that year's cash flow:
+  they are taxed that year and can pay for that year's spending and a loan linked to the property.
+  Any surplus is deposited in the taxable account that year and first appears in the next
+  January's balance, as balances are shown at the beginning of each year.
 - The asset value grows from the acquisition year to the disposition year using the specified growth rate.
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
