@@ -555,7 +555,7 @@ preserving stationarity."""
             scol1, scol2 = st.columns(2, gap="small", vertical_alignment="top")
             with scol1:
                 kz.initCaseKey("heirsTx", 30)
-                helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred balance."
+                helpmsg = "Marginal tax rate that heirs would have to pay on inherited tax-deferred and HSA balances."
                 ret = kz.getNum("Heirs marginal tax rate (%)", "heirsTx", max_value=100.0, help=helpmsg, step=1.0)
 
             with scol2:
