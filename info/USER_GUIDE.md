@@ -19,7 +19,7 @@ income, Roth conversions, and account dynamics.
 
 -----------------------------------------------------------------------
 ## An example of Owl's functionality
-With about 10 lines of Python code, one can generate a full case study.
+With about 15 lines of Python code, one can generate a full case study.
 Here is a typical plan with some comments.
 A plan starts with the names of the individuals, their birth years and life expectancies, and a name for the plan.
 Account balances and solver amounts are in k\$ (i.e. thousands), while Social Security and pensions
@@ -171,8 +171,8 @@ print(plan.summaryString())
 ```
 The output of the last command reports that if future rates are exactly like those observed
 starting from 1969 and the following years, Jack and Jill could afford an annual spending of
- \\$104k starting this year
-(with a basis of \\$95.1k - the basis multiplies the profile which can vary over the course of the plan).
+ \$104k starting this year
+(with a basis of \$95.1k - the basis multiplies the profile which can vary over the course of the plan).
 The summary also contains some details, in today's and nominal dollars:
 ```
 Synopsis

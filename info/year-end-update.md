@@ -28,12 +28,12 @@ construction, tax calculation, and time-list operation behave as if the current 
 
 Two design decisions complement the freeze:
 
-- **`tests/test_repro.py`** computes birth years as `thisyear - age` (e.g., `thisyear - 62`
+- **`tests/plan/test_repro.py`** computes birth years as `thisyear - age` (e.g., `thisyear - 62`
   for Jack) with a fixed life expectancy. This keeps the individuals at the same age each
   year, so Social Security and Medicare start dates remain the same number of years into
   the plan — the scenario is identical across calendar years.
 
-- **`tests/test_regressions.py`** uses the same age-relative pattern
+- **`tests/plan/test_regressions.py`** uses the same age-relative pattern
   (`yobs = [thisyear - topAge + ny]`), so it was already year-agnostic.
 
 The net result: **tests never break at year rollover**. The steps below are only needed
@@ -45,31 +45,26 @@ when you deliberately want to roll the project forward to a new year.
 
 ### 1. Update the frozen test year — `tests/conftest.py`
 
-Change `_FixedDate._fixed` to January 1 of the new year:
+Change `_FROZEN_DATE` to January 1 of the new year:
 
 ```python
 # Before:
-_fixed = _REAL_DATE(2026, 1, 1)
+_FROZEN_DATE = _REAL_DATE(2026, 1, 1)
 
 # After:
-_fixed = _REAL_DATE(2027, 1, 1)
+_FROZEN_DATE = _REAL_DATE(2027, 1, 1)
 ```
 
 ---
 
 ### 2. Update birth years in example TOML files — `examples/*.toml`
 
-Increment every `date_of_birth` year by **+1** in each case file.
+Increment every `date_of_birth` year by **+1** in each case file. Every `examples/Case_*.toml`
+file has one, so update them all:
 
-Files to update:
-- `Case_jack+jill.toml`
-- `Case_jill+jack.toml` (if present)
-- `Case_joe.toml`
-- `Case_john+sally.toml`
-- `Case_jon+jane.toml`
-- `Case_alex+jamie.toml`
-- `Case_kim+sam-spending.toml`
-- `Case_kim+sam-bequest.toml`
+```bash
+grep -l "date_of_birth" examples/*.toml
+```
 
 Example:
 ```toml
@@ -87,67 +82,75 @@ date_of_birth = ["1964-01-15", "1967-03-20"]
 
 ---
 
-### 3. Update expected objective values — `tests/test_toml_cases.py`
+### 3. Update the year-keyed tax and benefit data
 
-After changing the frozen year and birth years, re-run the TOML reproducibility test to get
-the new solver outputs, then update `EXPECTED_OBJECTIVE_VALUES`:
+Owl's federal tables are keyed by year inside a single module, `src/owlplanner/tax_federal.py`;
+the file keeps its name from year to year. Add the new year's entry to each table (do not
+replace the previous one, which past-year lookups still use) and update the values that are
+stored for one year only. Verify against IRS, CMS, SSA, and HHS announcements:
+
+- **`src/owlplanner/tax_federal.py`**
+  - Federal income tax brackets and standard deductions
+  - Long-term capital gains thresholds and the Net Investment Income Tax threshold
+  - Medicare Part B base premium, Part D IRMAA amounts, and IRMAA brackets
+  - Contribution limits keyed by year: `electiveDeferralLimit`, `electiveDeferralCatchup50`,
+    `electiveDeferralCatchup60to63`, `iraContributionLimit`, `iraCatchup50`, `hsaContributionLimit`,
+    and `qcdLimit`. Years past the last entry reuse it (`_limit_for_year`); `qcdLimit` is
+    grown by `QCD_LIMIT_INFLATION` instead.
+  - ACA: the federal poverty line table (`_ACA_FPL`) and the applicable-percentage tables
+    (`_ACA_CONTRIB_PCT_YYYY`, `_ACA_CONTRIB_INITIAL_YYYY`, and their entry in the year table)
+  - Payroll tax: the Social Security wage base `payrollWageBase` (one year's value)
+  - OBBBA expiration year (if applicable)
+- **`src/owlplanner/socialsecurity.py`** — the earnings test's exempt amounts (`_EXEMPT_TABLE`)
+- **`src/owlplanner/data/taxes_state.toml`** — state brackets, deductions, and exemptions
+  (labelled with its basis year in the header)
+
+---
+
+### 4. Add last year's market returns — `src/owlplanner/data/rates.csv`
+
+Append the completed year's row (`year`, `S&P 500`, `Bonds Baa`, `real estate`, `T-Bills`,
+`T-Notes`, `Inflation`, in percent), then raise `TO` in `src/owlplanner/rates.py`
+(`FROM, TO = 1928, 2025`) to that year: it is set by hand, not read from the file.
+
+---
+
+### 5. Update expected objective values — `tests/plan/test_toml_cases.py`
+
+After changing the frozen year, the birth years, and the data, re-run the TOML
+reproducibility test to get the new solver outputs, then update `EXPECTED_OBJECTIVE_VALUES`:
 
 ```bash
-pytest tests/test_toml_cases.py -v
+uv run pytest tests/plan/test_toml_cases.py -v
 ```
 
-Update the `net_spending_basis` and `bequest` values for each case on both the `darwin`
-and `win32/linux` branches.
+Update the `net_spending_basis` and `bequest` values of each case in the table. A single
+table serves all platforms and both solvers (no case needs a MOSEK override any more), so
+re-run it with `OWL_TEST_SOLVER=mosek` as well to confirm the two still agree.
 
 ---
 
-### 4. Update the tax module — `src/owlplanner/tax_federal.py`
+### 6. Update year-specific UI text (cosmetic)
 
-If tax brackets, Medicare IRMAA thresholds, or other IRS values change for the new year:
+- `ui/Welcome.py` — "current US federal and state tax rules (including 2026)"
+- `ui/Rates.py` — the help text linking the year's Morningstar forecast roundup
 
-1. Update the constants inside `tax_federal.py` to reflect the new year's values.
-2. Rename the file to `taxYYYY.py` (e.g., `tax2027.py`).
-3. Update all imports:
+---
+
+### 7. Run the full test suite
 
 ```bash
-grep -r "tax_federal" src/ tests/ ui/
+make tests
 ```
 
-Key values to verify against IRS/CMS announcements:
-- Federal income tax brackets and standard deductions
-- Long-term capital gains thresholds
-- Medicare Part B base premium and IRMAA brackets
-- Net Investment Income Tax threshold
-- OBBBA expiration year (if applicable)
+This runs the suite under both solvers (MOSEK, then HiGHS). All tests must pass before committing.
 
 ---
 
-### 5. Update hardcoded year arrays in test data (optional / cosmetic)
-
-These tests use year arrays like `[2024, 2025, 2026]` as time-list data. They still pass
-after the year rolls over (the data is treated as historical), but updating them keeps the
-test data feeling "current":
-
-- `tests/test_timelists.py` — year columns in HFP DataFrames
-- `tests/test_timelists_coverage.py` — year columns in time-list test fixtures
-- `tests/test_debts.py` — `yod` (year-of-debt) values
-
----
-
-### 6. Run the full test suite
+### 8. Smoke-test an example case
 
 ```bash
-pytest
-```
-
-All tests must pass before committing.
-
----
-
-### 7. Smoke-test an example case
-
-```bash
-owlcli run examples/Case_jack+jill.toml
+uv run owlcli run examples/Case_jack+jill.toml
 ```
 
 Verify the plan solves and the output looks reasonable.
@@ -159,7 +162,8 @@ Verify the plan solves and the output looks reasonable.
 | Step | File(s) | Required? |
 |------|---------|-----------|
 | Freeze year | `tests/conftest.py` | **Yes** |
-| Birth years | `examples/*.toml` | **Yes** |
-| Expected values | `tests/test_toml_cases.py` | **Yes** |
-| Tax module | `src/owlplanner/tax_federal.py` | Yes, if IRS values changed |
-| Year arrays in tests | `tests/test_timelists*.py`, `test_debts.py` | Optional (cosmetic) |
+| Birth years | `examples/Case_*.toml` | **Yes** |
+| Tax and benefit data | `src/owlplanner/tax_federal.py`, `socialsecurity.py`, `data/taxes_state.toml` | Yes, if values changed |
+| Market returns | `src/owlplanner/data/rates.csv`, `src/owlplanner/rates.py` | **Yes** |
+| Expected values | `tests/plan/test_toml_cases.py` | **Yes** |
+| UI text | `ui/Welcome.py`, `ui/Rates.py` | Optional (cosmetic) |
