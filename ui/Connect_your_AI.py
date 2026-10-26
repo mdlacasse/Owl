@@ -137,6 +137,7 @@ st.markdown(
 st.info(
     "Self-hosting or running the Docker image? Owl also ships a built-in **Assistant** chat "
     "page that can read the case you have open in this app. Enable it with `OWL_ASSISTANT=1` "
-    "and `ANTHROPIC_API_KEY` in the environment (plus `pip install owlplanner[assistant]`).",
+    "and `ANTHROPIC_API_KEY` in the environment; a self-hosted install also needs "
+    "`pip install owlplanner[assistant]`, which the Docker images already include.",
     icon=":material/forum:",
 )
