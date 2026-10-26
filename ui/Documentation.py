@@ -2498,7 +2498,7 @@ Under Docker, set the `STREAMLIT_THEME_BASE` environment variable instead — th
 Desktop GUI, in `docker-compose.yml`, or on the command line:
 
 ```
-docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.static
+docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker:latest
 ```
 
 Streamlit's [theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming)
