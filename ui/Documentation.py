@@ -969,7 +969,8 @@ The table on this page accepts one row per SPIA. The columns are:
   begins at year 0 of the plan. For a future purchase, the premium is deducted from the
   tax-deferred balance in that year.
 - **Premium (\\$k)** — lump-sum cost in thousands of nominal dollars. Ignored for past purchases.
-- **Monthly (\\$)** — monthly benefit in nominal dollars at the time of purchase.
+- **Monthly (\\$)** — monthly benefit in dollars: in today's dollars when *CPI-linked* is checked,
+  as the payment then grows with inflation from today, and otherwise the fixed nominal payment.
 - **CPI-linked** — check if payments are inflation-adjusted (rare); leave unchecked for the
   more common fixed nominal payment.
 - **Survivor (%)** — for couples, the fraction of the benefit that continues to the surviving
@@ -1057,7 +1058,7 @@ deposited in the taxable account of first spouse to pass unless exploring specif
 
 The optional **cost basis** fields improve capital gains accuracy for the taxable account.
 By default (when left at 0), Owl approximates capital gains on withdrawals using only the
-current year's price appreciation — which significantly underestimates gains for accounts
+previous year's price appreciation of the equity share — which significantly underestimates gains for accounts
 with substantial embedded appreciation. When you supply a basis, Owl instead uses the
 **average-cost method**: each dollar withdrawn from the taxable account is treated as
 realizing a gain equal to the *unrealized-gain fraction* of the account,
@@ -1071,9 +1072,8 @@ adjusted for reinvested dividends and return-of-capital distributions.
 All amounts are in \\$k.
 Leave the field at **0** if your basis is unknown — Owl treats zero (or blank) as *no basis
 supplied* and uses the legacy approximation. Enter a **positive** value to enable average-cost
-tracking. (In TOML or the Python API, an all-zero list or `setCostBasis([0])` follows the same
-rules: all zeros in a case file means legacy mode; `setCostBasis([0])` in code explicitly models
-100% embedded gain.)
+tracking. (In TOML or the Python API the same rule applies to each person: a zero entry, in the
+case file or in `setCostBasis()`, means the legacy approximation for that person.)
 A higher gain fraction means more capital gains tax per dollar withdrawn from the taxable account,
 increasing total tax drag and reducing the maximum achievable spending or bequest.
 """)

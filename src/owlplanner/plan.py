@@ -1251,7 +1251,8 @@ class Plan:
             Lump-sum cost in nominal dollars. Deducted from the individual's tax-deferred
             account (IRA rollover, non-taxable transfer). Ignored if buy_year < plan start.
         monthly_income : float
-            Monthly benefit in nominal dollars at time of purchase.
+            Monthly benefit: in today's dollars when indexed (it then grows with inflation
+            from the plan start), otherwise the fixed nominal payment.
         indexed : bool, optional
             False (default) = fixed nominal payments; True = CPI-linked.
         survivor_fraction : float, optional

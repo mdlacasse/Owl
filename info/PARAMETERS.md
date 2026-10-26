@@ -48,7 +48,7 @@ Initial account balances and beneficiary information.
 | `tax_deferred_savings_balances` | list of `N_i` floats | Initial balance in tax-deferred accounts (e.g., 401k, traditional IRA) for each individual (in thousands of dollars) |
 | `tax_free_savings_balances` | list of `N_i` floats | Initial balance in tax-free accounts (e.g., Roth IRA, Roth 401k) for each individual (in thousands of dollars) |
 | `hsa_savings_balances` | list of `N_i` floats | *(Optional)* Initial balance in Health Savings Accounts (HSA) for each individual (in thousands of dollars). Defaults to `[0.0]` (or `[0.0, 0.0]` for married). HSA contributions must stop at Medicare enrollment (~age 65); see `HSA ctrb` column in the HFP file |
-| `taxable_cost_basis` | list of `N_i` floats | *(Optional)* Adjusted cost basis of each individual's taxable account (in thousands of dollars). A positive entry activates average-cost gain tracking for that person; a zero entry means *use the legacy approximation for that person* (current-year price appreciation only — not a zero-dollar basis). This allows partial knowledge: set the known basis for one spouse and `0` for the other. Omit the field entirely to use the legacy approximation for everyone |
+| `taxable_cost_basis` | list of `N_i` floats | *(Optional)* Adjusted cost basis of each individual's taxable account (in thousands of dollars). A positive entry activates average-cost gain tracking for that person; a zero entry means *use the legacy approximation for that person* (the previous year's price appreciation of the equity share only — not a zero-dollar basis). This allows partial knowledge: set the known basis for one spouse and `0` for the other. Omit the field entirely to use the legacy approximation for everyone |
 | `beneficiary_fractions` | list of 3 or 4 floats | *(Married only)* Fraction of each account type (taxable, tax-deferred, tax-free, and optionally HSA) bequeathed to the surviving spouse. Each value should be between 0.0 and 1.0. The HSA fraction defaults to `1.0` (spouse inherits intact, per IRS rules). A 3-element list is accepted for backward compatibility and is automatically extended with `1.0` for HSA |
 | `spousal_surplus_deposit_fraction` | float | *(Married only)* Fraction of surplus to deposit in the second spouse's taxable account. Value between 0.0 and 1.0 |
 
@@ -149,7 +149,7 @@ Pension and Social Security information.
 | `spia_individuals` | list of integers | Individual index for each SPIA: `0` = first individual, `1` = second. |
 | `spia_buy_years` | list of integers | Calendar year of purchase for each SPIA. Use a year before the plan start for an already-purchased annuity (no premium is deducted from the plan). |
 | `spia_premiums` | list of floats | Lump-sum purchase price in dollars for each SPIA. Deducted from the tax-deferred account in the buy year as a non-taxable IRA rollover. Set to `0` for annuities purchased before plan start. |
-| `spia_monthly_incomes` | list of floats | Monthly income in today's dollars for each SPIA. Payments begin in the purchase year and are fully taxable as ordinary income. |
+| `spia_monthly_incomes` | list of floats | Monthly income in dollars for each SPIA. For a CPI-indexed SPIA (`spia_indexed = true`) it is in today's dollars and grows with inflation from the plan start; for a fixed one it is the nominal payment, which never changes. Payments begin in the purchase year and are fully taxable as ordinary income. |
 | `spia_indexed` | list of booleans | `true` if the SPIA is CPI-indexed (payments grow with inflation); `false` for a fixed nominal payout. |
 | `spia_survivor_fractions` | list of floats | Fraction of income (0–1) continuing to the surviving spouse after the annuitant's death. `0` = single-life annuity; `0.5`, `0.75`, or `1.0` = joint-and-survivor. Ignored for single individuals. |
 
@@ -190,9 +190,9 @@ Rates use standard financial conventions:
 | `liquidation_capgains_rate` | float | Assumed capital-gains tax rate (as percentage, e.g., `15.0` for 15%) applied to fixed-asset disposition (commission plus this rate on the gain) on the liquid balance sheet. Default is `15.0` |
 | `dividend_rate` | float | Dividend rate as a percentage (e.g., `1.72` for 1.72%) |
 | `obbba_expiration_year` | integer | Year when the OBBBA (One Big Beautiful Bill Act) provisions expire. Default is `2032` |
-| `method` | string | Method for determining rates. Valid values: `"trailing-30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical average"`, `"gaussian"`, `"histogaussian"`, `"lognormal"`, `"histolognormal"`, `"bootstrap_sor"`, `"var"`, `"garch_dcc"`, `"historical_copula"`, `"gmm"`, `"hmm"`, `"dataframe"` |
+| `method` | string | Method for determining rates. Valid values: `"trailing_30"`, `"optimistic"`, `"conservative"`, `"user"`, `"historical"`, `"historical_average"`, `"gaussian"`, `"historical_gaussian"`, `"lognormal"`, `"historical_lognormal"`, `"historical_bootstrap"`, `"vector_ar"`, `"garch_dcc"`, `"historical_copula"`, `"gmm"`, `"hmm"`, `"dataframe"` |
 
-**Deprecated aliases:** `stochastic` and `histochastic` are deprecated aliases for `gaussian` and `histogaussian` respectively; and `default` is an alias for `trailing-30`. All are accepted for backward compatibility but new cases should use the canonical names.
+**Legacy names:** `trailing-30`, `historical average`, `histogaussian`, `histolognormal`, `bootstrap_sor`, and `var` are older names for `trailing_30`, `historical_average`, `historical_gaussian`, `historical_lognormal`, `historical_bootstrap`, and `vector_ar`; `stochastic` and `histochastic` both stand for `historical_gaussian`, and `default` for `trailing_30`. They are still read, with a warning, but will be removed in a future release: new cases should use the names above.
 
 ### :orange[Conditional parameters based on `method`]
 
@@ -207,19 +207,19 @@ Rates use standard financial conventions:
 | `standard_deviations` | list of 4 floats | Volatility in percent for each rate type (e.g., `17` for 17% annualized standard deviation) |
 | `correlations` | list of 6 floats | Pearson correlation coefficient (range -1 to 1) for upper triangle: (1,2), (1,3), (1,4), (2,3), (2,4), (3,4). Standard representation in finance and statistics. |
 
-#### :orange[For method = "gaussian", "histogaussian", "lognormal", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", or "hmm"]
+#### :orange[For method = "gaussian", "historical_gaussian", "lognormal", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "historical_copula", "gmm", or "hmm"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `rate_seed` | integer | Random seed for reproducible stochastic rates. Default omitted = seed chosen randomly |
 | `reproducible_rates` | boolean | Whether stochastic rates should be reproducible. Default is `false` |
 
-#### :orange[For method = "historical", "historical average", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", or "hmm"]
+#### :orange[For method = "historical", "historical_average", "historical_gaussian", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "historical_copula", "gmm", or "hmm"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `from` | integer | Starting year for historical data range (must be between 1928 and 2025). Default is `1928` |
-| `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`). Default is `2025`. `garch_dcc` requires at least 15 years of data (`to - from ≥ 15`) |
+| `to` | integer | Ending year for historical data range (must be between 1928 and 2025, and greater than `from`). Default is `2025`. `garch_dcc` requires at least 15 calendar years, counting both ends (`to - from ≥ 14`) |
 
-#### :orange[For method = "var"]
+#### :orange[For method = "vector_ar"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `shrink` | boolean | *(Optional)* When `true`, applies spectral shrinkage to the VAR(1) coefficient matrix to improve stability and reduce estimation error, especially for short historical windows. Default is `false` |
@@ -236,12 +236,12 @@ Rates use standard financial conventions:
 | `reg_trans` | float | *(Optional)* Additive Laplace smoothing applied to transition counts to prevent zero-probability transitions. Default is `0.001`. Must be > 0 |
 | `init_regime` | integer | *(Optional)* Index of the starting regime for sequence generation (0 to `n_components − 1`). Default omitted = start from the stationary distribution |
 
-#### :orange[For method = "histogaussian", "histolognormal", "historical_copula", "garch_dcc", "gmm", or "hmm"]
+#### :orange[For method = "historical_gaussian", "historical_lognormal", "historical_copula", "garch_dcc", "vector_ar", "gmm", or "hmm"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `constrain_mean` | boolean | *(Optional)* When `true`, shifts each generated series additively so its arithmetic mean matches the historical window arithmetic mean. Preserves distribution shape (variance, skew, autocorrelation); only the mean is corrected. Useful to eliminate sampling bias in short scenarios. Default is `false` |
 
-#### :orange[For method = "bootstrap_sor"]
+#### :orange[For method = "historical_bootstrap"]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `bootstrap_type` | string | Type of bootstrap resampling. Valid values: `"iid"` (independent draws), `"block"`, `"circular"`, `"stationary"`. Default is `"iid"` |
@@ -249,7 +249,7 @@ Rates use standard financial conventions:
 | `crisis_years` | list of integers | *(TOML only)* Calendar years to overweight in sampling (e.g. `[1929, 2008]`). Default omitted = no overweighting |
 | `crisis_weight` | float | *(TOML only)* Sampling multiplier applied to crisis years. Default is `1.0` (no overweighting) |
 
-#### :orange[For method = "historical", "histogaussian", "histolognormal", "bootstrap_sor", "var", "garch_dcc", "historical_copula", "gmm", "hmm", "gaussian", or "lognormal" (varying rates only)]
+#### :orange[For method = "historical", "historical_gaussian", "historical_lognormal", "historical_bootstrap", "vector_ar", "garch_dcc", "historical_copula", "gmm", "hmm", "gaussian", or "lognormal" (varying rates only)]
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `reverse_sequence` | boolean | If true, reverse the rate sequence along the time axis (e.g. last year first). Default is `false`. Ignored for fixed/constant rate methods. Used for both single-scenario and Historical Range runs. |
@@ -337,11 +337,11 @@ Options controlling the optimization solver and constraints.
 | Parameter | Type | Description | Default |
 |-----------|------|-------------|---------|
 | `absTol` | float | *(Advanced)* Absolute convergence tolerance for the self-consistent loop objective. | `100` |
-| `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | `1` (if omitted with `maxSpending`) |
-| `epsilon` | float | *(Advanced)* Lexicographic weight added to the objective to break ties. Adds a linearly increasing penalty to Roth conversions (earlier years are cheaper) to frontload conversions, and when `N_i = 2`, also penalizes withdrawals of spouse 2 to favor withdrawals from spouse 1. Use a very small value so the primary objective dominates. | `1e-8` |
+| `bequest` | float | Target bequest value in today's dollars (in `units`). Used when `objective = "maxSpending"`. | \$1 (if omitted with `maxSpending`) |
+| `epsilon` | float | *(Advanced)* Lexicographic weight added to the objective to break ties. Adds a linearly increasing penalty to Roth conversions (earlier years are cheaper) to frontload conversions, a small penalty on tax-free withdrawals and on surplus deposits, and when `N_i = 2`, a penalty on withdrawals of spouse 2 to favor withdrawals from spouse 1. Use a very small value so the primary objective dominates. | `5e-7` |
 | `gap` | float | *(Advanced)* Relative MILP gap used by solvers and to scale convergence tolerances. Local search solves its restricted problems to at most `1e-4` whatever this value. | `1e-4` (default); if `withMedicare = "optimize"` and unset, set to `3e-3` (or `3e-2` when `maxRothConversion <= 15`) |
 | `maxIter` | integer | *(Advanced)* Maximum number of iterations for the self-consistent loop. Must be at least 1. | `29` |
-| `maxRothConversion` | float | Maximum annual Roth conversion amount (in `units`); omit for no cap (except last year). | No cap unless provided |
+| `maxRothConversion` | float | Maximum annual Roth conversion amount (in `units`); omit for no cap. Conversions are never allowed in each individual's last two years. | No cap unless provided |
 | `minTaxableBalance` | array | Minimum taxable account balance per spouse (in today's `units`). Values are indexed for inflation. Constraints apply from year 2 through each individual's life horizon. | Omit for no minimum |
 | `maxTime` | float | *(Advanced)* Per-iteration solver time limit in seconds. | `900` |
 | `netSpending` | float | Target net spending amount in today's dollars (in `units`). Used when `objective = "maxBequest"`. | Required for `maxBequest` |
@@ -360,7 +360,7 @@ Options controlling the optimization solver and constraints.
 | `swapRothConverters` | integer | *(Advanced)* For plans involving spouses, only allow one spouse to perform Roth conversions per year. The year provided determines a transition year when roles are swapped. The sign selects who converts first: positive means person 1 can convert first and person 2 any time after; negative year means person 2 before and person 1 after. This option overrides the `noRothConversions` option. | `0` |
 | `units` | string | Units for amounts. Valid values: `"1"` (dollars), `"k"` (thousands), `"M"` (millions). | `"k"` |
 | `verbose` | boolean | When `true`, prints detailed solver iteration logs to the console. Supported by HiGHS and MOSEK; output format varies by solver. Useful for diagnosing infeasibility or slow convergence. | `false` |
-| `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies 2026 rules only). The names are read in any case; any other value is refused (`"none"`, an old spelling, reads as `"loop"`). | `"loop"` |
+| `withACA` | string | ACA marketplace premium handling (when `slcsp_annual` > 0). `"loop"` (default): compute ACA cost in SC loop each iteration using the exact piecewise-linear ACA formula. `"optimize"`: co-optimize ACA bracket selection within the LP — enables the optimizer to shift MAGI across brackets for better plan objectives (expert; can be slower; applies the rules of 2026 on, with each year's applicable percentage table, so a 2025 plan year is priced on them too). The names are read in any case; any other value is refused (`"none"`, an old spelling, reads as `"loop"`). | `"loop"` |
 | `withLTCG` | string | Long-term capital gains (LTCG) bracket handling. `"loop"` (default): ordinary income stacking computed in SC loop. `"optimize"`: MILP formulation for LTCG bracket selection — binary variables determine which 0%/15%/20% bracket applies each year (expert; adds `zl` binary family). The names are read in any case; any other value is refused (`"none"`, an old spelling, reads as `"loop"`). | `"loop"` |
 | `withSeniorBonus` | string | How the OBBBA 65+ bonus deduction (\$6,000 per individual aged 65 or older, tax years through 2028) follows MAGI: it shrinks by \$6 per \$100 of MAGI above \$75k single / \$150k MFJ and is gone \$100k above. `"loop"` (default): the deduction is set from the previous iteration's MAGI, so a solve cannot trade income against it and can settle on a plan that converts or withdraws past the threshold when staying under it would have done better. `"optimize"`: the phase-out is part of the problem, with one binary per bonus year for the point where the bonus is gone (at most three in all). A state that follows the federal deduction still takes it from the previous iteration. Set by `breakpointMethod`. The names are read in any case; any other value is refused. | `"loop"` |
 | `withNIIT` | string | Net Investment Income Tax (NIIT) handling. `"loop"` (default): NIIT computed after each SC iteration. `"optimize"`: MILP formulation — a binary variable per year selects which term of the minimum (NII, or MAGI above the \$200k single / \$250k MFJ threshold) bounds the tax (expert; adds `zj` binary family; most effective when `withLTCG = "optimize"` is also set). The names are read in any case; any other value is refused (`"none"`, an old spelling, reads as `"loop"`). | `"loop"` |
@@ -377,12 +377,11 @@ Options controlling the optimization solver and constraints.
 | `includeMedicarePartD` | boolean | Whether to include Medicare Part D premiums (IRMAA surcharges use same MAGI brackets as Part B). Set to `false` if you have other drug coverage (e.g., employer, VA). | `true` |
 | `medicarePartDBasePremium` | float | *(Optional)* Monthly Part D base premium per person in today's dollars. Omit or set to 0 to model IRMAA only. National average is roughly \$39–47/month. | `0` (no base) |
 | `withSSTaxability` | string or float | Controls how the taxable fraction of Social Security benefits (Ψ) is determined. The IRS provisional income (PI) formula taxes 0% of SS below \$25k/\$32k PI (single/MFJ), up to 50% between those and \$34k/\$44k, and up to 85% above. `"loop"` — recomputes Ψ each SC-loop iteration based on that year's projected income (recommended). `"optimize"` — encodes the IRS piecewise formula as a MIP with binary variables, solved per `mipStrategy` (expert; can require a larger `gap`). Float in [0, 1] (the IRS maximum is 0.85), or text that reads as one — pins Ψ to a fixed value: `0.0` (income well below the lower threshold), `0.5` (income in the mid range), or `0.85` (income above the upper threshold). Any other value is refused. | `"loop"` |
-| `withSSAges` | string or list | Social Security claiming-age optimization. `"fixed"` (default): use the claiming ages provided via `setSocialSecurity()` or entered on the Fixed Income page. `"optimize"`: choose the claiming month (any month from age 62 to 70, i.e. up to 97 choices, never a month already past) for all individuals, by solving the plan at each open month with the other options unchanged and keeping the best; the result is never worse than any age entered by hand. An individual name (e.g. `"Jack"`) or a list of names (e.g. `["Jack"]`, `["Jack", "Jill"]`) restricts optimization to those individuals — useful when one spouse has already claimed and only the other's age should be optimized. With two individuals selected, each age is searched in turn with the other held, until neither moves. Scenario runs (historical range, Monte Carlo, spending optimization, regret sweep) ignore this option and keep the plan's claiming ages. Selecting an individual whose recorded claiming age is already past (who is taken to be collecting benefits) raises an error: do not select someone already receiving benefits, or record a claiming age from the current month on. Individuals not selected keep their recorded ages. After solving, `plan.ssecAges` contains the (possibly updated) claiming ages. | `"fixed"` |
-
+| `withSSAges` | string or list | Social Security claiming-age optimization. `"fixed"` (default): use the claiming ages provided via `setSocialSecurity()` or entered on the Fixed Income page. `"optimize"`: choose the claiming month (any month from the earliest claiming age to 70, i.e. up to 96 choices, or 97 for someone born on the 1st or 2nd of a month, never a month already past) for all individuals, by solving the plan at each open month with the other options unchanged and keeping the best; the result is never worse than any age entered by hand. An individual name (e.g. `"Jack"`) or a list of names (e.g. `["Jack"]`, `["Jack", "Jill"]`) restricts optimization to those individuals — useful when one spouse has already claimed and only the other's age should be optimized. With two individuals selected, each age is searched in turn with the other held, until neither moves. Scenario runs (historical range, Monte Carlo, spending optimization, regret sweep) ignore this option and keep the plan's claiming ages. Selecting an individual whose recorded claiming age is already past (who is taken to be collecting benefits) raises an error: do not select someone already receiving benefits, or record a claiming age from the current month on. Individuals not selected keep their recorded ages. After solving, `plan.ssecAges` contains the (possibly updated) claiming ages. | `"fixed"` |
 | `withdrawalOrder` | string | Withdrawal-order policy. `"optimal"` (default): the optimizer freely chooses which accounts to draw from each year. `"taxable_first"`: enforce the conventional ordering — taxable first, then tax-deferred (RMDs are always taken), then Roth — via per-year household-level gating binaries. Mainly used to model a naive baseline strategy (see the `compare_to_baseline` MCP tool), or to measure the cost of a hand-managed ordering habit. | `"optimal"` |
 | `withDuals` | boolean | *(Advanced)* After the final solve, re-solve the LP with all binary variables fixed at their solution values (always via HiGHS) to extract constraint duals (shadow prices) and reduced costs into `plan._dual_data`. Consumed by the `explain_results` MCP tool. Sensitivities are marginal and hold bracket selections and self-consistent quantities fixed. | `false` |
 
-**Note:** The solver options dictionary is passed directly to the optimization routine. Only the options listed above are validated; other options may be accepted but are not documented here.
+**Note:** The solver options dictionary is passed directly to the optimization routine. An option not listed above is ignored, with a message in the log; a retired option is ignored with a warning, and a removed one is an error.
 
 -------
 
@@ -457,7 +456,7 @@ liquidation_tax_rate = 24.0
 liquidation_capgains_rate = 15.0
 dividend_rate = 1.8
 obbba_expiration_year = 2032
-method = "historical average"
+method = "historical_average"
 from = 1969
 to = 2002
 
