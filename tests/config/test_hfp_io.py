@@ -649,15 +649,15 @@ def test_example_hfp_workbooks_have_required_person_sheet_columns():
 
     import pandas as pd
 
-    from owlplanner.hfp_io import _derivedTimeHorizonItems, _timeHorizonItems
+    from owlplanner.hfp_io import _quietTimeHorizonItems, _timeHorizonItems
 
     # parents[2] is the repo root: this file sits at tests/config/. Getting the depth
     # wrong globs a directory that does not exist, which makes the loop below run zero
     # times and the whole test pass while checking nothing -- hence the assert.
     root = Path(__file__).resolve().parents[2]
     # The SS earnings-test columns mean "not given" when absent (taken from other columns),
-    # and only the template carries them.
-    required = set(_timeHorizonItems) - set(_derivedTimeHorizonItems)
+    # and 'employer ctrb' leaves the match in '401k ctrb': only the template carries them.
+    required = set(_timeHorizonItems) - set(_quietTimeHorizonItems)
     paths = sorted((root / "examples").glob("HFP*.xlsx"))
     assert paths, f"no example workbooks found under {root / 'examples'}"
     for path in paths:

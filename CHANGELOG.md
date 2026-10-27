@@ -1,5 +1,29 @@
 ### Version 2026.10.26
 
+#### Fixed: pay that all goes to a 401k is still payroll-taxed earnings
+
+*Anticipated wages* are net of pre-tax contributions, and the earnings that the payroll tax and
+the SSA earnings test read added the year's 401k and IRA contributions back only in a year with
+wages. Pay deferred in full into a 401k, as part-time pay can be at the catch-up limits, carried
+neither tax nor test, and one dollar of wages switched both on for the whole deferral: \$1,798 of
+payroll tax on \$23,500 deferred. A 401k elective deferral is wages for both (26 U.S.C.
+3121(v)(1)(A)), so it now counts with or without other wages. An IRA contribution still counts
+only in a year with pay, the 401k's included: without pay it is taken as a spousal IRA, funded
+by the other spouse. The *401k ctrb* column is kept apart from *IRA ctrb* for this, and a
+workbook saved from a plan now writes both columns instead of their sum under *401k ctrb*. In
+the assistant's tools, a traditional IRA contribution is the new account `"ira"`;
+`"tax_deferred"` is the employee's deferral to an employer plan (401k/403b).
+
+#### New: an *employer ctrb* column for the employer's 401k contributions
+
+The employer's match or profit-sharing contribution had to be entered in *401k ctrb*, beside the
+employee's own deferral, and was therefore counted as earnings, raising the payroll tax by 7.65%
+of it (\$382.50 on a \$5,000 match) and the earnings it tests. It was never wages (26 U.S.C.
+3121(a)(5)(A)). The new HFP column *employer ctrb*, and the assistant's account `"employer"`, put
+it in the same tax-deferred account but leave it out of the earnings. A workbook without the
+column reads it as zero, which keeps its previous meaning, so its absence is not reported; move
+the employer's share out of *401k ctrb* to have it left out. The template carries the column.
+
 #### Fixed: branch-and-bound loops that never settled, although their parameters had
 
 Branch-and-bound returns any plan within its gap of the optimum, 0.3% when Medicare is solved as

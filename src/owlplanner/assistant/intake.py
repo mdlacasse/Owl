@@ -47,7 +47,10 @@ first solve, confirm a short summary of everything collected.
 - Taxable cost basis per person (brokerage statements show it) — needed for accurate
   capital-gains tax on withdrawals.
 - Ongoing retirement contributions until retirement, per account type (check IRS caps
-  with list_contribution_limits, including 50+ catch-up).
+  with list_contribution_limits, including 50+ catch-up).  A traditional 401k/403b
+  deferral is account "tax_deferred", the employer's match into it account "employer",
+  and a traditional IRA account "ira": only the deferral is always payroll-taxed
+  earnings, and the match never is.
 - Debts (balance, rate, years remaining) and fixed assets (home, real estate,
   collectibles: basis, value, planned sale year).  For each mortgage or home loan, ask
   which property it is on: a loan linked to a property (debts "property" = that fixed

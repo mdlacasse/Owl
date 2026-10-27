@@ -135,9 +135,9 @@ def test_legacy_workbook_notice_points_at_saving(monkeypatch, tmp_path):
     plan = owl.Plan(["Jack", "Jill"], ["1963-01-15", "1966-01-15"], [89, 92], "legacy", verbose=False)
     plan.readHFP(str(legacy))
     # The example workbooks also lack the SS earnings-test columns, which are filled
-    # from other columns (and not noticed), not zeroed.
-    derived = owl.hfp_io.derivedTimeHorizonItems()
-    assert [c for c in plan.hfpAbsentCols["Jack"] if c not in derived] == ["Roth conv fixed"]
+    # from other columns, and 'employer ctrb', whose zero is what they meant: not noticed.
+    quiet = owl.hfp_io.quietTimeHorizonItems()
+    assert [c for c in plan.hfpAbsentCols["Jack"] if c not in quiet] == ["Roth conv fixed"]
     assert "Roth conv fixed" in plan.timeLists["Jack"].columns
     assert not plan.rothXfixed_in.any()
 

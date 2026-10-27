@@ -308,6 +308,28 @@ def test_contributions_tax_deferred():
     assert plan.kappa_ijn[0, 1, 3] == pytest.approx(0)
 
 
+def test_contributions_ira_is_kept_apart_from_the_401k():
+    """All land in the tax-deferred account; only the employee's deferral is earnings without
+    other wages, and the employer's never is (#229). The workbook export splits them back into
+    their columns."""
+    plan = _single(
+        contributions=[
+            {"person": 0, "account": "tax_deferred", "annual_amount": 23_000, "end_year": THISYEAR + 1},
+            {"person": 0, "account": "ira", "annual_amount": 7_000, "end_year": THISYEAR + 1},
+            {"person": 0, "account": "employer", "annual_amount": 4_000, "end_year": THISYEAR + 1},
+        ]
+    )
+    assert plan.kappa_ijn[0, 1, 0] == pytest.approx(34_000)
+    assert plan.kappa401k_in[0, 0] == pytest.approx(23_000)
+    assert plan.kappaEmployer_in[0, 0] == pytest.approx(4_000)
+    assert plan._earnings_test_inputs()[0][0, 0] == pytest.approx(30_000)
+    timeLists, _ = build_hfp_dataframes(plan)
+    row = timeLists["Martin"][timeLists["Martin"]["year"] == THISYEAR]
+    assert row["401k ctrb"].iloc[0] == pytest.approx(23_000)
+    assert row["IRA ctrb"].iloc[0] == pytest.approx(7_000)
+    assert row["employer ctrb"].iloc[0] == pytest.approx(4_000)
+
+
 def test_contributions_roth():
     plan = _single(contributions=[{"person": 0, "account": "roth", "annual_amount": 7000, "end_year": THISYEAR + 2}])
     assert plan.kappa_ijn[0, 2, 0] == pytest.approx(7000)

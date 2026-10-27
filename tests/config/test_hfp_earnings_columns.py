@@ -131,6 +131,55 @@ def test_earnings_add_back_the_pre_tax_contributions_wages_are_net_of():
     assert list(months[0, :2]) == [12, 0]
 
 
+def test_pay_all_deferred_to_the_401k_is_earnings():
+    """A 401k elective deferral is wages for FICA and the earnings test even when it took all
+    of the year's pay (#229): no step at the first dollar of ``anticipated wages``. An IRA
+    contribution rides along in a year with pay, the 401k's included."""
+    p = _plan()
+    p.zeroWagesAndContributions()
+    df = p.timeLists["Alice"]
+    df.loc[df.index[5], "401k ctrb"] = 23_500.0
+    df.loc[df.index[6], "anticipated wages"] = 1.0
+    df.loc[df.index[6], "401k ctrb"] = 23_500.0
+    df.loc[df.index[7], "401k ctrb"] = 23_500.0
+    df.loc[df.index[7], "IRA ctrb"] = 7_000.0
+    p.setContributions()
+    earnings, months = p._earnings_test_inputs()
+    assert earnings[0, 0] == pytest.approx(23_500.0)
+    assert earnings[0, 1] == pytest.approx(23_501.0)
+    assert earnings[0, 2] == pytest.approx(30_500.0)
+    assert list(months[0, :3]) == [12, 12, 12]
+
+
+def test_employer_contributions_are_not_earnings():
+    """An employer contribution is deposited in the tax-deferred account but was never wages
+    (26 U.S.C. 3121(a)(5)(A)): it is not earnings, with or without pay, and does not make a year
+    without pay look like one with it, so an IRA contribution beside it stays out too. The
+    workbook keeps it in its own column."""
+    p = _plan()
+    p.zeroWagesAndContributions()
+    df = p.timeLists["Alice"]
+    df.loc[df.index[5], "anticipated wages"] = 60_000.0
+    df.loc[df.index[5], "401k ctrb"] = 10_000.0
+    df.loc[df.index[5], "employer ctrb"] = 3_000.0
+    df.loc[df.index[6], "employer ctrb"] = 5_000.0
+    df.loc[df.index[6], "IRA ctrb"] = 7_000.0
+    df.loc[df.index[4], "employer ctrb"] = 2_000.0  # lead-in year
+    p.setContributions()
+    assert p.kappa_ijn[0, 1, 0] == pytest.approx(13_000.0)
+    assert p.kappa_ijn[0, 1, 1] == pytest.approx(12_000.0)
+    earnings, months = p._earnings_test_inputs()
+    assert earnings[0, 0] == pytest.approx(70_000.0)
+    assert earnings[0, 1] == 0.0 and months[0, 1] == 0
+
+    rebuilt, _ = hfp_io.build_hfp_dataframes(p)
+    assert hfp_io.time_lists_agree(p.timeLists, rebuilt)
+    out = rebuilt["Alice"]
+    assert list(out["employer ctrb"].iloc[4:7]) == pytest.approx([2_000.0, 3_000.0, 5_000.0])
+    assert list(out["IRA ctrb"].iloc[4:7]) == pytest.approx([0.0, 0.0, 7_000.0])
+    assert list(out["401k ctrb"].iloc[4:7]) == pytest.approx([0.0, 10_000.0, 0.0])
+
+
 def test_absent_months_worked_defaults_by_earnings():
     """``months worked`` absent (or 0) → 12 in a year with earnings, else 0. The column is
     recorded as absent and read as zero like any other."""

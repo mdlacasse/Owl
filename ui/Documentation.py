@@ -179,11 +179,13 @@ This Excel workbook holds year-by-year data that are not stored in the case TOML
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
 (e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table with the following
 headers (they must match exactly, including capitalization; column order may vary):
-`year`, `anticipated wages`, `months worked`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
-`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`. Only `year` **must be
-present**: enter `0` where a column does not apply, or leave the column out of the workbook entirely and it is
-read as zero for every year, with **Owl** reporting which columns were absent. The exception is
-`months worked`, where zero (or an absent column) means *not given* (see below).
+`year`, `anticipated wages`, `months worked`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `employer ctrb`,
+`Roth 401k ctrb`, `IRA ctrb`, `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`.
+Only `year` **must be present**: enter `0` where a column does not apply, or leave the column out of the workbook
+entirely and it is read as zero for every year, with **Owl** reporting which columns were absent. Two absent
+columns are not reported: `months worked`, where zero (or an absent column) means *not given* (see below), and
+`employer ctrb`, which workbooks made before it existed leave out, their employer contributions being in
+`401k ctrb`.
 The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
 On load, the planner keeps rows from five calendar years before the **current** year through each person's
@@ -263,7 +265,7 @@ Contains one worksheet per topic, most indexed by year:
   beginning of each year, plus a final end-of-plan (bequest) row. See the **Worksheets** section
   for the full column list.
 - **Taxes** — income allocated to each federal tax bracket, NIIT, LTCG tax,
-  early-withdrawal penalty, the payroll tax (when the plan has wages), state income tax (when applicable),
+  early-withdrawal penalty, the payroll tax (when the plan has earnings), state income tax (when applicable),
   the fraction of Social Security that is taxable, the total tax bill, Medicare (+IRMAA) premiums, and ACA
   premiums when applicable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
@@ -385,11 +387,11 @@ In the workbook this is a single sheet per person. In the user interface it is s
 tables, the five lead-in years and the plan years, so that *Roth conv fixed* can be disabled
 on the past rows where those conversions have already happened.
 
-|year|anticipated wages|months worked|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | | |
-|2026 | | | | | | | | | | | | | | |
+|year|anticipated wages|months worked|other inc|net inv|taxable ctrb|401k ctrb|employer ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|2026 | | | | | | | | | | | | | | | |
 |2027 | | | | | | | | | | | | | | |
 | ... | | | | | | | | | | | | | | |
 |20XX | | | | | | | | | | | | | | |
@@ -447,8 +449,8 @@ leave it blank where it does not apply), where:
 - *anticipated wages* is the annual employment income you anticipate, as it enters your AGI: your
   pay **minus your pre-tax contributions**, that is your traditional 401k/403b deferrals (*401k
   ctrb*), deductible IRA contributions (*IRA ctrb*), and HSA contributions through payroll (*HSA
-  ctrb*). Employer contributions included in the *ctrb* columns were never part of your wages and
-  are therefore not subtracted. After-tax contributions paid from your pay (*Roth 401k ctrb*,
+  ctrb*). Employer contributions (*employer ctrb*) were never part of your wages and are
+  therefore not subtracted. After-tax contributions paid from your pay (*Roth 401k ctrb*,
   *Roth IRA ctrb*, *taxable ctrb*) stay in the wages, as they are taxed, and are paid for with a
   negative *big-ticket items* entry of the same amount (see below). **Owl** uses this single
   amount both as cash available to the plan and as taxable employment income. With only pre-tax
@@ -458,11 +460,15 @@ leave it blank where it does not apply), where:
 - **Owl** always applies the Social Security earnings test: the benefits a claim before full
   retirement age would lose to it are withheld in the earning years, and the withheld months come
   back at full retirement age through the adjustment of the reduction factor. The test counts
-  wages before pre-tax deferrals (W-2 box 5), so in a year with *anticipated wages* **Owl** adds
-  back that year's *401k ctrb* and *IRA ctrb*, which those wages are net of. Employer
-  contributions included in *401k ctrb* were never wages, so they make the earnings slightly high;
-  HSA contributions are left out, as a payroll HSA is not in box 5. Self-employment
-  earnings count only when entered in *anticipated wages*: the test does not read *other inc*.
+  wages before pre-tax deferrals (W-2 box 5), so **Owl** adds back that year's *401k ctrb* and
+  *IRA ctrb*, which *anticipated wages* are net of. The *401k ctrb* always counts, even in a year
+  whose pay all went to it and *anticipated wages* are 0. The *IRA ctrb* counts only in a year
+  with pay (*anticipated wages* or *401k ctrb*): without it, the contribution is taken as a spousal
+  IRA, funded from the other spouse's pay. Pay that all went to a deductible IRA is therefore not
+  counted. Employer contributions (*employer ctrb*) were never wages and are left out; entered in
+  *401k ctrb* instead, they make the earnings slightly high. HSA contributions are left out, as a
+  payroll HSA is not in box 5. Self-employment earnings count only when entered in *anticipated
+  wages*: the test does not read *other inc*.
 - **Owl** also charges the employee's payroll tax on the same earnings, as a cash outflow of the
   year: 6.2% of each person's earnings up to the Social Security wage base (\\$184,500 in 2026,
   held at that level in today's dollars), 1.45% Medicare tax on all of them, and the 0.9%
@@ -508,11 +514,15 @@ leave it blank where it does not apply), where:
 - *net inv* is net investment income such as rent or trust distributions that the model counts as
   ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
   (NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
-- *taxable ctrb*, *401k ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* are contributions to
-  your savings accounts (marked *ctrb*). We use "401k" as a term that includes contributions to 403b
-  as well as any other tax-deferred account, with the exception of IRA accounts, which are treated
-  separately to facilitate data entry. Contributions to your 401k/403b **must** also include your
-  employer's contributions, if any. As these data can be entered in Excel, you can use the native
+- *taxable ctrb*, *401k ctrb*, *employer ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* are
+  contributions to your savings accounts (marked *ctrb*). We use "401k" as a term that includes
+  contributions to 403b as well as any other tax-deferred account, with the exception of IRA accounts,
+  which are treated separately to facilitate data entry. *401k ctrb* is your own pre-tax deferrals.
+  Your employer's contributions to your 401k/403b, match or profit sharing, go in *employer ctrb*:
+  they are deposited in the same tax-deferred account, but they are not wages, so they are neither
+  subtracted from *anticipated wages* nor counted as earnings for the payroll tax and the earnings
+  test. Employer contributions designated as Roth have no column of their own, although a
+  workaround using the existing columns is possible. As these data can be entered in Excel, you can use the native
   calculator to enter a percentage of the anticipated wages as an easier way to enter the data.
   Contributions are deposited into their respective accounts but are **not** subtracted from the
   annual cash flow: a pre-tax contribution was already netted out of *anticipated wages*, and an
@@ -522,7 +532,7 @@ leave it blank where it does not apply), where:
   net it from (an HSA contribution from savings, or a spousal IRA for a spouse without wages) goes
   in *other inc* instead, as a negative amount, which both deducts it and pays for it (see *other
   inc* and *HSA ctrb*). Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
-  supported: amounts entered in *401k ctrb* or *IRA ctrb* are treated as pre-tax, and no cost basis
+  supported: amounts entered in *401k ctrb*, *employer ctrb*, or *IRA ctrb* are treated as pre-tax, and no cost basis
   is tracked (every dollar later withdrawn or converted is fully taxable).
 - *HSA ctrb* is HSA contributions in nominal dollars. Made through payroll, they are pre-tax:
   subtract them from *anticipated wages*, which excludes them from both cash flow and taxable
@@ -1802,11 +1812,11 @@ Graphs are organized into four tabs:
 **Spending** — income and cash-flow perspective:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
   (portfolio, Social Security, pension, wages, SPIA, fixed assets, big-ticket items, other);
-  right shows where it goes (living expenses, federal taxes, payroll tax when the plan has wages,
+  right shows where it goes (living expenses, federal taxes, payroll tax when the plan has earnings,
   state taxes when configured, healthcare, debt, big-ticket items, charitable giving, estimated heir
   taxes, bequest).
   *Taxes* is federal income tax only (ordinary income, LTCG/dividends, NIIT); *Payroll tax* appears as a
-  separate slice in a plan with wages, and *State taxes* when a state of residence is configured.
+  separate slice in a plan with earnings, and *State taxes* when a state of residence is configured.
   *Healthcare* covers insurance premiums only (Medicare Part B/D + IRMAA surcharges, ACA marketplace premiums);
   non-Medicare qualified medical expenses (QMEs) are embedded in the *living expenses* slice.
 - *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
@@ -1818,7 +1828,7 @@ Graphs are organized into four tabs:
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
-- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it; it starts with *Income and Payroll Taxes* when the plan has wages, and the chart then shows the payroll tax as its own line.
+- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it; it starts with *Income and Payroll Taxes* when the plan has earnings, and the chart then shows the payroll tax as its own line.
 - *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
 - *Charitable Giving (QCD)* *(when the household gives this way)* — annual qualified charitable distributions by
   individual, split into the part that satisfies that year's required minimum distribution and the part beyond it,
@@ -1888,7 +1898,7 @@ beginning of each year, plus a final end-of-plan (bequest) row:
 **Income & Taxes** — income summary and tax detail:
 - *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
 - *Taxes* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
-  `payroll tax` (when the plan has wages), state income tax (when applicable), the fraction of Social Security that is taxable, the total tax
+  `payroll tax` (when the plan has earnings), state income tax (when applicable), the fraction of Social Security that is taxable, the total tax
   bill, `Medicare+IRMAA`, and `ACA premiums` when applicable.
 
 **Allocations & Rates** — asset mix and return rates:

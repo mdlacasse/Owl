@@ -781,11 +781,14 @@ def list_contribution_limits(
     populate the 'contributions' list in run_from_params / save_case:
       - 'elective_deferral' -> employer-plan contributions: account="tax_deferred"
         (traditional 401(k)/403(b)) or account="roth" (Roth 401(k)/403(b)).
-      - 'ira'               -> IRA contributions: account="tax_deferred"
-        (traditional IRA) or account="roth" (Roth IRA). If the person maxes
-        BOTH an employer plan and an IRA in the same account bucket, sum the
-        two 'max' values into one contributions entry (or add two entries —
-        kappa_ijn accumulates them either way).
+        The employer's match is a separate entry, account="employer": it is
+        not payroll-taxed earnings, and the limit does not include it.
+      - 'ira'               -> IRA contributions: account="ira"
+        (traditional IRA) or account="roth" (Roth IRA). Keep a traditional
+        IRA in its own "ira" entry: a 401(k) deferral is always payroll-taxed
+        earnings, an IRA contribution only in a year with pay. If the person
+        maxes both a Roth 401(k) and a Roth IRA, sum the two 'max' values
+        into one "roth" entry (or add two entries — they accumulate).
       - 'hsa_self_only' / 'hsa_family' -> account="hsa" (pick the tier matching
         the person's HDHP coverage).
 
@@ -1000,7 +1003,10 @@ async def compare_cases(
 # Helpers for run_from_params / save_case
 # ─────────────────────────────────────────────────────────────────────────────
 
-_ACCOUNT_J = {"taxable": 0, "tax_deferred": 1, "roth": 2, "hsa": 3}
+# "tax_deferred" is the employee's deferral to an employer plan (401k/403b), "employer" the
+# employer's contribution to it and "ira" a traditional IRA: all go to the tax-deferred account,
+# but only the deferral is always earnings, and the employer's never (Plan.kappa401k_in).
+_ACCOUNT_J = {"taxable": 0, "tax_deferred": 1, "employer": 1, "ira": 1, "roth": 2, "hsa": 3}
 
 # Aliases accepted for dict fields in wages / contributions / big_ticket_items / debts / spias.
 # Each list is [canonical, *accepted_aliases] — canonical first so error messages are clear.
@@ -1303,7 +1309,8 @@ def _build_plan_from_params(
         for c in contributions:
             i = int(c.get("person", 0))
             _check_person_index(i, N_i, "contributions")
-            j = _ACCOUNT_J.get(str(c["account"]).lower(), 1)
+            account = str(c["account"]).lower()
+            j = _ACCOUNT_J.get(account, 1)
             amount = float(_get_field(c, "annual_amount"))
             start_yr = int(_get_field(c, "start_year", thisyear))
             end_yr = int(_get_field(c, "end_year", thisyear + int(plan.horizons[i])))
@@ -1312,6 +1319,10 @@ def _build_plan_from_params(
                     # HSA contributions stop at Medicare: the year it starts keeps the months
                     # before it (Plan._setHSAStop), as for an HFP read by setContributions().
                     plan.kappa_ijn[i, j, n] += amount * (plan.hsaFrac_in[i, n] if j == 3 else 1.0)
+                    if account == "employer":
+                        plan.kappaEmployer_in[i, n] += amount
+                    elif j == 1 and account != "ira":
+                        plan.kappa401k_in[i, n] += amount
 
     # Time-series: big-ticket items → Lambda_in  (annual $/year, signed: negative = expense,
     # positive = inflow).  Passed through unchanged, the same convention as the HFP column.
@@ -1842,7 +1853,9 @@ async def run_from_params(
                         stay in, paid for by a negative big_ticket_items entry (see there).
         contributions:  List of retirement contributions.  Each entry: {"person": 0,
                         "account": "tax_deferred", "annual_amount": 23000, "end_year": 2032}.
-                        account is one of: taxable, tax_deferred, roth, hsa.  For
+                        account is one of: taxable, tax_deferred (own 401k/403b
+                        deferral), employer (employer's match into it), ira
+                        (traditional IRA), roth, hsa.  For
                         individuals in their 50s/60s, call list_contribution_limits
                         first to find the IRS max (including 50+ and 60-63 "super"
                         catch-up amounts) before filling in annual_amount.
@@ -3599,7 +3612,8 @@ async def run_stochastic(
         pension_survivor_fractions: Survivor benefit fractions per person (0–1), e.g. [0.5, 0.0].
         wages:                Wage streams: [{"person":0,"annual_amount":90000,"end_year":2030}],
                               the wages in AGI (net of pre-tax contributions; see run_from_params).
-        contributions:        Contributions: [{"person":0,"account":"tax_deferred","annual_amount":23000}].
+        contributions:        Contributions: [{"person":0,"account":"tax_deferred","annual_amount":23000}];
+                              account: taxable, tax_deferred (401k/403b), employer, ira, roth, hsa.
                               Use list_contribution_limits to find IRS max amounts (incl. catch-up).
         big_ticket_items:     Signed annual cash flows, negative = expense, positive = inflow:
                               [{"person":0,"annual_amount":-5000,"start_year":2027}].

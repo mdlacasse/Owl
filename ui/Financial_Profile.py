@@ -25,7 +25,7 @@ import pandas as pd
 from datetime import date
 
 from owlplanner.debts import PROPERTY_TYPES
-from owlplanner.hfp_io import derivedTimeHorizonItems, getTableTypes
+from owlplanner.hfp_io import getTableTypes, quietTimeHorizonItems
 
 import sskeys as kz
 import owlbridge as owb
@@ -63,8 +63,12 @@ timetableHelp = {
         "your wages: enter the same amount as a negative big-ticket item."
     ),
     "401k ctrb": (
-        "Contributions to 401k, 403b, and any other tax-deferred account other than an IRA "
-        "(nominal \\$). Include your employer's contributions; net your own out of your wages."
+        "Your own contributions to 401k, 403b, and any other tax-deferred account other than an "
+        "IRA (nominal \\$), netted out of your wages. Your employer's go in employer ctrb."
+    ),
+    "employer ctrb": (
+        "Your employer's contributions to your 401k or 403b, match or profit sharing (nominal "
+        "\\$). Never part of your wages: not netted out of them, and not payroll-taxed."
     ),
     "Roth 401k ctrb": (
         "Contributions to your Roth 401k or Roth 403b account (nominal \\$). They are taxed, so "
@@ -266,11 +270,11 @@ that has not yet been uploaded.""")
     # to the Logs page. The columns are already in the table by now, so point at
     # saving the workbook rather than asking for them to be added by hand.
     absentCols = kz.getCaseKey("hfpAbsentCols") or {}
-    # In these columns zero means "taken from other columns", so their
-    # absence changes nothing and is not reported.
-    derivedCols = derivedTimeHorizonItems()
+    # In these columns zero changes nothing a workbook without them meant
+    # (see hfp_io._quietTimeHorizonItems), so their absence is not reported.
+    quietCols = quietTimeHorizonItems()
     reported = {
-        iname: [c for c in cols if c not in derivedCols] for iname, cols in absentCols.items()
+        iname: [c for c in cols if c not in quietCols] for iname, cols in absentCols.items()
     }
     reported = {iname: cols for iname, cols in reported.items() if cols}
     if reported:

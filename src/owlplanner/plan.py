@@ -609,6 +609,11 @@ class Plan:
         # already performed, and those always count.
         self.rothXfixed_in = np.zeros((self.N_i, self.N_n + 5), dtype=bool)
         self.kappa_ijn = np.zeros((self.N_i, self.N_j, self.N_n + 5))
+        # The '401k ctrb' and 'employer ctrb' shares of kappa_ijn[:, 1], the rest being
+        # 'IRA ctrb': an elective deferral is always paid out of wages, an IRA contribution
+        # not always, and an employer contribution never (#229).
+        self.kappa401k_in = np.zeros((self.N_i, self.N_n + 5))
+        self.kappaEmployer_in = np.zeros((self.N_i, self.N_n + 5))
 
         # Debt payments array (length N_n)
         self.debt_payments_n = np.zeros(self.N_n)
@@ -2187,6 +2192,7 @@ class Plan:
                 'net inv',
                 'taxable ctrb',
                 '401k ctrb',
+                'employer ctrb',
                 'Roth 401k ctrb',
                 'IRA ctrb',
                 'Roth IRA ctrb',
@@ -2198,7 +2204,8 @@ class Plan:
         in any order. Only 'year' is required: list the columns your household
         actually uses, and any other column that is absent is treated as zero
         for every year; in 'months worked' zero means not given (12 months in a
-        year with wages). A header
+        year with wages). 'employer ctrb' is the employer's contributions to the
+        tax-deferred account, kept out of the payroll tax and the earnings test. A header
         differing from a recognized one only by case, spacing, or punctuation is
         rejected as a typo rather than dropped.
         Legacy header 'other inc.' is read as 'other inc'.
@@ -2276,17 +2283,23 @@ class Plan:
 
         The test counts wages before pre-tax deferrals (W-2 box 5), while ``anticipated wages``
         are the wages in AGI, net of the pre-tax 401k and deductible IRA contributions (#221):
-        in a year with wages, the earnings are the wages plus that year's tax-deferred
-        contributions. After-tax contributions (Roth, taxable) are already in the wages. An
-        employer contribution was never wages, so a plan whose 401k column includes one
-        overstates the earnings by it. HSA contributions are left out: a payroll HSA is not in
-        box 5. Read from the plan arrays, which the MCP tools fill directly, so the rule holds
-        however the plan got its wages.
+        the earnings add those contributions back. A 401k elective deferral is always paid out
+        of wages (26 U.S.C. 3121(v)(1)(A)), so it counts even when it took all of the year's
+        pay (#229). An IRA contribution counts only in a year with pay: without it, the
+        contribution is taken as a spousal IRA, funded from the other spouse's pay. Pay that
+        went entirely to a deductible IRA is therefore missed. After-tax contributions (Roth,
+        taxable) are already in the wages. An employer contribution was never wages
+        (3121(a)(5)(A)) and is left out when entered in 'employer ctrb'; one entered in the 401k
+        column overstates the earnings by it. HSA contributions are left out: a payroll HSA is
+        not in box 5. Read from the plan arrays, which the MCP tools
+        fill directly, so the rule holds however the plan got its wages.
         Months are ``months worked`` where positive, else 12 in a year with earnings, else 0.
         """
         Nn = self.N_n
-        deferred = self.kappa_ijn[:, 1, :Nn]  # 401k + IRA (setContributions)
-        earnings = np.where(self.omega_in > 0, self.omega_in + deferred, 0.0)
+        k401 = self.kappa401k_in[:, :Nn]
+        ira = self.kappa_ijn[:, 1, :Nn] - k401 - self.kappaEmployer_in[:, :Nn]
+        pay = self.omega_in + k401
+        earnings = np.where(pay > 0, pay + ira, 0.0)
         months = np.where(self.etMonths_in > 0, self.etMonths_in, np.where(earnings > 0, 12.0, 0.0))
         return earnings, months
 
@@ -2394,7 +2407,9 @@ class Plan:
             # Values for last 5 years of Roth conversion and contributions stored at the end
             # of array and accessed with negative index.
             self.kappa_ijn[i, 0, :h] = self.timeLists[iname]["taxable ctrb"][5 : h + 5]
-            self.kappa_ijn[i, 1, :h] = self.timeLists[iname]["401k ctrb"][5 : h + 5]
+            self.kappa401k_in[i, :h] = self.timeLists[iname]["401k ctrb"][5 : h + 5]
+            self.kappaEmployer_in[i, :h] = self.timeLists[iname]["employer ctrb"][5 : h + 5]
+            self.kappa_ijn[i, 1, :h] = self.kappa401k_in[i, :h] + self.kappaEmployer_in[i, :h]
             self.kappa_ijn[i, 1, :h] += self.timeLists[iname]["IRA ctrb"][5 : h + 5]
             self.kappa_ijn[i, 2, :h] = self.timeLists[iname]["Roth 401k ctrb"][5 : h + 5]
             self.kappa_ijn[i, 2, :h] += self.timeLists[iname]["Roth IRA ctrb"][5 : h + 5]
@@ -2408,7 +2423,9 @@ class Plan:
 
             # Last 5 years are at the end of the N_n array.
             self.kappa_ijn[i, 0, -5:] = self.timeLists[iname]["taxable ctrb"][:5]
-            self.kappa_ijn[i, 1, -5:] = self.timeLists[iname]["401k ctrb"][:5]
+            self.kappa401k_in[i, -5:] = self.timeLists[iname]["401k ctrb"][:5]
+            self.kappaEmployer_in[i, -5:] = self.timeLists[iname]["employer ctrb"][:5]
+            self.kappa_ijn[i, 1, -5:] = self.kappa401k_in[i, -5:] + self.kappaEmployer_in[i, -5:]
             self.kappa_ijn[i, 1, -5:] += self.timeLists[iname]["IRA ctrb"][:5]
             self.kappa_ijn[i, 2, -5:] = self.timeLists[iname]["Roth 401k ctrb"][:5]
             self.kappa_ijn[i, 2, -5:] += self.timeLists[iname]["Roth IRA ctrb"][:5]
@@ -2699,6 +2716,8 @@ class Plan:
         self.myRothX_in[:, :] = 0.0
         self.rothXfixed_in[:, :] = False
         self.kappa_ijn[:, :, :] = 0.0
+        self.kappa401k_in[:, :] = 0.0
+        self.kappaEmployer_in[:, :] = 0.0
 
         # Single source of truth: adding an HFP column must not require editing this.
         cols = list(hfp_io.timeHorizonItems())

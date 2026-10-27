@@ -286,7 +286,8 @@ def test_earnings_are_the_wages_before_pre_tax_deferrals():
     """The test counts wages before pre-tax deferrals (W-2 box 5), and `anticipated wages` are
     the wages in AGI, net of them (#221): in a year with wages, the earnings add back the
     tax-deferred contributions. After-tax ones (taxable, Roth) are already in the wages, and a
-    payroll HSA is not box 5. Without wages, contributions are not earnings."""
+    payroll HSA is not box 5. Without wages, a 401k deferral is still earnings, having been paid
+    out of wages that all went to it (#229), while an IRA contribution is not (a spousal IRA)."""
     p = _load("chris+pat")
     earnings, months = p._earnings_test_inputs()
     pat, n = 1, int(np.argmax(p.year_n == 2028))
@@ -299,6 +300,10 @@ def test_earnings_are_the_wages_before_pre_tax_deferrals():
     p.kappa_ijn[pat, 3, n] = 5_000.0  # an HSA contribution is not box 5
     assert p._earnings_test_inputs()[0][pat, n] == pytest.approx(p.omega_in[pat, n] + deferred)
     p.omega_in[pat, n] = 0.0
+    earnings, months = p._earnings_test_inputs()
+    assert p.kappa401k_in[pat, n] == pytest.approx(deferred), "test setup: Pat's deferral is a 401k"
+    assert earnings[pat, n] == pytest.approx(deferred) and months[pat, n] == 12
+    p.kappa401k_in[pat, n] = 0.0  # the same amount as an IRA contribution
     earnings, months = p._earnings_test_inputs()
     assert earnings[pat, n] == 0.0 and months[pat, n] == 0
 

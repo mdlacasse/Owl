@@ -244,6 +244,7 @@ def test_summary_line_for_every_case():
 
     q = _load("jack+jill")
     q.omega_in[:, :] = 0.0
+    q.kappa401k_in[:, :] = 0.0  # a 401k deferral is earnings without wages (#229)
     _solve(q)
     assert np.all(q.payroll_n == 0)
     dic = build_summary_dic(q)
@@ -286,6 +287,7 @@ def test_taxes_plot_has_a_payroll_tax_line(backend):
 
     q = _load("jack+jill")
     q.omega_in[:, :] = 0.0
+    q.kappa401k_in[:, :] = 0.0  # a 401k deferral is earnings without wages (#229)
     _solve(q)
     assert "payroll tax" not in _tax_plot_lines(q, backend)
 
