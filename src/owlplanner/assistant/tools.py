@@ -1309,8 +1309,15 @@ def _build_plan_from_params(
         for c in contributions:
             i = int(c.get("person", 0))
             _check_person_index(i, N_i, "contributions")
-            account = str(c["account"]).lower()
-            j = _ACCOUNT_J.get(account, 1)
+            account = str(c.get("account", "")).strip().lower()
+            if account not in _ACCOUNT_J:
+                # A silent default would put a mistyped Roth or HSA contribution in the
+                # tax-deferred account and count it as payroll-taxed earnings.
+                raise ValueError(
+                    f"contributions: unknown account {c.get('account')!r}; "
+                    f"use one of {', '.join(_ACCOUNT_J)}."
+                )
+            j = _ACCOUNT_J[account]
             amount = float(_get_field(c, "annual_amount"))
             start_yr = int(_get_field(c, "start_year", thisyear))
             end_yr = int(_get_field(c, "end_year", thisyear + int(plan.horizons[i])))
@@ -1321,7 +1328,7 @@ def _build_plan_from_params(
                     plan.kappa_ijn[i, j, n] += amount * (plan.hsaFrac_in[i, n] if j == 3 else 1.0)
                     if account == "employer":
                         plan.kappaEmployer_in[i, n] += amount
-                    elif j == 1 and account != "ira":
+                    elif account == "tax_deferred":
                         plan.kappa401k_in[i, n] += amount
 
     # Time-series: big-ticket items → Lambda_in  (annual $/year, signed: negative = expense,

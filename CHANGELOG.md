@@ -12,7 +12,9 @@ only in a year with pay, the 401k's included: without pay it is taken as a spous
 by the other spouse. The *401k ctrb* column is kept apart from *IRA ctrb* for this, and a
 workbook saved from a plan now writes both columns instead of their sum under *401k ctrb*. In
 the assistant's tools, a traditional IRA contribution is the new account `"ira"`;
-`"tax_deferred"` is the employee's deferral to an employer plan (401k/403b).
+`"tax_deferred"` is the employee's deferral to an employer plan (401k/403b). An account the
+tools do not recognize is now refused rather than taken as tax-deferred, where a mistyped Roth or
+HSA contribution would have counted as payroll-taxed earnings.
 
 #### New: an *employer ctrb* column for the employer's 401k contributions
 

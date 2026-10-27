@@ -330,6 +330,25 @@ def test_contributions_ira_is_kept_apart_from_the_401k():
     assert row["employer ctrb"].iloc[0] == pytest.approx(4_000)
 
 
+@pytest.mark.parametrize("account", ["Roth IRA", "traditional_ira", "401k", ""])
+def test_contributions_unknown_account_is_refused(account):
+    """No silent default: a mistyped Roth contribution would otherwise land in the tax-deferred
+    account and count as payroll-taxed earnings."""
+    with pytest.raises(ValueError, match="unknown account"):
+        _single(contributions=[{"person": 0, "account": account, "annual_amount": 7_000}])
+
+
+def test_contributions_account_is_case_and_space_insensitive():
+    plan = _single(contributions=[{"person": 0, "account": " IRA ", "annual_amount": 7_000}])
+    assert plan.kappa_ijn[0, 1, 0] == pytest.approx(7_000)
+    assert plan.kappa401k_in[0, 0] == 0.0
+
+
+def test_contributions_missing_account_is_refused():
+    with pytest.raises(ValueError, match="unknown account"):
+        _single(contributions=[{"person": 0, "annual_amount": 7_000}])
+
+
 def test_contributions_roth():
     plan = _single(contributions=[{"person": 0, "account": "roth", "annual_amount": 7000, "end_year": THISYEAR + 2}])
     assert plan.kappa_ijn[0, 2, 0] == pytest.approx(7000)
