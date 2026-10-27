@@ -470,8 +470,8 @@ leave it blank where it does not apply), where:
   payroll HSA is not in box 5. Self-employment earnings count only when entered in *anticipated
   wages*: the test does not read *other inc*.
 - **Owl** also charges the employee's payroll tax on the same earnings, as a cash outflow of the
-  year: 6.2% of each person's earnings up to the Social Security wage base (\\$184,500 in 2026,
-  held at that level in today's dollars), 1.45% Medicare tax on all of them, and the 0.9%
+  year: 6.2% of each person's earnings up to the Social Security wage base (\\$184,500 in 2026 and
+  \\$192,300 in 2027, held at that level in real terms after), 1.45% Medicare tax on all of them, and the 0.9%
   Additional Medicare Tax on the household's combined earnings above \\$250,000 (\\$200,000 after
   the first death). It is not deductible, so it changes no income tax, and it is reported as
   *Total payroll tax paid* in the Summary, as a *payroll tax* column of the Cash Flow and Taxes

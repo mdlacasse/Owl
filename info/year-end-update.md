@@ -99,9 +99,14 @@ stored for one year only. Verify against IRS, CMS, SSA, and HHS announcements:
     grown by `QCD_LIMIT_INFLATION` instead.
   - ACA: the federal poverty line table (`_ACA_FPL`) and the applicable-percentage tables
     (`_ACA_CONTRIB_PCT_YYYY`, `_ACA_CONTRIB_INITIAL_YYYY`, and their entry in the year table)
-  - Payroll tax: the Social Security wage base `payrollWageBase` (one year's value)
+  - Payroll tax: the Social Security wage base `payrollWageBase`, keyed by year in nominal
+    dollars. Add next year's base when SSA publishes it in October (the cost-of-living notice
+    in the Federal Register); do not convert it to this year's dollars, as plans deflate it
+    themselves
   - OBBBA expiration year (if applicable)
-- **`src/owlplanner/socialsecurity.py`** — the earnings test's exempt amounts (`_EXEMPT_TABLE`)
+- **`src/owlplanner/socialsecurity.py`** — the earnings test's exempt amounts (`_EXEMPT_TABLE`),
+  keyed by year in nominal dollars and published in the same October notice as the wage base:
+  add next year's as published
 - **`src/owlplanner/data/taxes_state.toml`** — state brackets, deductions, and exemptions
   (labelled with its basis year in the header)
 

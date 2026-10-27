@@ -21,8 +21,8 @@ Limitations and known omissions:
   streams by ``Plan._ss_streams`` in every solve; where it withholds nothing the plan
   keeps ``compute_social_security_benefits``' streams. Assumptions of the rule
   implementation: earnings
-  are spread evenly over ``months worked``; exempt amounts after 2026 are held at the
-  2026 real level (statute indexes them to wages with a two-year lag); years before
+  are spread evenly over ``months worked``; exempt amounts after the last published year (2027)
+  are held at its real level (statute indexes them to wages with a two-year lag); years before
   the plan have no earnings (so anyone entitled before the plan has used their grace
   year); the test is not applied to checks paid from the year of the first death on
   (survivor benefits under the test and the survivor ARF are not modeled),
@@ -64,6 +64,7 @@ __all__ = [
     "validate_survivor_claim_age",
     "ExemptAmounts",
     "get_exempt_amounts",
+    "plan_exempt_for_year",
     "excess_earnings",
     "countable_earnings",
     "is_non_service_month",
@@ -79,6 +80,8 @@ import math
 import numpy as np
 from datetime import date
 from typing import Callable, NamedTuple, Optional, Sequence
+
+from . import utils as u
 
 # SSA-mandated benefit reduction rates (own-benefit and spousal, first 36 months before FRA).
 # Expressed as a per-year rate since 'diff' (fra - ssage) is measured in years.
@@ -832,21 +835,23 @@ def compute_social_security_benefits(
 # fixed function of that month: no LP piece here.
 # --------------------------------------------------------------------------------------
 
-# POMS RS 02501.025 D (TN 55, 11/21/2025). Annual amounts; monthly = annual / 12.
-# After the last known year the amounts are held at that level in today's dollars
-# (statute indexes them to wages with a two-year lag, 404.430(a)(2); Owl has no wage
-# index, so this slightly overstates withholding after 2026).
+# POMS RS 02501.025 D (TN 55, 11/21/2025); 2027 from SSA's notice of 10/26/2026, 91 FR
+# 67380. Annual amounts, each year's nominal dollars; monthly = annual / 12. A plan reads
+# them in its own dollars through plan_exempt_for_year. After the last known year they are
+# held at that level in real terms (statute indexes them to wages with a two-year lag,
+# 404.430(a)(2); Owl has no wage index, so this slightly overstates withholding later on).
 _EXEMPT_TABLE = {
     2024: (22_320.0, 59_520.0),
     2025: (23_400.0, 62_160.0),
     2026: (24_480.0, 65_160.0),
+    2027: (25_560.0, 67_920.0),
 }
 _EXEMPT_TABLE_FIRST_YEAR = min(_EXEMPT_TABLE)
 _EXEMPT_TABLE_LAST_YEAR = max(_EXEMPT_TABLE)
 
 
 class ExemptAmounts(NamedTuple):
-    """Annual earnings-test exempt amounts for one year (today's dollars)."""
+    """Annual earnings-test exempt amounts for one year, in the caller's dollars."""
 
     annual: float
     """Under FRA for the whole year (RS 02501.025 D)."""
@@ -865,11 +870,12 @@ class ExemptAmounts(NamedTuple):
 
 def get_exempt_amounts(year: int, table: Optional[dict] = None) -> ExemptAmounts:
     """
-    Return the earnings-test exempt amounts for ``year`` in today's dollars.
+    Return the earnings-test exempt amounts for ``year`` in that year's nominal dollars.
 
-    Years present in ``table`` (default: the POMS 2024-2026 chart) use those
-    amounts. Later years are projected at the last known amount (held flat in
-    real terms); earlier years use the first known amount (tests only).
+    Years present in ``table`` (default: the published 2024-2027 amounts) use those
+    amounts. Later years hold the last known nominal amount, a floor; earlier years
+    use the first known amount (tests only). A plan, whose earnings are in its first
+    year's dollars, reads them through :func:`plan_exempt_for_year` instead.
     """
     tbl = _EXEMPT_TABLE if table is None else table
     if year in tbl:
@@ -879,6 +885,34 @@ def get_exempt_amounts(year: int, table: Optional[dict] = None) -> ExemptAmounts
     else:
         annual, annual_fra = tbl[min(tbl)]
     return ExemptAmounts(float(annual), float(annual_fra))
+
+
+def plan_exempt_for_year(year0, gamma_n, N_n, table=None) -> Callable[[int], ExemptAmounts]:
+    """
+    Return ``year -> ExemptAmounts`` for a plan whose dollars are those of ``year0``,
+    with inflation factors ``gamma_n`` (1 in ``year0``).
+
+    A plan year in the table takes its nominal amount deflated by that year's factor, so
+    a published amount is not inflated a second time; a later one holds the last amount
+    flat in real terms (u.nominal_by_year). Years outside the plan, which the grace-year
+    scan reads without earnings, take the nominal amount (:func:`get_exempt_amounts`).
+    """
+    tbl = _EXEMPT_TABLE if table is None else table
+    gamma = np.asarray(gamma_n, dtype=float)[:N_n]
+    plan_amounts = u.nominal_by_year(tbl, year0, gamma, N_n) / gamma[:, None]
+
+    def exempt_for_year(year):
+        n = int(year) - int(year0)
+        if 0 <= n < N_n:
+            return ExemptAmounts(float(plan_amounts[n, 0]), float(plan_amounts[n, 1]))
+        return get_exempt_amounts(year, tbl)
+
+    return exempt_for_year
+
+
+def exempt_table_last_year() -> int:
+    """The last year whose exempt amounts are published in the table."""
+    return _EXEMPT_TABLE_LAST_YEAR
 
 
 def countable_earnings(

@@ -853,7 +853,8 @@ def test_zero_earnings_couple_with_survivor_matches_today():
 
 
 def test_exempt_amounts_table_projection():
-    """RS 02501.025 D: 2024-2026 chart; later years held at the last known amount."""
+    """RS 02501.025 D: 2024-2026 chart, 2027 from 91 FR 67380; later years held at the last
+    known nominal amount."""
     a26 = ss.get_exempt_amounts(2026)
     assert a26.annual == pytest.approx(24_480.0)
     assert a26.annual_fra == pytest.approx(65_160.0)
@@ -872,10 +873,33 @@ def test_exempt_amounts_table_projection():
     assert a24.monthly == pytest.approx(1_860.0)
     assert a24.monthly_fra == pytest.approx(4_960.0)
 
-    # Projection: later years hold the last known amount (today's dollars).
+    a27 = ss.get_exempt_amounts(2027)
+    assert a27.annual == pytest.approx(25_560.0)
+    assert a27.annual_fra == pytest.approx(67_920.0)
+    assert a27.monthly == pytest.approx(2_130.0)
+    assert a27.monthly_fra == pytest.approx(5_660.0)
+
+    # Projection: later years hold the last known nominal amount.
     a30 = ss.get_exempt_amounts(2030)
-    assert a30.annual == pytest.approx(24_480.0)
-    assert a30.monthly == pytest.approx(2_040.0)
+    assert a30.annual == pytest.approx(25_560.0)
+    assert a30.monthly == pytest.approx(2_130.0)
+
+
+def test_plan_exempt_amounts_are_deflated_not_reinflated():
+    """#231: a plan in 2026 dollars reads 2027's published amount deflated by 2027's factor, and
+    holds it flat in real terms after; a plan starting in 2027 reads it as its own dollars; one
+    starting after the table takes the last amount as its first year's dollars (a floor)."""
+    g = np.array([1.0, 1.025, 1.025**2, 1.025**3])
+    e26 = ss.plan_exempt_for_year(2026, g, 3)
+    assert e26(2026).annual == pytest.approx(24_480.0)
+    assert e26(2027).annual == pytest.approx(25_560.0 / 1.025)
+    assert e26(2028).annual_fra == pytest.approx(67_920.0 / 1.025)
+    assert e26(2025).annual == pytest.approx(23_400.0)  # before the plan: nominal
+    e27 = ss.plan_exempt_for_year(2027, g, 3)
+    assert e27(2027).annual == pytest.approx(25_560.0)
+    assert e27(2029).annual == pytest.approx(25_560.0)
+    e30 = ss.plan_exempt_for_year(2030, g, 3)
+    assert e30(2030).annual == pytest.approx(25_560.0)
 
 
 # --------------------------------------------------------------------------------------

@@ -27,6 +27,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
+from owlplanner import utils as u
+
 from owlplanner.data.irs_590b import JOINT_LIFE_TABLE, UNIFORM_LIFETIME_DIVISOR_BY_AGE
 from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 
@@ -244,11 +246,13 @@ niitRate = 0.038
 # wages up to the $184,500 wage base, Medicare tax 1.45% of all wages. Instructions for Form
 # 8959: Additional Medicare Tax 0.9% of the combined Medicare wages above $200,000 (single,
 # qualifying surviving spouse) or $250,000 (MFJ), thresholds not indexed for inflation.
-# The wage base follows the national average wage index (20 CFR 404.1048); it is held at its
-# 2026 level in today's dollars, like the earnings test's exempt amounts.
+# The wage base follows the national average wage index (20 CFR 404.1048). Each year's
+# nominal base, published by SSA in October for the next year (2027: notice of 10/26/2026,
+# 91 FR 67380); after the last year it is held at that level in real terms, like the
+# earnings test's exempt amounts (u.nominal_by_year).
 payrollSSRate = 0.062
 payrollMedicareRate = 0.0145
-payrollWageBase = 184_500.0
+payrollWageBase = {2026: 184_500.0, 2027: 192_300.0}
 payrollAddlRate = 0.009
 payrollAddlThreshold = np.array([200_000, 250_000])
 
@@ -1188,19 +1192,22 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     return J_n
 
 
-def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n):
+def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n, year0=None):
     """
     Compute the employee's payroll tax on earnings (nominal), one total per year.
 
-    Social security tax is per person, on earnings up to the wage base (held at its 2026
-    level in today's dollars, so ``payrollWageBase * gamma_n``). Medicare tax is on all
+    Social security tax is per person, on earnings up to the wage base: the published
+    nominal base in a year that has one, the last one held flat in real terms after it
+    (``year0`` is the first plan year, default this year). Medicare tax is on all
     earnings. The Additional Medicare Tax is on the household's combined earnings above
     the threshold, joint through the year of the first death and single after
     (filingStatusIndex_n). Self-employment tax is not modeled: all earnings are taken as wages.
     The tax is not deductible, so it enters no income-tax computation.
     """
     earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
-    base_n = payrollWageBase * np.asarray(gamma_n, dtype=float)[:N_n]
+    if year0 is None:
+        year0 = date.today().year
+    base_n = u.nominal_by_year(payrollWageBase, year0, gamma_n, N_n)
     payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
     status_n = filingStatusIndex_n(N_i, n_d, N_n)
 

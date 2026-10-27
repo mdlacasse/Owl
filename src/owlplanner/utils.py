@@ -288,6 +288,33 @@ def heaviside(x) -> int:
     return 1 if x >= 0 else 0
 
 
+def nominal_by_year(table, year0, gamma_n, N_n):
+    """
+    Return the nominal amounts of the plan years ``year0`` .. ``year0 + N_n - 1`` from
+    ``table``, published nominal amounts keyed by year (a value may be a tuple), as an
+    array of shape (N_n,) or (N_n, len(value)).
+
+    A year in the table takes its amount. A later year holds the last amount flat in real
+    terms from its year, an earlier one the first amount, grown or shrunk with ``gamma_n``
+    (the plan's inflation factors, 1 in the first plan year). A plan starting after the
+    table takes the last amount as its first year's dollars: for an amount that follows
+    wages and never falls, a floor until the table is updated.
+    """
+    gamma = np.asarray(gamma_n, dtype=float)
+    first, last = min(table), max(table)
+    out = []
+    for n in range(N_n):
+        y = year0 + n
+        if y in table:
+            out.append(np.asarray(table[y], dtype=float))
+            continue
+        ref = last if y > last else first
+        k = ref - year0
+        scale = gamma[n] / gamma[k] if 0 <= k < len(gamma) else gamma[n]
+        out.append(np.asarray(table[ref], dtype=float) * scale)
+    return np.array(out)
+
+
 def roundCents(values, decimals=2):
     """
     Round values in NumPy array to given decimal places (half toward zero).

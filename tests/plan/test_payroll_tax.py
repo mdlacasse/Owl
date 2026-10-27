@@ -79,27 +79,40 @@ def _n(p, year):
 
 
 def test_single_filer_wage_base_cap():
-    """Year 0: \\$85,000, under the base. Year 1, after 10% inflation: \\$250,000 nominal, above
-    the base of \\$184,500 x 1.1 = \\$202,950; Medicare on all of it, and 0.9% of the \\$50,000
-    above the single threshold, which is not indexed. Year 2: no earnings."""
-    earnings = np.array([[85_000.0, 250_000.0, 0.0]])
-    payroll = tx.payrollTax(1, earnings, np.array([1.0, 1.1, 1.21, 1.331]), n_d=3, N_n=3)
+    """A plan starting in 2026. Year 0: \\$85,000, under the base. Year 1 (2027): \\$250,000
+    nominal, above the published base of \\$192,300, which is nominal and not inflated again
+    (#231); Medicare on all of it, and 0.9% of the \\$50,000 above the single threshold, which is
+    not indexed. Year 2 (2028), after the table: \\$300,000, above 2027's base held flat in real
+    terms, \\$192,300 x 1.21 / 1.1."""
+    earnings = np.array([[85_000.0, 250_000.0, 300_000.0]])
+    payroll = tx.payrollTax(1, earnings, np.array([1.0, 1.1, 1.21, 1.331]), n_d=3, N_n=3, year0=2026)
     assert payroll == pytest.approx([
         0.0765 * 85_000.0,
-        0.062 * 202_950.0 + 0.0145 * 250_000.0 + 0.009 * 50_000.0,
-        0.0,
+        0.062 * 192_300.0 + 0.0145 * 250_000.0 + 0.009 * 50_000.0,
+        0.062 * 192_300.0 * 1.21 / 1.1 + 0.0145 * 300_000.0 + 0.009 * 100_000.0,
     ])
+
+
+@pytest.mark.parametrize("inflation", [0.0, 0.025])
+def test_wage_base_does_not_depend_on_the_start_year(inflation):
+    """#231: the tax on a year's nominal wages is the same whether the plan starts in 2026 or
+    in that year: \\$250,000 of 2027 wages, above 2027's base."""
+    g = (1 + inflation) ** np.arange(3)
+    early = tx.payrollTax(1, np.array([[0.0, 250_000.0]]), g, n_d=2, N_n=2, year0=2026)[1]
+    late = tx.payrollTax(1, np.array([[250_000.0, 0.0]]), g, n_d=2, N_n=2, year0=2027)[0]
+    assert early == pytest.approx(late)
+    assert late == pytest.approx(0.062 * 192_300.0 + 0.0145 * 250_000.0 + 0.009 * 50_000.0)
 
 
 def test_couple_threshold_switches_at_first_death():
     """Year 0, joint: \\$200,000 + \\$100,000. Social security tax is per person (the first
     capped at the base); the 0.9% is on the combined \\$300,000 above \\$250,000. From year 1
-    (n_d = 1) the survivor files single: \\$230,000, 0.9% above \\$200,000."""
+    (n_d = 1) the survivor files single: \\$230,000, capped at 2027's base, 0.9% above \\$200,000."""
     earnings = np.array([[200_000.0, 0.0], [100_000.0, 230_000.0]])
-    payroll = tx.payrollTax(2, earnings, np.ones(3), n_d=1, N_n=2)
+    payroll = tx.payrollTax(2, earnings, np.ones(3), n_d=1, N_n=2, year0=2026)
     assert payroll == pytest.approx([
         0.062 * 184_500.0 + 0.0145 * 200_000.0 + 0.0765 * 100_000.0 + 0.009 * 50_000.0,
-        0.062 * 184_500.0 + 0.0145 * 230_000.0 + 0.009 * 30_000.0,
+        0.062 * 192_300.0 + 0.0145 * 230_000.0 + 0.009 * 30_000.0,
     ])
 
 

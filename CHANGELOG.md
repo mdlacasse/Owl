@@ -1,5 +1,20 @@
 ### Version 2026.10.26
 
+#### Fixed: the earnings test's exempt amounts and the payroll wage base are read in the plan's dollars
+
+The exempt amounts are published in each year's nominal dollars, but the earnings test compared
+them with earnings in the plan's first-year dollars, and for a year after the table used the last
+year's nominal amount as if it were in those dollars. That held only for a plan starting in 2026.
+A plan starting in 2027 used 2026's \$24,480 for 2027, and withheld \$540 too much on \$40,000 of
+wages ((40,000 − 24,480)/2 against (40,000 − 25,560)/2). Each published amount is now deflated by
+its year's inflation factor, and held flat in real terms after the last one. The 2027 amounts
+(\$25,560 and \$67,920, SSA notice of Oct. 26, 2026, 91 FR 67380) are added: a plan starting in
+2026 now withholds the same for 2027 as one starting in 2027. The Social Security wage base of the
+payroll tax, a single value held at its 2026 level in today's dollars, is now keyed by year the
+same way, with 2027's \$192,300 from the same notice: at 2.5% inflation, wages above the base in
+2027 pay \$197.63 more than under 2026's base grown with inflation. A plan starting after the last
+published year takes that year's amounts as its own dollars, an understatement, and warns.
+
 #### Fixed: pay that all goes to a 401k is still payroll-taxed earnings
 
 *Anticipated wages* are net of pre-tax contributions, and the earnings that the payroll tax and

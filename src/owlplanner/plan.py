@@ -2311,13 +2311,15 @@ class Plan:
         A pure function of the claiming ages, the PIAs and the earnings columns, so
         ``owlcli explain`` can report what the test would withhold without solving. Earnings
         are nominal in the plan and are deflated here, like the exempt amounts the test
-        compares them to.
+        compares them to: a published amount is deflated by its year's factor rather than taken
+        as first-year dollars (socsec.plan_exempt_for_year).
         """
         if ages is None:
             ages = self.ssecAges
         if gamma_n is None:
             gamma_n = getattr(self, "gamma_n", None)
         gamma = np.ones(self.N_n) if gamma_n is None else np.asarray(gamma_n[: self.N_n], dtype=float)
+        thisyear = date.today().year
         earnings, months = self._earnings_test_inputs()
         return socsec.earnings_test(
             self.ssecAmounts,
@@ -2332,8 +2334,9 @@ class Plan:
             work_months_in=months,
             trim_pct=self.ssecTrimPct,
             trim_year=self.ssecTrimYear,
-            thisyear=date.today().year,
+            thisyear=thisyear,
             survivor_claim_age=self.ssecSurvivorClaimAge,
+            exempt_for_year=socsec.plan_exempt_for_year(thisyear, gamma, self.N_n),
         )
 
     def _warnEarnings(self, options):
@@ -2347,12 +2350,22 @@ class Plan:
         if getattr(self, "_localSearchSeeding", False) or getattr(self, "_etWarned", False):
             return
         searched = self._parseSSAgesOption(options) if self._ssaSelected(options) else set()
+        thisyear = int(self.year_n[0])
+
+        # A plan starting after the published amounts reads the last year's as its own dollars.
+        last = min(socsec.exempt_table_last_year(), max(tx.payrollWageBase))
+        if thisyear > last and np.any(self._earnings_test_inputs()[0] > 0):
+            self.mylog.print(
+                f"The earnings test's exempt amounts and the payroll tax's wage base are known through {last}: "
+                f"a plan starting in {thisyear} takes {last}'s amounts as its own dollars, which understates them. "
+                "A newer version of Owl will have them.",
+                tag="WARNING",
+            )
 
         # Fresh from the plan's current ages and earnings, not from the stored outputs:
         # withSSAges warns before any solve has rebuilt the streams.
         res = self._earningsTestResult()
         fra_abs_i = self._ssFRAStartAbs()
-        thisyear = int(self.year_n[0])
         for i, iname in enumerate(self.inames):
             if i in searched or int(self.ssecAmounts[i]) <= 0:
                 continue
@@ -2802,7 +2815,9 @@ class Plan:
             self._ss_streams(self.ssecAges, gamma_n)
             self.zetaBar_in = self.zeta_in * gamma_n[:-1]
             # Payroll tax on the same earnings, rebuilt here for the same reason.
-            self.payroll_n = tx.payrollTax(self.N_i, self._earnings_test_inputs()[0], gamma_n, self.n_d, self.N_n)
+            self.payroll_n = tx.payrollTax(
+                self.N_i, self._earnings_test_inputs()[0], gamma_n, self.n_d, self.N_n, year0=int(self.year_n[0])
+            )
             self.xiBar_n = self.xi_n * gamma_n[:-1]
             self.piBar_in = pension.compute_piBar_in(
                 self.pi_in,
