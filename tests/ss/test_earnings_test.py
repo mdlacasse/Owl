@@ -1259,3 +1259,31 @@ def test_spousal_crediting_months_stop_at_the_auxiliarys_fra():
     own = 800 * (0.8 - 0.05 * 23 / 12)
     spousal = 700 * (1 - 5 / 144)
     assert res.zeta_in[0, 8] == pytest.approx(12 * (own + spousal))
+
+
+@pytest.mark.parametrize("wage, arf_sp", [(60_000.0, 26), (70_000.0, 32)])
+def test_worker_charge_after_spouse_fra_is_at_the_adjusted_add_on(wage, arf_sp):
+    """#232: the spouse's add-on from their FRA month is the ARF-adjusted one (404.412(b)), and a
+    worker still under FRA charges against it (403(b)(1)). Charged at the pre-ARF rate and scaled
+    after, dollars went missing: in payment year 2029, where the worker's excess is used up, the
+    household's paid + withheld now equals the benefits due. Worker born 1963-08, PIA \\$2,400 at
+    62y1m, earning 2026-2030; spouse born 1962-03 (FRA March 2029), PIA \\$400 at 63y10m."""
+    N_n = 8
+    kw = dict(pias=[2400, 400], ages=[62 + 1 / 12, 63 + 10 / 12], yobs=[1963, 1962], mobs=[8, 3], tobs=[15, 15],
+              horizons=[N_n, N_n], N_i=2, N_n=N_n, thisyear=THISYEAR, exempt_for_year=_exempt_2026)
+    earnings = np.zeros((2, N_n))
+    earnings[0, :5] = wage
+    res = ss.earnings_test(earnings_in=earnings, **kw)
+    base = ss.earnings_test(earnings_in=np.zeros((2, N_n)), **kw)
+    assert res.arf_months_spousal[1] == arf_sp  # crediting months: before FRA, as before the fix
+
+    n = 2029 - THISYEAR
+    fra = float(ss.getFRAs(np.array([1962]), np.array([3]), np.array([15]))[0])
+    old = ss.getSpousalFactor(fra, 63 + 10 / 12, False)
+    new = ss.arf_spousal_factor(fra, 63 + 10 / 12, arf_sp, False)
+    add_on = ss.getSpousalBenefits(np.array([2400, 400]))[1] * old
+    # Payment year 2029: checks for December 2028 to November 2029, nine of them from FRA.
+    due = base.zeta_in[:, n].sum() + 9 * add_on * (new / old - 1)
+    assert res.excess_by_year[0, n] < due  # the excess is used up within the year
+    assert res.withheld_in[:, n].sum() == pytest.approx(res.excess_by_year[0, n])
+    assert res.zeta_in[:, n].sum() + res.withheld_in[:, n].sum() == pytest.approx(due, abs=0.01)

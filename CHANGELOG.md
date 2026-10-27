@@ -1,5 +1,16 @@
 ### Version 2026.10.26
 
+#### Fixed: a worker's earnings charged against a spouse past full retirement age use the adjusted benefit
+
+When a worker still under full retirement age has excess earnings and their spouse, collecting a
+spousal add-on on the worker's record, has passed it, the excess is charged against that add-on.
+From the spouse's FRA month the add-on is the one raised by the adjustment of the reduction
+factor, but **Owl** charged the unadjusted one and then scaled what was left, so dollars were
+neither paid nor withheld: in the case of #232, paid plus withheld fell short of the benefits due
+by \$810.11 (worker earning \$60,000) and \$1,381.31 (\$70,000) in a year. The excess is now
+charged a second time on the adjusted benefits, after the crediting months have been counted from
+the months before FRA, which the second charge leaves unchanged.
+
 #### Fixed: the earnings test's exempt amounts and the payroll wage base are read in the plan's dollars
 
 The exempt amounts are published in each year's nominal dollars, but the earnings test compared
