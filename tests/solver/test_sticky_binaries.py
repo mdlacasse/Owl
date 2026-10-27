@@ -68,12 +68,31 @@ def test_a_tie_keeps_the_previous_binaries(plan, monkeypatch):
         return -1.0 + 1e-6, prev, True, "pinned LP", -1.0  # within 5e-5 of the new plan's -1.0
 
     monkeypatch.setattr(plan, "_run_mip", lp)
-    obj, z, ok, msg, gap = plan._stickyBinaries((-1.0, x, True, "MIP", 2e-3), {}, use_mosek=False)
+    obj, z, ok, msg, gap = plan._stickyBinaries((-1.0, x, True, "MIP", 2e-3), {"gap": 3e-3}, use_mosek=False)
     assert seen["lp"] is True
     assert all(seen["pins"][int(j)] == (prev[j],) * 2 for j in bins)
     assert np.array_equal(z, prev) and ok and msg == "MIP"
     assert gap == pytest.approx(2e-3 + 1e-6, rel=1e-3)  # the same bound, against the kept plan
     assert np.array_equal(plan._stickyPrev, prev)
+
+
+def test_a_tie_does_not_leave_the_requested_gap(plan, monkeypatch):
+    """#233: the solve met its 1e-5 gap (9.9e-6) and the tie, 2e-5 worse, is within the loop's
+    5e-5, but against the same bound the kept plan would be about 3e-5 from it: refused."""
+    x, prev, _ = _with_prev(plan, flip=True)
+    monkeypatch.setattr(plan, "_run_mip", lambda *a, **k: (-1.0 + 2e-5, prev, True, "pinned LP", -1.0))
+    result = (-1.0, x, True, "MIP", 9.9e-6)
+    assert plan._stickyBinaries(result, {"gap": 1e-5}, use_mosek=False) is result
+    assert np.array_equal(plan._stickyPrev, x)
+
+
+def test_a_tie_is_kept_when_the_solve_stopped_above_the_gap(plan, monkeypatch):
+    """A solve stopped by a limit above the requested gap proved nothing within it: the tie is kept
+    as before, so the loop keeps its convergence aid where it matters most."""
+    x, prev, _ = _with_prev(plan, flip=True)
+    monkeypatch.setattr(plan, "_run_mip", lambda *a, **k: (-1.0 + 2e-5, prev, True, "pinned LP", -1.0))
+    obj, z, ok, msg, gap = plan._stickyBinaries((-1.0, x, True, "MIP", 5e-3), {"gap": 3e-3}, use_mosek=False)
+    assert np.array_equal(z, prev) and gap == pytest.approx(5e-3 + 2e-5, rel=1e-3)
 
 
 def test_a_worse_plan_does_not_keep_them(plan, monkeypatch):

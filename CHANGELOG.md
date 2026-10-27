@@ -1,5 +1,15 @@
 ### Version 2026.10.26
 
+#### Fixed: keeping the previous binaries no longer takes a plan outside the requested gap
+
+Under the branch-and-bound breakpoint method, the self-consistent loop keeps the previous
+iteration's binaries when the plan they give is within the loop's tolerance of the new one, and
+restates the solver's gap against the kept plan. That gap could exceed the one requested: at
+`gap = 1e-5`, a plan was accepted at 1.833e-5 (#233). The previous binaries are now kept only if
+the restated gap stays within the requested one, or if the solve itself stopped above it (a node
+or time limit). Under MOSEK at the default gap of 3e-3, the cases that settle by keeping binaries
+(joe, jack+jill, avery+quinn) refuse no tie and are unchanged.
+
 #### Fixed: a worker's earnings charged against a spouse past full retirement age use the adjusted benefit
 
 When a worker still under full retirement age has excess earnings and their spouse, collecting a

@@ -7310,11 +7310,21 @@ class Plan:
                 self._use_mosek = saved
             obj, gap = result[0], result[4]
             if res[2] and res[0] is not None and res[0] <= obj + self._sticky_tol * abs(obj):
+                kept_gap = gap
                 if gap is not None and gap >= 0:  # the same bound, against the kept plan
                     bound = obj - gap * abs(obj)
-                    gap = (res[0] - bound) / max(abs(res[0]), 1e-12)
-                chosen = (res[0], res[1], True, result[3], gap)
-                self.mylog.vprint(f"Kept the previous binaries (objective {res[0] - obj:+.2e} against the new plan).")
+                    kept_gap = (res[0] - bound) / max(abs(res[0]), 1e-12)
+                # A tie may not take a plan the solver proved within the requested gap outside it (#233).
+                requested = u.get_numeric_option(options, "gap", GAP, min_value=0)
+                if gap is None or gap < 0 or gap > requested or kept_gap <= requested:
+                    chosen = (res[0], res[1], True, result[3], kept_gap)
+                    self.mylog.vprint(
+                        f"Kept the previous binaries (objective {res[0] - obj:+.2e} against the new plan)."
+                    )
+                else:
+                    self.mylog.vprint(
+                        f"Refused the previous binaries: gap {kept_gap:.3e} above the requested {requested:.3e}."
+                    )
         self._stickyPrev = chosen[1].copy()
         return chosen
 
