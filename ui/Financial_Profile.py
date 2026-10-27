@@ -75,8 +75,8 @@ timetableHelp = {
         "they stay in your wages: enter the same amount as a negative big-ticket item."
     ),
     "IRA ctrb": (
-        "Contributions to your traditional IRA (nominal \\$), treated as pre-tax: net them out of "
-        "your wages."
+        "Deductible contributions to your traditional IRA (nominal \\$), treated as pre-tax: net them "
+        "out of your wages. Nondeductible ones are not supported; enter a backdoor Roth in Roth IRA ctrb."
     ),
     "Roth IRA ctrb": (
         "Contributions to your Roth IRA (nominal \\$). Paid from pay, they stay in your wages: "

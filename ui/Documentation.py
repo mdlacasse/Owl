@@ -533,7 +533,11 @@ leave it blank where it does not apply), where:
   in *other inc* instead, as a negative amount, which both deducts it and pays for it (see *other
   inc* and *HSA ctrb*). Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
   supported: amounts entered in *401k ctrb*, *employer ctrb*, or *IRA ctrb* are treated as pre-tax, and no cost basis
-  is tracked (every dollar later withdrawn or converted is fully taxable).
+  is tracked (every dollar later withdrawn or converted is fully taxable). A nondeductible IRA contribution entered
+  in *IRA ctrb* would therefore be taxed twice, and also counted twice as earnings for the payroll tax and the
+  earnings test, since it is still in *anticipated wages*. A backdoor Roth, a nondeductible IRA contribution
+  converted right away, is entered as a *Roth IRA ctrb* paid from your pay like any after-tax contribution; this
+  holds when you have no other pre-tax IRA balance, which the pro-rata rule would partly tax on conversion.
 - *HSA ctrb* is HSA contributions in nominal dollars. Made through payroll, they are pre-tax:
   subtract them from *anticipated wages*, which excludes them from both cash flow and taxable
   income. Enter the full annual amount you plan to contribute: **Owl** applies the
