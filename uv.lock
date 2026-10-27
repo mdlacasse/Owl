@@ -1338,11 +1338,11 @@ wheels = [
 
 [[package]]
 name = "jsonpointer"
-version = "3.5"
+version = "3.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/21/b8/fe0d28b5a2f14e501a9fd300c49273a05c78920a1925c36c487d539035bc/jsonpointer-3.5.tar.gz", hash = "sha256:81f28618a019cf1b011a6cf757439737972de1ccbeca2e1f86dfb4d661800792", size = 13562, upload-time = "2026-10-24T20:42:20.296Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/04/e35b34f4e441473e62d82d6ed9a8f748d93d895f4c05d4e645aa0fde51d7/jsonpointer-3.6.tar.gz", hash = "sha256:82e839a3ba3a9e2b54394fda8b3d276c2459d80408d06ef9a6fbc369d7544ffc", size = 14352, upload-time = "2026-10-26T20:59:26.307Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/cc/8800c20eed936746b32ab438a0fbfc8f3bc18278e32f96caf4d5d6686d4c/jsonpointer-3.5-py3-none-any.whl", hash = "sha256:8728c42f6bc07b1436af31600267bdbb1495ac5a61f31d9583ff319ecf7da09c", size = 9121, upload-time = "2026-10-24T20:42:18.941Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/34/cee746fb30473bfaa92f19267fcc102a1118eaec83e7e2b5652a91ead01c/jsonpointer-3.6-py3-none-any.whl", hash = "sha256:a45c858f8a9e171f6b3790ed9446c9382782f6c4cb4589176813c5a553f4cfcd", size = 9333, upload-time = "2026-10-26T20:59:24.947Z" },
 ]
 
 [[package]]
@@ -2022,17 +2022,17 @@ wheels = [
 
 [[package]]
 name = "mosek"
-version = "11.2.6"
+version = "11.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/66/a61915b7303c32fb249062b97928e42ae806f7699bef83d7c77ed42b8bff/mosek-11.2.6-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:a8d2e16c1df692e129195913f0e3d8916ef1894b1ae30681406ca873cdf4e343", size = 8795585, upload-time = "2026-10-08T16:57:51.115Z" },
-    { url = "https://files.pythonhosted.org/packages/eb/65/60f42f51a1c26dcfce77aaa96792da8234d7ff12b5e1d05e81fa5d4b06fa/mosek-11.2.6-cp39-abi3-manylinux2014_x86_64.whl", hash = "sha256:258a44f60eb87c62ccee6c561cc24892b7856d8ae0a81eba5aae495a37322562", size = 15365407, upload-time = "2026-10-08T16:57:55.841Z" },
-    { url = "https://files.pythonhosted.org/packages/74/0f/77790be437be25d6f2a1e17340d5715a78d4d55ab7bdc6934f7aef1e4efb/mosek-11.2.6-cp39-abi3-manylinux_2_27_aarch64.whl", hash = "sha256:841fea3592011de82f5b1a9b2cb745af02d27337fc352766a0d80ac4a112e8f0", size = 9912458, upload-time = "2026-10-08T16:57:59.246Z" },
-    { url = "https://files.pythonhosted.org/packages/d8/c1/848b614f77d76a65f47d3b6e6ccdf54376285e8b201dd7cdc0f12170bede/mosek-11.2.6-cp39-abi3-win_amd64.whl", hash = "sha256:c7e9647e6d1b727e112c70d30316b9fde5993fac14d2fed74738435f96783bc2", size = 11207340, upload-time = "2026-10-08T16:58:02.424Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/a8/74b5070726644300cceb2c1ec8899e487d9ba4c4af5921e2bda58030a1d8/mosek-11.2.7-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:d8f04e602c1e2b357bfec330358aeb309001dc963a53cfe34235a5b08f97a368", size = 8794356, upload-time = "2026-10-26T07:34:22.334Z" },
+    { url = "https://files.pythonhosted.org/packages/88/f7/c51e91abc87d363d17e732d4be1422051f8db9148b5da1e990829b972f70/mosek-11.2.7-cp39-abi3-manylinux2014_x86_64.whl", hash = "sha256:f028beba4e2ac168d222bd013a1d6966ac0f8f77cf1947e038a47123d2c5f83c", size = 15365655, upload-time = "2026-10-26T07:34:25.46Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/e3/24802f8eb8edcc7425e685d793db4517a927cb32a5706f389d2ea7672ab4/mosek-11.2.7-cp39-abi3-manylinux_2_27_aarch64.whl", hash = "sha256:3420445bb45feace5d164ec08cc8fe7d50f0dfdc8f0ffeac66cc935d9716b3f2", size = 9911511, upload-time = "2026-10-26T07:34:28.045Z" },
+    { url = "https://files.pythonhosted.org/packages/56/a1/28cebb33a2868dfc91c31d59777a4f2d6e59b1e8adbcdf866a6ed97833b7/mosek-11.2.7-cp39-abi3-win_amd64.whl", hash = "sha256:2538aa0f930da0529df4dcc216f3379dd441421599af9940624831218dcd2783", size = 11206255, upload-time = "2026-10-26T07:34:30.57Z" },
 ]
 
 [[package]]
@@ -3751,15 +3751,15 @@ wheels = [
 
 [[package]]
 name = "sse-starlette"
-version = "3.5.1"
+version = "3.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "starlette" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/af/2e/16b9cce59c2eebd2f944b41b01df119f8ee65535ce839c462f1b2c9ae2e0/sse_starlette-3.5.1.tar.gz", hash = "sha256:dbb1461cd53c1e284537c3ddcf92f54f24178519a3f1e335e49e5283993db0f7", size = 38356, upload-time = "2026-10-24T08:45:12.444Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/7f/3b8ec4f27833f7b8c270a3ef960b6d435e1065439847bc0fcd1e58ae898b/sse_starlette-3.6.0.tar.gz", hash = "sha256:623151d6c20dc0eebf1b3379c27faae91fff883bac7ab6665f16f46440a88b3a", size = 41174, upload-time = "2026-10-25T20:31:59.372Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/98/658d1681bc6dc0b0f7f695aee4337de79decd0ccaec6d000a76b5cbdca6d/sse_starlette-3.5.1-py3-none-any.whl", hash = "sha256:a6cdcfec47b952911b1d99a7b8056429b5984039b875bf6575174220364b551f", size = 17538, upload-time = "2026-10-24T08:45:10.981Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/49/35053078cdfcf639237e8bee6dc6f34f1b3a3cc8d01800a1e213e1660ff6/sse_starlette-3.6.0-py3-none-any.whl", hash = "sha256:e4dfa4d237d2712cb2b4d4918eda9b457cd6b44bbecdc838af75de836565bafd", size = 17985, upload-time = "2026-10-25T20:31:58.134Z" },
 ]
 
 [[package]]

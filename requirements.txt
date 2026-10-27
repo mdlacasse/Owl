@@ -86,7 +86,7 @@ mcp==2.3.0
     # via owlplanner
 mcp-types==2.3.0
     # via mcp
-mosek==11.2.6
+mosek==11.2.7
     # via owlplanner
 narwhals==2.27.1
     # via
@@ -186,7 +186,7 @@ seaborn==0.13.2
     # via owlplanner
 six==1.17.0
     # via python-dateutil
-sse-starlette==3.5.1
+sse-starlette==3.6.0
     # via mcp
 starlette==1.10.0
     # via
