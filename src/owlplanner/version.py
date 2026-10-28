@@ -21,7 +21,7 @@ import subprocess
 from functools import lru_cache
 from pathlib import Path
 
-__version__ = "2026.10.26"
+__version__ = "2026.10.28"
 
 
 @lru_cache(maxsize=1)

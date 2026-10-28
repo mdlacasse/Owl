@@ -60,9 +60,9 @@ def opts(case):
 @pytest.mark.toml
 class TestDeterministic:
     """One scenario per level: the interactive path, and the fixedSpending replacement."""
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(
             case, opts, [0, 500, 1000, 2000], scenario_method="deterministic", with_duals=True
@@ -109,9 +109,9 @@ class TestDeterministic:
 @pytest.mark.toml
 class TestHistorical:
     """Each level solved across the ensemble: the S(B, p) surface."""
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(
             case,
@@ -180,9 +180,9 @@ class TestPartialBequest:
     """
 
     CASE = "examples/Case_jordan+taylor.toml"  # beneficiary_fractions [0.28, 0.28, 0.28, 1.0]
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def couple():
         return readConfig(TestPartialBequest.CASE, verbose=False)
 
@@ -454,9 +454,9 @@ class TestSpendingUnits:
     Case_jack+jill by about 9% -- so a basis quoted against a netSpending goal reads as
     a plan that spends less and leaves less than it really does.
     """
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(case, opts, [0, 500, 1000], scenario_method="deterministic")
 

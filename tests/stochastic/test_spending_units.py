@@ -52,14 +52,14 @@ class TestFrontierIsUnitAgnostic:
     the two are the same curve, so no success rate, floor-relative risk measure or optimal
     confidence depends on which one is on the axis.
     """
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def swept():
         return _compute_efficient_frontier(BASES, n_points=20)
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def swept_year1():
         return _compute_efficient_frontier(BASES * XI_0, n_points=20)
 
