@@ -1,5 +1,17 @@
 ### Version 2026.10.26
 
+#### Fixed: the taxable account a survivor inherits takes its value at the death as basis
+
+With a cost basis set, the survivor's basis gained nothing for the taxable account inherited at
+the first death, so every dollar of it counted as unrealized gain and was taxed again when sold.
+Under IRC 1014 the inherited account takes its value at the death as basis. It now does: the
+amount moved to the survivor is added to their basis at the death (#238). For a couple with
+\$1.5M at \$1M basis in the first to die's taxable account, the survivor's gain fraction falls
+from 1 to about 0 at the death, and first-year spending rises \$2,052 in Florida and \$3,201 in
+Pennsylvania. A person whose taxable account starts empty is now tracked from a \$0 basis rather
+than with the legacy approximation, so the inherited basis has somewhere to go. Pennsylvania does
+not step up a surviving joint tenant's share; that difference is not modeled.
+
 #### Fixed: the reported taxable flows no longer hide a sale at a gain
 
 When a surplus is deposited into the taxable account it was just sold from, **Owl** reported the

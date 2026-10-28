@@ -5991,16 +5991,25 @@ class Plan:
         tau_prev = self.tau_kn[0, n - 1]  # n=0 → tau_kn[0,-1] (last rate), matches roll convention
         return max(0.0, tau_prev - self.mu)
 
+    def _tracks_basis(self, i):
+        """Whether individual i's basis is tracked: a basis was given, or there is nothing to give it for.
+
+        Zero basis on a funded account means 'use the legacy approximation for that person'. An
+        account that starts empty is tracked from $0, so that what it later receives, purchases or
+        an inherited account, carries its basis.
+        """
+        return self.taxable_basis_i[i] > 0 or self.beta_ij[i, 0] == 0
+
     def _init_gain_fraction(self):
         """Initialize gain_fraction_in from user-supplied cost basis before first LP solve.
-        Zero basis for an individual means 'use legacy approximation for that person' (NaN sentinel).
+        An untracked individual keeps NaN entries, the legacy-approximation sentinel.
         """
         if self.taxable_basis_i is None:
             self.gain_fraction_in = None
             return
         self.gain_fraction_in = np.full((self.N_i, self.N_n), np.nan)
         for i in range(self.N_i):
-            if self.taxable_basis_i[i] == 0:
+            if not self._tracks_basis(i):
                 continue  # NaN → legacy fallback for this person
             b0 = self.beta_ij[i, 0]
             alpha0 = self.alpha_ijkn[i, 0, 0, 0]
@@ -6012,16 +6021,29 @@ class Plan:
         because they are new purchases at the current market price. So do the dividends and the
         bond/cash returns taxed each year, which stay in the account and are reinvested: leaving
         them out would tax them a second time on sale.
-        Persons with zero basis are skipped (their NaN entries mean legacy fallback)."""
+        The taxable account a survivor inherits at the first death takes its value at the death as
+        basis (IRC 1014(a)): the deceased's account is in their gross estate (#238).
+        Untracked persons are skipped (their NaN entries mean legacy fallback)."""
         if self.gain_fraction_in is None:
             return
         # Same yield the model taxes each year as dividends and interest (see _add_taxable_income).
         fak_in = np.sum(np.maximum(0, self.tau_kn[1:, :]) * self.alpha_ijkn[:, 0, 1:, : self.N_n], axis=1)
+        inherited = 0.0
+        if self.N_i == 2 and 0 < self.n_d < self.N_n:
+            # What _add_account_balance_carryover moves into the survivor's taxable account.
+            i_d, nx = self.i_d, self.n_d - 1
+            tau = float(np.sum(self.alpha_ijkn[i_d, 0, :, nx] * self.tau_kn[:, nx]))
+            inherited = self.phi_j[0] * (
+                (self.b_ijn[i_d, 0, nx] - self.w_ijn[i_d, 0, nx] + self.d_in[i_d, nx]) * (1 + tau)
+                + self.kappa_ijn[i_d, 0, nx] * (1 + tau / 2)
+            )
         for i in range(self.N_i):
-            if self.taxable_basis_i[i] == 0:
+            if not self._tracks_basis(i):
                 continue  # stays NaN → legacy
             basis = float(self.taxable_basis_i[i])
             for n in range(self.N_n):
+                if inherited > 0 and i == self.i_s and n == self.n_d:
+                    basis += inherited
                 b_n = self.b_ijn[i, 0, n]
                 w_n = self.w_ijn[i, 0, n]
                 d_n = self.d_in[i, n]

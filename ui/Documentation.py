@@ -1079,6 +1079,8 @@ realizing a gain equal to the *unrealized-gain fraction* of the account,
 where gain fraction = (current balance − cost basis) / current balance.
 The gain fraction evolves each year as the SC loop tracks how basis changes
 (withdrawals reduce it proportionally; new contributions restore it at full value).
+At the first death of a couple, the taxable account the survivor inherits takes its value at the
+death as basis (IRC 1014), so the gain it carried is never taxed.
 
 The cost basis to enter is the total **adjusted cost basis** of the taxable account as
 reported by your brokerage — the sum of what you paid for all lots currently held,
@@ -1087,7 +1089,9 @@ All amounts are in \\$k.
 Leave the field at **0** if your basis is unknown — Owl treats zero (or blank) as *no basis
 supplied* and uses the legacy approximation. Enter a **positive** value to enable average-cost
 tracking. (In TOML or the Python API the same rule applies to each person: a zero entry, in the
-case file or in `setCostBasis()`, means the legacy approximation for that person.)
+case file or in `setCostBasis()`, means the legacy approximation for that person.) A person whose
+taxable account starts empty is tracked from \\$0 instead, so that what the account later receives,
+purchases or an inherited account, carries its basis.
 A higher gain fraction means more capital gains tax per dollar withdrawn from the taxable account,
 increasing total tax drag and reducing the maximum achievable spending or bequest.
 """)

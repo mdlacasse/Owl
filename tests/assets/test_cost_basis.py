@@ -172,6 +172,42 @@ class TestCostBasisMixedCouple:
         assert np.any(p.Q_n > 0)
 
 
+class TestCostBasisAtDeath:
+    """The taxable account a survivor inherits takes its value at the death as basis (IRC 1014, #238)."""
+
+    @staticmethod
+    def _couple(taxable_k, basis_k):
+        thisyear = date.today().year
+        p = owl.Plan(["A", "B"], [f"{thisyear - 64}-06-15", f"{thisyear - 62}-03-10"], [68, 75], "basis_at_death")
+        p.setSpendingProfile("flat", 60)
+        p.setAccountBalances(taxable=taxable_k, taxDeferred=[0, 0], taxFree=[0, 0], startDate="1-1")
+        p.setCostBasis(basis_k)
+        p.setAllocationRatios("individual", generic=[[[60, 0, 0, 40], [60, 0, 0, 40]]] * 2)
+        p.setRates("user", values=[6, 4, 4, 2.5])
+        p.setSocialSecurity([2000, 1800], [67, 67])
+        p.solve("maxSpending", {"bequest": 0})
+        assert p.caseStatus == "solved"
+        return p
+
+    def test_inherited_account_is_not_taxed_again(self):
+        """A's $1.5M at $1M basis passes to B: B's gain fraction falls to about 0 at the death.
+
+        Without the step-up, B's whole inheritance counted as gain: the gain fraction was 1 from
+        the death on.
+        """
+        p = self._couple([1500, 30], [1000, 25])
+        s, nd = p.i_s, p.n_d
+        assert p.b_ijn[s, 0, nd] > 500_000  # the inheritance arrived
+        assert p.gain_fraction_in[s, nd] < 0.05
+
+    def test_an_empty_survivor_account_is_tracked_from_zero(self):
+        """B starts with no taxable account and no basis: tracked from $0, not the legacy approximation."""
+        p = self._couple([1500, 0], [1000, 0])
+        s, nd = p.i_s, p.n_d
+        assert not np.any(np.isnan(p.gain_fraction_in[s, :]))
+        assert p.gain_fraction_in[s, nd] < 0.05
+
+
 class TestCostBasisConvergence:
     """SC loop must converge within a reasonable number of iterations with basis tracking."""
 
