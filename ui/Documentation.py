@@ -1057,10 +1057,10 @@ In some situations, unconventional transfers from tax-deferred savings accounts 
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 A surplus is deposited into the same taxable account a withdrawal may have been taken from
-in that year. Where that happens, worksheets and graphs report the withdrawal and the surplus
-net of one another, since the money never left the account. Years in which the sale realizes
-taxable capital gains are reported in full, so that a withdrawal always accounts for the
-capital gains tax shown beside it.
+in that year. Where the sale realizes no capital gain, worksheets and graphs report the
+withdrawal and the surplus net of one another, since the money never left the account.
+A sale at a gain is reported in full, as is the deposit that buys back: the gain counts in
+the year's income, taxed or not, and the purchase resets the account's cost basis.
 
 Setting a surplus fraction that deposits some or all surpluses in the survivor's account
 can also sometimes lead to slow convergence. This is especially noticeable when solving with
