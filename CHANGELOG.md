@@ -1,5 +1,26 @@
 ### Version 2026.10.26
 
+#### New: the optimizer can split each surplus between the spouses
+
+While both spouses live, a surplus is deposited in their taxable accounts by a fixed fraction, half
+each by default. The fraction can now be set to `"optimize"` (*Let the optimizer split each
+surplus* in the interface), and the optimizer then chooses the split each year (#236). It can help
+when the two accounts differ: for a Pennsylvania couple whose larger account is mostly gain, the
+free split spends at least as much as any fixed fraction. Most example cases are unchanged, to
+within 0.004%. Jack+jill spends 0.5% more but stops at the loop's iteration cap instead of
+settling, as a fixed fraction that deposits with the survivor sometimes does. It is not meant for
+beneficiary fractions below 1: what other heirs receive at the first death counts for only 1% in
+the objective, so the optimizer deposits every surplus with the survivor and leaves them nothing.
+In jordan+taylor and avery+quinn the partial bequest falls from \$2.47M and \$3.40M to \$0. The
+log warns when the two are combined, and the fixed fraction stays the default.
+
+#### Changed: options that do not apply are disabled, not hidden
+
+On *Run Options*, the claiming ages to optimize are now chosen with one box per person. Someone
+whose entered claiming age is already past keeps a box, disabled, instead of disappearing from the
+list. On *Account Balances*, the surplus deposit fraction is disabled while the optimizer splits
+the surplus.
+
 #### New: the loop says when the tax on capital gains did not settle
 
 Under the default loop, the room in the 0% and 15% capital-gains brackets is the threshold less the

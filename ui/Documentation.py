@@ -1062,8 +1062,23 @@ withdrawal and the surplus net of one another, since the money never left the ac
 A sale at a gain is reported in full, as is the deposit that buys back: the gain counts in
 the year's income, taxed or not, and the purchase resets the account's cost basis.
 
-Setting a surplus fraction that deposits some or all surpluses in the survivor's account
-can also sometimes lead to slow convergence. This is especially noticeable when solving with
+The surplus fraction can also be left to the optimizer, which then chooses each year, while both
+spouses live, how much of a surplus goes to each spouse's taxable account. The fraction entered is
+then ignored. This can help when the two accounts differ, for instance when one spouse's account
+carries more unrealized gains than the other's.
+**Do not let the optimizer split surpluses when the beneficiary fractions are not all 1.**
+What passes to other heirs at the first death, the partial bequest, counts in the objective at
+only 1% of a dollar of spending or of final bequest by default (`partialBequestWeight`), enough
+to break ties and no more. The natural
+consequence of maximizing spending or the final bequest is then to keep money out of the first
+estate: given the choice, the optimizer deposits surpluses in the survivor's account, where they
+still serve the objective, rather than in the account of the spouse who passes first, where part of
+them would leave with the partial bequest. The other heirs receive as little as the plan allows.
+Keep a fixed fraction there, with all surplus deposited in the account of the first spouse to pass,
+as recommended above, unless that outcome is what you intend.
+
+Setting a surplus fraction that deposits some or all surpluses in the survivor's account,
+or letting the optimizer split them, can also sometimes lead to slow convergence. This is especially noticeable when solving with
 varying rates and not so common when using constant rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.

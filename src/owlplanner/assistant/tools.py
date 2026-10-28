@@ -41,7 +41,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import numpy as np
 import pandas as pd
@@ -1233,7 +1233,10 @@ def _build_plan_from_params(
         if beneficiary_fractions is not None:
             plan.setBeneficiaryFractions([float(f) for f in beneficiary_fractions])
         if spousal_deposit_fraction is not None:
-            plan.setSpousalDepositFraction(float(spousal_deposit_fraction))
+            if isinstance(spousal_deposit_fraction, str):
+                plan.setSpousalDepositFraction(spousal_deposit_fraction)
+            else:
+                plan.setSpousalDepositFraction(float(spousal_deposit_fraction))
     plan.setSpendingProfile(
         spending_profile,
         percent=int(survivor_fraction),
@@ -1709,10 +1712,11 @@ async def run_from_params(
         ),
     ] = None,
     spousal_deposit_fraction: Annotated[
-        float | None,
+        float | Literal["optimize"] | None,
         Field(
             description="Couples only: fraction (0-1) of a yearly surplus deposited to the second person's "
-            "taxable account, the rest to the first's (default 0.5)."
+            "taxable account, the rest to the first's (default 0.5), or \"optimize\" for the optimizer to "
+            "choose the split each year."
         ),
     ] = None,
     partial_bequest_weight: Annotated[
@@ -1962,7 +1966,8 @@ async def run_from_params(
                         partial_bequest_year.
         spousal_deposit_fraction: Couples only.  Fraction (0-1) of a yearly surplus deposited
                         to the second person's taxable account, the rest to the first's
-                        (default 0.5).
+                        (default 0.5), or "optimize" for the optimizer to choose the split
+                        each year.
         partial_bequest_weight: Value of a dollar left to other heirs at the first death, as a
                         fraction of a dollar of spending or final bequest.  Default
                         max(1%, twice the solver gap): enough to break ties, not a

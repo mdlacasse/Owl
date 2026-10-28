@@ -2012,6 +2012,7 @@ def genDic(plan):
     dic["liquidationCG"] = 100 * plan.liquidationCapGainsRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
+    dic["surplusFractionOptimize"] = plan.etaOptimize
     dic["plots"] = plan.defaultPlots
     dic["worksheetShowAges"] = plan.worksheetShowAges
     dic["worksheetHideZeroColumns"] = plan.worksheetHideZeroColumns

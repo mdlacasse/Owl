@@ -540,6 +540,7 @@ class Plan:
         self.heir_tax_liability = 0.0  # Heir taxes on final bequest (IRA+HSA), today's $
         self.partial_heir_tax_liability = 0.0  # Heir taxes on partial bequest, today's $
         self.eta = (self.N_i - 1) / 2  # Spousal deposit ratio (0 or .5)
+        self.etaOptimize = False  # True: the LP splits each surplus between the spouses
         self.phi_j = np.array([1, 1, 1, 1])  # Fractions left to other spouse at death (j=3: HSA)
         self._setHSAStop([65] * self.N_i)  # Sets n_hsa_i and hsaFrac_in: HSA contributions end at Medicare
         self.slcsp_annual = 0.0  # Today-dollar annual ACA benchmark Silver plan premium ($)
@@ -899,14 +900,25 @@ class Plan:
 
     def setSpousalDepositFraction(self, eta):
         """
-        Set spousal deposit and withdrawal fraction. Default 0.5.
-        Fraction eta is use to split surplus deposits between spouses as
+        Set the spousal surplus deposit fraction. Default 0.5.
+        While both spouses live, fraction eta splits each surplus s_n between their taxable accounts as
         d_0n = (1 - eta)*s_n,
         and
-        d_1n = eta*s_n,
-        where s_n is the surplus amount. Here d_0n is the taxable account
-        deposit for the first spouse while d_1n is for the second spouse.
+        d_1n = eta*s_n.
+        Here d_0n is the taxable account deposit for the first spouse while d_1n is for the second
+        spouse. With eta = "optimize", the optimizer chooses the split each year: d_0n + d_1n = s_n (#236).
+        After the first death, the surplus goes to the survivor either way.
         """
+        if isinstance(eta, str):
+            if eta.strip().lower() != "optimize":
+                raise ValueError(f"Deposit fraction must be a number between 0 and 1 or 'optimize', not '{eta}'.")
+            if self.N_i != 2:
+                self.mylog.print("Deposit fraction can only be 0 for single individuals.")
+                return
+            self.mylog.vprint("Setting spousal surplus deposit fraction to be optimized.")
+            self.etaOptimize = True
+            self.caseStatus = "modified"
+            return
         if not (0 <= eta <= 1):
             raise ValueError("Fraction must be between 0 and 1.")
         if self.N_i != 2:
@@ -916,6 +928,7 @@ class Plan:
             self.mylog.vprint(f"Setting spousal surplus deposit fraction to {eta:.1f}.")
             self.mylog.vprint(f"\t{self.inames[0]}: {1 - eta:.1f}, {self.inames[1]}: {eta:.1f}")
             self.eta = eta
+            self.etaOptimize = False
 
     def setDefaultPlots(self, value):
         """
@@ -3699,9 +3712,22 @@ class Plan:
 
     @_fixedAcrossIterations
     def _add_surplus_deposit_linking(self, options):
+        if self.etaOptimize and self.N_i == 2:
+            # The optimizer splits each surplus between the spouses while both live (#236).
+            if np.any(self.phi_j < 1) and self.n_d < self.N_n:
+                self.mylog.print(
+                    "The surplus deposit fraction is optimized while beneficiary fractions are below 1: the "
+                    "optimizer will deposit surpluses with the survivor rather than leave them to the other "
+                    "heirs of the first spouse to pass. A fixed fraction depositing all surplus with the "
+                    "first spouse to pass is recommended.",
+                    tag="WARNING",
+                )
+            for n in range(self.n_d):
+                rowDic = {self.vm["d"].idx(0, n): 1, self.vm["d"].idx(1, n): 1, self.vm["s"].idx(n): -1}
+                self.A.addNewRow(rowDic, 0, 0, tag=("surplus_deposit", 0, n))
         for i in range(self.N_i):
             fac1 = u.krond(i, 0) * (1 - self.eta) + u.krond(i, 1) * self.eta
-            for n in range(self.n_d):
+            for n in range(self.n_d if not self.etaOptimize else 0):
                 rowDic = {self.vm["d"].idx(i, n): 1, self.vm["s"].idx(n): -fac1}
                 self.A.addNewRow(rowDic, 0, 0, tag=("surplus_deposit", i, n))
             fac2 = u.krond(self.i_s, i)
@@ -4791,6 +4817,11 @@ class Plan:
                 for j in range(self.N_j):
                     for n in range(self.N_n):
                         c_arr[self.vm["w"].idx(1, j, n)] += epsilon
+                if self.etaOptimize:
+                    # Where the split of a surplus does not matter, deposit it with spouse 0, so
+                    # that the reported deposits do not move between solves.
+                    for n in range(self.n_d):
+                        c_arr[self.vm["d"].idx(1, n)] += epsilon
 
             # Take the full state deduction and exemptions even where a personal credit already
             # cancels the year's state tax: nothing else then prices state taxable income, so the
@@ -6567,7 +6598,6 @@ class Plan:
             N_n=self.N_n,
             n_d=self.n_d,
             i_s=self.i_s,
-            eta=self.eta,
             n595=self.n595,
             horizons=self.horizons,
             xnet=self.xnet,

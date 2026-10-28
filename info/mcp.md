@@ -116,7 +116,7 @@ as commands and lets you attach resources to the conversation):
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
 | | `beneficiary_fractions` | Couples only: fractions of the first decedent's `[taxable, tax_deferred, roth, hsa]` left to the survivor (default `[1,1,1,1]`); the rest is the partial bequest to other heirs |
-| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5) |
+| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5), or `"optimize"` for the optimizer to choose the split each year |
 | | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
 | | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
 | **Rate model** | `rate_method` | Return model name (use `list_rate_models`). If omitted, fixed `"conservative"` rates are assumed and flagged in `assumed_defaults` |

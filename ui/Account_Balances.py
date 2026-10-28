@@ -157,7 +157,7 @@ else:
 
             st.markdown("#####")
             st.markdown("#### :orange[Cash Flow Surplus Deposit Fraction]")
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
             with col1:
                 kz.initCaseKey("surplusFraction", 0.5)
                 helpmsg = (
@@ -171,6 +171,17 @@ else:
                     help=helpmsg,
                     max_value=1.0,
                     step=0.05,
+                    disabled=bool(kz.getCaseKey("surplusFractionOptimize")),
+                )
+            with col2:
+                kz.initCaseKey("surplusFractionOptimize", False)
+                ret = kz.getToggle(
+                    "Let the optimizer split each surplus",
+                    "surplusFractionOptimize",
+                    help="While both spouses live, the optimizer chooses each year how much of a surplus goes to "
+                    "each spouse's taxable account, and the fraction is ignored. Do not use it when "
+                    "beneficiary fractions are not all 1: the optimizer would then also decide how much "
+                    "reaches the heirs of the first spouse to pass.",
                 )
 
     # Show progress bar at bottom (only when case is defined)

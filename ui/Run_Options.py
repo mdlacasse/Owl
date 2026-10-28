@@ -29,6 +29,18 @@ import case_progress as cp
 from moseklicense import hasMOSEK
 
 
+def _ssAgesMode(names, selected):
+    """The ssAgesMode value for the individuals selected for claiming-age optimization."""
+    if len(names) == 2 and len(selected) == 2:
+        return "both"
+    return selected[0] if selected else "none"
+
+
+def _onSSAgesChange(names):
+    selected = [n for i, n in enumerate(names) if st.session_state.get(kz.genCaseKey(f"ssAgesOpt{i}"))]
+    kz.setCaseKey("ssAgesMode", _ssAgesMode(names, selected))
+
+
 kz.initCaseKey("computeMedicare", True)
 kz.initCaseKey("optimizeMedicare", False)
 kz.initCaseKey("slcspAnnual", 0)
@@ -229,23 +241,24 @@ else:
     )
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        iname0 = kz.getCaseKey("iname0")
+        names = [kz.getCaseKey("iname0")]
         if kz.getCaseKey("status") == "married":
-            iname1 = kz.getCaseKey("iname1")
-            choices = ["none", iname0, iname1, "both"]
-        else:
-            choices = ["none", iname0]
+            names.append(kz.getCaseKey("iname1"))
 
         # Someone whose entered claiming age is already past cannot be optimized (the solver
-        # refuses it), so neither that name nor "both" is offered.
+        # refuses it): that name stays listed, disabled, and is dropped from the selection.
         past = kz.ssPastAgeNames()
-        if past:
-            choices = [c for c in choices if c not in past and c != "both"]
         kz.initCaseKey("ssAgesMode", "none")
-        if kz.getCaseKey("ssAgesMode") not in choices:
-            kz.setCaseKey("ssAgesMode", "none")
-            st.session_state.pop(kz.genCaseKey("ssAgesMode"), None)
-        ret = kz.getRadio("Optimize SS claiming age for...", choices, "ssAgesMode", help=helpmsg)
+        mode = kz.getCaseKey("ssAgesMode") or "none"
+        selected = [n for n in names if (mode == "both" or mode == n) and n not in past]
+        if _ssAgesMode(names, selected) != mode:
+            kz.setCaseKey("ssAgesMode", _ssAgesMode(names, selected))
+        st.markdown("Optimize SS claiming age for...", help=helpmsg)
+        for i, (box, name) in enumerate(zip(st.columns(len(names)), names)):
+            key = kz.genCaseKey(f"ssAgesOpt{i}")
+            st.session_state[key] = name in selected
+            with box:
+                st.checkbox(name, key=key, disabled=name in past, on_change=_onSSAgesChange, args=[names])
         for name in past:
             st.caption(
                 f"{name}'s claiming age entered on the *Fixed Income* page is already past, so it cannot be "

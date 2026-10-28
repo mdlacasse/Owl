@@ -86,7 +86,8 @@ class SavingsAssets(BaseModel):
         default=[], description="Cost basis of taxable account per person ($k); empty = use legacy approximation"
     )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
-    spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
+    # Married only: a fraction in [0, 1], or "optimize" for the optimizer to split each surplus
+    spousal_surplus_deposit_fraction: Optional[Union[float, Literal["optimize"]]] = None
 
 
 class HouseholdFinancialProfile(BaseModel):

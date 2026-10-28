@@ -435,7 +435,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         diconf["savings_assets"]["taxable_cost_basis"] = (myplan.taxable_basis_i / 1000).tolist()
     if myplan.N_i == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = myplan.eta
+        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = "optimize" if myplan.etaOptimize else myplan.eta
 
     # Household Financial Profile
     diconf["household_financial_profile"] = {

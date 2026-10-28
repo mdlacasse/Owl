@@ -211,7 +211,9 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["liquidationTx"] = float(rs.get("liquidation_tax_rate", DEFAULT_LIQUIDATION_TAX_RATE))
     dic["liquidationCG"] = float(rs.get("liquidation_capgains_rate", DEFAULT_LIQUIDATION_CAPGAINS_RATE))
     dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
-    dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
+    eta = sa.get("spousal_surplus_deposit_fraction", 0.5)
+    dic["surplusFractionOptimize"] = isinstance(eta, str) and eta.strip().lower() == "optimize"
+    dic["surplusFraction"] = 0.5 if dic["surplusFractionOptimize"] else float(eta)
     dic["plots"] = res.get("default_plots", "nominal")
     dic["worksheetShowAges"] = bool(res.get("worksheet_show_ages", False))
     dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
@@ -540,7 +542,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
 
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [_get_ui(uidic, f"benf{j}", 1, float) for j in range(4)]
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(uidic, "surplusFraction", 0.5, float)
+        if _get_ui(uidic, "surplusFractionOptimize", False, bool):
+            diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = "optimize"
+        else:
+            diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(uidic, "surplusFraction", 0.5, float)
 
     # Fixed income
     for i in range(ni):
