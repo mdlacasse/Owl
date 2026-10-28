@@ -1,5 +1,19 @@
 ### Version 2026.10.26
 
+#### Fixed: the reported taxable flows no longer hide a sale at a gain
+
+When a surplus is deposited into the taxable account it was just sold from, **Owl** reported the
+withdrawal and the deposit net of that round trip in every year whose gains reached no taxed
+federal bracket. But the sale realizes its gain whatever the federal bracket: the gain is in the
+year's capital gains, in MAGI and in the state base, and the rebuy resets the basis that later
+years' gains are computed from. The fixed spousal split of a surplus can force such a sale, and
+it can be gain harvesting. The display then could not explain the plan beside it: in
+jack+jill, the displayed flows missed \$17,047 of a year's gains, and in the case of #234 (a
+Pennsylvania couple) they missed \$25,022 of gains that the state taxed. Only the part of a
+round trip that realizes no gain is now netted. Local search, which starts from the loop's
+withdrawals, now starts from the solved ones rather than the netted ones. Taxes, spending and
+balances are unchanged.
+
 #### Fixed: keeping the previous binaries no longer takes a plan outside the requested gap
 
 Under the branch-and-bound breakpoint method, the self-consistent loop keeps the previous

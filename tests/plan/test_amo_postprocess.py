@@ -258,6 +258,31 @@ class TestSurplusNetting:
                     f"year {n} realizes taxed gains and must be reported gross"
                 )
 
+    @pytest.mark.toml
+    def test_displayed_flows_explain_the_gains(self):
+        """A sale at a gain is never netted: the displayed flows reproduce Q_n (#234).
+
+        Jack+jill's surplus split forces a taxable sale and rebuy whose gain the federal 0%
+        bracket leaves untaxed; netting it hid $17,047 of a year's Q_n from the displayed flows.
+        """
+        p = owl.readConfig(os.path.join("examples", "Case_jack+jill"))
+        p.resolve()
+        Nn = p.N_n
+        cgr = p._withdrawal_gain_fraction()
+        q_n = np.sum(
+            (
+                p.mu * (p.b_ijn[:, 0, :Nn] - p.w_ijn[:, 0, :] + p.d_in + 0.5 * p.kappa_ijn[:, 0, :Nn])
+                + cgr * p.w_ijn[:, 0, :]
+            )
+            * p.alpha_ijkn[:, 0, 0, :Nn],
+            axis=0,
+        )
+        np.testing.assert_allclose(q_n + p.fixed_assets_capital_gains_n, p.Q_n, atol=1.0)
+        # What was netted realized no gain.
+        netted_in = p.w_ijn_lp[:, 0, :] - p.w_ijn[:, 0, :]
+        gain_in = np.broadcast_to(cgr, netted_in.shape) * p.alpha_ijkn[:, 0, 0, :Nn] * netted_in
+        assert np.all(gain_in <= 0.01)
+
     def test_cashflow_balance_on_built_plans(self):
         for name, builder in (("single", _make_single), ("couple", _make_couple)):
             if name == "single":

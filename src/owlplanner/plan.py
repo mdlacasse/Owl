@@ -5692,7 +5692,7 @@ class Plan:
         self.mylog.vprint(f"Local search: the loop's plan is worth {u.d(floor)}; searching from it.")
 
         self._localSearch = localsearch.LocalSearch(
-            self, self.w_ijn.copy(), self.x_in.copy(),
+            self, self.w_ijn_lp.copy(), self.x_in.copy(),
             step_time=u.get_numeric_option(myoptions, "localSearchStepTime", localsearch.STEP_TIME, min_value=0),
             total_time=u.get_numeric_option(myoptions, "localSearchTime", localsearch.TOTAL_TIME, min_value=0),
             radius=int(u.get_numeric_option(myoptions, "localSearchRadius", localsearch.RADIUS, min_value=0)),
@@ -5897,29 +5897,47 @@ class Plan:
             "tag": "WARNING",
         }
 
-    def _netSurplusRoundTrip(self):
-        """Report the surplus and the taxable withdrawal net of the round-trip between them.
+    def _withdrawal_gain_fraction(self):
+        """Capital gain per dollar of taxable withdrawal, shape (N_i, N_n), or (1, N_n) without a basis.
 
-        A surplus is deposited straight back into the taxable account it may have just been
-        withdrawn from, so the gross figures describe a movement that never happens. When
-        the optimizer is indifferent to that round-trip — which is precisely when it occurs,
-        since a round-trip that costs anything is never chosen — it can leave an arbitrary
-        amount of it in the solution. Reporting the net is both truthful and stable.
+        The tracked gain fraction where a person's basis is known; otherwise last year's price
+        appreciation (tau_0 - mu), the legacy coefficient.
+        """
+        Nn = self.N_n
+        legacy = np.maximum(0, np.roll(np.array(self.tau_kn[0, :]), 1) - self.mu)
+        if self.gain_fraction_in is None:
+            return legacy[np.newaxis, :]
+        cgr = self.gain_fraction_in[:, :Nn].copy()
+        nan_mask = np.isnan(cgr)
+        if nan_mask.any():  # mixed: some persons use legacy
+            cgr[nan_mask] = np.broadcast_to(legacy, cgr.shape)[nan_mask]
+        return cgr
+
+    def _netSurplusRoundTrip(self):
+        """Report the surplus and the taxable withdrawal net of a round-trip that realizes no gain.
+
+        A surplus deposited back into the taxable account it was withdrawn from is a sale and a
+        rebuy. With epsilon off, the optimizer can leave an arbitrary amount of it where it costs
+        nothing; reporting the net keeps the display stable.
+
+        Only a sale that realizes no gain is netted. A sale at a gain is a real transaction,
+        whether a fixed surplus split forces it or the plan harvests gains: the gain sits in Q_n,
+        in MAGI and in the state base whatever the federal bracket, and the rebuy resets the
+        basis that every later year's gain fraction is computed from (#234). Selling and
+        rebuying at no gain moves neither Q_n nor the basis, so the gross and the net
+        describe the same plan.
 
         The cash flow identity is unaffected: the surplus sits on its left-hand side and the
         deposit is part of the withdrawals on its right, so cancelling the two removes the
         same amount from both. Balances, taxes, spending and the bequest are untouched.
-
-        Years whose capital gains reach a taxed bracket are left gross, so that a displayed
-        withdrawal always explains the capital-gains tax displayed beside it.
         """
-        taxed_gains_n = self.q_pn[1, :] + self.q_pn[2, :]
+        cgr = np.broadcast_to(self._withdrawal_gain_fraction(), (self.N_i, self.N_n))
         for n in range(self.N_n):
-            if self.s_n[n] <= 0.01 or taxed_gains_n[n] > 1.0:
+            if self.s_n[n] <= 0.01:
                 continue
             for i in range(self.N_i):
                 delta = min(self.d_in[i, n], self.w_ijn[i, 0, n], self.s_n[n])
-                if delta <= 0.01:
+                if delta <= 0.01 or cgr[i, n] * self.alpha_ijkn[i, 0, 0, n] * delta > 0.01:
                     continue
                 self.w_ijn[i, 0, n] -= delta
                 self.d_in[i, n] -= delta
@@ -7472,19 +7490,7 @@ class Plan:
 
         self.G_n = np.sum(self.f_tn, axis=0)
 
-        tau_0 = np.array(self.tau_kn[0, :])
-        # Last year's rates.
-        tau_0prev = np.roll(tau_0, 1)
-        # Capital gain coefficient per withdrawal: tracked gain fraction when basis is known,
-        # otherwise current-year price appreciation only (tau_0 - mu).
-        if self.gain_fraction_in is not None:
-            cgr = self.gain_fraction_in[:, :Nn].copy()  # shape (N_i, N_n)
-            nan_mask = np.isnan(cgr)
-            if nan_mask.any():  # mixed: some persons use legacy
-                legacy = np.maximum(0, tau_0prev - self.mu)
-                cgr[nan_mask] = np.broadcast_to(legacy, cgr.shape)[nan_mask]
-        else:
-            cgr = np.maximum(0, tau_0prev - self.mu)[np.newaxis, :]  # broadcast to (1, N_n)
+        cgr = self._withdrawal_gain_fraction()
         self.Q_n = np.sum(
             (
                 self.mu
@@ -7599,6 +7605,8 @@ class Plan:
             self.partialBequest = 0
             self.partial_heir_tax_liability = 0.0
 
+        # Local search starts from the loop's solution, before any round trip is netted.
+        self.w_ijn_lp = self.w_ijn.copy()
         self._netSurplusRoundTrip()
 
         # Split the tax-deferred withdrawal into the part the RMD forced and the
