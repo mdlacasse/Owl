@@ -47,12 +47,14 @@ RTOL = 1e-9
 # is the only thing that actually exercises it.
 
 # examples/Case_chris+pat.toml, method historical_lognormal, rate_seed 2026.
-# First three years, four asset classes. Recorded on darwin, 2026-08-12.
+# First three years, four asset classes. Recorded on darwin, 2026-08-12; inflation column
+# re-recorded 2026-10-28, when the inflation-transform fit started from the identity and
+# settled a few parts in 1e8 away from where it had.
 CHRIS_PAT_FIRST_YEARS = np.array(
     [
-        [-0.052778640806826, 0.055571513781582, -0.041408929662749, 0.081734169199666],
-        [0.241031172520921, 0.068217765741840, 0.013832513973259, 0.045402036114079],
-        [0.045978746612122, 0.041870930372280, 0.071587808447754, 0.051001821293578],
+        [-0.052778640806826, 0.055571513781582, -0.041408929662749, 0.081734171873052],
+        [0.241031172520921, 0.068217765741840, 0.013832513973259, 0.045402035516840],
+        [0.045978746612122, 0.041870930372280, 0.071587808447754, 0.051001820073128],
     ]
 )
 

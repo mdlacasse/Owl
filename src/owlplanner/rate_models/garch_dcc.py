@@ -184,15 +184,16 @@ class GARCHDCCRateModel(BaseRateModel):
         T, K = eps.shape
         z = np.zeros_like(eps)
         for i in range(K):
-            # Reproduce sigma2 path using fitted params
+            # Reproduce sigma2 path using fitted params: h[t] is built from eps[t-1], as in the
+            # likelihood, so each residual is scaled before its own shock enters the variance.
             omega_i = self._garch_omega[i]
             alpha_i = self._garch_alpha[i]
             beta_i = self._garch_beta[i]
             var_i = float(np.var(eps[:, i]))
             h = var_i
             for t in range(T):
-                h = max(omega_i + alpha_i * eps[t, i] ** 2 + beta_i * h, 1e-10)
                 z[t, i] = eps[t, i] / np.sqrt(h)
+                h = max(omega_i + alpha_i * eps[t, i] ** 2 + beta_i * h, 1e-10)
 
         self._fit_dcc(z)
 
@@ -278,19 +279,22 @@ class GARCHDCCRateModel(BaseRateModel):
         """
         Fit DCC(1,1) on standardised residuals z (T x 4).
 
-        Q[0] = Q_bar = z.T @ z / T
+        Q[0] = Q_bar = sample correlation of z (z.T @ z / T scaled to unit diagonal)
         Q[t] = (1-a-b)*Q_bar + a * outer(z[t-1], z[t-1]) + b * Q[t-1]
 
         Stores:
-            self._Q_bar       (4,4) unconditional quasi-correlation
+            self._Q_bar       (4,4) unconditional correlation of z
             self._dcc_a       scalar
             self._dcc_b       scalar
             self._Q_0         (4,4) terminal Q (warm-start for generation)
             self._chol_R_0    (4,4) Cholesky of normalised terminal Q
         """
         T, K = z.shape
+        # Engle (2002) targets the sample correlation of z, so the raw second moment is normalized to a unit diagonal.
         Q_bar = z.T @ z / T
         Q_bar = (Q_bar + Q_bar.T) / 2.0
+        d_bar = np.sqrt(np.maximum(np.diag(Q_bar), 1e-10))
+        Q_bar = Q_bar / np.outer(d_bar, d_bar)
 
         def dcc_nll(params):
             a, b = params
@@ -299,6 +303,9 @@ class GARCHDCCRateModel(BaseRateModel):
             Q = Q_bar.copy()
             ll = 0.0
             for t in range(1, T):
+                # Q[t] from z[t-1] and Q[t-1], then R[t] prices z[t].
+                Q = (1 - a - b) * Q_bar + a * np.outer(z[t - 1], z[t - 1]) + b * Q
+                Q = (Q + Q.T) / 2.0
                 d = np.sqrt(np.maximum(np.diag(Q), 1e-10))
                 R = Q / np.outer(d, d)
                 R = (R + R.T) / 2.0
@@ -312,8 +319,6 @@ class GARCHDCCRateModel(BaseRateModel):
                     ll += logdet + z[t] @ np.linalg.solve(R, z[t])
                 except LinAlgError:
                     return 1e10
-                Q = (1 - a - b) * Q_bar + a * np.outer(z[t - 1], z[t - 1]) + b * Q
-                Q = (Q + Q.T) / 2.0
             return 0.5 * ll
 
         x0 = [0.05, 0.90]
@@ -326,10 +331,10 @@ class GARCHDCCRateModel(BaseRateModel):
         else:
             a_fit, b_fit = 0.05, 0.90
 
-        # Forward pass to get terminal Q
+        # Forward pass through the last residual: Q[T] is the forecast for the first simulated year.
         Q = Q_bar.copy()
-        for t in range(1, T):
-            Q = (1 - a_fit - b_fit) * Q_bar + a_fit * np.outer(z[t - 1], z[t - 1]) + b_fit * Q
+        for t in range(T):
+            Q = (1 - a_fit - b_fit) * Q_bar + a_fit * np.outer(z[t], z[t]) + b_fit * Q
             Q = (Q + Q.T) / 2.0
 
         self._Q_bar = Q_bar

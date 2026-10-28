@@ -1,3 +1,19 @@
+### Version 2026.10.28
+
+#### Fixed: the DCC-GARCH fit follows Engle (2002)
+
+The `garch_dcc` rate model standardized each residual with a variance that already included it,
+updated the correlation one year late in its likelihood, and skipped the last residual when
+starting the simulation. It also targeted the residuals' raw second moments instead of their
+correlation matrix. All four now follow Engle (2002). Seeded `garch_dcc` sequences change.
+
+#### Changed: the documentation matches the code
+
+`papers/owl.tex` is revised throughout to match the code: the variable counts, big-M bounds, ACA
+brackets, constraints, rate models and stochastic spending. It gains a chapter on the
+spending-bequest trade-off. The documentation now says that `maxRothConversion` caps each spouse
+separately.
+
 ### Version 2026.10.26
 
 #### Fixed: the earnings test reads the years before the plan for someone already claiming

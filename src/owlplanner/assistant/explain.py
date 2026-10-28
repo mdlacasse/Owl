@@ -98,6 +98,14 @@ CONSTRAINT_FAMILIES = {
         "note": "Years where realized gains fill the 0%/15% capital-gains brackets completely; "
         "the value is the gain per today's-$ of additional sub-20% bracket room.",
     },
+    "roth_early_basis": {
+        "class": "policy",
+        "label": "Roth withdrawals before 59 1/2 limited to contributions and matured conversions",
+        "indices": ("person", "year"),
+        "note": "Years before 59 1/2 where Roth withdrawals are held to the person's contributions and "
+        "matured conversions, keeping earnings in the account; the value is the objective gain per "
+        "today's-$ of additional Roth basis available early.",
+    },
     # structural
     "cash_flow": {"class": "structural", "label": "yearly net cash-flow balance"},
     "taxable_income": {"class": "structural", "label": "yearly federal taxable-income identity"},
@@ -115,6 +123,7 @@ CONSTRAINT_FAMILIES = {
     "irmaa_cost_def": {"class": "structural", "label": "Medicare premium implied by IRMAA bracket"},
     "aca_magi_def": {"class": "structural", "label": "ACA MAGI definition"},
     "aca_cost_def": {"class": "structural", "label": "ACA premium implied by subsidy bracket"},
+    "senior_bonus_deduction": {"class": "structural", "label": "deduction less the senior-bonus phase-out"},
     # artifacts
     "wdorder_txdef_gate": {"class": "artifact", "label": "withdrawal-order big-M gate"},
     "wdorder_roth_gate": {"class": "artifact", "label": "withdrawal-order big-M gate"},
@@ -146,6 +155,8 @@ CONSTRAINT_FAMILIES = {
     "aca_amo": {"class": "artifact", "label": "ACA bracket exactly-one selector"},
     "aca_bracket_lb": {"class": "artifact", "label": "ACA bracket bound big-M"},
     "aca_bracket_ub": {"class": "artifact", "label": "ACA bracket bound big-M"},
+    "senior_bonus_phaseout": {"class": "artifact", "label": "senior-bonus phase-out big-M"},
+    "senior_bonus_cap": {"class": "artifact", "label": "senior-bonus full phase-out link"},
 }
 
 

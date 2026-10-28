@@ -462,3 +462,17 @@ def test_aca_net_premium_reads_the_premium_of_either_mode():
     plan.ACA_n[:] = 0
     aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
     assert aca["net_premium_this_year"] == pytest.approx(premium, abs=0.01)
+
+
+def test_every_emitted_tag_is_registered():
+    # An unregistered family defaults to policy, so a missing entry reports a big-M link or an
+    # identity to the user as if it priced a goal. Compare against the tags plan.py emits.
+    import re
+    from pathlib import Path
+
+    from owlplanner.assistant.explain import CONSTRAINT_FAMILIES
+
+    src = (Path(__file__).parents[2] / "src/owlplanner/plan.py").read_text(encoding="utf-8")
+    emitted = set(re.findall(r'tag=\(\s*"([a-z0-9_]+)"', src))
+    assert emitted, "tag pattern no longer matches plan.py"
+    assert emitted - set(CONSTRAINT_FAMILIES) == set()

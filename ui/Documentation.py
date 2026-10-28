@@ -381,7 +381,7 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 15 columns titled as follows:
+The **Wages and Contributions** table contains 16 columns titled as follows:
 
 In the workbook this is a single sheet per person. In the user interface it is shown as two
 tables, the five lead-in years and the plan years, so that *Roth conv fixed* can be disabled
@@ -392,9 +392,9 @@ on the past rows where those conversions have already happened.
 |2021 | | | | | | | | | | | | | | | |
 | ... | | | | | | | | | | | | | | | |
 |2026 | | | | | | | | | | | | | | | |
-|2027 | | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | | |
-|20XX | | | | | | | | | | | | | | |
+|2027 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|20XX | | | | | | | | | | | | | | | |
 
 Only the *year* column **must be present** on each person's sheet; fill any other column with 0 or
 leave it blank where it does not apply, or leave the column out altogether (see below).
@@ -435,8 +435,8 @@ if Roth conversions took place in the five years before passing.
 Before age 59½, Roth earnings cannot come out tax- and penalty-free: a Roth distribution comes from
 contributions first, then conversions, and earnings last (IRC 408A(d)(4)(B)). **Owl** therefore
 keeps each person's Roth withdrawals before 59½ within the starting Roth balance plus the
-conversions and contributions made since, rather than taxing early earnings. The whole starting
-balance counts as contributions and conversions, and the limit stops at the first passing, since a
+contributions made since and the conversions past their five-year period, rather than taxing
+early earnings. The whole starting balance counts as contributions and conversions, and the limit stops at the first passing, since a
 surviving spouse can keep the deceased's Roth as an inherited one, free of the 10% additional tax.
 
 In the table above, year 20XX illustrates the last plan year for that person (from life expectancy in the *case*).
@@ -1060,9 +1060,7 @@ the full inherited HSA balance as ordinary income.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find unexpected solutions that can generate surpluses in order
-to maximize the final bequest. Finally, when fractions between accounts are not all equal,
-it can take longer to solve (minutes) as these *cases* trigger the use
-of binary variables which involves more complex algorithms.
+to maximize the final bequest.
 In some situations, unconventional transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
@@ -1604,6 +1602,7 @@ This page configures Roth conversions, health insurance costs, and solver option
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
+The maximum applies to each spouse's conversions in a year, not to the couple's combined amount.
 Roth conversions are optimized for reducing taxes and maximizing the selected objective function.
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
@@ -1749,7 +1748,8 @@ should a case prove slow to settle; it is reachable from the TOML file and the P
 
 The *Advanced options* expander contains:
 - *Solve tax breakpoints by local search (expert)* – carries every tax breakpoint (Social Security
-  taxability, Medicare, ACA when SLCSP > 0, capital gains, NIIT) as binary variables and solves them
+  taxability, Medicare, ACA when SLCSP > 0, capital gains, NIIT, and the phase-out of the senior
+  bonus deduction) as binary variables and solves them
   by local search instead of branch-and-bound: small restricted problems around the iteration's plan.
   It usually finds a somewhat better plan than the iteration, in seconds to a few minutes, and never
   a worse one; it is not a proven optimum. When on, the individual MILP settings below do not apply,
@@ -1783,7 +1783,7 @@ against future IRMAA simultaneously.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
   A binary variable per year selects which term of the minimum bounds the tax: investment income, or MAGI
   above the threshold (\\$200k single / \\$250k MFJ).
-  Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
+  Most effective when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
 - *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.

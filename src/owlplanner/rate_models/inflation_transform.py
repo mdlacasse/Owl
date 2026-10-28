@@ -13,7 +13,8 @@ generated samples.
     φ(z)  = (z − k) · slope_hi + k    for z > k
 
 The kink point k is the empirical median; slope_lo and slope_hi are auto-fit
-to minimize skewness² + excess-kurtosis² of the transformed values.
+to minimize the squared skewness of the transformed values, plus a small penalty
+0.1·((slope_lo − 1)² + (slope_hi − 1)²) toward the identity. Kurtosis is not targeted.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
@@ -70,7 +71,7 @@ def fit_inflation_transform(z: np.ndarray) -> tuple[float, float, float]:
 
     result = minimize(
         obj,
-        x0=[2.0, 0.75],
+        x0=[1.0, 1.0],  # identity: the regularization target, and near the fit on current data
         bounds=[(0.1, 10.0), (0.1, 10.0)],
         method="L-BFGS-B",
     )
