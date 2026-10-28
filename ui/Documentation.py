@@ -1752,7 +1752,9 @@ against future IRMAA simultaneously.
   stacking with a MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
   so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
-  placement significantly affects the objective.
+  placement significantly affects the objective, and for a large taxable account whose gains sit near the
+  top of the 0% bracket while Roth conversions compete for the same room. When the iteration leaves the
+  tax on gains unsettled, the log says so and suggests this option.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
   A binary variable per year selects which term of the minimum bounds the tax: investment income, or MAGI
   above the threshold (\\$200k single / \\$250k MFJ).

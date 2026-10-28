@@ -6392,6 +6392,7 @@ class Plan:
             self._check_bracket_order()
             self._computeFixedPointResidual(includeMedicare)
             self._warnSSResidual(fixed_psi)
+            self._warnLTCGResidual()
             self._warnACACoverageGap()
             if options.get("withDuals", False):
                 self._computeDuals(xx, options)
@@ -6529,6 +6530,30 @@ class Plan:
             f"of different taxable benefits over the horizon ({u.d(ss['max_abs'])} in one year). The loop "
             "prices income in the 50%-85% phase-in at the bracket rate only, and its plan can fall well "
             'short of the exact one, which withSSTaxability="optimize" solves for.',
+            tag="WARNING",
+        )
+
+    def _warnLTCGResidual(self):
+        """Point to the exact model when the loop leaves the tax on gains unsettled.
+
+        Under the loop, the room in the 0% and 15% brackets is the threshold less the previous
+        iterate's ordinary income. A plan that moves ordinary income, Roth conversions mostly, into a
+        year is charged gain tax against room it no longer leaves, and the loop can cycle between
+        plans whose gain tax is too low in one year and too high in another (#239). The LTCG residual
+        measures it: the gain tax the plan's own income implies, against the one it was charged.
+        Above the loop's own tolerance summed over the plan, say so. Not under withLTCG="optimize",
+        nor inside a local search, whose result is judged elsewhere.
+        """
+        if getattr(self, "_ltcg_lp", False) or getattr(self, "_localSearchSeeding", False):
+            return
+        res = (self.fixedPointResidual or {}).get("LTCG")
+        if res is None or res["abs_sum"] <= self.N_n * self._residual_tol:
+            return
+        self.mylog.print(
+            f"The tax on capital gains did not settle: this plan's own income implies {u.d(res['abs_sum'])} "
+            f"of different gain tax over the horizon ({u.d(res['max_abs'])} in one year). The loop sizes "
+            "the 0% and 15% brackets from the previous iterate's ordinary income, and its plan can "
+            'misplace Roth conversions against them; withLTCG="optimize" solves for the brackets exactly.',
             tag="WARNING",
         )
 

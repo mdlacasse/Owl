@@ -1,5 +1,18 @@
 ### Version 2026.10.26
 
+#### New: the loop says when the tax on capital gains did not settle
+
+Under the default loop, the room in the 0% and 15% capital-gains brackets is the threshold less the
+previous iterate's ordinary income. A plan that moves Roth conversions into a year is charged gain
+tax against room it no longer leaves, and the loop can cycle between plans whose gain tax is too low
+in one year and too high in another. On a couple with \$1.5M taxable and \$900k tax-deferred, the
+loop's plan was charged \$0 in a year whose income implies \$2,407, and \$2,292 in a year whose gains
+all sit in the 0% bracket; `withLTCG = "optimize"` settles exactly and spends \$92 a year more
+(#239). When the loop leaves the gain tax unsettled (the plan's own income implies more than the
+loop's tolerance, \$50 a year by default, of different gain tax over the horizon), the log now says
+so and points to `withLTCG = "optimize"`, as it does for Social Security. None of the example cases
+is affected: their gain tax is within \$5 over the plan.
+
 #### Fixed: the taxable account a survivor inherits takes its value at the death as basis
 
 With a cost basis set, the survivor's basis gained nothing for the taxable account inherited at
