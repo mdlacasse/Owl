@@ -233,17 +233,18 @@ def test_chris_pat_2028_is_fully_withheld():
 def test_alex_jamie_2026_27_are_fully_withheld():
     """alex+jamie: Jamie (born 1961-01, collecting since 62y1m in 2023) earns $80k in
     2026 and 2027, her last two years before FRA (Jan 2028). Every entitlement month of
-    both years is withheld; the one check of 2026 is for December 2025, a pre-plan month
-    the test cannot charge. Jamie's spousal add-on only starts with Alex's claim at 69
-    (2029), so the years below carry her own benefit alone."""
+    both years is withheld. Her HFP also gives $80k in 2024 and $87k in 2025, which the test
+    reads (#235): those years are withheld too, the December 2025 check among them (paid in
+    January 2026). Jamie's spousal add-on only starts with Alex's claim at 69 (2029), so the
+    years below carry her own benefit alone."""
     p = _solve(_load("alex+jamie"), test_on=True)
+    assert p.zeta_in[1, _n(p, 2026)] == 0.0
     assert p.zeta_in[1, _n(p, 2027)] == 0.0
-    assert p.zeta_in[1, _n(p, 2026)] == pytest.approx(1200.0 * _factor(59))
-    # Every month of 2026 and 2027 is a crediting month (24); from FRA the factor is the
-    # one for 59 - 24 = 35 reduction months.
-    assert p.ss_arf_months_i[1] == 24
+    # 2023 had no earnings: it was the grace year. Every month of 2024-2027 is a crediting
+    # month (48); from FRA the factor is the one for 59 - 48 = 11 reduction months.
+    assert p.ss_arf_months_i[1] == 48
     # 2028 still carries the December 2027 check, withheld; then 11 checks at FRA.
-    assert p.zeta_in[1, _n(p, 2028)] == pytest.approx(11.0 * 1200.0 * _factor(35))
+    assert p.zeta_in[1, _n(p, 2028)] == pytest.approx(11.0 * 1200.0 * _factor(11))
 
 
 # --------------------------------------------------------------------------------------

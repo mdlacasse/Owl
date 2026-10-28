@@ -1279,6 +1279,11 @@ def _build_plan_from_params(
             for n in range(plan.N_n):
                 if start_yr <= thisyear + n < end_yr:
                     plan.omega_in[i, n] += amount
+            # The 5 years before the plan, as in the HFP: the earnings test of someone already
+            # claiming reads them (#235).
+            for r in range(5):
+                if start_yr <= thisyear - 5 + r < end_yr:
+                    plan.omegaPast_in[i, r] += amount
 
     # Time-series: other ordinary income → other_inc_in  (annual $/year, signed: a negative amount is an
     # above-the-line deduction paid from cash, e.g. an HSA contribution without wages; the HFP "other inc").
@@ -1306,6 +1311,8 @@ def _build_plan_from_params(
             n = year - thisyear
             if 0 <= n < plan.N_n:
                 plan.etMonths_in[i, n] = months
+            elif -5 <= n < 0:
+                plan.etMonthsPast_in[i, n + 5] = months
 
     # Time-series: contributions → kappa_ijn  (annual $/year)
     if contributions:
@@ -1333,6 +1340,16 @@ def _build_plan_from_params(
                         plan.kappaEmployer_in[i, n] += amount
                     elif account == "tax_deferred":
                         plan.kappa401k_in[i, n] += amount
+            # The 5 years before the plan sit at the end of the arrays, as in the HFP: they
+            # count for the Roth 5-year rules and for the earnings test.
+            for r in range(5):
+                if start_yr <= thisyear - 5 + r < end_yr:
+                    slot = plan.N_n + r
+                    plan.kappa_ijn[i, j, slot] += amount
+                    if account == "employer":
+                        plan.kappaEmployer_in[i, slot] += amount
+                    elif account == "tax_deferred":
+                        plan.kappa401k_in[i, slot] += amount
 
     # Time-series: big-ticket items → Lambda_in  (annual $/year, signed: negative = expense,
     # positive = inflow).  Passed through unchanged, the same convention as the HFP column.
@@ -1716,7 +1733,8 @@ async def run_from_params(
         Field(
             description="Couples only: fraction (0-1) of a yearly surplus deposited to the second person's "
             "taxable account, the rest to the first's (default 0.5), or \"optimize\" for the optimizer to "
-            "choose the split each year."
+            "choose the split each year. Do not use \"optimize\" with beneficiary_fractions below 1: the "
+            "optimizer then deposits every surplus with the survivor and leaves the other heirs nothing."
         ),
     ] = None,
     partial_bequest_weight: Annotated[
@@ -1862,6 +1880,9 @@ async def run_from_params(
                         wages in AGI: pay minus pre-tax 401k, deductible IRA and payroll HSA
                         contributions.  After-tax contributions (Roth, taxable) paid from pay
                         stay in, paid for by a negative big_ticket_items entry (see there).
+                        A start_year up to 5 years before the plan records past wages: for
+                        someone already claiming Social Security before full retirement age,
+                        the earnings test reads them (grace year, months withheld so far).
         contributions:  List of retirement contributions.  Each entry: {"person": 0,
                         "account": "tax_deferred", "annual_amount": 23000, "end_year": 2032}.
                         account is one of: taxable, tax_deferred (own 401k/403b
@@ -1900,7 +1921,8 @@ async def run_from_params(
                         working, especially if they claim Social Security that year before full
                         retirement age, since the months after work are then paid.  A year
                         with wages and no entry counts as 12 months.  Each entry:
-                        {"person": 1, "year": 2028, "months": 6}.
+                        {"person": 1, "year": 2028, "months": 6}.  A year up to 5 years
+                        before the plan is read with the past wages.
         qcds:           Qualified charitable distributions: money paid from the tax-deferred
                         account straight to a charity.  Each entry: {"person": 0,
                         "annual_amount": 20000, "start_year": 2029, "end_year": 2040,
@@ -1967,7 +1989,9 @@ async def run_from_params(
         spousal_deposit_fraction: Couples only.  Fraction (0-1) of a yearly surplus deposited
                         to the second person's taxable account, the rest to the first's
                         (default 0.5), or "optimize" for the optimizer to choose the split
-                        each year.
+                        each year.  Not with beneficiary_fractions below 1: the optimizer
+                        then deposits every surplus with the survivor and leaves the other
+                        heirs nothing.
         partial_bequest_weight: Value of a dollar left to other heirs at the first death, as a
                         fraction of a dollar of spending or final bequest.  Default
                         max(1%, twice the solver gap): enough to break ties, not a

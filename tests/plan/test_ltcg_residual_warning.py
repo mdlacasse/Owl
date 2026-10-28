@@ -55,3 +55,13 @@ def test_no_warning_under_the_exact_model():
     p, log = _solve(withLTCG="optimize")
     assert p.fixedPointResidual["LTCG"]["abs_sum"] < 1.0
     assert WARNING not in log
+
+
+def test_unsettled_names_the_family_and_its_remedy():
+    """The MCP and CLI results carry what the log warns about (formatters.plan_convergence)."""
+    from owlplanner.cli.formatters import plan_convergence
+
+    p, _ = _solve()
+    assert plan_convergence(p)["unsettled"]["LTCG"] == 'withLTCG="optimize"'
+    p, _ = _solve(withLTCG="optimize")
+    assert "LTCG" not in plan_convergence(p)["unsettled"]

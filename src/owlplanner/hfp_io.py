@@ -689,6 +689,8 @@ def build_hfp_dataframes(plan):
         # Lead-in years live in the last 5 slots of kappa_ijn and myRothX_in.
         for r in range(lead_in):
             slot = plan.N_n + r
+            df.at[r, "anticipated wages"] = float(plan.omegaPast_in[i, r])
+            df.at[r, "months worked"] = float(plan.etMonthsPast_in[i, r])
             df.at[r, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, slot])
             df.at[r, "401k ctrb"] = float(plan.kappa401k_in[i, slot])
             df.at[r, "employer ctrb"] = float(plan.kappaEmployer_in[i, slot])

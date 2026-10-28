@@ -108,11 +108,16 @@ timetableHelp = {
     ),
 }
 
-# The five lead-in rows record what already happened, so two columns mean something else there.
+# The five lead-in rows record what already happened, so three columns mean something else there.
 timetableHelpPast = dict(timetableHelp)
 timetableHelpPast["Roth conv"] = (
     "A Roth conversion you already performed that year (nominal \\$). This is what the IRS "
-    "five-year maturation rule needs, and is the only column read from this table."
+    "five-year maturation rule needs."
+)
+timetableHelpPast["anticipated wages"] = (
+    "The wages you earned that year (nominal \\$), net of pre-tax contributions. Read only for someone "
+    "who claimed Social Security before this year and before full retirement age: the earnings test "
+    "uses them to tell which months were withheld and whether the grace year was used."
 )
 timetableHelpPast["Roth conv fixed"] = (
     "Not applicable to past years: a conversion already performed always counts"
@@ -292,10 +297,11 @@ that has not yet been uploaded.""")
     st.markdown("""Wages and contributions for each individual, in two tables.
 Enter *anticipated wages* as they enter your AGI, net of pre-tax contributions; pay for after-tax ones (Roth,
 taxable) with a negative *big-ticket items* entry (see the Documentation page for details).
-The first table holds the five years before this one. Only its Roth entries are read, to comply with the IRS
-five-year maturation rule, but every column is yours to keep: the figures stay in your workbook as the history
-you carry forward and extrapolate from. Because those conversions have already happened, *Roth conv fixed*
-does not apply there and is shown disabled.
+The first table holds the five years before this one. Its Roth entries are read, to comply with the IRS
+five-year maturation rule. Its wages, months worked and pre-tax contributions are read for someone who claimed
+Social Security before this year and before full retirement age, for the earnings test. Every other column is
+yours to keep: the figures stay in your workbook as the history you carry forward and extrapolate from.
+Because those conversions have already happened, *Roth conv fixed* does not apply there and is shown disabled.
 The second table starts at the current year and covers the rest of the plan.""")
 
     with st.expander("*Expand Wages and Contributions timetables*"):

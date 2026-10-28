@@ -219,6 +219,7 @@ def test_plan_to_dict_reports_a_small_residual_on_a_converged_plan(solved_single
     assert set(residual) <= {"SS", "IRMAA", "NIIT", "ACA", "deduction", "LTCG"}
     for family, value in residual.items():
         assert value < 1_000.0, f"{family} residual {value:,.2f} on a converged plan"
+    assert d["unsettled"] == {}
 
 
 def test_plan_to_dict_by_year_length(solved_single):

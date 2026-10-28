@@ -276,6 +276,8 @@ def test_past_table_help_differs_where_the_meaning_does():
     assert pastdic["Roth conv"] != helpdic["Roth conv"]
     assert "already performed" in pastdic["Roth conv"]
     assert "Not applicable" in pastdic["Roth conv fixed"]
+    # Past wages are earned, not anticipated, and only the earnings test reads them (#235).
+    assert "earnings test" in pastdic["anticipated wages"]
     # Everything else says the same thing in both tables.
     same = {k for k in helpdic if helpdic[k] == pastdic[k]}
-    assert set(helpdic) - same == {"Roth conv", "Roth conv fixed"}
+    assert set(helpdic) - same == {"Roth conv", "Roth conv fixed", "anticipated wages"}

@@ -597,6 +597,10 @@ class Plan:
         # SS earnings-test input: months of work at the start of each year (0: not given).
         # Filled by setContributions. The earnings it reads are derived (_earnings_test_inputs).
         self.etMonths_in = np.zeros((self.N_i, self.N_n))
+        # The same two for the 5 years before the plan, oldest first: the earnings test of
+        # someone already claiming reads them (#235).
+        self.omegaPast_in = np.zeros((self.N_i, 5))
+        self.etMonthsPast_in = np.zeros((self.N_i, 5))
         self.other_inc_in = np.zeros((self.N_i, self.N_n))
         self.netinv_in = np.zeros((self.N_i, self.N_n))
         self.Lambda_in = np.zeros((self.N_i, self.N_n))
@@ -2289,7 +2293,7 @@ class Plan:
                     "at no conversion, enter 0 and tick 'Roth conv fixed' for that year."
                 )
 
-    def _earnings_test_inputs(self):
+    def _earnings_test_inputs(self, past=False):
         """
         Return the SSA earnings test's inputs, ``(earnings_in, months_in)``, shape
         (N_i, N_n), earnings in nominal dollars.
@@ -2307,13 +2311,15 @@ class Plan:
         not in box 5. Read from the plan arrays, which the MCP tools
         fill directly, so the rule holds however the plan got its wages.
         Months are ``months worked`` where positive, else 12 in a year with earnings, else 0.
+        With ``past=True``, the same for the 5 years before the plan, oldest first (#235).
         """
-        Nn = self.N_n
-        k401 = self.kappa401k_in[:, :Nn]
-        ira = self.kappa_ijn[:, 1, :Nn] - k401 - self.kappaEmployer_in[:, :Nn]
-        pay = self.omega_in + k401
+        cols = slice(self.N_n, self.N_n + 5) if past else slice(0, self.N_n)
+        wages, months_in = (self.omegaPast_in, self.etMonthsPast_in) if past else (self.omega_in, self.etMonths_in)
+        k401 = self.kappa401k_in[:, cols]
+        ira = self.kappa_ijn[:, 1, cols] - k401 - self.kappaEmployer_in[:, cols]
+        pay = wages + k401
         earnings = np.where(pay > 0, pay + ira, 0.0)
-        months = np.where(self.etMonths_in > 0, self.etMonths_in, np.where(earnings > 0, 12.0, 0.0))
+        months = np.where(months_in > 0, months_in, np.where(earnings > 0, 12.0, 0.0))
         return earnings, months
 
     def _earningsTestResult(self, ages=None, gamma_n=None):
@@ -2334,6 +2340,8 @@ class Plan:
         gamma = np.ones(self.N_n) if gamma_n is None else np.asarray(gamma_n[: self.N_n], dtype=float)
         thisyear = date.today().year
         earnings, months = self._earnings_test_inputs()
+        # The years before the plan stay nominal, like the exempt amounts read for them.
+        past_earnings, past_months = self._earnings_test_inputs(past=True)
         return socsec.earnings_test(
             self.ssecAmounts,
             ages,
@@ -2350,6 +2358,8 @@ class Plan:
             thisyear=thisyear,
             survivor_claim_age=self.ssecSurvivorClaimAge,
             exempt_for_year=socsec.plan_exempt_for_year(thisyear, gamma, self.N_n),
+            past_earnings_in=past_earnings,
+            past_work_months_in=past_months,
         )
 
     def _warnEarnings(self, options):
@@ -2448,6 +2458,8 @@ class Plan:
             )
 
             # Last 5 years are at the end of the N_n array.
+            self.omegaPast_in[i, :] = self.timeLists[iname]["anticipated wages"].iloc[:5]
+            self.etMonthsPast_in[i, :] = self.timeLists[iname]["months worked"].iloc[:5]
             self.kappa_ijn[i, 0, -5:] = self.timeLists[iname]["taxable ctrb"][:5]
             self.kappa401k_in[i, -5:] = self.timeLists[iname]["401k ctrb"][:5]
             self.kappaEmployer_in[i, -5:] = self.timeLists[iname]["employer ctrb"][:5]
@@ -2735,6 +2747,8 @@ class Plan:
         # Reset parameters with zeros.
         self.omega_in[:, :] = 0.0
         self.etMonths_in[:, :] = 0.0
+        self.omegaPast_in[:, :] = 0.0
+        self.etMonthsPast_in[:, :] = 0.0
         self.other_inc_in[:, :] = 0.0
         self.netinv_in[:, :] = 0.0
         self.Lambda_in[:, :] = 0.0

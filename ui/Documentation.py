@@ -406,10 +406,12 @@ to fill in the values using the user interface, but this last approach does not 
 Excel capabilities for cross-column calculations.
 
 This file goes five years back in time in order to capture previous contributions and
-conversions to Roth accounts.
-Entries in columns other than contributions or conversions to Roth accounts
-for past years are not read by **Owl**, but they are preserved when the workbook is saved:
-keep them as the record you carry forward and extrapolate next year's figures from.
+conversions to Roth accounts, and the wages of someone already collecting Social Security.
+For past years, **Owl** reads the contributions and conversions to Roth accounts and, for the
+Social Security earnings test, *anticipated wages*, *months worked*, *401k ctrb*, *employer ctrb*
+and *IRA ctrb* (see *months worked* below). The other columns of past years are not read, but
+they are preserved when the workbook is saved: keep them as the record you carry forward and
+extrapolate next year's figures from.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the five-year maturation rule.
@@ -487,8 +489,16 @@ leave it blank where it does not apply), where:
     months after work stops are paid in full, whatever the year's total earnings. A worked month
     whose earnings are at or below 1/12 of the annual exempt amount is also paid in full. Only the
     other worked months can have benefits withheld. There is only one grace year: a year with
-    entitlement and no earnings uses it up. A person already entitled before the plan starts is
-    assumed to have used theirs.
+    entitlement and no earnings uses it up.
+  - For a person who claimed before the plan starts, the test also reads the five past years of
+    the table. Their wages decide whether the grace year has already been used, which months
+    before the plan were withheld, and with them how many months come back at full retirement
+    age, and whether the check for December of the year before the plan, paid in January, was
+    withheld. Past years are taken as Social Security applied the test to them, and their amounts
+    in each year's own dollars. Past years left blank count as years without earnings: the grace
+    year is then taken as used in the year of the claim, and nothing as withheld before the plan.
+    An overpayment Social Security has yet to recover is not modeled; enter it as a negative
+    *big-ticket items* amount in the year it is withheld.
   - In the year full retirement age is reached, only earnings in the months before the month it
     is reached count, taken as the share of the months worked that fall before that month.
 

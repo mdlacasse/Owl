@@ -1287,3 +1287,53 @@ def test_worker_charge_after_spouse_fra_is_at_the_adjusted_add_on(wage, arf_sp):
     assert res.excess_by_year[0, n] < due  # the excess is used up within the year
     assert res.withheld_in[:, n].sum() == pytest.approx(res.excess_by_year[0, n])
     assert res.zeta_in[:, n].sum() + res.withheld_in[:, n].sum() == pytest.approx(due, abs=0.01)
+
+
+# --------------------------------------------------------------------------------------
+# Years before the plan (#235): PIA $2,000 claimed July 2025 at 62y1m ($1,408.33 a month),
+# plan starting in 2026.
+# --------------------------------------------------------------------------------------
+
+
+def _claimed_in_2025(earn_2026, months_2026, earn_2025=None):
+    N = 10
+    e = np.zeros((1, N))
+    m = np.zeros((1, N))
+    e[0, 0], m[0, 0] = earn_2026, months_2026
+    past = None if earn_2025 is None else np.array([[0, 0, 0, 0, earn_2025]], dtype=float)
+    past_m = None if earn_2025 is None else np.array([[0, 0, 0, 0, 12]], dtype=float)
+    return ss.earnings_test([2000], [62 + 1 / 12], [1963], [6], [15], [N], 1, N, e, work_months_in=m,
+                            thisyear=2026, past_earnings_in=past, past_work_months_in=past_m)
+
+
+def test_grace_year_not_used_before_the_plan():
+    """$5,000 every month of 2025, then January-June 2026 for $80,000. No month of 2025 was a
+    non-service month, so 2026 is the initial grace year (404.435(b)(1)): its five checks for
+    July-November are paid in 2026; the December 2025 check and January-June are withheld."""
+    r = _claimed_in_2025(80_000, 6, earn_2025=60_000)
+    assert r.zeta_in[0, 0] == pytest.approx(5 * 1408.33, abs=0.1)
+    assert r.zeta_in[0, 1] == pytest.approx(12 * 1408.33, abs=0.1)
+    # July 2025 - June 2026 are left out of the reduction period at FRA.
+    assert r.arf_months[0] == 12
+    # Without the past year, 2025 is taken as the grace year and 2026 gets the annual test.
+    assert _claimed_in_2025(80_000, 6).zeta_in[0, 0] == pytest.approx(1408.33, abs=0.1)
+
+
+def test_months_withheld_before_the_plan_count_toward_the_arf():
+    """$5,000 every month of 2025 and no work from 2026: July-December 2025 are withheld,
+    the December check among them (paid in January 2026), and credited at FRA in June 2030
+    (402(q)(7)(A)): $1,458.33 a month from then on instead of $1,408.33."""
+    r = _claimed_in_2025(0, 0, earn_2025=60_000)
+    assert r.arf_months[0] == 6
+    assert r.zeta_in[0, 0] == pytest.approx(11 * 1408.33, abs=0.1)
+    # Paid in 2030: the checks for December 2029 - May 2030, then six from June.
+    assert r.zeta_in[0, 4] == pytest.approx(6 * 1408.33 + 6 * 1458.33, abs=0.1)
+    assert r.zeta_in[0, 5] == pytest.approx(12 * 1458.33, abs=0.1)
+
+
+def test_years_before_the_plan_without_earnings_change_nothing():
+    a = _claimed_in_2025(80_000, 6)
+    b = _claimed_in_2025(80_000, 6, earn_2025=0)
+    np.testing.assert_array_equal(a.zeta_in, b.zeta_in)
+    np.testing.assert_array_equal(a.withheld_in, b.withheld_in)
+    np.testing.assert_array_equal(a.arf_months, b.arf_months)

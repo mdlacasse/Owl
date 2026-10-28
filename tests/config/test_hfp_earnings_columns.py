@@ -466,3 +466,23 @@ def test_example_workbooks_feed_the_test_from_wages():
     earnings, months = p._earnings_test_inputs()
     assert earnings[j, n] == pytest.approx(85_000.0)
     assert months[j, n] == 12
+
+
+def test_past_years_feed_the_earnings_test():
+    """The five lead-in rows give the earnings test the years before the plan (#235), with the
+    same rule as plan years: pre-tax deferrals added back, months where given."""
+    p = _plan()
+    p.zeroWagesAndContributions()
+    df = p.timeLists["Alice"]
+    df.loc[df.index[3], "anticipated wages"] = 50_000.0
+    df.loc[df.index[3], "401k ctrb"] = 10_000.0
+    df.loc[df.index[4], "anticipated wages"] = 30_000.0
+    df.loc[df.index[4], "months worked"] = 6
+    p.setContributions()
+    earnings, months = p._earnings_test_inputs(past=True)
+    assert list(earnings[0]) == pytest.approx([0.0, 0.0, 0.0, 60_000.0, 30_000.0])
+    assert list(months[0]) == [0, 0, 0, 12, 6]
+    # Written back to the workbook's lead-in rows.
+    out = hfp_io.build_hfp_dataframes(p)[0]["Alice"]
+    assert out.loc[3, "anticipated wages"] == 50_000.0
+    assert out.loc[4, "months worked"] == 6

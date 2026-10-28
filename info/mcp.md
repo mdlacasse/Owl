@@ -116,7 +116,7 @@ as commands and lets you attach resources to the conversation):
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
 | | `beneficiary_fractions` | Couples only: fractions of the first decedent's `[taxable, tax_deferred, roth, hsa]` left to the survivor (default `[1,1,1,1]`); the rest is the partial bequest to other heirs |
-| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5), or `"optimize"` for the optimizer to choose the split each year |
+| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5), or `"optimize"` for the optimizer to choose the split each year (not with `beneficiary_fractions` below 1: every surplus then goes to the survivor and the other heirs get nothing) |
 | | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
 | | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
 | **Rate model** | `rate_method` | Return model name (use `list_rate_models`). If omitted, fixed `"conservative"` rates are assumed and flagged in `assumed_defaults` |
@@ -197,7 +197,7 @@ lists read from the HFP workbook.
 **Did the solve actually settle?** `run_case` and `run_from_params` report `convergence`
 (how the self-consistent loop ended: `monotonic`, `oscillatory`, a detected cycle, or
 exhausted iterations) and `fixed_point_residual_today_dollars` beside `status`. The
-residual gives, per tax family (`SS`, `IRMAA`, `NIIT`, `ACA`, `deduction`), how far the
+residual gives, per tax family (`SS`, `IRMAA`, `NIIT`, `ACA`, `deduction`, `LTCG`), how far the
 returned plan sits from the model its own income implies, summed over the horizon in
 today's dollars. `status: "solved"` means the loop stopped, not that the answer is
 self-consistent: the LP is built from the previous iterate's Medicare premiums, Social
@@ -205,7 +205,10 @@ Security taxable fraction, NIIT and ACA costs, so a plan whose own income would 
 those has not reached a fixed point. Values of a few dollars are ordinary rounding; values
 in the hundreds or more mean the plan is still moving and its tax figures should not be
 quoted precisely. The `residualTol` solver option (default `50`) is the bar the loop must
-clear before it declares convergence. Beside them, `breakpoint_method` says how the tax
+clear before it declares convergence. `unsettled` names the families the loop left above that
+bar summed over the horizon, `SS` (taxable Social Security) and `LTCG` (the tax on capital gains),
+each with the option whose exact model settles it, such as `{"LTCG": "withLTCG=\"optimize\""}`;
+it is empty when the plan settled. The solver's log gives the same warning. Beside them, `breakpoint_method` says how the tax
 breakpoints were solved (`loop`, `branch-and-bound (...)`, `local search (...)`), and
 `solve_time_seconds` gives the last solve's `wall` and `cpu` seconds (machine-dependent).
 

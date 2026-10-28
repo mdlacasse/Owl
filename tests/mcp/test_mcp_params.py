@@ -2321,3 +2321,18 @@ def test_save_case_writes_the_medical_settings(tmp_path):
     assert conf["optimization_parameters"]["medical_inflation_excess"] == 1.5
     assert conf["solver_options"]["includeMedicarePartD"] is False
     assert conf["solver_options"]["medicarePartDBasePremium"] == 40.0
+
+
+def test_past_wages_and_months_reach_the_earnings_test():
+    """Wages and months worked before the plan fill its five lead-in years (#235)."""
+    p = _single(
+        wages=[{"person": 0, "annual_amount": 60_000, "start_year": THISYEAR - 2, "end_year": THISYEAR + 1}],
+        months_worked=[{"person": 0, "start_year": THISYEAR - 1, "months": 6}],
+        contributions=[{"person": 0, "account": "tax_deferred", "annual_amount": 5_000,
+                        "start_year": THISYEAR - 1, "end_year": THISYEAR}],
+    )
+    assert list(p.omegaPast_in[0]) == [0, 0, 0, 60_000, 60_000]
+    assert p.omega_in[0, 0] == 60_000 and p.omega_in[0, 1] == 0
+    assert list(p.etMonthsPast_in[0]) == [0, 0, 0, 0, 6]
+    earnings, _ = p._earnings_test_inputs(past=True)
+    assert earnings[0, 4] == 65_000

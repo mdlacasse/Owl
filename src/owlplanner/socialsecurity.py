@@ -836,11 +836,16 @@ def compute_social_security_benefits(
 # --------------------------------------------------------------------------------------
 
 # POMS RS 02501.025 D (TN 55, 11/21/2025); 2027 from SSA's notice of 10/26/2026, 91 FR
-# 67380. Annual amounts, each year's nominal dollars; monthly = annual / 12. A plan reads
-# them in its own dollars through plan_exempt_for_year. After the last known year they are
-# held at that level in real terms (statute indexes them to wages with a two-year lag,
-# 404.430(a)(2); Owl has no wage index, so this slightly overstates withholding later on).
+# 67380; 2021-2023 from SSA's 2022 and 2023 COLA fact sheets, for the five years before a
+# plan whose earnings the test reads (#235). Annual amounts, each year's nominal dollars;
+# monthly = annual / 12. A plan reads them in its own dollars through plan_exempt_for_year.
+# After the last known year they are held at that level in real terms (statute indexes them
+# to wages with a two-year lag, 404.430(a)(2); Owl has no wage index, so this slightly
+# overstates withholding later on).
 _EXEMPT_TABLE = {
+    2021: (18_960.0, 50_520.0),
+    2022: (19_560.0, 51_960.0),
+    2023: (21_240.0, 56_520.0),
     2024: (22_320.0, 59_520.0),
     2025: (23_400.0, 62_160.0),
     2026: (24_480.0, 65_160.0),
@@ -872,7 +877,7 @@ def get_exempt_amounts(year: int, table: Optional[dict] = None) -> ExemptAmounts
     """
     Return the earnings-test exempt amounts for ``year`` in that year's nominal dollars.
 
-    Years present in ``table`` (default: the published 2024-2027 amounts) use those
+    Years present in ``table`` (default: the published 2021-2027 amounts) use those
     amounts. Later years hold the last known nominal amount, a floor; earlier years
     use the first known amount (tests only). A plan, whose earnings are in its first
     year's dollars, reads them through :func:`plan_exempt_for_year` instead.
@@ -1225,6 +1230,8 @@ def earnings_test(
     trim_pct=0,
     trim_year=None,
     survivor_claim_age="immediate",
+    past_earnings_in=None,
+    past_work_months_in=None,
 ):
     """
     Apply the SSA earnings test to one- or two-person SS streams.
@@ -1244,9 +1251,14 @@ def earnings_test(
     from the year of the first death on (survivor benefits under the test, and the
     survivor ARF of RS 00615.580, are not modeled).
 
-    Years before the plan carry no earnings here, so a person entitled before the plan
-    has their initial grace year in their (pre-plan) entitlement year and only the
-    annual test in plan years.
+    A person entitled before the plan is tested from entitlement on the earnings of the
+    years before the plan (``past_earnings_in``, #235): they decide whether the initial
+    grace year has been used, which months before FRA were withheld and so count toward
+    the ARF, and whether the check for the December before the plan was withheld. Those
+    years are taken as SSA applied the test to them; an overpayment still to be recovered
+    is not modeled. A year without earnings given counts as a year without earnings, so
+    without them the grace year falls in the entitlement year and nothing is withheld
+    before the plan.
 
     Parameters match ``compute_social_security_benefits``, plus:
     earnings_in : array, shape (N_i, N_n)
@@ -1257,6 +1269,12 @@ def earnings_test(
         whole array) means "not given": 12 when that year's earnings are positive, else 0.
     exempt_for_year : callable or None
         ``year -> ExemptAmounts``. Default: :func:`get_exempt_amounts`.
+    past_earnings_in : array or None
+        Shape (N_i, P); countable earnings of the P years before the plan, oldest first, in
+        each year's nominal dollars like the exempt amounts ``exempt_for_year`` returns for
+        years outside the plan.
+    past_work_months_in : array or None
+        Shape (N_i, P); months of work in those years, read as ``work_months_in``.
 
     Returns
     -------
@@ -1281,6 +1299,22 @@ def earnings_test(
     work_months_in = np.asarray(work_months_in)
     if work_months_in.shape != (N_i, N_n):
         raise ValueError(f"work_months_in shape {work_months_in.shape} != ({N_i}, {N_n})")
+    # The years before the plan are tested as plan years of a horizon that starts P years
+    # earlier; the result is sliced back to the plan below.
+    P = 0
+    plan_year0, plan_N_n, plan_horizons = thisyear, N_n, horizons
+    if past_earnings_in is not None:
+        past_earnings_in = np.asarray(past_earnings_in, dtype=np.float64)
+        P = past_earnings_in.shape[1] if np.any(past_earnings_in > 0) else 0
+    if P > 0:
+        if past_earnings_in.shape != (N_i, P):
+            raise ValueError(f"past_earnings_in shape {past_earnings_in.shape} != ({N_i}, P)")
+        past_months = np.zeros((N_i, P)) if past_work_months_in is None else np.asarray(past_work_months_in)
+        if past_months.shape != (N_i, P):
+            raise ValueError(f"past_work_months_in shape {past_months.shape} != ({N_i}, {P})")
+        earnings_in = np.concatenate([past_earnings_in, earnings_in], axis=1)
+        work_months_in = np.concatenate([past_months, work_months_in], axis=1)
+        thisyear, N_n, horizons = thisyear - P, N_n + P, horizons + P
     # Earnings over zero months of work would count for nothing (countable_earnings).
     work_months_in = np.where((work_months_in <= 0) & (earnings_in > 0), 12, work_months_in)
 
@@ -1509,6 +1543,14 @@ def earnings_test(
         for paid, wh, k in ((paid_own[i], withheld_own[i], keep), (paid_sp[i], withheld_sp[i], keep_sp)):
             np.add.at(zeta_in[i], pay_year_n[k], paid[k])
             np.add.at(withheld_in[i], pay_year_n[k], wh[k])
+
+    if P > 0:
+        # Back to the plan's years: checks paid before the plan are dropped. The December
+        # check before the plan, paid in January of the first plan year, stays.
+        zeta_in, withheld_in = zeta_in[:, P:], withheld_in[:, P:]
+        excess_by_year = excess_by_year[:, P:]
+        thisyear, N_n, horizons = plan_year0, plan_N_n, plan_horizons
+        death_year_n -= P
 
     # Trim before the survivor fold-in: the survivor stream carries its own trim
     # (same order as compute_social_security_benefits).

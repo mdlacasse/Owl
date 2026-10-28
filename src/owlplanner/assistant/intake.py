@@ -35,6 +35,10 @@ first solve, confirm a short summary of everything collected.
 - Work: annual wages and expected retirement year, if still working.  If someone will claim
   Social Security before full retirement age while still working, the earnings test applies:
   ask in which month work stops that year (months_worked), as the months after it are paid.
+  If someone already collects Social Security before full retirement age and has worked since
+  claiming, ask for those past years' wages too (a wages entry whose start_year is the year of
+  the claim, up to 5 years back): they decide which months were withheld, which come back at
+  full retirement age, and whether the grace year was used.
 - Social Security: monthly PIA at full retirement age per person (from the SSA statement)
   and intended claiming ages — or offer optimize_ss_ages to let the optimizer choose.
 - Objective: maximize retirement spending (optionally with a bequest floor), or maximize

@@ -104,8 +104,19 @@ def plan_convergence(plan) -> dict:
     residual lets a caller tell a converged plan from one that merely ran out of patience,
     without re-deriving the tax quantities itself.
     """
-    residual = {
-        family: _round(v["abs_sum"]) for family, v in getattr(plan, "fixedPointResidual", {}).items()
+    fpr = getattr(plan, "fixedPointResidual", None) or {}
+    residual = {family: _round(v["abs_sum"]) for family, v in fpr.items()}
+    # The families the log warns about (Plan._warnSSResidual, _warnLTCGResidual): the loop left
+    # them above its own tolerance, and the exact model would settle them.
+    tol = plan.N_n * getattr(plan, "_residual_tol", 0.0)
+    vm = getattr(plan, "vm", None) or {}
+    remedies = {}
+    if "tss" not in vm and not isinstance(plan.solverOptions.get("withSSTaxability"), (int, float)):
+        remedies["SS"] = 'withSSTaxability="optimize"'
+    if not getattr(plan, "_ltcg_lp", False):
+        remedies["LTCG"] = 'withLTCG="optimize"'
+    unsettled = {
+        family: remedy for family, remedy in remedies.items() if fpr.get(family, {}).get("abs_sum", 0.0) > tol
     }
     return {
         "convergence": plan.convergenceType,
@@ -113,6 +124,9 @@ def plan_convergence(plan) -> dict:
         # or "local search -> loop" when the search kept the loop's plan.
         "breakpoint_method": getattr(plan, "breakpointMethodUsed", "loop"),
         "fixed_point_residual_today_dollars": residual,
+        # Families left above the loop's tolerance (residualTol per year), each with the option
+        # whose exact model settles it; empty when the plan settled.
+        "unsettled": unsettled,
         # Last solve's wall-clock and CPU seconds (machine- and load-dependent), as in the Summary.
         "solve_time_seconds": {
             "wall": _round_opt(getattr(plan, "lastSolveWallTime", None)),

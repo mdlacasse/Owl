@@ -1,5 +1,29 @@
 ### Version 2026.10.26
 
+#### Fixed: the earnings test reads the years before the plan for someone already claiming
+
+The earnings test saw earnings from the plan's first year only. For someone who claimed before
+the plan, before full retirement age, while still working, it took the grace year as used in
+the year of the claim, credited no month withheld before the plan at full retirement age, and
+never withheld the check for December of the year before the plan (#235). The test now reads the
+five years before the plan that the Household Financial Profile already carries (*anticipated
+wages*, *months worked* and the pre-tax contributions), and applies the test from entitlement on.
+For a \$2,000 PIA claimed in July 2025 at 62 and one month, with \$5,000 earned every month of
+2025: working January-June 2026 for \$80,000, 2026 is the grace year and pays \$7,041.67 instead
+of \$1,408.33; with no work in 2026, the six months withheld in 2025 raise the benefit from full
+retirement age by \$600 a year. Past years left blank change nothing. The exempt amounts for
+2021-2023 are added. Alex+jamie, whose profile gives Jamie's wages for 2024 and 2025 while she
+collects, now withholds those years too: 48 months come back at full retirement age instead of
+24. The MCP's wages, months worked and contributions accept years up to five before the plan.
+An overpayment still to be recovered is not modeled.
+
+#### New: the MCP results name the families that did not settle
+
+`run_case`, `run_from_params` and the comparisons report, beside the fixed-point residual,
+`unsettled`: the families the loop left above its tolerance, Social Security taxability and the
+tax on capital gains, each with the option whose exact model settles it. The log's warnings went
+to the server's error stream, which an AI client does not read.
+
 #### New: the optimizer can split each surplus between the spouses
 
 While both spouses live, a surplus is deposited in their taxable accounts by a fixed fraction, half
