@@ -96,12 +96,18 @@ st.markdown(
 
 Clients that support MCP prompts (e.g. Claude Desktop) also expose **`owl_intake`** — a
 guided interview that collects exactly the information Owl needs before the first run.
+Clients that read MCP resources can also load two reference documents:
+`owl://intake-checklist` (the intake questions, tiered by whether a default assumption is
+defensible) and `owl://modeling-capabilities` (every modeled component, its approach, and
+its assumptions and limitations).
 """
 )
 
 with st.expander("What the AI can do — 18 tools"):
     st.markdown(
         """
+- **Work with case files** — `list_cases` finds case files in a directory, `explain_case`
+  describes one without solving it, and `run_case` optimizes it.
 - **Solve and iterate** — `run_from_params` builds and optimizes a plan from conversational
   input; `save_case` writes it to a case file this app can load; `compare_cases` evaluates
   what-if changes.
