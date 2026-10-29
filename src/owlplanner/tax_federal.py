@@ -154,7 +154,8 @@ HSA_CATCHUP_55 = 1_000
 
 # Annual per-person exclusion limit for Qualified Charitable Distributions
 # (IRC 408(d)(8)), inflation-indexed since SECURE 2.0.
-qcdLimit = {2025: 108_000, 2026: 115_000}
+# 2025: Notice 2024-80; 2026: Notice 2025-67.
+qcdLimit = {2025: 108_000, 2026: 111_000}
 
 # IRS sets the limit above one year at a time, but plans run decades, so beyond the
 # table it is carried forward at this fixed rate: the geometric mean of CPI over

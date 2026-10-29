@@ -585,7 +585,7 @@ leave it blank where it does not apply), where:
   tax-deferred account and never reaches your budget, so unlike a withdrawal it does not fund spending.
   Two rules are checked and a violation is reported as an error rather than quietly adjusted: you must
   have reached age 70½ (not the same as the age your RMDs begin), and the amount is capped per person
-  per year (\\$115,000 in 2026, indexed for inflation; later years are projected at 3%, since the IRS
+  per year (\\$111,000 in 2026, indexed for inflation; later years are projected at 3%, since the IRS
   sets the figure only a year at a time). Note that a QCD must be paid from an IRA and not directly
   from a 401k or 403b, while **Owl** keeps all of these in a single tax-deferred account and cannot
   tell them apart. This is a step to take rather than an obstacle: roll the employer plan over to an
