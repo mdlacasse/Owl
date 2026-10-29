@@ -223,7 +223,7 @@ def st_taxParams(
     Returns
     -------
     (N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-     st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss, st_ss_thresh_n)
+     st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss)
 
     N_st           — number of state brackets (max across Single and MFJ)
     st_theta_tn    — shape (N_st, N_n) marginal rates (decimals)
@@ -239,8 +239,6 @@ def st_taxParams(
                      "exemption" counts toward st_re_cap_in, "taxed" never does, "excluded"
                      is left out of state income at any age
     st_tax_ss      — bool, whether state taxes Social Security benefits
-    st_ss_thresh_n — shape (N_n,) AGI threshold below which SS is exempt
-                     (0 = not applicable)
     """
     state = state.upper()
     data = load_state_data(toml_path)
@@ -351,12 +349,10 @@ def st_taxParams(
     # for all current states, but prefer the filing-status-appropriate entry for correctness.
     ss_entry = entry_mfj if N_i == 2 else entry_single
     st_tax_ss = bool(ss_entry["tax_social_security"])
-    ss_thresh_base = float(ss_entry.get("ss_exemption_threshold", 0))
-    st_ss_thresh_n = ss_thresh_base * g_exemptions[:N_n]
 
     return (
         N_st, st_theta_tn, st_DeltaBar_tn, st_sigmaBar_n,
-        st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss, st_ss_thresh_n,
+        st_re_cap_in, st_pe_cap_in, st_conv, st_tax_ss,
     )
 
 
@@ -394,7 +390,7 @@ def st_schedule(states_n, N_i, n_d, N_n, gamma_n, yobs, *, mobs, i_d=None, toml_
     for state in dict.fromkeys(states_n):
         if not state:
             continue
-        (n_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss, _ss_thresh) = st_taxParams(
+        (n_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss) = st_taxParams(
             state, N_i, n_d, N_n, gamma_n, yobs, mobs=mobs, i_d=i_d, toml_path=toml_path
         )
         fed_sd, bonus = federal_deduction(state, toml_path)

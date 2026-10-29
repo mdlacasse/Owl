@@ -71,7 +71,7 @@ def test_toml_all_states_load(state):
 def test_st_taxparams_shape():
     """st_taxParams returns arrays with correct shapes."""
     gamma = np.ones(31)  # N_n=30 years + 1
-    N_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss, ss_thresh = tax_state.st_taxParams(
+    N_st, theta, delta, sigma, re_cap, pe_cap, conv, tax_ss = tax_state.st_taxParams(
         "MN", 1, 30, 30, gamma, [1960], mobs=[1]
     )
     assert theta.shape == (N_st, 30)
@@ -79,7 +79,6 @@ def test_st_taxparams_shape():
     assert sigma.shape == (30,)
     assert re_cap.shape == (1, 30)
     assert pe_cap.shape == (1, 30)
-    assert ss_thresh.shape == (30,)
     assert N_st >= 4  # MN has 4 brackets for single
 
 
@@ -88,10 +87,10 @@ def test_st_taxparams_inflation_scaling():
     gamma_flat = np.ones(31)
     gamma_inflated = np.array([1.02**n for n in range(31)])
     for state in ("MN", "CA"):
-        _, _, delta_flat, sigma_flat, _, _, _, _, _ = tax_state.st_taxParams(
+        _, _, delta_flat, sigma_flat, _, _, _, _ = tax_state.st_taxParams(
             state, 1, 30, 30, gamma_flat, [1960], mobs=[1]
         )
-        _, _, delta_inf, sigma_inf, _, _, _, _, _ = tax_state.st_taxParams(
+        _, _, delta_inf, sigma_inf, _, _, _, _ = tax_state.st_taxParams(
             state, 1, 30, 30, gamma_inflated, [1960], mobs=[1]
         )
         # Year 10 should be inflated relative to year 0
@@ -103,12 +102,12 @@ def test_st_taxparams_filing_status_transition():
     """Bracket widths switch from MFJ to Single at n_d."""
     gamma = np.ones(31)
     n_d = 10
-    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _, _ = tax_state.st_taxParams(
+    N_st, theta_mfj, delta_mfj, sigma_mfj, _, _, _, _ = tax_state.st_taxParams(
         "MN", 2, n_d, 30, gamma, [1955, 1958], mobs=[1, 1]
     )
     # Before n_d: MFJ brackets
     # After n_d: Single brackets
-    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958], mobs=[1])
+    N_st_s, theta_s, delta_s, sigma_s, _, _, _, _ = tax_state.st_taxParams("MN", 1, 30, 30, gamma, [1958], mobs=[1])
     # Deduction after death should match single
     assert pytest.approx(sigma_mfj[n_d], rel=1e-6) == sigma_s[0]
 
@@ -118,7 +117,7 @@ def test_st_taxparams_exemption_age_gating():
     # CO has exemption_age=65 for re
     gamma = np.ones(31)
     # born 1995 → turns 65 in 2060 → past 30-year plan end (2026+29=2055)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995], mobs=[1])
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams("CO", 1, 30, 30, gamma, [1995], mobs=[1])
     # All zeros since never reaches 65 during the plan
     assert np.all(re_cap == 0), "CO re_cap should be 0 when never 65+ during plan"
 
@@ -126,7 +125,7 @@ def test_st_taxparams_exemption_age_gating():
 def test_st_taxparams_exemption_age_active():
     """Retirement income exemption applies once age requirement is met."""
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
         "CO",
         1,
         30,
@@ -342,7 +341,7 @@ def test_st_taxparams_exemption_is_per_person():
     """Each spouse qualifies on their own age (CO: 65+)."""
     thisyear = date.today().year
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
         "CO", 2, 30, 30, gamma, [thisyear - 70, thisyear - 50], mobs=[1, 1]
     )
     assert re_cap[0, 0] == pytest.approx(24000)
@@ -354,7 +353,7 @@ def test_st_taxparams_ny_age_59_and_a_half():
     """NY exclusion starts in the year the individual reaches 59.5."""
     thisyear = date.today().year
     gamma = np.ones(31)
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
         "NY", 2, 30, 30, gamma, [thisyear - 59, thisyear - 59], mobs=[6, 7]
     )
     assert re_cap[0, 0] == pytest.approx(20000)  # June birthday: 59.5 by December 31
@@ -368,7 +367,7 @@ def test_st_taxparams_ny_age_59_and_a_half():
 def test_st_taxparams_roth_conversion_mode(state, expected):
     """Roth conversion income counts toward the exemption, except in MD (never exempt) and in PA
     and MS (left out of state income at any age, #203)."""
-    _, _, _, _, _, _, conv, _, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
+    _, _, _, _, _, _, conv, _ = tax_state.st_taxParams(state, 1, 30, 30, np.ones(31), [1955], mobs=[1])
     assert conv == expected
 
 
@@ -392,7 +391,7 @@ def test_pa_ms_exempt_distributions_from_59_and_a_half(state):
     """PA and MS exempt IRA distributions from 59 1/2 (PA-40 instructions; 35 Miss. Code R.
     3-02-07-104, early distributions do not qualify), reached by December 31 (#203)."""
     thisyear = date.today().year
-    _, _, _, _, re_cap, _, _, _, _ = tax_state.st_taxParams(
+    _, _, _, _, re_cap, _, _, _ = tax_state.st_taxParams(
         state, 2, 30, 30, np.ones(31), [thisyear - 59, thisyear - 59], mobs=[6, 7]
     )
     assert re_cap[0, 0] == np.inf  # June birthday: 59.5 by December 31
