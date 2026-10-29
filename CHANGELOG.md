@@ -1,3 +1,28 @@
+### Version 2026.10.29
+
+#### Fixed: the 2026 QCD limit is \$111,000
+
+IRS Notice 2025-67 raises the per-person exclusion for qualified charitable distributions from
+\$108,000 to \$111,000 for 2026. Owl had \$115,000, so it accepted a 2026 QCD between the two and
+excluded all of it from income, and every later year, projected from that figure at 3%, was about
+3.6% too high (#240). A test now pins the published limits.
+
+#### Changed: `papers/owl.tex` agrees with the code where it did not
+
+A review against the code (#241) found equations and statements the code had moved past. The
+SS-taxability big-M rows, the IRMAA MAGI expansion, the provisional income, and the state pension
+exemption are corrected. So are the HSA withdrawal cap and Medigap, the earnings test (the
+`employer ctrb` column, the years before the plan, exempt amounts and wage base through 2027), the
+spousal reduction beyond 36 months, the year the filing status changes, and the ACA bracket count.
+Three equations that took a neighbor's number now carry their own. The section on the
+self-consistent loop now says it can settle on a plan that is self-consistent but not optimal.
+
+#### Removed: the unused AGI threshold on a state's Social Security exemption
+
+`ss_exemption_threshold` in `taxes_state.toml` was read but never used by the model. Kansas and
+Missouri, the only states that carried a value, exempt Social Security in full from tax year 2024.
+The field is gone from the data, and `st_taxParams` returns one value fewer. Results do not change.
+
 ### Version 2026.10.28
 
 #### Fixed: the DCC-GARCH fit follows Engle (2002)
