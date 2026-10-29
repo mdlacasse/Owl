@@ -248,9 +248,9 @@ ordinary income, effectively making the HSA a second traditional IRA without
 Required Minimum Distributions.
 A surviving spouse inherits the account intact, preserving its full
 tax-advantaged status.
-Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap premiums,
-and out-of-pocket medical costs all qualify as HSA withdrawals, so these
-expenses can be funded entirely tax-free from the account.
+Medicare Parts~B and~D premiums, IRMAA surcharges, and out-of-pocket
+medical costs all qualify as HSA withdrawals, so these expenses can be
+funded entirely tax-free from the account; Medigap premiums do not qualify.
 Annual contribution limits are set by the IRS (approximately \$4,400 for
 self-only and \$8,750 for family coverage in 2026) and must cease at Medicare
 enrollment.
@@ -277,11 +277,12 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{year} --- calendar year;
   \item \textit{anticipated wages} --- earned income expected for that year,
     as it enters AGI: pay net of the pre-tax contributions (traditional 401(k)
-    deferrals, deductible IRA and payroll HSA contributions; employer portions
-    included in the \textit{ctrb} columns are not subtracted, as they were never
-    part of wages). This single amount serves both as cash available to the plan
+    deferrals, deductible IRA and payroll HSA contributions; employer
+    contributions, entered in \textit{employer ctrb}, are not subtracted, as they
+    were never part of wages). This single amount serves both as cash available to the plan
     and as taxable employment income, and the employee's payroll tax is charged on it
-    (plus the year's tax-deferred contributions) as a cash outflow. An after-tax contribution paid from pay
+    (plus the year's \textit{401k ctrb}, and its \textit{IRA ctrb} in a year with pay;
+    Section~\ref{sec:ss}) as a cash outflow. An after-tax contribution paid from pay
     (Roth 401(k), Roth IRA, taxable) therefore stays in the wages, where it is
     taxed, and is paid for by a negative \textit{big-ticket items} entry of the
     same amount;
@@ -295,7 +296,11 @@ Each individual has their own sheet with the following year-indexed columns:
     investment income for NIIT (enter 0 if not applicable);
   \item \textit{taxable ctrb} --- contributions to the taxable brokerage
     account;
-  \item \textit{401k ctrb} --- traditional 401(k) contributions;
+  \item \textit{401k ctrb} --- the employee's own traditional 401(k) deferrals;
+  \item \textit{employer ctrb} --- the employer's contributions (match, profit
+    sharing) to the traditional 401(k), deposited in the tax-deferred account like
+    \textit{401k ctrb} but never wages, so neither payroll-taxed nor counted by the
+    earnings test;
   \item \textit{Roth 401k ctrb} --- Roth 401(k) contributions;
   \item \textit{IRA ctrb} --- traditional IRA contributions;
   \item \textit{Roth IRA ctrb} --- Roth IRA contributions;
@@ -323,6 +328,12 @@ Each individual has their own sheet with the following year-indexed columns:
 
 Only \textit{year} is required. Any other column may be omitted from a person
 sheet, in which case it is read as zero for every year.
+The five rows before the plan start serve two rules: the Roth contributions and
+conversions feed the five-year rule (Section~\ref{sec:roth}), and, for someone who
+claimed Social Security before the plan and before full retirement age, the
+\textit{anticipated wages}, \textit{months worked}, \textit{401k ctrb},
+\textit{employer ctrb}, and \textit{IRA ctrb} feed the earnings test
+(Section~\ref{sec:ss}). The other lead-in entries are not read.
 
 \subsection*{Fixed Assets table}
 
@@ -470,8 +481,8 @@ Reference: SSA POMS RS~00615.015 \cite{ssa-poms}.
 
 The spousal benefit is up to 50\% of the higher-earning spouse's PIA, reduced
 by the claiming spouse's own PIA (floored at zero), with an additional reduction
-of 25/36 of~1\% per month for claiming before the spousal FRA (which mirrors
-the own FRA schedule) and no bonus for deferral beyond FRA.
+of 25/36 of~1\% per month for the first 36~months before the spousal FRA and
+5/12 of~1\% for each further month (the spousal FRA mirrors the own FRA schedule) and no bonus for deferral beyond FRA.
 Delayed credits in the claiming spouse's own benefit do not add to the spousal
 excess: the combined payment is computed without them and the own benefit with
 them is subtracted from it, so the credits come out of the spousal part, down to
@@ -572,10 +583,18 @@ updated at each pass until it converges; a more exact method is also available
 via the option \code{withSSTaxability="optimize"} \cite{irs915}.
 
 Owl always applies the earnings test.
-The earnings it counts in year $n$ are the \textit{anticipated wages} plus that
-year's \textit{401k ctrb} and \textit{IRA ctrb}, which those wages are entered
-net of, deflated to today's dollars to match the exempt amounts, and taken as
+The earnings it counts in year $n$ are the wages before pre-tax deferrals
+(W-2 box~5): the \textit{anticipated wages} plus that year's \textit{401k ctrb},
+which those wages are entered net of and which counts even when it took all of the
+year's pay, plus the \textit{IRA ctrb} in a year with pay (wages or a 401(k)
+deferral; without pay, the contribution is taken as a spousal IRA funded from the
+other spouse's pay). \textit{Employer ctrb} is never earnings.
+The earnings are deflated to today's dollars to match the exempt amounts, and taken as
 spread evenly over the \textit{months worked} at the start of the year.
+For someone who claimed before the plan and before FRA, the same quantities are
+read from the five lead-in rows of the HFP, and the test runs from entitlement on:
+they decide whether the grace year was already used and which months withheld
+before the plan are credited at FRA.
 That month count is what decides whether a month qualifies as a non-service
 month for the grace-year rule, and, in the FRA year, what share of the year's
 earnings falls before the FRA month.
@@ -588,7 +607,7 @@ Everything the test does is, for a given claiming month, a fixed function of
 that month: the withheld amounts and the raised post-FRA benefit are numbers
 computed before the LP is built, so the test adds no variable and no constraint,
 and a claiming-age search sees its effect on every candidate.
-Exempt amounts come from the POMS chart for 2024--2026 and are held at the 2026
+Exempt amounts come from the POMS chart for 2021--2027 and are held at the 2027
 level in today's dollars thereafter.
 
 \subsection*{Limitations and assumptions}
@@ -599,11 +618,13 @@ The earnings test is not applied to checks paid from the year of the first death
 on: survivor benefits under the test, and the survivor ARF of
 RS~00615.580, are not modeled.
 Its exempt amounts are indexed to the national average wage with a two-year lag,
-which Owl does not track, so holding them flat in real terms after 2026 slightly
+which Owl does not track, so holding them flat in real terms after 2027 slightly
 overstates the withholding of later years.
-Employer contributions included in \textit{401k ctrb} were never wages, so
-counting them makes the earnings slightly high; a payroll HSA contribution is
-correctly left out, as it is not in W-2 box~5.
+Employer contributions belong in \textit{employer ctrb}; entered in
+\textit{401k ctrb} instead, they are counted as earnings and make them slightly
+high. Pay that went entirely to a deductible IRA is missed, as the contribution is
+then taken as a spousal IRA. A payroll HSA contribution is correctly left out, as it
+is not in W-2 box~5.
 Self-employment earnings count only where they are entered in
 \textit{anticipated wages}: the test does not read \textit{other inc}.
 The monthly test is implemented only as the initial grace year; the
@@ -835,17 +856,19 @@ The key modeling choices are as follows.
     \textit{other inc} as well, an above-the-line deduction (IRC~223(a)) that
     pays for them; in the year of Medicare enrollment, only for the months
     before it.
-    Contributions are zeroed automatically at Medicare enrollment age; HFP entries past age~65 are ignored.
-  \item \textit{Withdrawals are tax-free and fund any expense.}
+    Contributions stop automatically at Medicare enrollment: the year it begins keeps the
+    months before it, and later HFP entries are ignored.
+  \item \textit{Withdrawals are tax-free and capped by qualified expenses.}
     HSA withdrawals enter the annual cash-flow balance at full dollar value,
     identical to Roth account withdrawals, and are excluded from taxable income.
-    Because Medicare Parts~B and~D premiums, IRMAA surcharges, Medigap
-    premiums, and other out-of-pocket medical costs are all qualified
-    expenses under IRS Publication~969, the user may apply HSA withdrawals
-    to cover these costs tax-free.
-    The optimizer does not track medical expenses explicitly; it treats HSA
-    withdrawals as generic tax-free cash flow, and the user is responsible
-    for ensuring actual withdrawals correspond to qualified expenses.
+    Medicare Parts~B and~D premiums, IRMAA surcharges, and other out-of-pocket
+    medical costs are qualified expenses under IRS Publication~969; Medigap
+    premiums are not.
+    Each year, the household's HSA withdrawals are capped at that year's Medicare
+    costs $m_n$ plus the other qualified medical expenses supplied by the user
+    (\code{other_medical_expenses}, in today's dollars, indexed by $\gamma^{\mathrm{med}}_n$).
+    Before Medicare, only the latter count, so without them no HSA withdrawal can
+    be made before Medicare starts.
   \item \textit{No Required Minimum Distributions.}
     Unlike tax-deferred accounts, HSAs are never subject to mandatory annual
     distributions.
@@ -893,13 +916,12 @@ The catch-up contribution (\$1,000 for age~55+) is not automatically applied;
 users aged 55+ must add it manually if desired.
 Self-only vs.\ family coverage is not distinguished; the applicable limit is
 the user's responsibility.
-The mandatory contribution stop at Medicare enrollment is enforced by zeroing
-contributions from that year forward. \texttt{setHSA()} is invoked either
+The mandatory contribution stop at Medicare enrollment is enforced month by month.
+\texttt{setHSA()} is invoked either
 explicitly or automatically when loading from configuration (e.g., TOML).
-HFP entries in the \textit{HSA ctrb} column for years when the individual
-is age~65 or older are overwritten with zero.
-If Medicare enrollment occurs mid-year, the IRS allows prorated contributions
-for months before enrollment \cite{irs8889}; Owl zeroes the entire year, which is conservative.
+In the year of enrollment, the IRS allows prorated contributions for the months
+before it \cite{irs8889}, and Owl keeps that share of the \textit{HSA ctrb}
+entry; entries for later years are overwritten with zero.
 
 \textbf{Eligibility.}
 Owl assumes the user is HSA-eligible (enrolled in an HDHP with no
@@ -1072,6 +1094,7 @@ The top tier is the exception: the Bipartisan Budget Act of~2018 froze it at
 indexing resumes in~2028.
 
 \subsection*{Medical price inflation}
+\label{Sec:MedInflation}
 
 Medical prices have historically outgrown general inflation, and a plan may say so.
 The parameter \code{setMedicalInflation(excess)} takes a yearly growth above
@@ -1218,8 +1241,8 @@ RMD fractions are taken from the IRS Uniform Lifetime Table~III (effective
 sole designated beneficiary is a spouse more than ten years younger, in which
 case IRS Table~II (Joint and Last Survivor) applies.
 Roth accounts are exempt from RMDs.
-Filing status transitions from MFJ to single in the calendar year of the
-first spouse's death.
+Filing status transitions from MFJ to single in the calendar year after the
+first spouse's death, as a couple files jointly in the year of death.
 
 Owl can also model a future reversion to pre-OBBBA tax rates
 (10\%, 15\%, 25\%, 28\%, 33\%, 35\%, 39.6\%) from a user-specified calendar
@@ -1234,7 +1257,8 @@ schedule.
 RMD fractions are computed per individual and year from the IRS Uniform
 Lifetime Table.
 The OBBBA~65+ bonus deduction phaseout is computed from the current MAGI
-and refined at each solver pass.
+and refined at each solver pass, or carried inside the optimization with
+\code{withSeniorBonus="optimize"} (Section~\ref{Sec:SeniorBonus}).
 Reference: \cite{irs17,secure2,obbba2025}.
 
 \subsection*{Limitations and assumptions}
@@ -1242,8 +1266,9 @@ Reference: \cite{irs17,secure2,obbba2025}.
 State income taxes are modeled separately; see the next section.
 Itemized deductions are not modeled; only the standard deduction (plus the
 65+ and OBBBA bonus deductions) is applied.
-The OBBBA~65+ bonus deduction phaseout is computed outside the LP (as a
-post-solution update) because it is a nonlinear function of MAGI.
+By default, the OBBBA~65+ bonus deduction phaseout is computed outside the LP (as a
+post-solution update) because it is a nonlinear function of MAGI; under
+\code{withSeniorBonus="optimize"}, a binary per bonus year carries it in the MIP instead.
 The IRS Uniform Lifetime Table III is used for standard cases.
 When the spouse is the sole designated beneficiary and more than ten years younger
 than the account owner, IRS Table II (Joint and Last Survivor, Pub.\ 590-B) is applied instead.
@@ -1265,13 +1290,18 @@ Bracket rates and widths, standard deductions, Social Security treatment, and
 retirement-income and pension exemption caps for all 50 states and the District
 of Columbia are read from a data table (\code{data/taxes_state.toml}) with
 separate entries for Single and Married Filing Jointly filers; the filing
-status switches to Single at the passing of a spouse, and bracket widths and
-deductions are indexed to inflation through $\gamma_n$.
+status switches to Single in the year after the passing of a spouse, and bracket
+widths and deductions are indexed to inflation through $\gamma_n$ only where the
+state indexes them: most state brackets are fixed in nominal dollars.
 State taxable income is derived from quantities already present in the model:
-federal ordinary taxable income, plus capital gains (which most states tax as
+federal ordinary taxable income with the federal standard deduction added back,
+plus capital gains (which most states tax as
 ordinary income), minus the exempted portion of Social Security, pension
 exemptions, the state standard deduction, and any capped retirement-income
 exemption.
+A plan can change its state of residence once (option \code{moves}): the new
+state taxes the year of the move and every year after it, as the state of
+residence on December~31 taxes the whole year.
 The resulting state tax joins the cash-flow constraint alongside its federal
 counterpart.
 The LP formulation is given in Sec.~(\ref{Sec:StateTax}).
@@ -1282,9 +1312,11 @@ State AGI is approximated from federal quantities; state-specific additions and
 subtractions beyond those listed above are not modeled.
 Capital gains are taxed as ordinary income, which is accurate for most but not
 all states.
-States that exempt Social Security only below an AGI threshold (e.g., Kansas,
-Missouri) are treated with a fixed exempt-or-taxed status rather than the
-threshold rule.
+Each state either exempts Social Security in full or taxes its federally taxable
+part; no AGI threshold for the exemption is modeled. Kansas and Missouri, which
+had such thresholds, exempt the benefit in full from tax year 2024 (Kansas
+SB~1, 2024 special session; Missouri for filers 62 and older), and are treated
+as exempting it.
 Personal and senior credits are modeled where a state offers them, capped by the
 year's state tax (Eq.~(\ref{Eq:StateCredit})); other state credits are not.
 Local and county income taxes, and itemized deductions, are not modeled.
@@ -1317,7 +1349,7 @@ nonlinear in the solution.
 \section{Planning Horizon and Time Steps}
 
 The plan horizon runs from the current calendar year (year~0) through the
-year following the last individual's projected death.
+year of the last individual's assumed death.
 Each year index corresponds to one calendar year; all decision variables
 are resolved at annual granularity.
 
@@ -1475,11 +1507,11 @@ number of years:
 \end{equation}
 held flat at its first value for $n < n_0$.
 At the death of the first spouse, in year $n_d$, spending is multiplied by a
-user-specified survivorship fraction $\phi$ reflecting the lower expenses of a
+user-specified survivorship fraction $\chi$ reflecting the lower expenses of a
 single person.
 
 The smile profile is then \emph{normalized} so that
-$\sum_n \xi_n = N_n - (1 - \phi)(N_n - n_d)$, the sum a flat profile with the
+$\sum_n \xi_n = N_n - (1 - \chi)(N_n - n_d)$, the sum a flat profile with the
 same survivorship would give.
 This makes the basis profile-neutral: it is the \emph{average} of the yearly
 amounts over the plan, not the first year's.
@@ -1592,6 +1624,12 @@ family), is at most \code{residualTol} per year.  An objective that has
 settled is not enough on its own: an iterate whose own income implies different
 premiums or a different taxable share of Social Security is not a fixed point.
 Otherwise the updated values are substituted and the process repeats.
+Within each solve the fed-back quantities are constants, so the optimizer cannot
+trade income against them (an IRMAA tier, the Social Security phase-in, the
+senior-bonus phase-out): the loop can settle on a plan that is self-consistent and
+still not the best one.
+The \code{"optimize"} formulations below remove this for the families they cover,
+as they carry the thresholds inside the optimization.
 
 The loop also stops on three other conditions.  When the objectives fall into a
 repeating cycle, the best iterate of the cycle is kept.  When branch-and-bound
@@ -1642,7 +1680,7 @@ Section~\ref{sec:decomposition} describes the two strategies that solve it.
 
 For married couples, the year of the first spouse's death is a known input
 to the plan.
-Beginning in that year, Owl automatically transitions all relevant
+Beginning in the year after it, Owl automatically transitions all relevant
 quantities from married-filing-jointly (MFJ) status to single status:
 
 \begin{itemize}[nosep]
@@ -1850,21 +1888,16 @@ add the market returns to the savings balances.
 	and an optimizing plan fills that room with a Roth conversion of the same size:
 	taxable income is left essentially unchanged and the benefit accrues to the estate.
 
-	Two statutory limits are enforced on the input rather than in the model.
-	The donor must have reached age~70\textonehalf{} --- which is not the age at
-	which RMDs begin --- and the amount is capped per person per year, indexed for
-	inflation. Since the cap is published only a year in advance, later years carry
-	the last published figure forward at a fixed assumed inflation rate. That rate is
-	deliberately a constant rather than the scenario's own inflation: the cap
-	validates user input, and a scenario-dependent bound would accept an entry on one
-	Monte Carlo path and reject it on the next.
-
-	Two eligibility rules are checked before the plan is built, and a violation is
-	reported as an error rather than quietly adjusted. The owner must have reached
-	age~70\textonehalf{} on or before the distribution, which is not the age at
-	which required distributions begin; and the exclusion is capped per person per
-	year, at \$111,000 for 2026, indexed for inflation. Because the IRS sets that
-	figure only a year at a time, later years are projected forward at 3\% a year.
+	Two eligibility rules are checked on the input before the plan is built, rather
+	than in the model, and a violation is reported as an error rather than quietly
+	adjusted. The owner must have reached age~70\textonehalf{} on or before the
+	distribution, which is not the age at which required distributions begin; and the
+	exclusion is capped per person per year, at \$111,000 for 2026, indexed for
+	inflation. Because the IRS sets that figure only a year at a time, later years
+	carry the last published figure forward at 3\% a year. That rate is deliberately a
+	constant rather than the scenario's own inflation: the cap validates user input,
+	and a scenario-dependent bound would accept an entry on one Monte Carlo path and
+	reject it on the next.
 
 	Two simplifications are worth stating. A QCD must be paid from an IRA and not
 	directly from a 401k, while this formulation aggregates both into a single
@@ -1993,7 +2026,8 @@ add the market returns to the savings balances.
 	times the real portfolio over a long plan, which HiGHS does not resolve reliably next to
 	dollar coefficients (issue \#178).
 	HSA withdrawals (qualified medical expenses) are not gated.
-	Because surplus deposits land in the taxable account at year end, a year
+	Because a surplus deposit is still in the taxable balance at the end of its year
+(it lands at the start of the year and grows with it, Eq.~(\ref{Eq:C3b})), a year
 	cannot both deposit a surplus and claim the taxable-exhausted gate, which
 	closes the loophole of draining an account and immediately redepositing.
 
@@ -2303,16 +2337,15 @@ add the market returns to the savings balances.
 	is to move all transactions to be synchronous at the beginning or at the end of the year
 	thus avoiding undesirable movements of funds.
 	If we select the beginning of the year, except for contributions, this leads to
-	\begin{eqnarray}
+	\begin{equation}
 		\label{Eq:C3b}
+		\begin{aligned}
 		b_{ij(n+1)}
-		% && \nonumber \\
-		- \ [b_{ijn} + \delta_{j, 0} d_{in} - w_{ijn} + (\delta_{j, 2} - \delta_{j, 1})x_{in}
-		- \delta_{j, 1}\Xi_{in}]
-		(1 + \mathcal{T}_{ijn})
-		&=& \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
-		\nonumber
-	\end{eqnarray}
+		&- [b_{ijn} + \delta_{j, 0} d_{in} - w_{ijn} + (\delta_{j, 2} - \delta_{j, 1})x_{in}
+		- \delta_{j, 1}\Xi_{in}](1 + \mathcal{T}_{ijn}) \\
+		&= \kappa_{ijn} (1 + \mathcal{T}_{ijn}/2).
+		\end{aligned}
+	\end{equation}
 The term in $\Xi_{in}$ removes any qualified charitable distribution from the
 tax-deferred account, on the same timing as a withdrawal (Section~\ref{sec:qcd}).
 Two further terms are left out of Eq.~(\ref{Eq:C3b}) for clarity: with an opportunity cost
@@ -2530,19 +2563,19 @@ In this case, the objective function will need to consider the sum over all year
 		&& + \sum_i [w_{i1n} + x_{in} ]
 		\nonumber\\
 		&& + \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
-		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}] - e_n,
+		     + 0.5\kappa_{i0n})\alpha_{i0kn}\max(0, \tau_{kn})] - e_n,
 	\end{eqnarray}
 	and rearrange to move variables to the LHS as follows
-	\begin{eqnarray}
+	\begin{equation}
 		\label{Eq:C6}
-		e_n + \sum_{t=0}^{N_t-1} f_{tn} - l^{f}_n
-		- \sum_i [ w_{i1n} + x_{in}] &&
-		\nonumber \\
-		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + R_n\bar\zeta_{in} + \bar{\pi}_{in} + \bar{a}_{in} ]
-		\nonumber \\
-		&& 		+ 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n}.
-	\end{eqnarray}
+		\begin{aligned}
+		&e_n + \sum_{t=0}^{N_t-1} f_{tn} - l^{f}_n - \sum_i [ w_{i1n} + x_{in}] \\
+		&\qquad - \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\max(0, \tau_{kn})] \\
+		&\quad= \mathcal{A}^x_n
+		+ \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + R_n\bar\zeta_{in} + \bar{\pi}_{in} + \bar{a}_{in}] \\
+		&\qquad + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\max(0, \tau_{kn})\kappa_{i0n}.
+		\end{aligned}
+	\end{equation}
 	A negative \textit{other inc} entry $\upsilon_{in}$ is an above-the-line deduction, and taxable
 	income cannot go below zero, so the part of it the year's income cannot absorb is lost, not
 	carried forward.  Variable $l^{f}_n$, with $0 \le l^{f}_n \le \sum_i \max(0, -\upsilon_{in})$,
@@ -2588,8 +2621,9 @@ In this case, the objective function will need to consider the sum over all year
 	Social Security --- removing the federally taxable portion embedded in
 	Eq.~(\ref{Eq:C6}), with $R_n$ the self-consistent taxability ratio --- and
 	$E^{\sigma}_n = 0$ otherwise, and where
-	$E^{\pi}_n = \min\left(\sum_i \bar{\pi}_{in},\; N_i\,\bar{c}^{\,\pi}_n\right)$
-	applies the state pension exemption with per-person cap $\bar{c}^{\,\pi}_n$.
+	$E^{\pi}_n = \sum_i \min\left(\bar{\pi}_{in},\; \bar{c}^{\,\pi}_{in}\right)$
+	applies the state pension exemption, each person's pension up to that person's own
+	cap $\bar{c}^{\,\pi}_{in}$ (zero before the state's exemption age).
 	The retirement-income exemption cannot exceed the eligible income that
 	individual actually received,
 	\begin{equation}
@@ -2616,8 +2650,10 @@ In this case, the objective function will need to consider the sum over all year
 	tax is determined by the \emph{provisional income} (PI), defined as
 	\begin{equation}
 		\label{Eq:PI}
-		\Pi_n = \mathbb{G}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in}.
+		\Pi_n = \mathbb{G}^{\mathrm{aca}}_n - \tfrac{1}{2}\sum_i\bar{\zeta}_{in},
 	\end{equation}
+	where $\mathbb{G}^{\mathrm{aca}}_n$ is the MAGI that counts the full benefit, so that
+	$\Pi_n$ holds half of it.
 	The IRS piecewise formula gives the taxable SS amount as
 	\begin{equation}
 		\label{Eq:TaxableSS}
@@ -2678,7 +2714,8 @@ In this case, the objective function will need to consider the sum over all year
 	To avoid unnecessary LP rebuilds, $R_n$ is only updated when
 	$\max_n|\Delta R_n| > 10^{-3}$.
 	The SC loop terminates when the change in the objective function (net spending
-	or bequest) falls below a prescribed tolerance.
+	or bequest) falls below a prescribed tolerance and the fixed-point residual is
+	small enough (Section~\ref{sec:selfconsistent}).
 
 	Alternatively, when the solver option \code{withSSTaxability="optimize"} is set,
 	all max/min operations in
@@ -2708,7 +2745,7 @@ In this case, the objective function will need to consider the sum over all year
 	binary-controlled lower bounds that force the optimizer to the tighter constraint:
 	\begin{equation}
 		\label{Eq:BinQ}
-		p^{\sigma,\mathrm{min}}_n \;\ge\; \bar{p}_n\,(1 - z^{\sigma}_{0n}),
+		p^{\sigma,\mathrm{min}}_n \;\ge\; \bar{p}_n\,z^{\sigma}_{0n},
 		\qquad
 		p^{\sigma,\mathrm{min}}_n - p^{\sigma,\mathrm{lo}}_n
 		+ (\bar{\mathcal{C}}_n - \mathcal{P}^{\mathrm{lo}}_n)^+\,z^{\sigma}_{0n} \;\ge\; 0.
@@ -2726,7 +2763,7 @@ In this case, the objective function will need to consider the sum over all year
 	\end{equation}
 	\begin{equation}
 		\label{Eq:BinT}
-		t^{\sigma}_n \;\ge\; 0.85\!\sum_i\bar{\zeta}_{in}\,(1 - z^{\sigma}_{1n}),
+		t^{\sigma}_n \;\ge\; 0.85\!\sum_i\bar{\zeta}_{in}\,z^{\sigma}_{1n},
 		\qquad
 		t^{\sigma}_n - 0.5\,p^{\sigma,\mathrm{min}}_n - 0.85\,p^{\sigma,\mathrm{hi}}_n
 		  + \mathcal{M}^{\sigma}_n\,z^{\sigma}_{1n} \;\ge\; 0,
@@ -2737,17 +2774,16 @@ In this case, the objective function will need to consider the sum over all year
 	In this formulation $t^{\sigma}_n$ is an LP variable rather than the fixed parameter
 	$R_n\sum_i\bar{\zeta}_{in}$ used in SC-loop mode.
 	Moving $t^{\sigma}_n$ to the left-hand side, Eq.~(\ref{Eq:C6}) becomes
-	\begin{eqnarray}
+	\begin{equation}
 		\label{Eq:C6prime}
-		e_n + \sum_{t=0}^{N_t-1} f_{tn} - l^{f}_n
-		- t^{\sigma}_n
-		- \sum_i [ w_{i1n} + x_{in}] &&
-		\nonumber \\
-		- \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\tau_{kn}] &=&
-		\mathcal{A}^x_n + \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in} + \bar{a}_{in} ]
-		\nonumber \\
-		&& + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\tau_{kn}\kappa_{i0n},
-	\end{eqnarray}
+		\begin{aligned}
+		&e_n + \sum_{t=0}^{N_t-1} f_{tn} - l^{f}_n - t^{\sigma}_n - \sum_i [ w_{i1n} + x_{in}] \\
+		&\qquad - \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in})\alpha_{i0kn}\max(0, \tau_{kn})] \\
+		&\quad= \mathcal{A}^x_n
+		+ \sum_i [\omega_{in} + \upsilon_{in} + \nu_{in} + \bar{\pi}_{in} + \bar{a}_{in}] \\
+		&\qquad + 0.5\sum_{i,k\neq 0} \alpha_{i0kn}\max(0, \tau_{kn})\kappa_{i0n},
+		\end{aligned}
+	\end{equation}
 	and $R_n = t^{\sigma}_n / \sum_i\bar{\zeta}_{in}$ is recovered from the LP
 	solution for reporting.
 	There is no circular dependency: provisional income 	$\Pi_n$ is constructed from
@@ -2768,9 +2804,9 @@ In this case, the objective function will need to consider the sum over all year
 	standard exemption.
 	Only the \emph{taxable} portion of Social Security enters IRMAA MAGI (it is already
 	contained in $G_{(n-2)} + e_{(n-2)}$); the non-taxable portion is not added back.
-	If the plan
-        has its oldest individual currently either 64 or 65 years old, MAGI values for previous years
-	must be provided by the user to complete the calculations.
+	If anyone in the plan is on Medicare in either of the first two plan years,
+	the MAGI values of the two years before the plan are needed to complete the calculations;
+	they are provided by the user and default to zero.
 	\begin{figure}[t]
 	    \center\includegraphics[width=10cm]{piecewiseConstant.png}
 	    \caption{\small Modeling a piecewise constant monotonically increasing function.
@@ -2781,9 +2817,11 @@ In this case, the objective function will need to consider the sum over all year
 
 	Including regular premiums, there are $N_q=6$ brackets
 	of MAGI indexed for inflation defined with annual cumulative Medicare costs of
-	$\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$ also adjusted for inflation.
+	$\bar{\mathcal{C}}_{qn} = \gamma^{\mathrm{med}}_n\mathcal{C}_q$, adjusted for medical prices
+	(Section~\ref{Sec:MedInflation}).
         These segments are separated by $N_q - 1$ thresholds
-	$\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
+	$\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$, except the top one, which is held at its
+	nominal value through 2027 and follows $\gamma_n$ from 2028 on.
         Points $(\bar{\mathcal{L}}_{qn}, \bar{\mathcal{C}}_{qn})$ form a piecewise
 	constant function that could be modeled using a special ordered set of type 1 (SOS1).
 	Points $(\mathcal{L}_q, \mathcal{C}_q)$ are shown in Fig.~\ref{Fig:piecewise}.
@@ -2832,34 +2870,38 @@ In this case, the objective function will need to consider the sum over all year
 	as $z_{qn}^m = \delta_{q,q'}$ can only select a unique bracket $q'$.
 	For $n \ge 2$, Eq.~(\ref{Eq:MedDecomp}) can be expanded using
 	Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2}) as
-	\begin{eqnarray}
+	\begin{equation}
 		\label{Eq:MedDecomp2}
-		\sum_{q=0}^{N_q-1} h_{qn} &=&
-		\mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
-		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} \nonumber \\
-		&& \quad + R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \nonumber \\
-		&& - e_{(n-2)} - \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \nonumber \\
-		&& - \sum_i \left[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)})\right. \nonumber \\
-		&&\quad\left.\cdot\left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}] + \mu\alpha_{i00(n-2)}\right)\right] \nonumber \\
-		&& + \sum_i \bigl[w_{i0(n-2)}\alpha_{i00(n-2)} \nonumber \\
-		&&\quad \cdot \max(0, \tau_{0\max(0, n-3)} - \mu)\bigr] \nonumber \\
-		&& + 0.5\sum_{i} \left[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
-		+ \mu\alpha_{i00(n-2)}\right)\right]. \nonumber
-	\end{eqnarray}
+		\begin{aligned}
+		\sum_{q=0}^{N_q-1} h_{qn}
+		&= \mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
+		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)}] \\
+		&\quad + \sum_i [R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} + \bar{a}_{i(n-2)}]
+		+ \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \\
+		&\quad + \sum_i \Bigl[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)}) \\
+		&\qquad\cdot \Bigl(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\max(0, \tau_{k(n-2)})] + \mu\alpha_{i00(n-2)}\Bigr)\Bigr] \\
+		&\quad + \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] \\
+		&\quad + 0.5\sum_{i} \Bigl[\kappa_{i0(n-2)} \Bigl(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\max(0, \tau_{k(n-2)})] \\
+		&\qquad + \mu\alpha_{i00(n-2)}\Bigr)\Bigr].
+		\end{aligned}
+	\end{equation}
+	The terms on the right are income before the standard deduction, as MAGI is, so
+	$e_{(n-2)}$ does not appear.
 	Collecting variables on the left-hand side yields
 	\begin{equation}
 		\label{Eq:MedDecomp3}
 		\begin{aligned}
 		\sum_{q=0}^{N_q-1} h_{qn}
-		&+ e_{(n-2)} + \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \\
-		&+ \sum_i \Bigl[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)}) \\
-		&\qquad\cdot \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
+		&- \sum_i [w_{i1(n-2)} + x_{i(n-2)}] \\
+		&- \sum_i \Bigl[(b_{i0(n-2)} - w_{i0(n-2)} + d_{i(n-2)}) \\
+		&\qquad\cdot \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\max(0, \tau_{k(n-2)})]
 		+ \mu\alpha_{i00(n-2)}\right)\Bigr] \\
 		&- \sum_i [w_{i0(n-2)}\alpha_{i00(n-2)}\max(0, \tau_{0\max(0, n-3)} - \mu)] \\
 		&= \mathcal{A}^x_{(n-2)} + \mathcal{A}^c_{(n-2)}
-		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)} + R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)}] \\
-		&\quad + 0.5\sum_{i} \Bigl[\kappa_{i0(n-2)} \left(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\tau_{k(n-2)}]
-		+ \mu\alpha_{i00(n-2)}\right)\Bigr].
+		+ \sum_i [\omega_{i(n-2)} + \upsilon_{i(n-2)} + \nu_{i(n-2)}] \\
+		&\quad + \sum_i [R_{(n-2)}\bar{\zeta}_{i(n-2)} + \bar{\pi}_{i(n-2)} + \bar{a}_{i(n-2)}] \\
+		&\quad + 0.5\sum_{i} \Bigl[\kappa_{i0(n-2)} \Bigl(\sum_{k\neq 0}[\alpha_{i0k(n-2)}\max(0, \tau_{k(n-2)})] \\
+		&\qquad + \mu\alpha_{i00(n-2)}\Bigr)\Bigr].
 		\end{aligned}
 	\end{equation}
 	Eq.~(\ref{Eq:MedDecomp}) is expanded using Eqs.~(\ref{Eq:Tx2}) and (\ref{Eq:Qx2})
@@ -2888,7 +2930,7 @@ In this case, the objective function will need to consider the sum over all year
 \label{Sec:ACA}
 	When \code{withACA="optimize"} and ACA is enabled (SLCSP $> 0$, $n_{\mathrm{aca}} > 0$),
 	ACA bracket selection and net premium cost are modeled within the optimization.
-	ACA uses \emph{current-year} MAGI $\mathbb{G}_n$ (no two-year lag like Medicare).
+	ACA uses \emph{current-year} MAGI $\mathbb{G}^{\mathrm{aca}}_n$ (no two-year lag like Medicare).
 	Let $N_r = 8$: seven thresholds, multiples of the poverty line of the tax household
 	(published the year before), separate eight brackets.
 	Bracket 0 lies below the year's first threshold, the state's Medicaid limit (138\% of the
@@ -2908,9 +2950,9 @@ In this case, the objective function will need to consider the sum over all year
 
 	\textbf{MAGI decomposition:}
 	\begin{equation}
-		\sum_{r=0}^{N_r-1} h^{\mathrm{aca}}_{rn} = \mathbb{G}_n,
+		\sum_{r=0}^{N_r-1} h^{\mathrm{aca}}_{rn} = \mathbb{G}^{\mathrm{aca}}_n,
 	\end{equation}
-	where $\mathbb{G}_n$ is the current-year MAGI (same structure as in Eq.~(\ref{Eq:MedDecomp2})
+	where $\mathbb{G}^{\mathrm{aca}}_n$ is the current-year MAGI (same structure as in Eq.~(\ref{Eq:MedDecomp2})
 	but with $n$ instead of $n-2$, and the full Social Security benefit).
 
 	\textbf{Bracket bounds} (analogous to Eq.~(\ref{Eq:MedDecomph}), with the income ceiling
@@ -4167,9 +4209,10 @@ effective plan horizon for scenario $s$ is
     \label{Eq:LastSurvivor}
     T^{(s)} \;=\; \max_i\, T_i^{(s)}.
 \end{equation}
-Each scenario is solved with a fresh plan clone whose life expectancy is set
-to the drawn last-survivor horizon $T^{(s)}$, so the optimization
-horizon matches the sampled mortality outcome exactly.
+Each scenario is solved with a fresh plan clone in which each individual's life
+expectancy is set to that individual's drawn age $T_i^{(s)}$, so the optimization
+horizon ends at the last-survivor horizon $T^{(s)}$ and the first death, with
+its change of filing status and survivor benefits, falls where it was drawn.
 Scenarios with $T^{(s)} \leq 1$ year are pre-assigned $g_s = 0$ to
 handle the degenerate case of an imminent end of horizon.
 
@@ -4502,7 +4545,8 @@ birth year as described in Chapter~\ref{Chap:TaxRules}.
 
 A separate factor applies to the spousal benefit, which receives no delayed
 credit beyond the spousal FRA and whose reduction before FRA is $25/36$ of~1\%
-per month for the first 36~months.
+per month for the first 36~months and $5/12$ of~1\% for each further month,
+so that a spouse claiming at 62 with an FRA of 67 receives 32.5\% of the worker's PIA.
 Where benefits are withheld by the earnings test, the months withheld are
 credited back at FRA through the adjusted reduction factor, which recomputes
 $\Phi$ at an effective age advanced by the number of crediting months.
@@ -4689,8 +4733,8 @@ $b_{ikn}$ is a multidimensional array depending on subscripts $i, k,$ and $n$.
 	At the time of writing, there are 5 Medicare premium step adjustments
         in the federal tax code separating $N_q = 6$ income brackets.
 \item [$r$]
-	ACA MAGI bracket index. $r$ goes from 0 to $N_r - 1$ with $N_r = 7$ brackets
-	(6 FPL-based intervals up to 400\% FPL, plus one above).
+	ACA MAGI bracket index. $r$ goes from 0 to $N_r - 1$ with $N_r = 8$ brackets
+	(7 FPL-based intervals up to 400\% FPL, plus one above).
 \item [$t$]
 	Federal income tax bracket. $t$ goes from 0 to $N_t - 1$, from low to high.
 	At the time of writing, there are $N_t = 7$ federal income tax brackets in the current federal tax code.
@@ -4834,7 +4878,7 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	exactly from the IRS formula without iteration.
 \item [$z_{*}^*$]
 	Binary variables are all designated by the letter $z$; a superscript
-	distinguishes the five families:
+	distinguishes the seven families:
 	\begin{itemize}[nosep]
 	  \item $z_{qn}^m$ --- Medicare IRMAA bracket selectors; present when
 	    \code{withMedicare="optimize"}.
@@ -4849,6 +4893,13 @@ while parameters are prescribed by the user, historical data, or tax laws.
 	  \item $z^j_n$ --- NIIT branch selector ($z^j=1$ when net investment income,
 	    rather than the excess of MAGI over $\mathbb{G}^{\mathrm{NIIT}}$, bounds the tax);
 	    present when \code{withNIIT="optimize"}.
+	  \item $z^o_{0n}$, $z^o_{1n}$ --- withdrawal-ordering gates marking the taxable and the
+	    tax-deferred balances exhausted at the end of year $n$
+	    (Section~\ref{Sec:WithdrawalOrdering}); present when
+	    \code{withdrawalOrder="taxable_first"}.
+	  \item $z^{\mathrm{sb}}_n$ --- marks a bonus year in which the OBBBA senior bonus is fully
+	    phased out (Section~\ref{Sec:SeniorBonus}); present when
+	    \code{withSeniorBonus="optimize"}.
 	\end{itemize}
 	See the corresponding constraint subsections for the big-$\mathcal{M}$ formulations.
 \end{description}
@@ -4900,16 +4951,13 @@ Parameter values are either set by the user, historical data, or by the tax code
 	a flat profile, or can be a {\em smile} profile allowing for more money at the start
 	of retirement and modulating it over retirement. Parameter
 	$\xi_n$ can also contain spending adjustments typically made at the passing of one spouse.
-	The {\em smile} can be implemented using a cosine superimposed over a gentle linear increase
-	such as in
-	\begin{equation}
-		\xi_n = 1 + a_1*\cos(2n\pi/(N_n-1)) + a_2n/(N_n-1),
-	\end{equation}
-	and then normalized by factor $N_n/(\sum_n \xi_n )$ to be sum-neutral with respect to a flat profile.
-	Values of $a_1 = 15\%$ and $a_2=12\%$ provide curves that are similar to realistic
+	The {\em smile} is a cosine superimposed over a gentle linear increase, optionally
+	delayed by $n_0$ years, as given by Eq.~(\ref{Eq:SmileProfile}).
+	Values of $a = 15\%$ and $b = 12\%$ provide curves that are similar to realistic
 	spending profiles reported in the literature. See Fig.~\ref{Fig:profile} for an example.
 	At the passing of one spouse, both profiles are reduced by a factor $\chi$ for $n \ge n_d$,
-	and the normalizing factor is adjusted accordingly.
+	and the smile is normalized so that $\sum_n \xi_n = N_n - (1 - \chi)(N_n - n_d)$,
+	the sum a flat profile with the same survivorship would give.
 	The inflation-adjusted profile is $\bar{\xi}_n = \gamma_n \xi_n$.
 	\begin{figure}[t]
 	    \includegraphics[width=\linewidth]{profile.png}
@@ -5142,7 +5190,7 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	Combined Medicare Part~B and Part~D cost for IRMAA bracket $q$ of modified adjusted
 	gross income (MAGI) $\mathbb{G}$, including base premiums and income-related monthly
 	adjusted amounts (IRMAA) for both parts.
-	When adjusted for inflation, this becomes $\bar{\mathcal{C}}_{qn} = \gamma_n\mathcal{C}_q$.
+	When adjusted for medical prices, this becomes $\bar{\mathcal{C}}_{qn} = \gamma^{\mathrm{med}}_n\mathcal{C}_q$.
         There are $N_q = 6$ brackets for IRMAA and therefore 5 step adjustments forming
         a piecewise constant function.
 \item [$\mathcal{D}_n$]
@@ -5150,7 +5198,7 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 	for a mortgage or a car loan, for example.
 \item [$\mathcal{F}_n$]
 	Employee payroll tax in year $n$ on the household's earnings: 6.2\% of each person's earnings
-	up to the social security wage base (\$184,500 in 2026, held at that level in today's dollars),
+	up to the social security wage base (\$184,500 in 2026 and \$192,300 in 2027, held at the 2027 level in today's dollars),
 	1.45\% of all earnings, and 0.9\% of the combined earnings above \$250,000 through the year
 	of the first death and \$200,000 after (not indexed).
 	Earnings are those the earnings test reads, the anticipated wages plus the year's
@@ -5160,20 +5208,23 @@ where $N$ is either $n_d$ or $N_n$, or using an s-curve as in
 \item [$\mathcal{L}_{q}$]
 	Upper bounds for brackets used to determine Medicare adjustments
 	based on the modified adjusted gross income (MAGI) $\mathbb{G}$.
-	When adjusted for inflation, this becomes $\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$.
+	When adjusted for inflation, this becomes $\bar{\mathcal{L}}_{qn} = \gamma_n\mathcal{L}_q$,
+	except for the top threshold, frozen in nominal dollars through 2027.
         While there are 6 brackets for IRMAA adjustments forming a piecewise constant function,
 	$\mathcal{L}_q$ has $N_q - 1$ distinct thresholds as the last element is an arbitrarily large
         number bounding the last bracket. See Fig.~\ref{Fig:piecewise} for a visual representation.
         Note that $\bar{\mathcal{L}}_{qn}$ needs to be adjusted for inflation and marital status,
         including adjustments due to the passing of one spouse.
-\item [$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$, $\bar{\mathcal{C}}^{\mathrm{aca}}_r$, $\bar{S}^{\mathrm{aca}}_n$]
+\item [$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$, $\bar{\mathcal{C}}^{\mathrm{aca}}_{rkn}$, $\bar{\mathcal{I}}^{\mathrm{aca}}_{rkn}$, $\bar{S}^{\mathrm{aca}}_n$]
 	ACA parameters (only when \code{withACA="optimize"} and $n < n_{\mathrm{aca}}$).
-	$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$: inflation-adjusted FPL bracket thresholds for year $n$;
-	$N_r = 7$ brackets (6 FPL-based intervals up to 400\% FPL, plus one above).
-	$\bar{\mathcal{C}}^{\mathrm{aca}}_r$: applicable contribution percentage for bracket $r$ ($r = 0,\ldots,5$);
-	contribution is proportional to MAGI within each bracket.
+	$\bar{\mathcal{L}}^{\mathrm{aca}}_{rn}$: bracket thresholds for year $n$, multiples of the
+	poverty line of the tax household;
+	$N_r = 8$ brackets (7 FPL-based intervals up to 400\% FPL, plus one above).
+	$\bar{\mathcal{C}}^{\mathrm{aca}}_{rkn}$, $\bar{\mathcal{I}}^{\mathrm{aca}}_{rkn}$: slope and intercept of
+	the $k$-th tangent line to the net premium of bracket $r$ ($r = 1,\ldots,6$), the year's
+	applicable percentage of MAGI times MAGI (Section~\ref{Sec:ACA}).
 	$\bar{S}^{\mathrm{aca}}_n$: inflation-adjusted annual benchmark Silver plan (SLCSP) premium;
-	for bracket 6 (above 400\% FPL), net cost equals $\bar{S}^{\mathrm{aca}}_n$ (no subsidy).
+	for bracket 7 (above 400\% FPL), net cost equals $\bar{S}^{\mathrm{aca}}_n$ (no subsidy).
 \item [$\mu$]
 	Dividend return rate for equities in taxable accounts. Average is about 1.7\% for S\&P 500.
 \item [$\nu$]
@@ -5261,8 +5312,10 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	\begin{equation}
 		\label{Eq:Qx2}
 		Q_n = \sum_i \alpha_{i00n}\left[(b_{i0n} - w_{i0n} + d_{in} + 0.5\kappa_{i0n})\mu +
-		w_{i0n}{\max(0, \tau_{0(n-1)} - \mu)}\right].
+		w_{i0n}{\max(0, \tau_{0(n-1)} - \mu)}\right] + \mathcal{A}^c_n.
 	\end{equation}
+	The last term, the long-term capital gains realized on the sale of fixed assets, also
+	enters the LTCG bracket partition.
 	When a cost basis is given for the taxable account, the gain fraction of a sale,
 	$\max(0, \tau_{0(n-1)} - \mu)$ above, is replaced by the fraction of the account that is
 	unrealized gain, tracked from that basis and updated by the self-consistent loop
@@ -5362,11 +5415,11 @@ Intermediate variables are represented in roman uppercase letters, or in double 
 	Interest and dividend income from the taxable account, plus rent and trust income from the \code{net inv} column.
 	Used as the base for NIIT computation (together with $Q_n$).
 	\begin{equation}
-		\mathbb{I}_n = \max\left(0,\ \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
-		     + 0.5\kappa_{i0n})\alpha_{i0kn}\tau_{kn}]\right) + \sum_i \nu_{in}.
+		\mathbb{I}_n = \sum_{i,k\neq 0} [(b_{i0n} - w_{i0n} + d_{in}
+		     + 0.5\kappa_{i0n})\alpha_{i0kn}\max(0, \tau_{kn})] + \sum_i \nu_{in}.
 	\end{equation}
-	Only positive returns are taxable; the interest and dividend component
-	is clamped to zero before adding $\nu_{in}$.
+	Only positive returns are taxable; each asset's return is clamped to zero
+	separately, as in Eq.~(\ref{Eq:Tx2}).
 
 \item [$P_n$]
 	Amount of 10\% early withdrawal penalty in year $n$.
@@ -6046,7 +6099,7 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
         A_e[J_0(i, j, n), q_b(i, j, n+1)] &=& 1, \nonumber \\
         A_e[J_0(i, j, n), q_b(i, j, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
 		(1 + \mathcal{T}_{ijn}), \nonumber \\
-        A_e[J_0(i, j, n), q_d(i, j, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
+        A_e[J_0(i, j, n), q_d(i, n)] &=& - [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
 		\delta_{j, 0} (1 + \mathcal{T}_{ijn}), \nonumber \\
         A_e[J_0(i, j, n), q_w(i, j, n)] &=& [1 - \delta_{n, n_d-1}\delta_{i, i_d}]
 	(1 + \mathcal{T}_{ijn}),\nonumber \\
@@ -6066,7 +6119,7 @@ We are now ready to replace Eq.~(\ref{Eq:B1}) for $A_ey = v$ by
                 \nonumber \\
         &&\qquad\forall i \in \{0,\ldots, N_i-1\},\nonumber\\
         &&\qquad\forall j \in \{0,\ldots, N_j-1\},\nonumber\\
-        &&\qquad\forall n \in \{0,\ldots, N_n-1\}, \nonumber
+        &&\qquad\forall n \in \{0,\ldots, N_n-1\}.
 \end{eqnarray}
 where $v$ is
 \begin{eqnarray}
@@ -6611,7 +6664,7 @@ Pension income: per-person schedules, indexation, start ages, and the
 joint-and-survivor reduction.
 
 \item[spending.py]
-The spending profile $\Lambda_n$ --- flat, smile, or a user-supplied series ---
+The spending profile $\xi_n$ --- flat, smile, or a user-supplied series ---
 and the subjective time-discount front-loading of \code{timePreference}.
 
 \item[fixedassets.py]
@@ -6695,8 +6748,11 @@ used in the CLI and Jupyter notebooks.
 \item[cli/]
 A Click-based command-line interface registered as the \code{owlcli}
 entry point.
-Supports \code{list} (enumerate available case files) and \code{run}
-(solve a case from a TOML file) commands.
+Its commands are \code{list} (enumerate available case files), \code{run}
+(solve a case from a TOML file), \code{compare} (a case against a variant set by
+overrides), \code{explain} (describe a case without solving it), \code{frontier}
+(trace net spending against the bequest floor), \code{list-rates} (the available
+rate models), and \code{serve} (start the MCP server).
 
 \item[assistant/]
 AI-assistant integration layer shared by the MCP server and the chat page.
