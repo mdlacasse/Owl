@@ -910,14 +910,14 @@ roth_conversion = "exemption"
 
 [KS_Single]
 # Audit 2026-09: SB 1 (2024) two-rate structure 5.2%/5.58%; SD $3,605/$8,240 + exemption $9,160/$18,320; Tax Foundation 2026 table.
-# KS: SS exempt if AGI < $75k (typical retiree); modeled here as fully exempt
+# KS: SS fully exempt from tax year 2024 (SB 1, 2024 special session), which removed the $75k AGI threshold.
 brackets = [[0.0, 5.2], [23000.0, 5.58]]
 standard_deduction = 12765
 brackets_indexed = false
 deduction_indexed = false
 exemptions_indexed = false
 tax_social_security = false
-ss_exemption_threshold = 75000
+ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
@@ -930,7 +930,7 @@ brackets_indexed = false
 deduction_indexed = false
 exemptions_indexed = false
 tax_social_security = false
-ss_exemption_threshold = 75000
+ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
@@ -1086,7 +1086,7 @@ roth_conversion = "exemption"
 [MO_Single]
 # Audit 2026-09: brackets indexed for 2026; SD equals federal $16,100/$32,200; Tax Foundation 2026 table.
 # MO: SB 3 (2022) revenue triggers cut top rate to 4.7% effective Jan 1, 2025.
-# SS exempt for AGI < $100k.
+# SS fully exempt from tax year 2024 for filers 62 and older, which removed the $100k AGI threshold.
 brackets = [
     [0.0, 0.0], [1348.0, 2.0], [2696.0, 2.5], [4044.0, 3.0],
     [5392.0, 3.5], [6740.0, 4.0], [8088.0, 4.5], [9436.0, 4.7]
@@ -1097,7 +1097,7 @@ deduction_indexed = true
 exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
-ss_exemption_threshold = 100000
+ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0
@@ -1114,7 +1114,7 @@ deduction_indexed = true
 exemptions_indexed = false
 senior_deduction = false
 tax_social_security = false
-ss_exemption_threshold = 100000
+ss_exemption_threshold = 0
 retirement_income_exemption = 0
 exemption_age = 0
 pension_exemption = 0

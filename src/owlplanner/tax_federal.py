@@ -937,7 +937,7 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=
     """
     Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
 
-    Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are multiples of the poverty
+    Uses 2026+ ACA rules (N_ACA_R = 8 brackets). Bracket thresholds are multiples of the poverty
     line of the tax household (1 or 2), the guideline published the year before (_aca_fpl, #200).
     Each year uses its applicable percentage table (_aca_table, #201). Income of exactly 400% FPL
     stays in bracket 5, whose upper bound is inclusive. Coverage months and benchmarks follow
