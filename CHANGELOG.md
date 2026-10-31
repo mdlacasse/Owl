@@ -1,3 +1,14 @@
+### Version 2026.10.30
+
+#### Changed: the Docker images run natively on Apple Silicon
+
+Both Docker images now start from Debian slim instead of Alpine and are published for
+`linux/amd64` and `linux/arm64`. On Alpine, an `arm64` build had to compile matplotlib, which
+publishes no Alpine wheel for `arm64`, so building the images on an Apple Silicon Mac failed, and
+the published `amd64` images ran there only under emulation. Every dependency now installs from a
+wheel on both architectures. The versioned image grows from about 260 MB to 307 MB, and the edge
+image from 38 MB to 104 MB. Thanks to kryofin (@kryofin) for the issue and the fix (#242).
+
 ### Version 2026.10.29
 
 #### Fixed: the 2026 QCD limit is \$111,000

@@ -23,7 +23,7 @@ application installed on your computer.
 There are two versions of the Docker image: one versioned image (`owldocker:latest`) that has been provisioned
 with all the necessary Python modules, and one edge image (`owldocker:edge`) that self-installs the Owl application from
 GitHub at runtime.
-The versioned image, while being larger than the edge image (264 MB vs 37 MB),
+The versioned image, while being larger than the edge image (307 MB vs 104 MB),
 will start much faster as all the required code is contained in the image. However,
 the version of Owl is fixed at the time when the container was built. Conversely,
 the edge image will dynamically clone Owl from GitHub and download/install all its requirements.
@@ -32,6 +32,9 @@ This leads to a slower start, but this approach guarantees to have Owl's latest 
 
 The `latest` tag always points to the most recent versioned image. Specific releases are also published
 under their version number (e.g. `owldocker:<version>`), so you can pin to a particular Owl release if needed.
+
+Both images are published for `linux/amd64` and `linux/arm64`, so they run natively on Apple Silicon
+as well as on Intel and AMD machines. Docker pulls the one matching your computer.
 
 Neither image ships MOSEK, which needs a licence: Owl runs with the free HiGHS solver in a container.
 By default the app follows the light or dark theme of the system running the browser.
@@ -95,9 +98,11 @@ not included. Only the Dockerfiles and the entrypoint scripts are taken from you
 
 There are two images you can create. One builds Owl at run time, while
 the other builds it statically in the image.
-These two approaches trade startup time for image space: the edge image is small
-(~37 MB) but slower to start (~52 sec), while the versioned image is larger (~264 MB)
-and starts in a few seconds (~8 sec).
+These two approaches trade startup time for image space: the edge image is smaller
+(~104 MB) but slower to start (~30 sec), while the versioned image is larger (~307 MB)
+and starts in a few seconds.
+The image is built for the architecture of your computer (`linux/arm64` on Apple Silicon);
+add `--platform linux/amd64` (or `linux/arm64`) to build for the other one.
 First build the Docker image from the `docker` directory:
 ```shell
 cd docker
@@ -164,4 +169,4 @@ Adjust port numbers as needed.
 ------------------------------------------------------------------------------------
 
 #### Credits
-Josh (noimjosh@gmail.com), kg333 (matthew@kyengineer.com)
+Josh (noimjosh@gmail.com), kg333 (matthew@kyengineer.com), kryofin (native arm64 images)

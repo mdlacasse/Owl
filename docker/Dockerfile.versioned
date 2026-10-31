@@ -1,16 +1,19 @@
 # docker/Dockerfile
 
-FROM python:3.14-alpine
+# Debian slim rather than Alpine: every dependency, matplotlib included, has a manylinux wheel
+# for both amd64 and arm64, so nothing is compiled on either architecture.
+FROM python:3.14-slim
+COPY --from=ghcr.io/astral-sh/uv:0.11.19 /uv /usr/local/bin/uv
 
 WORKDIR /app
 
-RUN apk add --no-cache bash git uv
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 RUN python -m pip uninstall pip setuptools -y
 
 COPY runentrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod 555 /usr/bin/entrypoint.sh
 
-RUN adduser -D -u 1001 owl && chown -R owl /app
+RUN useradd -m -u 1001 owl && chown -R owl /app
 USER owl
 
 RUN rm -rf /app/owl
@@ -23,6 +26,7 @@ RUN cd /app/owl && uv sync --frozen --no-dev --extra assistant --no-install-pack
 
 EXPOSE 8501
 
-HEALTHCHECK CMD wget -q --spider http://localhost:8501/_stcore/health || exit 1
+# Slim has no wget.
+HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health')" || exit 1
 
 ENTRYPOINT ["/bin/bash", "/usr/bin/entrypoint.sh"]
