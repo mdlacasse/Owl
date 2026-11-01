@@ -56,3 +56,7 @@ tests: tests-mosek tests-highs
 tests-deep:
 	OWL_TEST_SOLVER=mosek uv --verbose run pytest -n 2 -m deep
 	OWL_TEST_SOLVER=highs uv --verbose run pytest -n 2 -m deep
+
+tests-benchmarks:
+	OWL_TEST_SOLVER=mosek uv run pytest benchmarks --benchmark-only
+	OWL_TEST_SOLVER=highs uv run pytest benchmarks --benchmark-only
