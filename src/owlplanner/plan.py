@@ -702,6 +702,10 @@ class Plan:
         self.breakpointMethodUsed = "loop"
         self.localSearchLog = []
         self._localSearch = None
+        # An optional (w_ijn, x_in) starting plan for the local search, set by a caller that
+        # holds a feasible plan the loop does not find. Persists across solves on this object,
+        # so a caller that sets it is responsible for clearing it.
+        self._localSearchSeedPlan = None
         self.bracketOrderExcess = 0.0
         # Whether the objective prices tax (TAX_TIEBREAK); switched on by _scSolve when needed.
         self._tax_tiebreak_on = False
@@ -5820,8 +5824,17 @@ class Plan:
         loop_state = copy.deepcopy({k: v for k, v in self.__dict__.items() if k not in skip})
         self.mylog.vprint(f"Local search: the loop's plan is worth {u.d(floor)}; searching from it.")
 
+        # A starting plan the loop cannot reach, supplied by the caller as (w_ijn, x_in).
+        # The search descends from whichever source first repairs into feasibility, and every
+        # restricted problem it solves contains its own starting plan, so a seed can only
+        # change which basin is explored -- the floor below stays the LOOP's value, so a
+        # seeded solve never returns less than an unseeded one. Used by the regret sweep,
+        # whose pinned solves are restrictions of this same problem and sometimes beat the
+        # unconstrained solve outright (see stresstests.lift_regret_baselines).
+        _seed = getattr(self, "_localSearchSeedPlan", None)
+        _seeds = None if _seed is None else [("caller's plan", _seed[0], _seed[1])]
         self._localSearch = localsearch.LocalSearch(
-            self, self.w_ijn_lp.copy(), self.x_in.copy(),
+            self, self.w_ijn_lp.copy(), self.x_in.copy(), seeds=_seeds,
             step_time=u.get_numeric_option(myoptions, "localSearchStepTime", localsearch.STEP_TIME, min_value=0),
             total_time=u.get_numeric_option(myoptions, "localSearchTime", localsearch.TOTAL_TIME, min_value=0),
             radius=int(u.get_numeric_option(myoptions, "localSearchRadius", localsearch.RADIUS, min_value=0)),

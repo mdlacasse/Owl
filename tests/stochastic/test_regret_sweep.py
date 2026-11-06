@@ -118,13 +118,19 @@ def test_lift_raises_a_short_baseline_to_its_best_pinned_plan():
     lifted = lift_regret_baselines(r)
 
     np.testing.assert_array_equal(lifted["v_star"][:2], [101_500.0, 80_200.0])
-    np.testing.assert_array_equal(lifted["x_star"][:2], [50_000.0, 0.0])  # never-convert: no first-year conversion
     np.testing.assert_array_equal(lifted["v_star_lift"][:2], [1_500.0, 200.0])
+    # The lift raises the VALUE only. x_star stays the baseline solve's own conversion: the
+    # winning plan's is a grid point, not a location any solve chose. The grid point is
+    # recorded separately (0 for the never-convert winner, which converts nothing).
+    np.testing.assert_array_equal(lifted["x_star"][:2], [0.0, 30_000.0])
+    np.testing.assert_array_equal(lifted["x_star_lift"][:2], [50_000.0, 0.0])
     np.testing.assert_array_equal(lifted["v_star_osc"][:2], [12.0, 0.0])  # the winning solve's bar
     # The solves' own values are kept, and a failed baseline stays failed.
     np.testing.assert_array_equal(lifted["v_star_solved"][:2], [100_000.0, 80_000.0])
     np.testing.assert_array_equal(lifted["x_star_solved"][:2], [0.0, 30_000.0])
     assert np.isnan(lifted["v_star"][2]) and lifted["v_star_lift"][2] == 0.0
+    # Nothing was lifted in the failed scenario, so no grid point is on record for it either.
+    assert np.isnan(lifted["x_star_lift"][2])
     # Regret is non-negative everywhere it is defined.
     R = lifted["v_star"][:, None] - lifted["v_at"]
     assert np.nanmin(R) >= 0.0
@@ -135,7 +141,7 @@ def test_lift_raises_a_short_baseline_to_its_best_pinned_plan():
 def test_lift_is_idempotent_and_leaves_ties_alone():
     once = lift_regret_baselines(_short_baseline_result())
     twice = lift_regret_baselines(once)
-    for key in ("v_star", "x_star", "v_star_lift", "v_star_solved", "x_star_solved"):
+    for key in ("v_star", "x_star", "v_star_lift", "x_star_lift", "v_star_solved", "x_star_solved"):
         np.testing.assert_array_equal(twice[key], once[key])
     # A pinned value equal to the baseline is no improvement.
     r = _short_baseline_result()
