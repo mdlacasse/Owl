@@ -155,10 +155,17 @@ class LocalSearch:
     """Fix-and-optimize over the threshold binaries; one instance per Plan.solve()."""
 
     def __init__(self, plan, seed_w, seed_x, step_time=STEP_TIME, total_time=TOTAL_TIME, radius=RADIUS,
-                 step_nodes=None):
+                 step_nodes=None, seeds=None):
         self.plan = plan
         self.seed_w = np.asarray(seed_w, dtype=float)
         self.seed_x = np.asarray(seed_x, dtype=float)
+        # Starting plans supplied by the caller, tried BEFORE the loop's own plan. Each is
+        # (label, w_ijn, x_in). Every restricted problem the search solves contains its own
+        # starting plan, so starting from a better one cannot return a worse answer; what it
+        # buys is a different basin. The caller is responsible for the plan being feasible
+        # here -- the regret sweep's pinned solves are, being restrictions of this problem.
+        self.seeds = [(str(lab), np.asarray(w, dtype=float), np.asarray(x, dtype=float))
+                      for lab, w, x in (seeds or [])]
         self.step_time = float(step_time)
         self.radius = int(radius)
         self.step_nodes = int(step_nodes) if step_nodes else 0
@@ -272,7 +279,7 @@ class LocalSearch:
             self._step(steps, "start: previous binaries (LP)", res, dt)
             if res[2]:
                 return res
-        sources = []
+        sources = list(self.seeds)
         if have_prev:
             sources.append(("previous plan", self.prev[self._cols("w")].reshape(p.vm["w"].shape),
                             self.prev[self._cols("x")].reshape(p.vm["x"].shape)))

@@ -1,5 +1,45 @@
 ### Version WIP
 
+#### Fixed: a regret sweep's baseline that one of its own restricted solves beat is re-solved
+
+Every pinned solve in a conversion-regret sweep is a restriction of the unconstrained baseline, so
+its plan is feasible for the baseline too and `v(x) <= v*` is an identity. A restricted solve
+worth MORE is therefore proof that the baseline fell short, and on the local-search path it is the
+only proof available: `solverGap` is -1 there, so no certificate accompanies the solve. The sweep
+previously answered that proof by relabelling `v*` to the winning value, which leaves the
+shortfall in place. The winning plan is now fed back into the baseline's local search as a seed
+(`Plan._localSearchSeedPlan`, honoured by `LocalSearch(seeds=...)`), which lands in the winner's
+basin and usually beats it; the loop repeats until nothing wins, and `repair_rounds` caps it.
+`v*` strictly increases each round, so it terminates. The grid's own winner counts as evidence,
+and so do fresh solves at `x* +/-` each of `repair_probes`, defaulting to the three offsets the
+published asymmetry statistics are read at: a baseline can be beaten off the grid while no grid
+point beats it, which the grid alone cannot see. On the reference \$4.75M profile, window 1934 has
+no grid evidence at all (its best grid point falls \$732 short of the baseline) and yet its probe
+at `x* - \$30,000` beats the baseline by \$1,639; it is now repaired by \$5,031. The largest
+repair measured is \$100,377, on the reference-savings higher-benefit rung's 1995 window, which is
+\$3,612 beyond what relabelling reported. The probes also return EXACT leg values at `x* +/-
+delta`, free of the interpolation a grid estimator needs and of the right-edge truncation that
+makes it drop scenarios. Pass `repair_baselines=False` to reproduce a sweep made before this
+existed; the no-seed path through `LocalSearch` is unchanged.
+
+#### Changed: lifting a short baseline raises its value, and no longer moves its optimum
+
+`lift_regret_baselines` raised `v*` to the best plan a scenario's own sweep found and also
+rewrote `x*` to that plan's first-year conversion. But that conversion is a grid point: it is
+wherever the grid happened to be ruled, not a location any solve chose. Reporting it as the
+optimum asserted a conversion with no plan behind it, displaced `x*` in 84 of 360 swept windows
+across five configurations, and in five windows of the reference \$4.75M profile turned "convert
+nothing" into \$136,364 to \$238,636. It also left the reported optimum at no tax threshold,
+where a solved optimum is almost always exactly on one, so those scenarios had to be excluded
+from any statement about which threshold a conversion fills. The lift now raises the value only.
+`x*` keeps the baseline solve's own conversion, and `v*` consequently exceeds the value attained
+at the reported `x*` -- the honest reading, that the solve is known to have fallen short by at
+least this much and the true optimum's location is not known. The winning grid point is recorded
+in the new `x_star_lift`, NaN where nothing was lifted. `v_star_lift > 0` is now the test for
+"this scenario was lifted"; comparing `x_star` against `x_star_solved` no longer detects one.
+Repair runs first, so the lift is the floor under anything it cannot recover, and `R >= 0`
+remains an identity either way.
+
 #### Fixed: branch-and-bound loops that never settled, although their parameters had
 
 Branch-and-bound returns any plan within its gap of the optimum, 0.3% when Medicare is solved as

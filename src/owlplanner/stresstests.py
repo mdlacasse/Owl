@@ -529,6 +529,101 @@ def _regret_baseline_worker(args):
         }
 
 
+def _regret_probe_repair_worker(args):
+    """
+    Probe x* +/- each delta, re-solve the baseline from any probe that beats it, repeat.
+
+    A probe pins year one, so it is a restriction of the baseline and v(x) <= v* is an
+    identity. A probe worth MORE therefore proves the baseline solve fell short. The grid
+    already supplies that evidence wherever a grid point wins, but the published statistics
+    read the curve OFF the grid, at x* +/- delta, and a baseline can be beaten there while no
+    grid point beats it: on the reference 4.75M profile, window 1934 has max(v_at) - v* =
+    -731.81 -- no grid evidence at all -- yet its probe at x* - 30,000 beats the baseline by
+    $1,639. Probing where the statistics are read closes that gap.
+
+    Each winning probe seeds a re-solve of the baseline, which lands in the winner's basin and
+    usually beats it. v* strictly increases each round, so the loop terminates; `rounds` caps
+    it regardless. When a re-solve cannot reach the winning probe, v* is raised to the probe's
+    own value instead -- the grid lift's logic, applied off the grid.
+
+    The probes are solved, not interpolated, so the values returned are exact leg values at
+    x* +/- delta, and they are taken at the FINAL x*. They are also free of the grid's right
+    edge, which is what forces the interpolating estimator to drop a scenario.
+
+    args tuple: (clone, year, objective, options, person, v_star, x_star, best_value,
+                 best_plan, deltas, rounds)
+
+    Returns (year, payload) with the final v* and x*, the amount the baseline was raised, the
+    probes around the final x*, the rounds used, and whether the cap was hit with work left.
+    """
+    p, year, objective, options, person, v_star, x_star, best_value, best_plan, deltas, rounds = args
+
+    def solve_pinned(x):
+        p.rothXfixed_in[person, 0] = True
+        p.myRothX_in[person, 0] = float(x)
+        try:
+            p.solve(objective, options)
+            if p.caseStatus != "solved":
+                return None
+            return _regret_objective_value(p, objective)
+        finally:
+            p.rothXfixed_in[person, 0] = False
+            p.myRothX_in[person, 0] = 0.0
+
+    with log.threadLabel(year):
+        repair = 0.0
+        max_gap = -1.0
+        probes = {}
+        used = 0
+        # True when the last round run still found a probe beating the baseline, so the loop
+        # stopped at the cap rather than because nothing was left: the probes recorded are then
+        # not centred on the final x*.
+        winner_in_last_round = False
+        for used in range(1, max(1, rounds) + 1):
+            # The grid's own winner counts in the first round: it is the same kind of evidence.
+            best = (v_star, None, None)
+            if used == 1 and best_plan is not None and best_value is not None and best_value > v_star + 1.0:
+                best = (float(best_value), best_plan, None)
+            probes = {}
+            for d in deltas:
+                for side in (-1, +1):
+                    x = max(x_star + side * d, 0.0)
+                    val = solve_pinned(x)
+                    max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+                    probes[f"{'+' if side > 0 else '-'}{int(d)}"] = (float(x), val)
+                    if val is not None and val > best[0] + 1.0:
+                        best = (val, (p.w_ijn.copy(), p.x_in.copy()), float(x))
+            if best[1] is None:
+                winner_in_last_round = False
+                break                                   # nothing beat the baseline
+            winner_in_last_round = True
+            p._localSearchSeedPlan = best[1]
+            try:
+                p.solve(objective, options)
+                max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
+                val = _regret_objective_value(p, objective) if p.caseStatus == "solved" else None
+            finally:
+                p._localSearchSeedPlan = None
+            if val is not None and val > best[0] - 1.0:
+                repair += val - v_star
+                v_star, x_star = val, float(p.x_in[person, 0])
+            else:
+                # The re-solve could not match the winning plan; take the winner's own value.
+                repair += best[0] - v_star
+                v_star = best[0]
+                if best[2] is not None:
+                    x_star = best[2]
+        return year, {
+            "v_star": v_star,
+            "x_star": x_star,
+            "repair": repair,
+            "probes": probes,
+            "rounds": used,
+            "capped": winner_in_last_round,
+            "max_gap": max_gap,
+        }
+
+
 def _regret_pin_worker(args):
     """
     Phase B: pin one scenario's first-year Roth conversion at each grid value, then
@@ -567,6 +662,9 @@ def _regret_pin_worker(args):
         # pins year 1 to no conversion, leaving every later year free to re-optimize.
         v_at = []
         v_at_osc = []
+        # The best restricted plan found, kept so the baseline can be re-solved from it when a
+        # restriction beat it. A plan is (w_ijn, x_in); copied because the next solve overwrites.
+        best_value, best_plan = -np.inf, None
         p.rothXfixed_in[person, 0] = True
         for x in grid:
             p.myRothX_in[person, 0] = float(x)
@@ -576,6 +674,8 @@ def _regret_pin_worker(args):
                 val = _regret_objective_value(p, objective)
                 v_at.append(val)
                 v_at_osc.append(abs(val) * getattr(p, "oscillationRel", 0.0))
+                if val > best_value:
+                    best_value, best_plan = val, (p.w_ijn.copy(), p.x_in.copy())
             else:
                 v_at.append(None)
                 v_at_osc.append(None)
@@ -596,6 +696,8 @@ def _regret_pin_worker(args):
             _note()
             if p.caseStatus == "solved":
                 v_noconv = _regret_objective_value(p, objective)
+                if v_noconv > best_value:
+                    best_value, best_plan = v_noconv, (p.w_ijn.copy(), p.x_in.copy())
             p.rothXfixed_in[person, :] = False
 
         p.mylog.print(
@@ -605,6 +707,8 @@ def _regret_pin_worker(args):
             "v_at": v_at,
             "v_at_osc": v_at_osc,
             "v_noconv": v_noconv,
+            "best_value": None if best_plan is None else float(best_value),
+            "best_plan": best_plan,
             "max_gap": max_gap,
             "n_nonmonotonic": n_nonmonotonic,
             "node_limit_hits": node_hits,
@@ -659,14 +763,33 @@ def lift_regret_baselines(result):
     construction; it does not close the shortfall, which can exceed the best plan the sweep
     found.
 
+    The lift raises the VALUE only. It deliberately leaves "x_star" at the baseline solve's
+    own conversion, because the winning plan's conversion is a grid point, and a grid point is
+    not an optimum the engine chose: it is wherever the grid happened to be ruled. Reporting it
+    as x* asserted a location with no solve behind it, which displaced x* by a median of tens of
+    thousands of dollars, turned "convert nothing" into a quarter-million-dollar conversion in
+    five windows of the reference high-wealth profile, and left the reported optimum sitting at
+    no tax threshold at all -- so the scenario had to be dropped from any statement about which
+    threshold the conversion fills. A probed re-solve recovers a genuine optimum where one is
+    reachable (see _regret_probe_repair_worker); the lift's job is the floor underneath it.
+
+    After a lift, v* therefore exceeds the value attained at the reported x*. That is the honest
+    reading: the solve is known to have fallen short by at least this much, and where the true
+    optimum lies is not known. "x_star_lift" records the grid conversion that produced the
+    value, for anyone who needs it.
+
     Returns a copy of `result` in which, for every lifted scenario:
       "v_star"       - the best value found: the baseline's, a pinned one, or v_noconv
-      "x_star"       - the first-year conversion of that plan (0 for never-convert)
       "v_star_osc"   - the winning pinned solve's oscillation bar, when it was recorded
-    and three keys added:
+    and four keys added:
       "v_star_solved" - the baseline solves' own values, as first returned
       "x_star_solved" - their first-year conversions (what an automatic grid is sized from)
       "v_star_lift"   - ndarray (S,) the cumulative amount each baseline was raised (0 when not)
+      "x_star_lift"   - ndarray (S,) the conversion of the plan that supplied the lifted value,
+                        NaN where nothing was lifted. NOT written to "x_star".
+    "v_star_lift" > 0 is the test for "this scenario was lifted". Comparing "x_star" against
+    "x_star_solved" no longer detects one: the lift leaves them equal by design.
+
     Applying it to a result already lifted changes nothing. Works on saved results that
     carry "v_star", "x_star", "v_at", "grid" and "v_noconv".
     """
@@ -678,6 +801,7 @@ def lift_regret_baselines(result):
     v_noconv = result.get("v_noconv")
     v_noconv = None if v_noconv is None else np.asarray(v_noconv, dtype=float)
     lift = np.array(result.get("v_star_lift", np.zeros(len(v_star))), dtype=float)
+    x_lift = np.array(result.get("x_star_lift", np.full(len(v_star), np.nan)), dtype=float)
     vso = result.get("v_star_osc")
     vso = None if vso is None else np.array(vso, dtype=float)
     vao = result.get("v_at_osc")
@@ -697,13 +821,15 @@ def lift_regret_baselines(result):
         if x_best is None:
             continue
         lift[s] += best - v_star[s]
-        v_star[s], x_star[s] = best, x_best
+        # The value only: x_star keeps the baseline solve's own conversion. See the docstring.
+        v_star[s], x_lift[s] = best, x_best
         if vso is not None:
             vso[s] = vao[s, j_best] if (vao is not None and j_best is not None and np.isfinite(vao[s, j_best])) else 0.0
 
     out["v_star_solved"] = result.get("v_star_solved", np.array(result["v_star"], dtype=float))
     out["x_star_solved"] = result.get("x_star_solved", np.array(result["x_star"], dtype=float))
     out["v_star"], out["x_star"], out["v_star_lift"] = v_star, x_star, lift
+    out["x_star_lift"] = x_lift
     if vso is not None:
         out["v_star_osc"] = vso
     return out
@@ -726,6 +852,9 @@ def run_conversion_regret_sweep(
     seed=None,
     milp_downgrade=False,
     on_scenario=None,
+    repair_baselines=True,
+    repair_probes=(15_000.0, 30_000.0, 45_000.0),
+    repair_rounds=4,
 ):
     """
     Measure the regret of committing to a fixed first-year Roth conversion.
@@ -746,7 +875,8 @@ def run_conversion_regret_sweep(
     the spouse's remains free. Social Security claiming ages stay at the plan's values:
     withSSAges is dropped from options.
 
-    Cost is n_scenarios x (len(grid) + 2) full-horizon optimizations.
+    Cost is n_scenarios x (len(grid) + 2) full-horizon optimizations, plus one more for each
+    baseline a restricted solve beat (see repair_baselines; typically none to a few per sweep).
 
     Args:
       grid: list of committed amounts in dollars, or None to size it automatically from
@@ -761,6 +891,22 @@ def run_conversion_regret_sweep(
       on_scenario: optional callback(phase, completed, total, partial) invoked as
         scenarios complete, where phase is "baseline" or "pinned" and partial carries the
         mean regret curve over the scenarios finished so far. Intended for live preview.
+      repair_baselines: re-solve any baseline that one of its own restricted solves beat,
+        seeding the local search from the winning plan (Plan._localSearchSeedPlan). A
+        restriction beating the baseline proves the baseline solve fell short; lifting alone
+        relabels v* without closing the shortfall. Pass False to reproduce a sweep made
+        before this existed. Inert unless a restriction actually won.
+      repair_probes: offsets from x* at which to solve the curve directly, both sides. These
+        are where the published asymmetry statistics read it (summarize_conversion_regret's
+        asymmetry_deltas), and a baseline can be beaten there while no grid point beats it, so
+        the grid alone does not detect every shortfall. Solving them also returns EXACT leg
+        values, free of both the interpolation a grid estimator needs and the right-edge
+        truncation that makes it drop scenarios. Costs 2 x len(repair_probes) solves per
+        scenario per round; pass () to probe nothing and trigger on grid evidence alone.
+      repair_rounds: cap on probe-and-reseed rounds per scenario. Each reseed strictly raises
+        v*, so the loop terminates on its own; the cap bounds the cost when it does not do so
+        quickly. Scenarios still finding a winner at the cap are reported and flagged in
+        "probe_capped".
 
     Returns a dict:
       "grid"        - list of committed amounts ($)
@@ -768,10 +914,19 @@ def run_conversion_regret_sweep(
       "v_star"      - ndarray (S,) clairvoyant optima; NaN if the baseline failed. Each is the
                       best plan found in its scenario, so a baseline solve left short of one
                       of its own pinned solves is raised to it (lift_regret_baselines)
-      "x_star"      - ndarray (S,) first-year conversions of those plans ($)
-      "v_star_solved" - ndarray (S,) the baseline solves' own values, before any lift
+      "x_star"      - ndarray (S,) first-year conversions of those plans ($). Set by a solve,
+                      never by the lift: where only the lift raised v*, this stays the baseline
+                      solve's own conversion and v* exceeds the value attained at it
+      "v_star_solved" - ndarray (S,) the baseline solves' own values, before repair or lift
       "x_star_solved" - ndarray (S,) their first-year conversions, which size an automatic grid
-      "v_star_lift" - ndarray (S,) the amount each baseline was raised (0 when not)
+      "v_star_repair" - ndarray (S,) the amount re-solving raised each baseline (0 when not)
+      "v_at_probe"  - {"-30000": ndarray (S,), "+30000": ...} EXACT values at x* +/- delta
+      "x_at_probe"  - the amounts those probes pinned (under side clamped at zero)
+      "probe_deltas", "probe_rounds", "probe_capped" - provenance of the repair pass
+      "v_star_lift" - ndarray (S,) the amount each baseline was raised (0 when not). This, not
+                      x_star vs x_star_solved, is the test for "this scenario was lifted"
+      "x_star_lift" - ndarray (S,) the conversion of the plan that supplied the lifted value,
+                      NaN where nothing was lifted; recorded, not reported as x_star
       "v_at"        - ndarray (S, X); NaN where the pinned solve was infeasible
       "v_noconv"    - ndarray (S,) or None
       "max_gap"     - ndarray (S,) largest achieved MIP gap per scenario (-1 when no MIP
@@ -955,6 +1110,73 @@ def run_conversion_regret_sweep(
     for _ in range(total - len(live)):
         _tick("pinned")
 
+    # --- Phase C: repair the baselines one of their own restrictions beat -----------------
+    # A pinned solve is a restriction of the baseline, so its plan is feasible for the
+    # baseline and v(x) <= v* is an identity. When a restricted solve comes back worth MORE,
+    # the baseline solve fell short -- the local search starts from the loop's plan and, as
+    # its own docstring says, can stop short "chiefly on the unrestricted problem, which has
+    # the most freedom". lift_regret_baselines only relabels v* to the winner's value; this
+    # re-solves the baseline seeded from the winning plan, which both repairs the shortfall
+    # and usually beats the winner, because the search then descends from the better basin.
+    # The lift still runs afterwards as the fallback for anything this does not recover.
+    v_star_solved_pre = np.array(v_star, dtype=float)
+    x_star_solved_pre = np.array(x_star, dtype=float)
+    v_star_repair = np.zeros(S)
+    deltas = tuple(sorted({float(d) for d in (repair_probes or ()) if float(d) > 0}))
+    probe_rounds = np.zeros(S, dtype=int)
+    probe_capped = np.zeros(S, dtype=bool)
+    v_at_probe = {f"{s}{int(d)}": np.full(S, np.nan) for d in deltas for s in "-+"}
+    x_at_probe = {f"{s}{int(d)}": np.full(S, np.nan) for d in deltas for s in "-+"}
+    if repair_baselines and deltas and live:
+        plan.mylog.print(
+            f"Regret sweep repair: probing x* +/- {', '.join(u.d(d) for d in deltas)} on "
+            f"{len(live)} scenario(s) using {n_workers} worker thread(s)."
+        )
+        with ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="regret") as executor:
+            futures = {}
+            for year in live:
+                i = index_of[year]
+                r = pin_map.get(year) or {}
+                futures[executor.submit(
+                    _regret_probe_repair_worker,
+                    (clones[year], year, objective, options, person, float(v_star[i]),
+                     float(x_star[i]), r.get("best_value"), r.get("best_plan"), deltas,
+                     repair_rounds),
+                )] = year
+            for fut in as_completed(futures):
+                year = futures[fut]
+                i = index_of[year]
+                try:
+                    res = fut.result()[1]
+                except Exception as exc:
+                    plan.mylog.print(
+                        f"scenario {year} baseline repair raised {type(exc).__name__}: {exc}; "
+                        "falling back to the grid lift.",
+                        tag="WARNING",
+                    )
+                    continue
+                v_star_repair[i] = res["repair"]
+                v_star[i] = res["v_star"]
+                x_star[i] = res["x_star"]
+                probe_rounds[i] = res["rounds"]
+                probe_capped[i] = res["capped"]
+                max_gap[i] = max(max_gap[i], res["max_gap"])
+                for key, (x, val) in res["probes"].items():
+                    x_at_probe[key][i] = x
+                    v_at_probe[key][i] = np.nan if val is None else val
+        if (v_star_repair > 0).any():
+            plan.mylog.print(
+                f"{int((v_star_repair > 0).sum())} of {total} baselines repaired by re-solving "
+                f"(largest by {u.d(float(v_star_repair.max()))}).",
+                tag="INFO",
+            )
+        if probe_capped.any():
+            plan.mylog.print(
+                f"{int(probe_capped.sum())} scenario(s) still had a probe beating the baseline "
+                f"at the {repair_rounds}-round cap: their probe values are not at the final x*.",
+                tag="WARNING",
+            )
+
     progcall.finish()
     plan.mylog.resetVerbose()
 
@@ -968,6 +1190,19 @@ def run_conversion_regret_sweep(
         "start_years": np.array(years),
         "v_star": v_star,
         "x_star": x_star,
+        # The baseline solves' OWN values, before any repair or lift. Set here rather than left
+        # to lift_regret_baselines, which would otherwise record the repaired value as "solved".
+        "v_star_solved": v_star_solved_pre,
+        "x_star_solved": x_star_solved_pre,
+        "v_star_repair": v_star_repair,
+        # Exact leg values at x* +/- each repair probe, keyed "-30000"/"+30000", with the
+        # amounts actually solved (the under side is clamped at zero conversion). NaN where the
+        # probe did not solve. These need no interpolation and no right-edge rule.
+        "v_at_probe": v_at_probe,
+        "x_at_probe": x_at_probe,
+        "probe_deltas": list(deltas),
+        "probe_rounds": probe_rounds,
+        "probe_capped": probe_capped,
         "v_at": v_at,
         "v_noconv": v_noconv,
         "max_gap": max_gap,
