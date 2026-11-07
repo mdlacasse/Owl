@@ -93,23 +93,6 @@ def keepSurvivorAgeInWindow(earliest, full_rate):
             kz.storeGlobalKey(kz.genCaseKey(key), val)
 
 
-def getFloatInput(i, key, thing, defval=0.0):
-    nkey = key + str(i)
-    kz.initCaseKey(nkey, defval)
-    inamex = kz.getCaseKey("iname" + str(i))
-    return st.number_input(
-        f"{inamex}'s {thing}",
-        min_value=0.0,
-        help=kz.help1000,
-        value=float(kz.getCaseKey(nkey)),
-        format="%.1f",
-        step=10.0,
-        on_change=kz.setpull,
-        args=[nkey],
-        key=kz.genCaseKey(nkey),
-    )
-
-
 def getToggleInput(i, key, thing):
     nkey = key + str(i)
     kz.initCaseKey(nkey, False)

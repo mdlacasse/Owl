@@ -1,5 +1,14 @@
 ### Version 2026.10.30
 
+#### Fixed: the health-cost fields on Run Options step by one and show two decimals
+
+The benchmark Silver premium (SLCSP) and other medical expenses, both in \$k a year, and the
+Part D base premium, in \$ a month, took the number field's defaults of one decimal and a step
+of 10. A premium of \$20,840 a year, typed as 20.84, showed as 20.8, and one click on + added
+\$10,000 a year. The three fields now show two decimals and step by 1. The unused
+`getFloatInput` helper in `ui/Fixed_Income.py` is gone. Thanks to Florin Mateoc (@fmateoc) for
+the issue and the fix (#247).
+
 #### Changed: the Docker images run natively on Apple Silicon
 
 Both Docker images now start from Debian slim instead of Alpine and are published for

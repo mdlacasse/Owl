@@ -148,7 +148,14 @@ else:
             "These expenses are treated as part of general living costs, not as separate healthcare costs. "
             "Ignore if plan has no HSA."
         )
-        kz.getNum("Other medical expenses (\\$k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
+        kz.getNum(
+            "Other medical expenses (\\$k/year)",
+            "otherMedical",
+            step=1.0,
+            min_value=0.0,
+            format="%.2f",
+            help=helpmsg_med,
+        )
     with cols[1]:
         helpmsg_excess = (
             "How much faster than inflation medical prices grow each year, in percent. "
@@ -175,7 +182,14 @@ else:
     )
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
-        kz.getNum("Benchmark Silver plan premium (SLCSP) (\\$k/year)", "slcspAnnual", min_value=0.0, help=helpmsg)
+        kz.getNum(
+            "Benchmark Silver plan premium (SLCSP) (\\$k/year)",
+            "slcspAnnual",
+            step=1.0,
+            min_value=0.0,
+            format="%.2f",
+            help=helpmsg,
+        )
     with cols[1]:
         acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
         helpmsg_start = (
@@ -228,7 +242,9 @@ else:
             kz.getNum(
                 "Part D base premium (\\$/month per person)",
                 "medicarePartDBasePremium",
+                step=1.0,
                 min_value=0.0,
+                format="%.2f",
                 help=helpmsg_partd_base,
             )
 
