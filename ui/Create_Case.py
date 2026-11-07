@@ -308,6 +308,9 @@ Once changes are complete, click the `Create case` button.""")
                     args=[tomlexcase],
                 )
         st.divider()
+    elif kz.caseHasPlan():
+        # The uploader above is gone once a workbook is read.
+        kz.hfp_loaded_caption()
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:

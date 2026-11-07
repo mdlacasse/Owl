@@ -254,13 +254,7 @@ that has not yet been uploaded.""")
                 # Change key to reset uploader.
                 kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
                 st.rerun()
-        stHFP_val = kz.getCaseKey("stHFP")
-        if stHFP_val is not None:
-            hfp_name = kz.getCaseKey("hfpFileName") or ""
-            if hfp_name.endswith(" *"):
-                st.caption(f":white_check_mark: *{hfp_name[:-2]}*\\* loaded — values modified.")
-            else:
-                st.caption(f":white_check_mark: *{hfp_name}* loaded.")
+        kz.hfp_loaded_caption()
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
         mytype = "primary" if kz.getCaseKey("stHFP") is None else "secondary"

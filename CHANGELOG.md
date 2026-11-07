@@ -9,6 +9,13 @@ of 10. A premium of \$20,840 a year, typed as 20.84, showed as 20.8, and one cli
 `getFloatInput` helper in `ui/Fixed_Income.py` is gone. Thanks to Florin Mateoc (@fmateoc) for
 the issue and the fix (#247).
 
+#### Fixed: Create Case confirms a workbook read
+
+Once a Household Financial Profile workbook was read from Create Case, the uploader disappeared
+and nothing on the page said the read had worked. Create Case now shows the line Financial
+Profile shows: the file's name, and whether its values have since been modified. Thanks to Florin
+Mateoc (@fmateoc) for the issue (#246).
+
 #### Changed: the Docker images run natively on Apple Silicon
 
 Both Docker images now start from Debian slim instead of Alpine and are published for

@@ -383,6 +383,17 @@ def no_case_info():
         st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
 
 
+def hfp_loaded_caption():
+    """Confirm the workbook read for the current case, if any."""
+    if getCaseKey("stHFP") is None:
+        return
+    hfp_name = getCaseKey("hfpFileName") or ""
+    if hfp_name.endswith(" *"):
+        st.caption(f":white_check_mark: *{hfp_name[:-2]}*\\* loaded — values modified.")
+    else:
+        st.caption(f":white_check_mark: *{hfp_name}* loaded.")
+
+
 def dumpSession():
     print("State Dump:", ss)
 
