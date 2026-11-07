@@ -16,6 +16,15 @@ and nothing on the page said the read had worked. Create Case now shows the line
 Profile shows: the file's name, and whether its values have since been modified. Thanks to Florin
 Mateoc (@fmateoc) for the issue (#246).
 
+#### Fixed: a move to the starting state no longer leaves the UI solving the wrong plan
+
+`setStateTax` refused a move to the starting state. In the UI, the refusal came as *Failed to
+apply configuration*, and the case was solved anyway, on a plan that kept its previous state and
+lacked the Financial Profile tables, and Reports showed those results as the case's. Such a move
+changes nothing, so `setStateTax` now ignores it with a warning in the log, and a case file that
+carries one loads. On Create Case, *Year of the move* now stays within the plan, the other move
+`setStateTax` refuses. Thanks to Florin Mateoc (@fmateoc) for the issue (#245).
+
 #### Changed: the Docker images run natively on Apple Silicon
 
 Both Docker images now start from Debian slim instead of Alpine and are published for

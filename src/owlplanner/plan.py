@@ -2029,7 +2029,9 @@ class Plan:
                     f"and no later than the last ({self.year_n[-1]})."
                 )
             if new_state == state:
-                raise ValueError(f"The move goes to the starting state ('{state}').")
+                # A move that changes nothing: honoured as asked, by staying put.
+                self.mylog.print(f"Move to the starting state ('{state}') in {year} ignored.", tag="WARNING")
+                continue
             state_moves.append((year, new_state))
         self.state = state
         self.state_moves = state_moves

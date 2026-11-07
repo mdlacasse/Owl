@@ -37,6 +37,14 @@ def _state_choices():
     return [""] + _ts.valid_states()
 
 
+def _lastPlanYear():
+    """Last year of the plan, as Plan computes it: the latest birth year plus longevity."""
+    n = 2 if kz.getCaseKey("status") == "married" else 1
+    # A spouse's date of birth and longevity are set only once the spouse is named.
+    known = [i for i in range(n) if kz.getCaseKey(f"dob{i}") and kz.getCaseKey(f"life{i}") is not None]
+    return max((int(str(kz.getCaseKey(f"dob{i}"))[:4]) + int(kz.getCaseKey(f"life{i}")) for i in known), default=0)
+
+
 def _loadHFPExample(file):
     if file:
         hfp_name = tomlex.getHFPName(file)
@@ -166,14 +174,21 @@ else:
         )
         kz.getToggle("Move to another state during the plan", "stateMoveEnabled", help=_move_help)
         if kz.getCaseKey("stateMoveEnabled"):
+            # setStateTax refuses a move outside the plan, whose last year follows the longevities.
+            lastyear = max(_lastPlanYear(), thisyear + 1)
+            moveyear = min(max(int(kz.getCaseKey("stateMoveYear")), thisyear + 1), lastyear)
+            if moveyear != kz.getCaseKey("stateMoveYear"):
+                kz.setCaseKey("stateMoveYear", moveyear)
+                kz.storeGlobalKey(kz.genCaseKey("stateMoveYear"), moveyear)
             mcol1, mcol2 = st.columns(2, gap="small", vertical_alignment="top")
             with mcol1:
                 kz.getIntNum(
                     "Year of the move",
                     "stateMoveYear",
                     min_value=thisyear + 1,
-                    max_value=thisyear + 100,
-                    help="First calendar year taxed by the new state. It must fall within the plan.",
+                    max_value=lastyear,
+                    help=f"First calendar year taxed by the new state, from {thisyear + 1} to {lastyear}, "
+                    "the last year of the plan.",
                 )
             with mcol2:
                 kz.getSelectbox(
@@ -183,7 +198,7 @@ else:
                     help="State of residence from that year on. Leave blank to stop modeling state taxes.",
                 )
             if kz.getCaseKey("stateMoveState") == kz.getCaseKey("state"):
-                st.warning("The new state is the starting state.", icon=":material/warning:")
+                st.warning("The new state is the starting state: the move will be ignored.", icon=":material/warning:")
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."

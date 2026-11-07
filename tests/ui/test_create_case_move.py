@@ -63,3 +63,13 @@ def test_move_fields_show_the_move(monkeypatch):
     assert toggle[0].value is True
     assert [n.value for n in at.number_input if n.label == "Year of the move"] == [2031]
     assert [s.value for s in at.selectbox if s.label == "New state"] == ["FL"]
+
+
+@pytest.mark.toml
+def test_the_year_of_the_move_stays_within_the_plan(monkeypatch):
+    # Jill (1966 + 92) outlives Jack (1963 + 89) in Case_jack+jill.toml.
+    lastyear = 1966 + 92
+    at = _render(monkeypatch, [{"year": lastyear + 20, "state": "FL"}])
+    year = [n for n in at.number_input if n.label == "Year of the move"]
+    assert [(n.value, n.max) for n in year] == [(lastyear, lastyear)]
+    assert at.session_state["cases"]["t"]["stateMoveYear"] == lastyear

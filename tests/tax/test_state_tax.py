@@ -697,7 +697,6 @@ def test_move_sets_the_state_of_each_year():
         ([(3000, "FL")], "after the first plan year"),
         ([(None, "FL")], "calendar year"),
         ([(2030, "ZZ")], "Unknown state"),
-        ([(2030, "ny")], "starting state"),
     ],
 )
 def test_move_is_validated(moves, match):
@@ -707,6 +706,12 @@ def test_move_is_validated(moves, match):
     with pytest.raises(ValueError, match=match):
         p.setStateTax("NY", moves)
     assert p.state == "NY" and p.state_moves == []  # a rejected move changes nothing
+
+
+def test_move_to_the_starting_state_is_ignored():
+    p = _move_plan("NY")
+    p.setStateTax("NY", [(date.today().year + 3, "ny")])
+    assert p.state == "NY" and p.state_moves == [] and set(p._states_n()) == {"NY"}
 
 
 def test_move_to_florida_stops_state_tax_and_defers_conversions():
