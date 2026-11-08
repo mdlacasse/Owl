@@ -5,7 +5,7 @@ altair==6.3.0
     # via streamlit
 annotated-types==0.8.0
     # via pydantic
-anyio==4.15.1
+anyio==4.16.0
     # via
     #   httpx2
     #   mcp
@@ -22,7 +22,7 @@ cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
 charset-normalizer==3.5.2
     # via requests
-click==8.5.0
+click==8.5.1
     # via
     #   owlplanner
     #   streamlit
@@ -86,7 +86,7 @@ mcp==2.3.0
     # via owlplanner
 mcp-types==2.3.0
     # via mcp
-mosek==11.2.7
+mosek==11.2.8
     # via owlplanner
 narwhals==2.28.0
     # via
@@ -120,7 +120,7 @@ odfpy==1.4.1
     # via owlplanner
 openpyxl==3.1.5
     # via owlplanner
-opentelemetry-api==1.45.1
+opentelemetry-api==1.45.2
     # via mcp
 packaging==26.3
     # via
@@ -128,7 +128,7 @@ packaging==26.3
     #   matplotlib
     #   plotly
     #   streamlit
-pandas==3.1.0
+pandas==3.1.1
     # via
     #   owlplanner
     #   seaborn
@@ -141,16 +141,16 @@ plotly==7.1.0
     # via owlplanner
 protobuf==7.36.2
     # via streamlit
-pyarrow==26.0.0
+pyarrow==26.0.1
     # via streamlit
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   mcp
     #   mcp-types
     #   owlplanner
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via pydantic
 pydeck==0.9.3
     # via streamlit
@@ -158,11 +158,11 @@ pyjwt==2.15.1
     # via mcp
 pyparsing==3.3.3
     # via matplotlib
-python-dateutil==3.0.0
+python-dateutil==4.0.0
     # via
     #   matplotlib
     #   pandas
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via
     #   mcp
     #   streamlit
@@ -184,16 +184,14 @@ scipy==1.18.1 ; python_full_version >= '3.12'
     # via owlplanner
 seaborn==0.13.2
     # via owlplanner
-six==1.17.0
-    # via python-dateutil
-sse-starlette==3.6.0
+sse-starlette==3.7.0
     # via mcp
 starlette==1.10.0
     # via
     #   mcp
     #   sse-starlette
     #   streamlit
-streamlit==1.66.1
+streamlit==1.67.0
     # via owlplanner
 toml==0.10.2
     # via owlplanner
@@ -215,7 +213,7 @@ typing-extensions==4.16.0
     #   starlette
     #   streamlit
     #   typing-inspection
-typing-inspection==0.4.4
+typing-inspection==0.4.5
     # via
     #   mcp
     #   pydantic
@@ -229,9 +227,9 @@ uvicorn==0.54.0
     # via
     #   mcp
     #   streamlit
-watchdog==6.0.0 ; sys_platform != 'darwin'
+watchdog==7.1.0 ; sys_platform != 'darwin'
     # via streamlit
-websockets==17.3
+websockets==17.4
     # via streamlit
 win32-setctime==1.2.1 ; sys_platform == 'win32'
     # via loguru

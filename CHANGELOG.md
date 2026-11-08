@@ -1,4 +1,4 @@
-### Version 2026.10.30
+### Version 2026.11.07
 
 #### Fixed: the health-cost fields on Run Options step by one and show two decimals
 
@@ -24,6 +24,8 @@ lacked the Financial Profile tables, and Reports showed those results as the cas
 changes nothing, so `setStateTax` now ignores it with a warning in the log, and a case file that
 carries one loads. On Create Case, *Year of the move* now stays within the plan, the other move
 `setStateTax` refuses. Thanks to Florin Mateoc (@fmateoc) for the issue (#245).
+
+### Version 2026.10.30
 
 #### Changed: the Docker images run natively on Apple Silicon
 
