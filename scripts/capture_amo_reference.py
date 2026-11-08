@@ -114,7 +114,7 @@ def main():
             )
 
     os.makedirs(os.path.dirname(OUTFILE), exist_ok=True)
-    with open(OUTFILE, "w") as f:
+    with open(OUTFILE, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1, sort_keys=True)
         f.write("\n")
     print(f"\nWrote {OUTFILE}")
