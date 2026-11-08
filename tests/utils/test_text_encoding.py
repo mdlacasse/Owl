@@ -26,7 +26,7 @@ import ast
 import pathlib
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
-_DIRS = ("src", "ui", "tests")
+_DIRS = ("src", "ui", "tests", "scripts")
 
 
 def _mode(call):
