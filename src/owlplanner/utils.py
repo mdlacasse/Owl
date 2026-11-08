@@ -243,6 +243,14 @@ def get_monetary_list_option(options, key, min_length, *, min_value=None) -> lis
     return [units * v for v in get_numeric_list_option(options, key, min_length, min_value=min_value)]
 
 
+def last_year_entered(thisyear) -> int:
+    """
+    Latest calendar year a year input accepts: past any plan (longevity is at most 120), so a
+    year beyond the plan can still say "never", while an extra digit (20300 for 2030) is refused.
+    """
+    return thisyear + 120
+
+
 def derive_swap_roth_converters(inames, enabled, first_name, year) -> int:
     """
     Signed 'swapRothConverters' solver option from UI/MCP-style inputs.

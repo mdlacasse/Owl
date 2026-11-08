@@ -12,6 +12,7 @@ from typing import Union
 
 import toml
 
+from ..utils import last_year_entered
 from .legacy import translate_old_keys
 
 
@@ -59,14 +60,32 @@ def sanitize_config(diconf: dict, *, mylog=None) -> None:
             aa["generic"] = [copy.deepcopy(pair) for _ in range(ni)]
         aa["type"] = "individual"
 
+    # A year past what the UI accepts is held at that limit, which is still past any plan:
+    # its meaning ("never") is kept, and Run Options can draw it.
+    thisyear = date.today().year
+    lastyear = last_year_entered(thisyear)
+
+    def _hold(section, key, signed=False):
+        val = section.get(key) if isinstance(section, dict) else None
+        if val is None or abs(int(val)) <= lastyear:
+            return
+        section[key] = -lastyear if signed and int(val) < 0 else lastyear
+        if mylog:
+            mylog.print(f"{key} ({int(val)}) is past {lastyear}; held at {section[key]}.", tag="WARNING")
+
+    _hold(diconf.get("aca_settings"), "aca_start_year")
+
     so = diconf.get("solver_options")
     if so is None:
         return
 
+    for key in ("startRothConversions", "stopRothConversions"):
+        _hold(so, key)
+    _hold(so, "swapRothConverters", signed=True)
+
     # Clamp startRothConversions to this year if in the past
     start_roth = so.get("startRothConversions")
     if start_roth is not None:
-        thisyear = date.today().year
         year_val = int(start_roth)
         if year_val < thisyear:
             so["startRothConversions"] = thisyear

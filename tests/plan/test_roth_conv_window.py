@@ -24,9 +24,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import io
 from datetime import date
 
 import numpy as np
+import pytest
 
 import owlplanner as owl
 
@@ -34,12 +36,12 @@ import owlplanner as owl
 THISYEAR = date.today().year
 
 
-def _make_plan(name, horizon_years=12):
+def _make_plan(name, horizon_years=12, log=None):
     """Single-person plan with a large tax-deferred balance, ample for Roth conversions."""
     age = 65
     yobs = THISYEAR - age
     expectancy = horizon_years + age - 1  # gives horizons[0] = horizon_years
-    p = owl.Plan([name], [f"{yobs}-06-15"], [expectancy], name, verbose=False)
+    p = owl.Plan([name], [f"{yobs}-06-15"], [expectancy], name, verbose=False, logstreams=[log or io.StringIO()])
     p.setSpendingProfile("flat")
     p.setAccountBalances(taxable=[100], taxDeferred=[1000], taxFree=[50], startDate="1-1")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
@@ -116,3 +118,32 @@ def test_pin_survives_the_stopped_range():
     # Every other stopped year is still zero.
     others = [n for n in range(stop - THISYEAR, p.horizons[0]) if n != n_pin]
     np.testing.assert_allclose(p.x_in[0, others], 0, atol=TOL)
+
+
+@pytest.mark.parametrize(
+    "years, closed",
+    [
+        ({"startRothConversions": THISYEAR + 74}, True),  # a year past the plan: "never"
+        ({"startRothConversions": THISYEAR + 10}, True),  # within the last two years alive
+        ({"startRothConversions": THISYEAR + 5, "stopRothConversions": THISYEAR + 5}, True),
+        ({"startRothConversions": THISYEAR + 9}, False),  # one year left
+        ({"stopRothConversions": THISYEAR + 74}, False),  # never stops
+    ],
+)
+def test_a_closed_window_is_honoured_and_logged(years, closed):
+    """A year that leaves no conversion year is solved as given; the log says so."""
+    log = io.StringIO()
+    p = _make_plan("roth_closed", log=log)
+    p.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=100, **years))
+    assert p.caseStatus == "solved"
+    assert ("No year is open for Roth conversions" in log.getvalue()) == closed
+    if closed:
+        np.testing.assert_allclose(p.x_in[0], 0, atol=TOL)
+
+
+def test_no_conversions_asked_is_not_logged():
+    """A cap of zero already says "no conversions": the years add nothing to report."""
+    log = io.StringIO()
+    p = _make_plan("roth_none", log=log)
+    p.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=0, startRothConversions=THISYEAR + 74))
+    assert "No year is open for Roth conversions" not in log.getvalue()

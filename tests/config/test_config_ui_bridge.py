@@ -38,6 +38,32 @@ def test_sanitize_config_start_roth_past_year():
     assert "reset to" in log.getvalue()
 
 
+def test_sanitize_config_holds_years_past_the_ui_limit():
+    """A year past what Run Options accepts is held at that limit, still past any plan."""
+    from datetime import date
+
+    lastyear = date.today().year + 120
+    diconf = {
+        "aca_settings": {"slcsp_annual": 20, "aca_start_year": 20300},
+        "solver_options": {
+            "startRothConversions": 20300,
+            "stopRothConversions": 2100,
+            "swapRothConverters": -20300,
+        },
+    }
+    log = StringIO()
+    sanitize_config(diconf, mylog=Logger(verbose=True, logstreams=[log, log]))
+
+    assert diconf["aca_settings"]["aca_start_year"] == lastyear
+    so = diconf["solver_options"]
+    assert (so["startRothConversions"], so["stopRothConversions"], so["swapRothConverters"]) == (
+        lastyear,
+        2100,
+        -lastyear,
+    )
+    assert f"held at {lastyear}" in log.getvalue()
+
+
 def test_sanitize_config_default_translated_to_trailing_30():
     """sanitize_config translates deprecated method=default to trailing-30 (backward compat)."""
     diconf = {"rates_selection": {"method": "default"}}

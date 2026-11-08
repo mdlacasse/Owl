@@ -25,6 +25,17 @@ changes nothing, so `setStateTax` now ignores it with a warning in the log, and 
 carries one loads. On Create Case, *Year of the move* now stays within the plan, the other move
 `setStateTax` refuses. Thanks to Florin Mateoc (@fmateoc) for the issue (#245).
 
+#### Fixed: a mistyped Roth conversion year no longer goes unnoticed
+
+The years to start and stop Roth conversions and to switch converters had no upper bound, so a
+typo such as 20300 for 2030 was stored as typed, and the plan converted nothing with the case
+still solved. A year past the plan remains a legitimate way to say "never", one that survives a
+change of longevity, so these fields, and the ACA start year, now accept any year up to 120
+years ahead, past any plan, which refuses an extra digit. A case file with a later year has it
+held at that limit, which keeps its meaning. When the conversion years leave no year open for
+conversions, a start past the plan or a stop at or before the start, the plan is solved as given
+and the log says so. Thanks to Florin Mateoc (@fmateoc) for the issue (#250).
+
 ### Version 2026.10.30
 
 #### Changed: the Docker images run natively on Apple Silicon

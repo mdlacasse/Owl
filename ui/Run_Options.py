@@ -22,6 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import streamlit as st
 from datetime import date
+from owlplanner.utils import last_year_entered
 
 import sskeys as kz
 import owlbridge as owb
@@ -81,7 +82,11 @@ else:
         thisyear = date.today().year
         kz.initCaseKey("startRothConversions", thisyear)
         ret = kz.getIntNum(
-            "Year to start considering Roth conversions", "startRothConversions", min_value=thisyear, help=helpmsg
+            "Year to start considering Roth conversions",
+            "startRothConversions",
+            min_value=thisyear,
+            max_value=last_year_entered(thisyear),
+            help=helpmsg,
         )
         # An explicit toggle, not a year derived from the plan horizon: a derived default
         # is stored once and never revisited, so extending life expectancy later would
@@ -96,7 +101,11 @@ else:
             kz.initCaseKey("stopRothConversions", thisyear + 10)
             helpmsg = "No Roth conversions are performed in this year or later."
             ret = kz.getIntNum(
-                "Year to stop considering Roth conversions", "stopRothConversions", min_value=thisyear, help=helpmsg
+                "Year to stop considering Roth conversions",
+                "stopRothConversions",
+                min_value=thisyear,
+                max_value=last_year_entered(thisyear),
+                help=helpmsg,
             )
     with col3:
         if kz.getCaseKey("status") == "married":
@@ -134,7 +143,11 @@ else:
                 kz.initCaseKey("swapRothConvertersYear", thisyear)
                 helpmsg = "Year in which the other spouse takes over Roth conversions."
                 ret = kz.getIntNum(
-                    "Year to switch converters", "swapRothConvertersYear", min_value=thisyear, help=helpmsg
+                    "Year to switch converters",
+                    "swapRothConvertersYear",
+                    min_value=thisyear,
+                    max_value=last_year_entered(thisyear),
+                    help=helpmsg,
                 )
 
     st.divider()
@@ -203,7 +216,7 @@ else:
             "ACA start year (0 = plan start, else 4-digit year)",
             "acaStartYear",
             min_value=0,
-            max_value=thisyear + 50,
+            max_value=last_year_entered(thisyear),
             step=1,
             help=helpmsg_start,
             disabled=acaoff,

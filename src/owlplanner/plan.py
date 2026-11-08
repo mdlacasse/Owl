@@ -3329,6 +3329,58 @@ class Plan:
                 rhs = float(np.sum(self.kappa_ijn[i, 2, : n + 1]))
                 self.A.addRow(row, -np.inf, rhs, tag=("roth_early_basis", i, n))
 
+    def _warnClosedRothWindow(self, options):
+        """
+        Log when the conversion years leave no year open for Roth conversions.
+
+        A year past the plan is a legitimate way to say "never", so it is honoured; the log
+        tells it apart from a typo (20300 for 2030) or a stop year at or before the start year.
+        The window follows _add_roth_conversion_constraints: start, stop, swap, and no
+        conversions in the last two years alive.
+        """
+        names = [k for k in ("startRothConversions", "stopRothConversions", "swapRothConverters") if k in options]
+        if not names or u.get_monetary_option(options, "maxRothConversion", -1) == 0:
+            return
+        thisyear = date.today().year
+        nstart = max(int(u.get_numeric_option(options, "startRothConversions", 0)) - thisyear, 0)
+        nstop = (
+            max(int(u.get_numeric_option(options, "stopRothConversions", 0)) - thisyear, 0)
+            if "stopRothConversions" in options
+            else self.N_n
+        )
+        swap = int(u.get_numeric_option(options, "swapRothConverters", 0)) if self.N_i == 2 else 0
+        i_xcluded = -1
+        if swap == 0 and options.get("noRothConversions") in self.inames:
+            i_xcluded = self.inames.index(options["noRothConversions"])
+
+        def isOpen(i, n, limits):
+            if not limits:
+                return True
+            if n < nstart or n >= nstop:
+                return False
+            if swap != 0:
+                nswap = max(abs(swap) - thisyear, 0)
+                i_x = 0 if swap > 0 else 1
+                return n < nswap if i == i_x else n >= nswap
+            return True
+
+        def openYears(limits):
+            return [
+                (i, n)
+                for i in range(self.N_i)
+                if i != i_xcluded
+                for n in range(max(0, self.horizons[i] - 2))
+                if isOpen(i, n, limits)
+            ]
+
+        # Only the year settings are reported: a plan with no open year before them is not their doing.
+        if openYears(False) and not openYears(True):
+            given = ", ".join(f"{k}={int(u.get_numeric_option(options, k, 0))}" for k in names)
+            pinned = "only in the years pinned in 'Roth conv fixed'" if self.rothXfixed_in.any() else "nothing"
+            self.mylog.print(
+                f"No year is open for Roth conversions under {given}: the plan converts {pinned}.", tag="WARNING"
+            )
+
     @_fixedAcrossIterations
     def _add_roth_conversion_constraints(self, options):
         """
@@ -5406,6 +5458,8 @@ class Plan:
         if int(u.get_numeric_option(myoptions, "swapRothConverters", 0)) != 0 and "noRothConversions" in myoptions:
             self.mylog.print("Ignoring 'noRothConversions' as 'swapRothConverters' option present.", tag="WARNING")
             myoptions.pop("noRothConversions")
+
+        self._warnClosedRothWindow(myoptions)
 
         # Go easy on MILP - auto gap somehow.
         if "gap" not in myoptions and myoptions.get("withMedicare", "loop") == "optimize":
