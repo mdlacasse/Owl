@@ -6,6 +6,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 import copy
 import os
+import tomllib
 from datetime import date
 from io import BytesIO, StringIO
 from typing import Union
@@ -169,24 +170,26 @@ def load_toml(
         if not filename.endswith(".toml"):
             filename = filename + ".toml"
         try:
-            f = open(filename, "r", encoding="utf-8")
+            f = open(filename, "rb")
         except OSError as e:
             raise FileNotFoundError(f"File {filename} not found: {e}") from e
         try:
             with f:
-                diconf = toml.load(f)
-        except toml.TomlDecodeError as e:
+                diconf = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
             raise ValueError(f"TOML parse error in {filename}: {e}") from e
+    # Read with tomllib, write with toml: toml's reader drops every key after a triple-quoted
+    # string when the text has CRLF line endings (#248).
     elif isinstance(file, BytesIO):
         try:
             string = file.getvalue().decode("utf-8")
-            diconf = toml.loads(string)
+            diconf = tomllib.loads(string)
         except Exception as e:
             raise RuntimeError(f"Cannot read from BytesIO: {e}") from e
     elif isinstance(file, StringIO):
         try:
             string = file.getvalue()
-            diconf = toml.loads(string)
+            diconf = tomllib.loads(string)
         except Exception as e:
             raise RuntimeError(f"Cannot read from StringIO: {e}") from e
     else:

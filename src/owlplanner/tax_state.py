@@ -24,7 +24,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import toml
+import tomllib
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
@@ -72,8 +72,8 @@ CONVERSION_MODES = ("exemption", "taxed", "excluded")
 def _load_state_data(toml_path: str = None) -> dict:
     """Load and cache taxes_state.toml. Returns the raw parsed dict."""
     path = toml_path or str(_TOML_PATH)
-    with open(path, "r", encoding="utf-8") as f:
-        return toml.load(f)
+    with open(path, "rb") as f:
+        return tomllib.load(f)
 
 
 def load_state_data(toml_path=None) -> dict:

@@ -36,6 +36,15 @@ held at that limit, which keeps its meaning. When the conversion years leave no 
 conversions, a start past the plan or a stop at or before the start, the plan is solved as given
 and the log says so. Thanks to Florin Mateoc (@fmateoc) for the issue (#250).
 
+#### Fixed: a case file with Windows line endings uploads whole
+
+Uploaded case files were read with the `toml` package's string parser, which, on text with CRLF
+line endings, drops a triple-quoted string and every key after it, with no error. Create Case
+then failed with *Failed to parse case file: 'basic_info'*. A Git-for-Windows checkout writes the
+examples with CRLF, and 14 of the 19 hold such a string, their description. Case files and the
+state tax data are now read with Python's `tomllib`, which handles either line ending; writing
+still uses `toml`. Thanks to Florin Mateoc (@fmateoc) for the issue (#248).
+
 ### Version 2026.10.30
 
 #### Changed: the Docker images run natively on Apple Silicon
