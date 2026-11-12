@@ -21,6 +21,11 @@ by a sequence of small restricted problems, each solved with most binaries pinne
    (c)  The binaries of every family freed in the years where the plan's own income implies a
         different cost than the one charged.
    Repeat until no step improves the objective.
+   After an iteration that started from the previous iteration's binaries and moved none of them,
+   the next one skips (b), (b') and (a'): its problem differs only by the loop's fed-back
+   parameters, and those steps, mostly at their node cap, found nothing on the same binaries
+   (#252). The (a) and (c) steps still run, and a move by either restores the full search in the
+   iteration after it.
 
 The LTCG link rows tie each regime binary to ordinary income in both directions, but only one is
 needed: a binary at 0 closes the bracket below its threshold, which never lowers the tax, so
@@ -167,6 +172,7 @@ class LocalSearch:
         self.prev = None  # the previous loop iteration's plan
         self.A = None  # the plan's rows with the LTCG links relaxed (_relax_links)
         self._last = None  # (problem fingerprint, objective, plan) of the previous loop iteration
+        self.settled = False  # the previous iteration started from its predecessor's binaries, moved none
         self.iteration = 0
         self.log = []  # one entry per loop iteration: {"steps": [...], "time": s}
 
@@ -350,6 +356,10 @@ class LocalSearch:
         except NoIncumbent:
             self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
             raise
+        from_prev = steps[-1]["step"] == "start: previous binaries (LP)"
+        skip, moved = self.settled, False
+        if skip:
+            p.mylog.vprint(f"Local search, iteration {self.iteration}: binaries settled; skipping (b), (b') and (a').")
 
         fams = self._families()
         others = [f for f in fams if f != "zs"]
@@ -366,7 +376,7 @@ class LocalSearch:
                 if self._better(res, best):
                     best, improved = res, True
             # (b) SS taxability within a local-branching ball; the others pinned.
-            if "zs" in fams:
+            if "zs" in fams and not skip:
                 A = copy.deepcopy(self.A)
                 row, ones = {}, 0
                 for c in self._cols("zs"):
@@ -381,23 +391,24 @@ class LocalSearch:
                 if self._better(res, best):
                     best, improved = res, True
             if improved:
+                moved = True
                 continue
             # (b') nothing moved: SS within the ball with LTCG free alongside it, once per iteration.
-            if "zs" in fams and "zl" in fams and not joint_done:
+            if "zs" in fams and "zl" in fams and not joint_done and not skip:
                 joint_done = True
                 pinned = [f for f in others if f != "zl"]
                 res, dt = self._mip(options, overrides=self._pin(best[1], pinned), A=A, warm=best[1])
                 self._step(steps, f"round {rnd} (b'): SS within {self.radius} flips, LTCG free", res, dt)
                 if self._better(res, best):
-                    best = res
+                    best, moved = res, True
                     continue
             # (a') nothing moved one family at a time: the others jointly, once.
-            if len(others) > 1:
+            if len(others) > 1 and not skip:
                 pinned = [f for f in fams if f not in others]
                 res, dt = self._mip(options, overrides=self._pin(best[1], pinned), warm=best[1])
                 self._step(steps, f"round {rnd} (a'): {', '.join(FAMILY_LABEL[f] for f in others)} free", res, dt)
                 if self._better(res, best):
-                    best = res
+                    best, moved = res, True
                     continue
             # (c) every family freed in the years where the plan is inconsistent.
             free, where = self._inconsistent_columns(best[1])
@@ -408,7 +419,7 @@ class LocalSearch:
             desc = "; ".join(f"{k} {v}" for k, v in where.items())
             self._step(steps, f"round {rnd} (c): inconsistent years free [{desc}]", res, dt)
             if self._better(res, best):
-                best = res
+                best, moved = res, True
                 continue
             break
 
@@ -416,6 +427,7 @@ class LocalSearch:
         self.prev = best[1].copy()
         p._highs_warm_start = best[1].copy()
         self._last = (fp, best[0], best[1].copy())
+        self.settled = from_prev and not moved
         self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
         self.iteration += 1
         # No certificate: report the gap as unknown.

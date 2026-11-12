@@ -236,6 +236,33 @@ def test_repeated_problem_is_not_searched_again():
     assert log[-1]["steps"] == [], log[-1]
 
 
+def _settled(steps):
+    """The iteration started from its predecessor's binaries and no step improved on that start."""
+    if not steps or steps[0]["step"] != "start: previous binaries (LP)":
+        return False
+    start = steps[0]["objective"]
+    return not any(s["ok"] and s["objective"] < start - localsearch._IMPROVE * abs(start) for s in steps[1:])
+
+
+@pytest.mark.toml
+def test_settled_binaries_skip_the_capped_steps():
+    """joe's loop keeps moving its fed-back parameters after the binaries have stopped (#252). An
+    iteration after one that started from the previous binaries and moved none of them skips (b),
+    (b') and (a'), which found nothing on the same binaries; every other iteration runs them."""
+    p = _load("Case_joe.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search", "localSearchStepNodes": 100})
+    assert p.caseStatus == "solved"
+    settled, skipped = False, 0
+    for it in p.localSearchLog:
+        if not it["steps"]:  # a repeated problem: reused, and the state carries over
+            continue
+        capped = [s for s in it["steps"] if any(k in s["step"] for k in (" (b):", " (b'):", " (a'):"))]
+        assert bool(capped) != settled, [s["step"] for s in it["steps"]]
+        skipped += settled
+        settled = _settled(it["steps"])
+    assert skipped >= 1, "no iteration skipped the capped steps"
+
+
 def _john_sally_without_payroll_tax(monkeypatch):
     """john+sally as #197 found it. The payroll tax on John's 2026 wages (#227) costs this plan the
     room the moves below need: with it, the full search, the search without (b'), the search with

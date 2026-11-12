@@ -45,6 +45,19 @@ examples with CRLF, and 14 of the 19 hold such a string, their description. Case
 state tax data are now read with Python's `tomllib`, which handles either line ending; writing
 still uses `toml`. Thanks to Florin Mateoc (@fmateoc) for the issue (#248).
 
+#### Changed: local search no longer repeats the steps that found nothing on settled binaries
+
+With `breakpointMethod = "local-search"`, every iteration of the self-consistent loop ran the
+full search. Once an iteration started from the binaries of the one before and moved none of
+them, the next one, which differs only by the loop's fed-back parameters, ran steps (b), (b')
+and (a') again from the same binaries, and they found nothing again, (b') each time at its node
+cap. That iteration now skips them; steps (a) and (c) still run, and a move by either restores
+the full search in the iteration after it. The plans of the examples are unchanged to the cent.
+Where the parameters keep moving after the binaries have stopped, the solve is faster: on HiGHS,
+`Case_joe` takes half the CPU time and `Case_jack+jill` about a fifth less; the other examples
+converge before any step is skipped. Thanks to Florin Mateoc (@fmateoc) for the issue, the
+analysis and the fix (#252).
+
 ### Version 2026.10.30
 
 #### Changed: the Docker images run natively on Apple Silicon
