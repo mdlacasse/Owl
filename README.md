@@ -13,6 +13,7 @@ This documentation is licensed under Creative Commons Attribution-NonCommercial-
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker&cacheSeconds=86400)](https://hub.docker.com/r/owlplanner/owldocker)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
+[![GitHub stars](https://img.shields.io/github/stars/mdlacasse/owl?style=flat)](https://github.com/mdlacasse/owl/stargazers)
 
 ## Open-source retirement planning optimizer powered by Actual Intelligence — connect it to your AI assistant
 
@@ -110,6 +111,17 @@ configuration for Claude Desktop, Claude Code, Cursor, Gemini CLI, VS Code, and 
 
 
 ## Credits and Acknowledgements
+🦉 **Thank you!** In November 2026, Owl reached 100 stars on GitHub.
+Thanks to everyone who starred, tried, questioned, and improved it —
+your bug reports and feedback have made Owl wiser.
+
+<a href="https://star-history.com/#mdlacasse/owl&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mdlacasse/owl&type=Date&theme=dark" />
+    <img alt="Star history chart" src="https://api.star-history.com/svg?repos=mdlacasse/owl&type=Date" width="500" />
+  </picture>
+</a>
+
 See <a href="https://github.com/mdlacasse/Owl/blob/main/CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
 
 ## Bugs and Feature Requests
