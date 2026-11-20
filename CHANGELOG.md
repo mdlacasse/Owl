@@ -1,3 +1,7 @@
+### Version 2026.11.19
+
+#### Maintenance: Update dependencies
+
 ### Version 2026.11.07
 
 #### Fixed: the health-cost fields on Run Options step by one and show two decimals
