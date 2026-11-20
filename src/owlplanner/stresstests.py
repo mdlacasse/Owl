@@ -416,6 +416,29 @@ def summarize_year1(year1_list, inames):
 ###############################################################################
 
 
+FISCAL_FIELDS = ("G", "Q", "MAGI")
+
+
+def _fiscal_readings(p):
+    """Year-one taxable income composition of a solved plan, for the endogenous slice rate.
+
+    G is ordinary taxable income after the deduction, Q the qualified dividends and long-term
+    gains, MAGI the basis the IRMAA and NIIT tiers are read against. The expressions match
+    pubs/Cost_of_Committing/images/fine_grid.py so the sweep and the fine grid agree field for
+    field.
+
+    These are read, never solved for: every caller already holds a solved plan. Their purpose
+    is the response factor f = 1 + dy'_o/dx = dG/dx, which says how many dollars of taxable
+    income one converted dollar actually moves -- 1 when the plan passes the conversion
+    straight through to the schedule, 0 when it absorbs the whole of it by giving back other
+    ordinary income, negative when converting LOWERS the year's tax. A difference quotient
+    needs three points, so only the unrestricted baseline and the two probes at x* +/- delta
+    carry these; the grid pins do not, and nothing extra is solved for them.
+    """
+    f = np.asarray(p.f_tn, float)[:, 0]
+    return {"G": float(f.sum()), "Q": float(p.Q_n[0]), "MAGI": float(p.MAGI_n[0])}
+
+
 def _regret_objective_value(p, objective):
     """Scenario outcome in the objective's natural units (today's $).
 
@@ -520,6 +543,7 @@ def _regret_baseline_worker(args):
         return year, {
             "v_star": v_star,
             "x_star": float(p.x_in[person, 0]),
+            "fiscal": _fiscal_readings(p),
             # Dollar amplitude of this optimum's SC-loop oscillation (0 if monotonic).
             "v_star_osc": abs(v_star) * getattr(p, "oscillationRel", 0.0),
             "v_star_conv": conv,
@@ -558,6 +582,10 @@ def _regret_probe_repair_worker(args):
     """
     p, year, objective, options, person, v_star, x_star, best_value, best_plan, deltas, rounds = args
 
+    # Filled by solve_pinned for the probe it last solved, so the fiscal readings recorded
+    # below belong to that probe's own plan rather than to whatever solved most recently.
+    fiscal_of = {}
+
     def solve_pinned(x):
         p.rothXfixed_in[person, 0] = True
         p.myRothX_in[person, 0] = float(x)
@@ -565,6 +593,7 @@ def _regret_probe_repair_worker(args):
             p.solve(objective, options)
             if p.caseStatus != "solved":
                 return None
+            fiscal_of[float(x)] = _fiscal_readings(p)
             return _regret_objective_value(p, objective)
         finally:
             p.rothXfixed_in[person, 0] = False
@@ -574,6 +603,7 @@ def _regret_probe_repair_worker(args):
         repair = 0.0
         max_gap = -1.0
         probes = {}
+        fiscal_star = None
         used = 0
         # True when the last round run still found a probe beating the baseline, so the loop
         # stopped at the cap rather than because nothing was left: the probes recorded are then
@@ -590,7 +620,8 @@ def _regret_probe_repair_worker(args):
                     x = max(x_star + side * d, 0.0)
                     val = solve_pinned(x)
                     max_gap = max(max_gap, getattr(p, "solverGap", -1.0))
-                    probes[f"{'+' if side > 0 else '-'}{int(d)}"] = (float(x), val)
+                    probes[f"{'+' if side > 0 else '-'}{int(d)}"] = (
+                        float(x), val, fiscal_of.get(float(x)))
                     if val is not None and val > best[0] + 1.0:
                         best = (val, (p.w_ijn.copy(), p.x_in.copy()), float(x))
             if best[1] is None:
@@ -607,6 +638,7 @@ def _regret_probe_repair_worker(args):
             if val is not None and val > best[0] - 1.0:
                 repair += val - v_star
                 v_star, x_star = val, float(p.x_in[person, 0])
+                fiscal_star = _fiscal_readings(p)
             else:
                 # The re-solve could not match the winning plan; take the winner's own value.
                 repair += best[0] - v_star
@@ -618,6 +650,7 @@ def _regret_probe_repair_worker(args):
             "x_star": x_star,
             "repair": repair,
             "probes": probes,
+            "fiscal": fiscal_star,
             "rounds": used,
             "capped": winner_in_last_round,
             "max_gap": max_gap,
@@ -922,6 +955,12 @@ def run_conversion_regret_sweep(
       "v_star_repair" - ndarray (S,) the amount re-solving raised each baseline (0 when not)
       "v_at_probe"  - {"-30000": ndarray (S,), "+30000": ...} EXACT values at x* +/- delta
       "x_at_probe"  - the amounts those probes pinned (under side clamped at zero)
+      "fiscal_star" - {"G"|"Q"|"MAGI": ndarray (S,)} year-one taxable income composition at
+                      the unrestricted optimum
+      "fiscal_at_probe" - the same three at each probe, {"-30000": {"G": ndarray (S,), ...}}.
+                      With "fiscal_star" these are the three points of the response factor
+                      f = dG/dx of _fiscal_readings; no solve is added to produce them, and
+                      the grid pins carry no such readings
       "probe_deltas", "probe_rounds", "probe_capped" - provenance of the repair pass
       "v_star_lift" - ndarray (S,) the amount each baseline was raised (0 when not). This, not
                       x_star vs x_star_solved, is the test for "this scenario was lifted"
@@ -1029,12 +1068,17 @@ def run_conversion_regret_sweep(
     node_limit_hits = np.zeros((S, 4), dtype=int)
     v_star_conv = ["undefined"] * S
     v_star_osc = np.zeros(S)
+    # Year-one taxable income at the unrestricted optimum: the middle point of the response
+    # factor's difference quotient (see _fiscal_readings).
+    fiscal_star = {k: np.full(S, np.nan) for k in FISCAL_FIELDS}
     for i, year in enumerate(years):
         r = base_map.get(year)
         if r is None:
             continue
         v_star[i] = r["v_star"]
         x_star[i] = r["x_star"]
+        for _k, _v in (r.get("fiscal") or {}).items():
+            fiscal_star[_k][i] = _v
         v_star_osc[i] = r["v_star_osc"]
         v_star_conv[i] = r["v_star_conv"]
         max_gap[i] = r["max_gap"]
@@ -1127,6 +1171,8 @@ def run_conversion_regret_sweep(
     probe_capped = np.zeros(S, dtype=bool)
     v_at_probe = {f"{s}{int(d)}": np.full(S, np.nan) for d in deltas for s in "-+"}
     x_at_probe = {f"{s}{int(d)}": np.full(S, np.nan) for d in deltas for s in "-+"}
+    fiscal_at_probe = {f"{s}{int(d)}": {k: np.full(S, np.nan) for k in FISCAL_FIELDS}
+                       for d in deltas for s in "-+"}
     if repair_baselines and deltas and live:
         plan.mylog.print(
             f"Regret sweep repair: probing x* +/- {', '.join(u.d(d) for d in deltas)} on "
@@ -1161,9 +1207,15 @@ def run_conversion_regret_sweep(
                 probe_rounds[i] = res["rounds"]
                 probe_capped[i] = res["capped"]
                 max_gap[i] = max(max_gap[i], res["max_gap"])
-                for key, (x, val) in res["probes"].items():
+                for key, (x, val, fis) in res["probes"].items():
                     x_at_probe[key][i] = x
                     v_at_probe[key][i] = np.nan if val is None else val
+                    for _k, _v in (fis or {}).items():
+                        fiscal_at_probe[key][_k][i] = _v
+                # A reseed that moved x* re-solved the baseline, so its readings replace
+                # Phase A's; a probe that only won on value leaves nothing new to read.
+                for _k, _v in (res.get("fiscal") or {}).items():
+                    fiscal_star[_k][i] = _v
         if (v_star_repair > 0).any():
             plan.mylog.print(
                 f"{int((v_star_repair > 0).sum())} of {total} baselines repaired by re-solving "
@@ -1200,6 +1252,8 @@ def run_conversion_regret_sweep(
         # probe did not solve. These need no interpolation and no right-edge rule.
         "v_at_probe": v_at_probe,
         "x_at_probe": x_at_probe,
+        "fiscal_star": fiscal_star,
+        "fiscal_at_probe": fiscal_at_probe,
         "probe_deltas": list(deltas),
         "probe_rounds": probe_rounds,
         "probe_capped": probe_capped,
