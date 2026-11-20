@@ -47,11 +47,11 @@ h11==0.16.0
     # via
     #   httpcore2
     #   uvicorn
-highspy==1.15.1
+highspy==1.16.0
     # via owlplanner
-httpcore2==2.16.0 ; sys_platform != 'emscripten'
+httpcore2==2.16.2 ; sys_platform != 'emscripten'
     # via httpx2
-httpx2==2.16.0
+httpx2==2.16.2
     # via mcp
 httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscripten'
     # via httpx2
@@ -74,7 +74,7 @@ jsonschema-specifications==2025.9.1
     # via jsonschema
 kiwisolver==1.5.1
     # via matplotlib
-loguru==0.7.3
+loguru==0.8.0
     # via owlplanner
 markupsafe==3.0.4
     # via jinja2
@@ -88,7 +88,7 @@ mcp-types==2.3.0
     # via mcp
 mosek==11.2.8
     # via owlplanner
-narwhals==2.28.0
+narwhals==2.29.0
     # via
     #   altair
     #   plotly
@@ -104,7 +104,7 @@ numpy==2.4.6 ; python_full_version < '3.12'
     #   scipy
     #   seaborn
     #   streamlit
-numpy==2.5.4 ; python_full_version >= '3.12'
+numpy==2.5.5 ; python_full_version >= '3.12'
     # via
     #   contourpy
     #   highspy
@@ -145,12 +145,12 @@ pyarrow==26.0.1
     # via streamlit
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
-pydantic==2.14.3
+pydantic==2.14.4
     # via
     #   mcp
     #   mcp-types
     #   owlplanner
-pydantic-core==2.50.4
+pydantic-core==2.50.5
     # via pydantic
 pydeck==0.9.3
     # via streamlit
@@ -162,7 +162,7 @@ python-dateutil==4.0.0
     # via
     #   matplotlib
     #   pandas
-python-multipart==0.0.33
+python-multipart==0.0.34
     # via
     #   mcp
     #   streamlit
