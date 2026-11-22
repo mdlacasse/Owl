@@ -92,8 +92,9 @@ timetableHelp = {
         "unless the year is ticked in the next column."
     ),
     "Roth conv fixed": (
-        "Hold this year's conversion at exactly the amount beside it, bypassing the annual cap "
+        "Hold this year's conversion at the amount beside it, bypassing the annual cap "
         "and the start and stop years. An amount of 0 then means no conversion that year. "
+        "A positive amount is what the Roth gains: a Roth withdrawal that year is converted on top of it. "
         "Unticked, Owl optimizes the year."
     ),
     "QCD": (

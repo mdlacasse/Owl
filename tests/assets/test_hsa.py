@@ -398,7 +398,12 @@ def test_hsa_cap_pre_medicare_with_expenses():
 
 
 def _retiree(rows, state=None, options=None, aca=None, taxable=0, deferred=30):
-    """A 60-year-old in 2026 living on savings: a fixed $30,000 Roth conversion is the year's income."""
+    """A 60-year-old in 2026 living on savings: a fixed $30,000 Roth conversion is the year's income.
+
+    The conversion is one already made, by a household that lives on its Roth, so its pin holds the
+    conversion alone (netRothPins=False): read as a net transfer, it would leave the Roth no spending
+    that year, and the plan nothing to live on once the conversion empties the tax-deferred account.
+    """
     import io
     p = Plan(["A"], ["1966-07-01"], [62], "HSA retiree", verbose=False, logstreams=[io.StringIO()])
     p.setSpendingProfile("flat")
@@ -414,7 +419,7 @@ def _retiree(rows, state=None, options=None, aca=None, taxable=0, deferred=30):
     if deferred:
         base.update({"Roth conv": deferred * 1000, "Roth conv fixed": True})
     p.readHFP({"A": pd.DataFrame([{**base, **rows}])})
-    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", **(options or {})})
+    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "netRothPins": False, **(options or {})})
     assert p.caseStatus == "solved", p.caseStatus
     return p
 

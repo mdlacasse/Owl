@@ -8,9 +8,10 @@ binds the decision variable x[i,n]:
   - flag False (default): x[i,n] is left free, subject to the usual policy
     options (maxRothConversion cap, noRothConversions, startRothConversions,
     stopRothConversions, swapRothConverters, last-2-years zeroing).
-  - flag True: x[i,n] is pinned to the amount exactly, bypassing every one of
-    those policy options. An amount of 0 is a pin like any other, holding that
-    year at no conversion.
+  - flag True: the amount binds, bypassing every one of those policy options.
+    A positive amount c binds the net transfer x[i,n] - w[i,2,n] = c, so a
+    same-year Roth withdrawal cannot undo the conversion; netRothPins=False
+    binds x[i,n] = c alone. An amount of 0 holds x[i,n] at zero either way.
 Amounts are non-negative; a negative amount is rejected on load.
 
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
@@ -141,3 +142,84 @@ def test_negative_amount_rejected_on_the_in_memory_path():
     tl.at[row, "Roth conv"] = -1.0
     with pytest.raises(ValueError, match="Roth conv fixed"):
         p.setContributions(p.timeLists)
+
+
+def _make_roth_rich_plan(name, age):
+    """A plan with a Roth large enough to fund a same-year withdrawal of a pinned conversion."""
+    yobs = THISYEAR - age
+    p = owl.Plan([name], [f"{yobs}-06-15"], [age + 20], name, verbose=False)
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[50], taxDeferred=[800], taxFree=[400], startDate="1-1")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setSocialSecurity([0], [70])
+    p.setRates("historical", 2000)
+    return p
+
+
+_GROSS = dict(_BASE_OPTIONS, netRothPins=False)
+
+
+def test_gross_pin_lets_a_roth_withdrawal_offset_the_conversion():
+    """With netRothPins=False the pin holds x only. A household living on its Roth may withdraw the converted
+    amount the same year, which is a tax-deferred withdrawal under another name -- the right reading
+    of a conversion already made."""
+    p = _make_roth_rich_plan("roth_gross_pin", 65)
+    p.myRothX_in[0, 0] = 20_000
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", _GROSS)
+    assert p.caseStatus == "solved"
+    assert p.x_in[0, 0] == 20_000
+    assert p.w_ijn[0, 2, 0] > 20_000
+
+
+def test_net_pin_binds_the_net_transfer():
+    """A positive pin holds x - w[2] at the amount, so a same-year Roth withdrawal
+    cannot undo it. On this case the gross pin costs nothing; the net one does. Past 59 1/2 the repair
+    stage rewrites any round trip beyond c as a tax-deferred withdrawal, so the reported conversion
+    is the amount and the Roth is not drawn that year."""
+    gross = _make_roth_rich_plan("roth_gross_pin_ref", 65)
+    gross.myRothX_in[0, 0] = 20_000
+    gross.rothXfixed_in[0, 0] = True
+    gross.solve("maxSpending", _GROSS)
+
+    p = _make_roth_rich_plan("roth_net_pin", 65)
+    p.myRothX_in[0, 0] = 20_000
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", _BASE_OPTIONS)
+    assert gross.caseStatus == p.caseStatus == "solved"
+    assert p.x_in[0, 0] == pytest.approx(20_000, abs=1e-3)
+    assert p.w_ijn[0, 2, 0] == pytest.approx(0, abs=1e-3)
+    assert p.basis < gross.basis * (1 - 1e-5)
+
+
+def test_net_pin_before_59_allows_a_ladder_on_top():
+    """Below 59 1/2 the plan may convert more than the amount and draw the excess from the Roth's
+    basis -- a genuine ladder move -- but the net transfer still equals the amount."""
+    p = _make_roth_rich_plan("roth_net_pin_young", 55)
+    p.myRothX_in[0, 0] = 20_000
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", _BASE_OPTIONS)
+    assert p.caseStatus == "solved"
+    assert p.x_in[0, 0] >= 20_000 - 1e-3
+    assert p.x_in[0, 0] - p.w_ijn[0, 2, 0] == pytest.approx(20_000, abs=1e-3)
+
+
+def test_net_pin_keeps_precedence_over_the_cap():
+    """The net row replaces the cap's bound on x, as the gross pin does."""
+    p = _make_roth_rich_plan("roth_net_pin_cap", 65)
+    p.myRothX_in[0, 0] = 100_000
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", dict(_BASE_OPTIONS, maxRothConversion=50))
+    assert p.caseStatus == "solved"
+    assert p.x_in[0, 0] - p.w_ijn[0, 2, 0] == pytest.approx(100_000, abs=1e-3)
+
+
+def test_net_zero_pin_still_allows_roth_spending():
+    """A pin at 0 holds the conversion at zero and nothing else, under either reading."""
+    p = _make_roth_rich_plan("roth_zero_pin_spend", 65)
+    p.myRothX_in[0, 0] = 0.0
+    p.rothXfixed_in[0, 0] = True
+    p.solve("maxSpending", _BASE_OPTIONS)
+    assert p.caseStatus == "solved"
+    assert p.x_in[0, 0] == 0
+    assert p.w_ijn[0, 2, 0] > 1_000

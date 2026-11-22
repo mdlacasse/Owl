@@ -3469,9 +3469,29 @@ class Plan:
         # last-two-years zeroing. An amount of 0 is a pin like any other -- it holds that
         # year at no conversion.
         #
+        # A positive amount c pins the NET transfer into the Roth, x - w[i,2,n] = c, not the
+        # conversion alone. Pinning x left the plan free to convert c and withdraw c from the
+        # Roth the same year, which is a tax-deferred withdrawal of c under another name: the
+        # Roth never gains the committed amount, and a pin investigated for its cost can cost
+        # nothing. The net row lets the plan still draw on the Roth that year, but every dollar
+        # drawn must be converted on top of c. The bound x >= c (implied by w >= 0) replaces
+        # the policy bounds above, so the pin keeps its precedence over the cap and the
+        # start/stop years. A round trip beyond c is a tie with a tax-deferred withdrawal, and
+        # amorepair.repair_roth_overlap rewrites it as one: its guard allows m = x - c = w, and
+        # the substitution leaves x - w invariant.
+        #
+        # The price is that a pinned year allows no net Roth spending. For a conversion already
+        # executed by a household that lives on its Roth, that is wrong -- such a household is
+        # exactly where it would be had it converted less, dollars being fungible -- and it can
+        # make the plan infeasible when the pin exhausts the tax-deferred account. netRothPins
+        # set to False restores the gross reading, x = c. A zero amount stays a bound, x = 0,
+        # under either reading: its net form, x = w, would forbid tax-free Roth spending, which
+        # is not what "no conversion" means.
+        #
         # noRothConversions is the one that refuses instead of yielding, a few lines down.
         # It is a categorical statement about a person, so a pin against it is a
         # contradiction; a swap is only a schedule, so a pin simply overrides it.
+        net_pins = bool(options.get("netRothPins", True))
         for i in range(self.N_i):
             pinned = np.flatnonzero(self.rothXfixed_in[i, : self.horizons[i]])
             if i == i_xcluded:
@@ -3486,7 +3506,14 @@ class Plan:
                 continue
             for n in pinned:
                 v = self.myRothX_in[i][n]
-                self.B.setRange(self.vm["x"].idx(i, n), v, v)
+                jx = self.vm["x"].idx(i, n)
+                if net_pins and v > 0:
+                    self.B.setRange(jx, v, np.inf)
+                    self.A.addNewRow(
+                        {jx: 1, self.vm["w"].idx(i, 2, n): -1}, v, v, tag=("roth_pin_net", i, n)
+                    )
+                else:
+                    self.B.setRange(jx, v, v)
 
     @_fixedAcrossIterations
     def _add_safety_net(self, options):
@@ -5327,6 +5354,9 @@ class Plan:
 
         - options is a dictionary which can include:
             - maxRothConversion: Only allow conversion smaller than amount specified.
+            - netRothPins: A positive 'Roth conv fixed' amount binds the net transfer into
+              the Roth (conversion less same-year Roth withdrawal); False binds the
+              conversion alone (default True).
             - netSpending: Desired spending amount when optimizing with maxBequest.
             - bequest: Value of bequest in today's $ when optimizing with maxSpending.
             - units: Units to use for amounts (1, k, or M).
@@ -5365,6 +5395,7 @@ class Plan:
             "maxIter",
             "maxRothConversion",
             "minTaxableBalance",
+            "netRothPins",  # True (default): a positive Roth conv pin binds x - w[2]; False: x
             "netSpending",
             "noLateSurplus",
             "noRothConversions",

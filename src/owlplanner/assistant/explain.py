@@ -106,6 +106,14 @@ CONSTRAINT_FAMILIES = {
         "matured conversions, keeping earnings in the account; the value is the objective gain per "
         "today's-$ of additional Roth basis available early.",
     },
+    "roth_pin_net": {
+        "class": "policy",
+        "label": "pinned Roth conversion, net of same-year Roth withdrawals",
+        "indices": ("person", "year"),
+        "note": "Years flagged in 'Roth conv fixed' with a positive amount, where the "
+        "conversion less the same-year Roth withdrawal must equal that amount. An equality, so the generic "
+        "explainer, which needs a single relaxation direction, does not report it.",
+    },
     # structural
     "cash_flow": {"class": "structural", "label": "yearly net cash-flow balance"},
     "taxable_income": {"class": "structural", "label": "yearly federal taxable-income identity"},

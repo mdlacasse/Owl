@@ -1,5 +1,22 @@
 ### Version 2026.11.19
 
+#### Changed: a pinned Roth conversion can no longer be withdrawn the same year
+
+A year ticked in *Roth conv fixed* held the conversion at its amount, but nothing stopped the plan
+from withdrawing that amount from the Roth in the same year. Converting \$c and withdrawing \$c is a
+tax-deferred withdrawal of \$c under another name, so the Roth never gained the committed amount
+and the pin could cost nothing: on a 65-year-old with a large Roth, a \$20,000 pin left the objective
+unchanged because the plan withdrew \$22,204 from the Roth that year. A positive amount now binds the
+net transfer into the Roth, the conversion less the same-year Roth withdrawal. The plan may still
+draw on the Roth that year, but must convert that much on top of the amount, so a ticked year allows
+no net Roth spending. From age 59½ the engine's existing post-processing shows such a pair as a
+tax-deferred withdrawal, so the reported conversion is the amount; before 59½ it can be larger. A
+ticked 0 is unchanged: no conversion, and the Roth stays spendable that year.
+
+For a conversion already made by a household that lives on its Roth, the old reading is the right
+one, and the new one can make the plan infeasible when the pin uses up the tax-deferred account. The
+new solver option `netRothPins = false` restores it.
+
 #### Maintenance: Update dependencies
 
 ### Version 2026.11.07

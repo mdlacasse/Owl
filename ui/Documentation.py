@@ -569,9 +569,15 @@ leave it blank where it does not apply), where:
   another tool. Amounts are never negative.
 - *Roth conv fixed* decides whether that proposal binds. Left unticked -- the default -- the amount
   beside it is documentation only, and **Owl** optimizes that year's conversion as usual, subject to
-  the other Roth conversion settings on the **Run Options** page. Ticked, the conversion is held at
-  exactly the amount in *Roth conv*, bypassing the maximum annual conversion cap and the start and
-  stop years. An amount of `0` on a ticked year therefore means *no conversion that year*. Because
+  the other Roth conversion settings on the **Run Options** page. Ticked, the amount in *Roth conv*
+  binds, bypassing the maximum annual conversion cap and the start and stop years. An amount of `0`
+  on a ticked year therefore means *no conversion that year*. A positive amount commits the Roth to gaining that much: any Roth withdrawal the same year has to be converted
+  on top of it, so the plan cannot convert the amount and take it straight back out, which would only
+  be a tax-deferred withdrawal under another name. A ticked year therefore allows no net Roth
+  spending; for a conversion already made by a household that lives on its Roth, the solver option
+  `netRothPins = false` holds the conversion alone instead. From age 59½ a conversion paired with a
+  Roth withdrawal is shown as the tax-deferred withdrawal it amounts to; before 59½ the conversion
+  shown can exceed the amount by what is withdrawn from the Roth that year. Because
   the flag is separate from the amount, un-ticking a year leaves its figure in place for later --
   handy for comparing an optimized run against "what if I skip this year?". The flag has no effect on
   the five lead-in rows, where past conversions always count.

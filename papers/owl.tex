@@ -313,11 +313,13 @@ Each individual has their own sheet with the following year-indexed columns:
   \item \textit{Roth conv fixed} --- a checkbox, not an amount, deciding whether
     the \textit{Roth conv} figure beside it binds.  Unticked, the default, the
     amount is documentation only and the year's conversion is optimized as usual;
-    ticked, the conversion is held at exactly that amount, bypassing the maximum
-    annual conversion cap and the start and stop years, so a ticked~0 means no
-    conversion that year.  Keeping the flag separate from the amount lets a year's
-    figure stay in place while it is un-ticked.  The flag has no effect on the five
-    lead-in rows, where past conversions always count;
+    ticked, the amount binds, bypassing the maximum annual conversion cap and the
+    start and stop years, so a ticked~0 means no conversion that year.  A positive
+    amount binds the net transfer into the Roth, the conversion less the same-year
+    Roth withdrawal, unless the solver option \code{netRothPins} is false
+    (Section~\ref{sec:rothConversionControls}).  Keeping the flag separate from
+    the amount lets a year's figure stay in place while it is un-ticked.  The flag
+    has no effect on the five lead-in rows, where past conversions always count;
   \item \textit{QCD} --- qualified charitable distributions paid directly from
     the tax-deferred account to a charity (Section~\ref{sec:qcd});
   \item \textit{big-ticket items} --- large planned expenses such as a home
@@ -6373,6 +6375,7 @@ fraction $1 - \textrm{oppCostX}/100$ of a converted dollar is what arrives.
 \end{description}
 
 \section{Roth conversion controls}
+\label{sec:rothConversionControls}
 
 \begin{description}[style=nextline, leftmargin=1.5cm, font=\ttfamily]
 \item[maxRothConversion]
@@ -6387,6 +6390,19 @@ For a couple, a signed calendar year before which only one spouse may convert:
 positive lets the first individual convert first and the second from that year
 on, negative the reverse.  It takes precedence over \code{noRothConversions},
 which is dropped, with a warning, when both are given.
+\item[netRothPins]
+How a positive amount~$c$ in a year ticked \textit{Roth conv fixed} binds
+(default true).  True binds the net transfer into the Roth,
+$x_{in} - w_{i2n} = c$: converting~$c$ and withdrawing~$c$ from the Roth the same
+year is a tax-deferred withdrawal of~$c$ under another name, and would leave a
+commitment under study without effect, so a Roth withdrawal that year must be
+converted on top of~$c$.  The year then allows no net Roth spending, and a plan
+whose only other source is exhausted by the pin is infeasible.  False binds the
+conversion alone, $x_{in} = c$, the right reading of a conversion already made
+by a household that lives on its Roth: it stands exactly where it would had it
+converted less.  From age~59\textonehalf{} the reported plan shows a conversion
+paired with a Roth withdrawal as the tax-deferred withdrawal it amounts to.  A
+ticked~0 means no conversion under either setting.
 \end{description}
 
 \section{Tax-breakpoint modes}
