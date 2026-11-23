@@ -1936,10 +1936,15 @@ async def run_from_params(
                         both are enforced as errors.
         roth_conversions: Roth conversions held fixed instead of optimized.  Each entry:
                         {"person": 0, "year": 2026, "amount": 20000}.  Listing a year is
-                        what pins it: the conversion is held at exactly that amount,
-                        bypassing max_roth_conversion and the other Roth policy options.
-                        An amount of 0 holds that year at no conversion; negative amounts
-                        are an error.  Years not listed remain free, governed
+                        what pins it, bypassing max_roth_conversion and the other Roth
+                        policy options.  A positive amount is what the Roth gains that
+                        year: a same-year Roth withdrawal must be converted on top of it,
+                        so the year allows no net Roth spending.  For a conversion already
+                        made in a year the household lives on its Roth, this can overstate
+                        the tax; a case file can set netRothPins = false to hold the
+                        conversion alone.  An amount of 0 holds that year at no conversion
+                        and leaves the Roth spendable; negative amounts are an error.
+                        Years not listed remain free, governed
                         by the other Roth options.  Use this to pin a conversion you've
                         already made this year, test skipping a specific year, or supply
                         your own bracket-surfing schedule for some years while letting
