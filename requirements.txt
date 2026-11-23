@@ -16,7 +16,7 @@ attrs==26.1.0
     # via
     #   jsonschema
     #   referencing
-certifi==2026.10.23
+certifi==2026.11.20
     # via requests
 cffi==2.1.1 ; platform_python_implementation != 'PyPy'
     # via cryptography
@@ -86,7 +86,7 @@ mcp==2.3.0
     # via owlplanner
 mcp-types==2.3.0
     # via mcp
-mosek==11.2.8
+mosek==11.2.9
     # via owlplanner
 narwhals==2.29.0
     # via
@@ -184,7 +184,7 @@ scipy==1.18.1 ; python_full_version >= '3.12'
     # via owlplanner
 seaborn==0.13.2
     # via owlplanner
-sse-starlette==3.7.0
+sse-starlette==3.7.1
     # via mcp
 starlette==1.10.0
     # via
@@ -227,7 +227,7 @@ uvicorn==0.54.0
     # via
     #   mcp
     #   streamlit
-watchdog==7.1.0 ; sys_platform != 'darwin'
+watchdog==7.1.1 ; sys_platform != 'darwin'
     # via streamlit
 websockets==17.4
     # via streamlit

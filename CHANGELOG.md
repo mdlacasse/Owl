@@ -1,3 +1,9 @@
+### Version 2026.11.22
+
+#### Maintenance: Dependencies update
+
+Update dependencies due to vulnerabilities.
+
 ### Version 2026.11.19
 
 #### Changed: a pinned Roth conversion can no longer be withdrawn the same year
