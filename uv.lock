@@ -2396,7 +2396,7 @@ wheels = [
 
 [[package]]
 name = "owlplanner"
-version = "2026.11.22"
+version = "2026.11.24"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -2681,15 +2681,15 @@ wheels = [
 
 [[package]]
 name = "plotly"
-version = "7.1.0"
+version = "7.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "narwhals" },
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/49/c3/72b369f5ed7701b04ab0ea3dcf83e9bbce71c0b3bc6f07f87568550d09ea/plotly-7.1.0.tar.gz", hash = "sha256:f860166a4a3d78c69cb1f4a15f28a5c8283eade98a282a698f3bb853a449ace5", size = 6689315, upload-time = "2026-09-15T19:21:21.75Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/23/ed969530891a2fd44991f9d4c733ff349d87903b11d75366f1dee607f3ef/plotly-7.2.0.tar.gz", hash = "sha256:0c8299da0556ba9bf18d157f23982d189b627492a6c3cafba9d010b1b6ccb746", size = 6699266, upload-time = "2026-11-24T21:33:02.618Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/7d/905a3a3d51087515719058c94cfbda2ff0fc14417c20d557ae3e82d8b250/plotly-7.1.0-py3-none-any.whl", hash = "sha256:dbb7fa18afce40d0a8e80d1bf162eceb3faa0ce5a77fe741ad09a74cf78f53f3", size = 9692368, upload-time = "2026-09-15T19:21:18.331Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/43/86c04582164c54476d4dae5c053af82ba70b975f5babbf183ae6e51159b9/plotly-7.2.0-py3-none-any.whl", hash = "sha256:51ed86a5e71b0abfe4df9679a1da0564f9e7e93d5dc7cb35d433256b2cfce854", size = 9702562, upload-time = "2026-11-24T21:33:00.154Z" },
 ]
 
 [[package]]
