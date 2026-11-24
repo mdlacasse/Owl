@@ -60,6 +60,25 @@ class Year0Bracket(BaseModel):
     )
 
 
+class Year0StateTax(BaseModel):
+    """State income tax in the first plan year, for plans in a state with an income tax."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: str = Field(description="Two-letter state code.")
+    state_tax: float = Field(description="State income tax for the year (today's $).")
+    top_bracket_rate_pct: Optional[float] = Field(
+        default=None, description="State marginal rate of the highest bracket reached (%); absent with no state tax."
+    )
+    headroom_in_bracket: Optional[float] = Field(
+        default=None,
+        description="Room left below that bracket's upper edge (today's $); absent in the open-ended top bracket.",
+    )
+    filled_to_boundary: Optional[bool] = Field(
+        default=None, description="True when the optimizer fills the state bracket to its edge."
+    )
+
+
 class ThisYear(BaseModel):
     """First plan year: the only decisions that are executed. Lead the narration here."""
 
@@ -69,6 +88,9 @@ class ThisYear(BaseModel):
     actions: ThisYearActions = Field(description="Decisions to execute now.")
     tax_bracket: Optional[Year0Bracket] = Field(
         default=None, description="Ordinary-income bracket position this year."
+    )
+    state_tax: Optional[Year0StateTax] = Field(
+        default=None, description="State income tax and state bracket position this year (income-tax states only)."
     )
     threshold_proximity: Optional[Dict[str, Any]] = Field(
         default=None,
@@ -137,6 +159,42 @@ class TaxBrackets(BaseModel):
     note: str = Field(description="Interpretation guidance.")
 
 
+class StateBracketYear(BaseModel):
+    """One year's state income tax and state bracket fill."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(description="Calendar year.")
+    state: str = Field(description="Two-letter code of the state taxing that year.")
+    state_tax_today: float = Field(description="State income tax for the year (today's $).")
+    top_bracket_rate_pct: float = Field(description="State marginal rate of the highest bracket reached (%).")
+    headroom_in_bracket_today: Optional[float] = Field(
+        default=None, description="Room left in that bracket (today's $); absent in the open-ended top bracket."
+    )
+    filled_to_boundary: bool = Field(description="True when the state bracket is filled to its edge.")
+
+
+class StateMove(BaseModel):
+    """A change of state of residence during the plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(description="First calendar year taxed by the new state.")
+    state: str = Field(description="Two-letter code of the new state; empty for none.")
+
+
+class StateTaxBrackets(BaseModel):
+    """Per-year state income tax and bracket fill, for plans in a state with an income tax."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    state: str = Field(description="Two-letter code of the starting state.")
+    move: Optional[StateMove] = Field(default=None, description="The change of state during the plan, if any.")
+    total_state_tax_today: float = Field(description="State income tax over the plan (today's $).")
+    by_year: List[StateBracketYear] = Field(description="State tax, bracket reached and headroom, per year.")
+    note: str = Field(description="Interpretation guidance.")
+
+
 class DepletionEvent(BaseModel):
     """First year an initially-funded account reaches zero."""
 
@@ -154,6 +212,25 @@ class AccountDepletion(BaseModel):
 
     events: List[DepletionEvent] = Field(description="Depletion events in the primal solution.")
     note: str = Field(description="Interpretation guidance.")
+
+
+class HealthCare(BaseModel):
+    """Lifetime health-care costs and their growth (today's dollars)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    medicare_premiums_total: float = Field(description="Medicare Part B and D premiums, IRMAA included.")
+    irmaa_surcharges_total: Optional[float] = Field(
+        default=None, description="Part of the Medicare premiums due to IRMAA surcharges."
+    )
+    irmaa_years: Optional[List[int]] = Field(default=None, description="Years with an IRMAA surcharge.")
+    aca_net_premiums_total: float = Field(description="ACA marketplace premiums after the Premium Tax Credit.")
+    other_medical_expenses_total: float = Field(
+        description="Out-of-pocket qualified medical expenses (inside net spending; they cap HSA withdrawals)."
+    )
+    hsa_withdrawals_total: float = Field(description="Tax-free HSA withdrawals.")
+    medical_inflation_excess_pct: float = Field(description="Yearly growth of medical prices above inflation (%).")
+    note: str = Field(description="How these costs grow and what they cover.")
 
 
 class ShadowPrices(BaseModel):
@@ -201,7 +278,13 @@ class PlanExplanation(BaseModel):
     binding_constraints: List[BindingConstraint] = Field(description="Active policy constraints.")
     roth_conversions: RothConversions = Field(description="Conversion schedule and cap analysis.")
     tax_brackets: TaxBrackets = Field(description="Per-year bracket fill.")
+    state_tax_brackets: Optional[StateTaxBrackets] = Field(
+        default=None, description="Per-year state tax and bracket fill (income-tax states only)."
+    )
     account_depletion: AccountDepletion = Field(description="Withdrawal sequencing.")
+    health_care: Optional[HealthCare] = Field(
+        default=None, description="Lifetime Medicare, ACA, and out-of-pocket medical costs."
+    )
     caveats: List[str] = Field(description="Scope-of-validity notes the narration must respect.")
 
 

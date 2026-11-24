@@ -53,6 +53,7 @@ _INCOME_COLORS = {
 _OUTFLOW_COLORS = {
     "living": "#2196F3",
     "taxes": "#F44336",
+    "payroll": "#E57373",
     "state_taxes": "#C62828",
     "healthcare": "#FF9800",
     "debt": "#9E9E9E",
@@ -226,8 +227,9 @@ class PlotlyBackend(PlotBackend):
 
         return fig
 
-    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None, ST_n=None):
-        """Plot taxes over time. A_n: optional ACA costs. ST_n: optional state income tax."""
+    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None, ST_n=None, P_n=None):
+        """Plot taxes over time. A_n: optional ACA costs. ST_n: optional state income tax.
+        P_n: optional employee payroll tax (FICA)."""
         fig = go.Figure()
 
         # Calculate data based on value type
@@ -236,12 +238,14 @@ class PlotlyBackend(PlotBackend):
             medicare_data = M_n / 1000
             aca_data = A_n / 1000 if A_n is not None else None
             st_data = ST_n / 1000 if ST_n is not None else None
+            payroll_data = P_n / 1000 if P_n is not None else None
             y_title = "$k (nominal)"
         else:
             income_tax_data = T_n / gamma_n[:-1] / 1000
             medicare_data = M_n / gamma_n[:-1] / 1000
             aca_data = A_n / gamma_n[:-1] / 1000 if A_n is not None else None
             st_data = ST_n / gamma_n[:-1] / 1000 if ST_n is not None else None
+            payroll_data = P_n / gamma_n[:-1] / 1000 if P_n is not None else None
             y_title = f"$k (constant {year_n[0]})"
 
         # Add income taxes line
@@ -257,6 +261,10 @@ class PlotlyBackend(PlotBackend):
         # Add state income tax line when configured
         if st_data is not None and (st_data > 0).any():
             fig.add_trace(go.Scatter(x=year_n, y=st_data, name="state tax", line=dict(width=2, dash="longdash")))
+
+        # Add the employee's payroll tax when any year has earnings
+        if payroll_data is not None and (payroll_data > 0).any():
+            fig.add_trace(go.Scatter(x=year_n, y=payroll_data, name="payroll tax", line=dict(width=2, dash="dashdot")))
 
         title = title.replace("\n", "<br>")
         # Update layout
@@ -657,7 +665,7 @@ class PlotlyBackend(PlotBackend):
         if (phi_j is not None and np.all((1 - phi_j) < 0.01)) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
                 print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
-            df.drop("partial", axis=1, inplace=True)
+            df = df.drop(columns="partial")
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
             my[0] = my[1]
@@ -2055,6 +2063,7 @@ class PlotlyBackend(PlotBackend):
         outflow_labels_map = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",
@@ -2135,6 +2144,7 @@ class PlotlyBackend(PlotBackend):
         outflow_labels = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",

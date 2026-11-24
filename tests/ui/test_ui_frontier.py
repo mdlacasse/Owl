@@ -135,7 +135,7 @@ class TestRenderFrontier:
         text = stored["frontierSummary"]
         assert "Net spending" in text
         assert "100,000" in text and "88,000" in text
-        assert "the most this plan can leave" in _prose(text)
+        assert "this plan can leave at least $2,000,000" in _prose(text)
 
     def test_stochastic_table_has_one_column_per_success_rate(self, monkeypatch):
         from owlplanner.plotting.matplotlib_backend import MatplotlibBackend
@@ -217,8 +217,8 @@ class TestRenderFrontier:
         assert "unreachable" in text
         assert "100,000" in text and "88,000" in text, "the solved levels must still print"
         # A failure below the best success is not "every level is reachable".
-        assert "Every level traced is reachable" not in text
-        assert "1 lower level(s) did not solve" in _prose(text)
+        assert "Every bequest level traced is reachable" not in text
+        assert "1 lower level did not solve" in _prose(text)
 
     def test_unreachable_marker_sits_under_spending(self, monkeypatch):
         """

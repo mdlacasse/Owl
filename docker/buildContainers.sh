@@ -23,9 +23,7 @@
 set -e
 VERSION=$(python3 -c "exec(open('../src/owlplanner/version.py').read()); print(__version__)")
 
-docker build --platform linux/amd64 --provenance=true --sbom=true --no-cache -f Dockerfile.edge -t owlplanner/owldocker:edge .
-docker push owlplanner/owldocker:edge
+# Both images are published for amd64 and arm64 (Apple Silicon); nothing is compiled on either.
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=true --sbom=true --no-cache -f Dockerfile.edge -t owlplanner/owldocker:edge --push .
 
-docker build --platform linux/amd64 --provenance=true --sbom=true --no-cache -f Dockerfile.versioned -t owlplanner/owldocker:${VERSION} -t owlplanner/owldocker:latest .
-docker push owlplanner/owldocker:${VERSION}
-docker push owlplanner/owldocker:latest
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=true --sbom=true --no-cache -f Dockerfile.versioned -t owlplanner/owldocker:${VERSION} -t owlplanner/owldocker:latest --push .

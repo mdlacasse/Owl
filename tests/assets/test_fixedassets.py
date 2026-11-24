@@ -1179,3 +1179,59 @@ class TestGetFixedAssetsDispositionCostsArray:
         commission = 100_000 * 0.02
         for n in range(N_n):
             assert costs[n] == pytest.approx(commission, abs=1.0)
+
+
+class TestSurvivorResidenceExclusion:
+    """IRC 121(b)(4): a surviving spouse keeps the $500,000 exclusion for 2 years after the death (#218)."""
+
+    @staticmethod
+    def _home(yod):
+        return pd.DataFrame([{"name": "home", "type": "residence", "year": 2026, "basis": 100_000,
+                              "value": 500_000, "rate": 0.0, "yod": yod, "commission": 0.0}])
+
+    @pytest.mark.parametrize(
+        "yod, taxable",
+        [
+            (2028, 0.0),  # both alive (death on Dec 31, 2028)
+            (2029, 0.0),  # 1 day after the death
+            (2030, 0.0),  # 1 year and 1 day: still within 2 years
+            (2031, 150_000.0),  # 2 years and 1 day: $250,000 exclusion
+            (2033, 150_000.0),
+        ],
+    )
+    def test_exclusion_by_sale_year(self, yod, taxable):
+        # n_d = 3: 2029 is the first year with a survivor.
+        tax_free, _, capital = fixedassets.get_fixed_assets_arrays(
+            self._home(yod), 10, None, 2026, filing_status="married", n_d=3)
+        n = yod - 2026
+        assert capital[n] == pytest.approx(taxable)
+        assert tax_free[n] == pytest.approx(500_000 - taxable)
+
+    def test_no_death_keeps_the_joint_exclusion(self):
+        for n_d in (None, 10):
+            _, _, capital = fixedassets.get_fixed_assets_arrays(
+                self._home(2035), 10, None, 2026, filing_status="married", n_d=n_d)
+            assert capital[9] == 0.0
+
+    def test_disposition_cost_follows_the_window(self):
+        costs = fixedassets.get_fixed_assets_disposition_costs_array(
+            self._home(2035), 10, None, 0.15, 2026, filing_status="married", n_d=3)
+        np.testing.assert_allclose(costs[:5], 0.0)  # 2026-2030: $500,000 covers the $400,000 gain
+        np.testing.assert_allclose(costs[5:], 0.15 * 150_000)  # 2031 on: $250,000 exclusion
+
+    def test_plan_passes_the_death_year(self):
+        """Plan.processDebtsAndFixedAssets uses n_d: the #218 repro."""
+        import io
+
+        from owlplanner import Plan
+
+        p = Plan(["Ann", "Ben"], ["1960-01-15", "1958-01-15"], [90, 70], "survivor-sale",
+                 verbose=False, logstreams=[io.StringIO()])
+        thisyear = 2026
+        death_year = thisyear + int(p.n_d) - 1
+        for sale_year, taxable in ((death_year + 2, 0.0), (death_year + 5, 150_000.0)):
+            df = self._home(sale_year)
+            df["active"] = True
+            p.houseLists["Fixed Assets"] = df
+            p.processDebtsAndFixedAssets()
+            assert p.fixed_assets_capital_gains_n[sale_year - thisyear] == pytest.approx(taxable)

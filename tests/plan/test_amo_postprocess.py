@@ -53,7 +53,7 @@ OBJECTIVE_RTOL = 6e-3
 
 
 def _load_reference():
-    with open(REFERENCE_FILE) as f:
+    with open(REFERENCE_FILE, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -258,6 +258,31 @@ class TestSurplusNetting:
                     f"year {n} realizes taxed gains and must be reported gross"
                 )
 
+    @pytest.mark.toml
+    def test_displayed_flows_explain_the_gains(self):
+        """A sale at a gain is never netted: the displayed flows reproduce Q_n (#234).
+
+        Jack+jill's surplus split forces a taxable sale and rebuy whose gain the federal 0%
+        bracket leaves untaxed; netting it hid $17,047 of a year's Q_n from the displayed flows.
+        """
+        p = owl.readConfig(os.path.join("examples", "Case_jack+jill"))
+        p.resolve()
+        Nn = p.N_n
+        cgr = p._withdrawal_gain_fraction()
+        q_n = np.sum(
+            (
+                p.mu * (p.b_ijn[:, 0, :Nn] - p.w_ijn[:, 0, :] + p.d_in + 0.5 * p.kappa_ijn[:, 0, :Nn])
+                + cgr * p.w_ijn[:, 0, :]
+            )
+            * p.alpha_ijkn[:, 0, 0, :Nn],
+            axis=0,
+        )
+        np.testing.assert_allclose(q_n + p.fixed_assets_capital_gains_n, p.Q_n, atol=1.0)
+        # What was netted realized no gain.
+        netted_in = p.w_ijn_lp[:, 0, :] - p.w_ijn[:, 0, :]
+        gain_in = np.broadcast_to(cgr, netted_in.shape) * p.alpha_ijkn[:, 0, 0, :Nn] * netted_in
+        assert np.all(gain_in <= 0.01)
+
     def test_cashflow_balance_on_built_plans(self):
         for name, builder in (("single", _make_single), ("couple", _make_couple)):
             if name == "single":
@@ -269,7 +294,15 @@ class TestSurplusNetting:
 
 
 class TestMatchesRecordedOptimum:
-    """The recorded fixture is what the exclusion binaries produced, before their removal."""
+    """The recorded fixture is what the exclusion binaries produced, before their removal.
+
+    Exception: the cases listed under ``_rerecorded_cases`` in the fixture were re-recorded
+    from this LP build on 2026-09-28, when the state base stopped also deducting the federal
+    standard deduction. Only their ``basis``, ``bequest`` and per-year flows changed; for them
+    the fixture pins the corrected tax model rather than the binary-constrained optimum.
+    Cases in no-income-tax states were unaffected and keep their original MIP records.
+    A case whose record for the active solver is empty (null) is skipped under that solver.
+    """
 
     @pytest.mark.toml
     @pytest.mark.parametrize("case", _comparable_cases())
@@ -310,9 +343,22 @@ class TestMatchesRecordedOptimum:
 
         CPU time has both the headroom and the stability: the same sweep measured 1.49 s
         worst case under MOSEK and 0.88 s under HiGHS, and it does not move when other
-        processes compete for cores. The ceiling below is more than three times the worst
-        recorded case and still catches the regression this guards against by three orders
-        of magnitude -- Case_cameron took 577 s with the exclusion binaries.
+        processes compete for cores.
+
+        Re-measured when the residual exit test landed: Case_jack+jill is still the worst
+        case, and the exit test is what raised it. That case never reaches residualTol --
+        its worst family sits near $5,000 -- so instead of stopping on the objective at 19
+        iterations it now runs to 25 and exits on cycle detection, which is the loop
+        correctly refusing to call a 2-cycle converged. The extra iterations are real work
+        on the one recorded case carrying binaries, not a solver regression.
+
+        The ceiling is set from what CI measures, not from a developer machine: the two
+        differ by more than a factor of two, and the old 5 s ceiling was tight enough that
+        the difference decided the outcome -- CI measured 5.6 s and failed a run that passed
+        locally at 2.30 s. GitHub's runners are the slowest hardware this suite meets, so
+        they set the bar. At 20 s the guard still catches the regression it exists for by a
+        factor of 29: Case_cameron took 577 s with the exclusion binaries, and nothing this
+        test has ever measured comes within an order of magnitude of the ceiling.
         """
         import time
 
@@ -329,7 +375,7 @@ class TestMatchesRecordedOptimum:
             elapsed = time.process_time() - start
             if elapsed > slowest:
                 slowest, worst_case = elapsed, case
-        assert slowest < 5.0, f"{worst_case} took {slowest:.1f}s of CPU ({solver})"
+        assert slowest < 20.0, f"{worst_case} took {slowest:.1f}s of CPU ({solver})"
 
 
 class TestOverlapsResolved:

@@ -67,7 +67,8 @@ pages = {
         st.Page("Monte_Carlo.py", icon=":material/finance:"),
         st.Page("Spending_Optimization.py", icon=":material/query_stats:"),
         st.Page("Spending_vs_Bequest.py", icon=":material/balance:"),
-        st.Page("Regret_Curve.py", icon=":material/trending_down:"),
+        # Still experimental
+        # st.Page("Regret_Curve.py", icon=":material/trending_down:"),
     ],
     "Tools": [
         st.Page("Connect_your_AI.py", icon=":material/smart_toy:"),

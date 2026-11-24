@@ -130,7 +130,7 @@ def main():
     # No home: Cameron rents, which is what keeps taxable income under the deduction.
 
     wb.save(HFP_OUT)
-    with open(TOML_OUT, "w") as f:
+    with open(TOML_OUT, "w", encoding="utf-8") as f:
         f.write(TOML)
     print(f"Wrote {HFP_OUT} and {TOML_OUT}")
 

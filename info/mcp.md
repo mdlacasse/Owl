@@ -16,7 +16,7 @@ optimizations, and compare scenarios through natural conversation.
 | Tool | Description | Solves? |
 |------|-------------|---------|
 | `list_cases(directory)` | Enumerate `.toml` case files in a directory | No |
-| `explain_case(filename, overrides)` | Describe a case: individuals, balances, fixed assets, debts, opening balance sheet, income, options | No |
+| `explain_case(filename, overrides)` | Describe a case: individuals, balances, fixed assets, debts, opening balance sheet, income, health care (Medicare, ACA, medical expenses and inflation), options | No |
 | `list_rate_models(category)` | Enumerate return models with parameters | No |
 | `list_mortality_tables()` | Actuarial mortality tables for longevity risk sampling | No |
 | `convert_ss_benefit(birth_year, claiming_age, ...)` | Convert between SS PIA and actual benefit at a claiming age | No |
@@ -24,7 +24,7 @@ optimizations, and compare scenarios through natural conversation.
 | `run_case(filename, overrides, ...)` | Solve and return full JSON results | Yes |
 | `compare_cases(filename, overrides, ...)` | Solve base + variant, return delta | Yes |
 | `compare_to_baseline(filename or params, baseline_policies)` | Quantify the dollar value of optimization vs a conventional baseline (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) | Yes (×2) |
-| `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, account depletion order | Yes |
+| `explain_results(filename or params)` | Explain WHY the plan looks as it does: shadow prices of goals and rules, Roth conversion rationale and binding caps, tax-bracket fill, IRMAA and ACA cliffs, lifetime health-care costs, account depletion order | Yes |
 | `run_from_params(names, birth_dates, ...)` | Build and solve from structured parameters — no TOML file needed | Yes |
 | `save_case(names, birth_dates, ...)` | Save structured parameters to TOML + HFP Excel for reproducibility | No |
 | `run_stochastic(scenario_method, ...)` | Spending efficient frontier over historical or Monte Carlo scenarios | Yes (×N) |
@@ -47,7 +47,8 @@ paths** for `directory`, `filename`, and `output_dir` (e.g. `/path/to/Owl/exampl
 `run_spending_bequest_frontier`, `run_longevity_stochastic`, `run_historical`,
 and `run_monte_carlo` accept the
 full set of plan parameters directly, eliminating the need to write a TOML file
-first.
+first. The one exception is `run_historical`, which replays history and so takes
+neither `rate_params` nor `constrain_mean`.
 
 **Unit conventions:** All monetary balances and solver limits are in full dollars (\$);
 time-series amounts (wages, contributions, big-ticket items) are in \$ per year; Social
@@ -59,7 +60,7 @@ in percent. Fixed user rates (`rate_method="user"`) use
 **Social Security PIA vs. actual benefit:** `ss_monthly_pias` must be the Primary
 Insurance Amount (the benefit at Full Retirement Age, from the SSA statement) — NOT
 the check amount someone describes receiving if they claimed before or after FRA
-(e.g. "I'm 65 and I get $2,800/month"). If the user only knows their actual benefit
+(e.g. "I'm 65 and I get \$2,800/month"). If the user only knows their actual benefit
 at a given claiming age, call `convert_ss_benefit` first to back out the PIA.
 
 **Assumed defaults:** the solve tools report material assumptions made for omitted
@@ -90,6 +91,7 @@ as commands and lets you attach resources to the conversation):
 | | `tax_deferred` * | Tax-deferred (401k/IRA/403b) balances in \$ per person |
 | | `roth` * | Roth account balances in \$ per person |
 | **Balances** | `hsa` | HSA balances in \$ per person |
+| | `other_medical_expenses` | Yearly out-of-pocket qualified medical expenses in \$ (today's \$): dental, vision, co-pays, deductibles. HSA withdrawals are tax-free up to Medicare premiums plus this amount (only this amount before Medicare). HSA balances without it are flagged in `assumed_defaults` |
 | | `cost_basis` | Taxable cost basis in \$ per person. If omitted, realized gains are modeled from current-year appreciation only (flagged in `assumed_defaults`) |
 | **Social Security** | `ss_monthly_pias` | Monthly PIA per person from SSA statement (\$ per month) |
 | | `ss_ages` | SS claiming ages per person (e.g. `[67, 67]`) |
@@ -99,23 +101,29 @@ as commands and lets you attach resources to the conversation):
 | | `pension_indexed` | CPI-linked flags per person, e.g. `[True, False]` |
 | | `pension_survivor_fractions` | Survivor benefit fractions (0–1) per person, e.g. `[0.5, 0.0]` |
 | **Time series** | `wages` | Wage streams: `[{"person":0,"annual_amount":90_000,"end_year":2032}]` |
-| | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred`, `roth`, or `hsa`. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
-| | `big_ticket_items` | One-time or recurring extra expenses reducing spending budget |
-| **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining"}` |
+| | `contributions` | Retirement contributions; `account` is `taxable`, `tax_deferred` (the employee's own 401k/403b deferral), `employer` (the employer's contribution to it), `ira` (traditional IRA), `roth`, or `hsa`. The three tax-deferred kinds go to the same account but are told apart for the payroll tax and the Social Security earnings test: the employer's is never earnings, and an IRA contribution is earnings only in a year with pay. Use `list_contribution_limits` to find IRS max amounts (incl. catch-up) |
+| | `big_ticket_items` | One-time or recurring cash flows outside the spending budget. `annual_amount` is signed: **negative for an expense**, positive for an inflow (inheritance, gift, sale proceeds): `[{"person":0,"annual_amount":-15_000,"start_year":2027,"end_year":2030}]` |
+| | `other_income` | Other ordinary income outside wages, pensions and Social Security (the HFP *other inc* column): `[{"person":0,"annual_amount":-5_400,"start_year":2026,"end_year":2027}]`. `annual_amount` is signed: positive is taxable income received in cash; **negative is an above-the-line deduction paid from cash**, e.g. an HSA contribution made without wages (list it under `contributions` too). A deduction larger than the year's income is lost |
+| | `months_worked` | Months of work at the start of a year, for the Social Security earnings test (the HFP *months worked* column): `[{"person":1,"year":2028,"months":6}]`. Use it for the year someone stops working, especially when they claim before full retirement age that year. A year with wages and no entry counts as 12 months |
+| | `qcds` | Qualified charitable distributions from the tax-deferred account: `[{"person","annual_amount","start_year","end_year"}]`. Excluded from AGI and counted toward the RMD; donor must be 70½ or older |
+| **Assets & debts** | `debts` | Amortizing loans: `{"label","type","balance","rate","years_remaining","property"}`. Optional `property` names a residence or real estate in `fixed_assets` (by its `label`) whose sale pays the loan off; a link to a missing or ineligible property is an error |
 | | `fixed_assets` | Assets to sell: `{"label","type","value","basis","sell_year","commission"}` |
 | | `spias` | SPIAs: `{"person","buy_year","premium","monthly_income","indexed","survivor_fraction"}` |
 | **Plan settings** | `state` | Two-letter US state code for income tax. Strongly recommended; if omitted, TX (no state tax) is assumed and flagged in `assumed_defaults` |
+| | `state_move` | One change of state during the plan, e.g. `{"year": 2031, "state": "FL"}`: the new state taxes that year and every year after; `"state": ""` stops state tax |
 | | `objective` | `"maxSpending"` (default) or `"maxBequest"` |
 | | `survivor_fraction` | Surviving-spouse spending as % of couple spending (default 60) |
 | | `balance_date` | Date balances were recorded as `"MM-DD"` or `"YYYY-MM-DD"` (default: today) |
 | | `heirs_tax_rate` | Heirs' marginal income tax rate in % applied to inherited tax-deferred assets (default 30) |
+| | `beneficiary_fractions` | Couples only: fractions of the first decedent's `[taxable, tax_deferred, roth, hsa]` left to the survivor (default `[1,1,1,1]`); the rest is the partial bequest to other heirs |
+| | `spousal_deposit_fraction` | Couples only: fraction (0–1) of a yearly surplus deposited to the second person's taxable account (default 0.5), or `"optimize"` for the optimizer to choose the split each year (not with `beneficiary_fractions` below 1: every surplus then goes to the survivor and the other heirs get nothing) |
 | | `liquidation_tax_rate` | Ordinary tax rate in % on tax-deferred/HSA if liquidated, for the liquid balance sheet (default 24) |
 | | `liquidation_capgains_rate` | Capital-gains tax rate in % on fixed-asset disposition, for the liquid balance sheet (default 15) |
 | **Rate model** | `rate_method` | Return model name (use `list_rate_models`). If omitted, fixed `"conservative"` rates are assumed and flagged in `assumed_defaults` |
 | | `rate_values` | Fixed rates `[equities, corp_bonds, t_notes, inflation]` in % for `rate_method="user"` |
 | | `rate_frm` | First year of historical rate window (e.g. `1966`) |
 | | `rate_to` | Last year of historical rate window |
-| | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}` |
+| | `rate_params` | Extra rate model params dict, e.g. `{"bootstrap_type":"block","block_size":5}`; kept in the TOML written by `save_case` |
 | | `constrain_mean` | Pin stochastic series means to historical averages (isolates SOR risk) |
 | **Allocation** | `initial_allocation` | Starting `[equities, corp_bonds, t_notes, cash]` in % (default `[60,40,0,0]`) |
 | | `final_allocation` | Ending allocation % (default `[40,60, 0,0]`) |
@@ -126,23 +134,28 @@ as commands and lets you attach resources to the conversation):
 | | `smile_dip` | Slow-go spending dip as % below go-go peak (default 15) |
 | | `smile_increase` | No-go medical cost growth over full horizon in % (default 12) |
 | | `smile_delay` | Go-go years to hold flat before smile dip begins (default 0) |
-| **Optimization** | `net_spending` | Annual spending floor in $/year when `objective="maxBequest"` |
+| **Optimization** | `net_spending` | Annual spending floor in \$/year when `objective="maxBequest"` |
 | | `min_taxable_balance` | Emergency-fund floor in \$ per person, e.g. `[15_000]` |
 | | `bequest` | Target estate in today's \$ for `maxSpending` objective |
 | | `start_roth_year` | 4-digit year before which Roth conversions are disabled |
 | | `stop_roth_year` | 4-digit year from which Roth conversions are disabled |
 | | `no_roth_person` | Name of individual excluded from all Roth conversions (couples only) |
-| | `max_roth_conversion` | Annual per-person Roth conversion cap in $/year |
+| | `max_roth_conversion` | Annual per-person Roth conversion cap in \$/year |
 | | `roth_conversions` | Conversions held fixed `[{"person","year","amount"}]`; listing a year pins it to that amount, `0` pins no conversion, unlisted years stay optimized |
 | | `swap_roth_converters_first` / `swap_roth_converters_year` | Switch which spouse converts starting at a given year (couples) |
-| | `optimize_ss_ages` | SS claiming-age MIP (62–70, monthly): `True`/`"all"`, a name, or a list of names |
+| | `optimize_ss_ages` | SS claiming-age search (62–70, monthly): `True`/`"all"`, a name, or a list of names |
 | | `with_medicare` | IRMAA mode: `"none"`, `"loop"` (default), or `"optimize"` (embed in MIP) |
-| | `with_aca` | ACA premium mode: `"none"`, `"loop"` (default when `slcsp` set), or `"optimize"` |
+| | `with_aca` | How ACA premiums are solved: `"loop"` (default) or `"optimize"`; ACA is modeled whenever `slcsp` > 0 |
+| | `breakpoint_method` | How the tax breakpoints are solved: `"loop"` (default), `"branch-and-bound"`, or `"local-search"` (fix-and-optimize around the loop's plan: never worse, not a proven optimum). Use `"local-search"` for the plan the user will act on: more accurate, for seconds to a few minutes of solving. The stress tools (`run_stochastic`, the frontiers, `run_historical`, `run_monte_carlo`) solve every scenario with the loop and say so in `breakpoint_method_note` |
+| | `partial_bequest_weight` | Value of a dollar left to other heirs at the first death, as a fraction of a dollar (default max(1%, twice the solver gap)) |
 | | `aca_start_year` | Calendar year ACA coverage begins (e.g. `2028`) |
-| | `previous_magis` | Prior-year MAGI per person in $ for Medicare IRMAA (first 2 plan years) |
+| | `previous_magis` | Prior-year MAGI per person in \$ for Medicare IRMAA (first 2 plan years) |
+| | `include_medicare_part_d` | Include Part D premiums and IRMAA surcharges (default `true`); `false` for drug coverage from elsewhere (employer, VA) |
+| | `medicare_part_d_base_premium` | Part D base premium in \$/month per person (default `0`: IRMAA surcharges only) |
 | | `solver` | `"HiGHS"` or `"MOSEK"` (default: best available) |
 | | `max_time` | Solver time limit in seconds |
-| **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in $/year for pre-65 individuals |
+| **Policy scenarios** | `slcsp` | Annual ACA Silver benchmark premium in \$/year for pre-65 individuals |
+| | `medical_inflation_excess` | How much faster than inflation medical prices grow, in %/year (0–10, default `0`): Medicare premiums, the ACA benchmark premium, and `other_medical_expenses`. Tax brackets, IRMAA thresholds, and the poverty line keep following inflation |
 | | `ss_trim_pct` | SS trust fund haircut in % (e.g. `23` for SSA trustees baseline) |
 | | `ss_trim_year` | Year SS benefit reduction begins (e.g. `2033`) |
 | | `obbba_expiration_year` | Year OBBBA tax rates sunset to pre-TCJA levels (default `2032`) |
@@ -152,6 +165,15 @@ as commands and lets you attach resources to the conversation):
 | | `n_scenarios` | Number of Monte Carlo draws (mc mode, default `200`); ignored in historical mode |
 | | `ystart` / `yend` | Historical window start/end years (historical mode) |
 | | `seed` | Random seed for reproducibility |
+| | `confirm_long_run` | Run a sweep whose projected time exceeds the confirmation threshold (default `false`). Without it, a long sweep runs one pilot solve and returns `needs_confirmation` with the estimate; the AI should ask the user before calling again with `true` |
+| **`run_historical` only** | `augmented` | Run every combination of `reverse` and `roll` for each start year: a much larger, slower sample (default `false`) |
+| | `reverse` / `roll` | Reverse the rate sequence in time, or shift it by this many years (non-augmented runs only) |
+| **`run_longevity_stochastic` only** | `sexes` * | Sex of each individual (`"M"` or `"F"`) for the mortality table lookup |
+| | `mortality_table` | Table key from `list_mortality_tables` (default `"SSA2025"`, general US population) |
+| **`run_spending_bequest_frontier` only** | `bequest_grid` | Bequest floors to trace in today's \$, e.g. `[0, 500_000, 1_000_000]` (default: five points from zero to about the plan's reachable maximum) |
+| | `scenario_method` | `"deterministic"` (default: one solve per level on the plan's own rates), `"historical"`, or `"mc"`. Cost is levels × scenarios |
+| | `success_rates_pct` | Success percentages to trace, each in `(1, 100]` (default `[50, 75, 90]`; ignored when deterministic); `target_success_rate_pct` must be one of them |
+| | `with_duals` | Also report the bequest shadow price per level (default `false`: an extra solve per level) |
 | **`compare_to_baseline` only** | `baseline_policies` | Restrictions defining the baseline (default all): `"no_roth_conversions"`, `"no_ss_age_optimization"`, `"taxable_first_ordering"` |
 | | `seed` | Shared rate-series seed applied to both runs so stochastic methods see identical markets (auto-generated when omitted) |
 | **`save_case` only** | `output_dir` | Directory where `Case_*.toml` and `HFP_*.xlsx` are written (default: `.`) |
@@ -172,6 +194,29 @@ capital-gains tax) of fixed assets. `explain_case` reports the same opening
 balance-sheet view from the unsolved inputs, plus the `fixed_assets` and `debts`
 lists read from the HFP workbook.
 
+**Did the solve actually settle?** `run_case` and `run_from_params` report `convergence`
+(how the self-consistent loop ended: `monotonic`, `oscillatory`, a detected cycle, or
+exhausted iterations) and `fixed_point_residual_today_dollars` beside `status`. The
+residual gives, per tax family (`SS`, `IRMAA`, `NIIT`, `ACA`, `deduction`, `LTCG`), how far the
+returned plan sits from the model its own income implies, summed over the horizon in
+today's dollars. `status: "solved"` means the loop stopped, not that the answer is
+self-consistent: the LP is built from the previous iterate's Medicare premiums, Social
+Security taxable fraction, NIIT and ACA costs, so a plan whose own income would change
+those has not reached a fixed point. Values of a few dollars are ordinary rounding; values
+in the hundreds or more mean the plan is still moving and its tax figures should not be
+quoted precisely. The `residualTol` solver option (default `50`) is the bar the loop must
+clear before it declares convergence. `unsettled` names the families the loop left above that
+bar summed over the horizon, `SS` (taxable Social Security) and `LTCG` (the tax on capital gains),
+each with the option whose exact model settles it, such as `{"LTCG": "withLTCG=\"optimize\""}`;
+it is empty when the plan settled. The solver's log gives the same warning. Beside them, `breakpoint_method` says how the tax
+breakpoints were solved (`loop`, `branch-and-bound (...)`, `local search (...)`), and
+`solve_time_seconds` gives the last solve's `wall` and `cpu` seconds (machine-dependent).
+
+**Other plan-level results:** `state_moves` lists the change of state, if any.
+`partial_bequest_today_dollars` and `partial_bequest_year` report what passes to
+non-spouse heirs at the first death when `beneficiary_fractions` are below 1, after the
+heirs' tax; it is reported apart from the final `total_bequest_*` figures.
+
 **Two strategy-analysis tools:**
 
 `compare_to_baseline` answers *"what is the optimization actually worth in dollars?"*
@@ -187,7 +232,13 @@ dual extraction and returns LP shadow prices — the lifetime-spending cost per 
 of bequest floor, the value of an extra dollar of income in each year, the cost of
 each forced RMD dollar — plus the Roth conversion schedule with binding-cap values,
 per-year federal bracket fill and headroom, and the account depletion order.
-Sensitivities are marginal and hold bracket selections fixed.
+For this year's income it gives the distance to the next IRMAA tier and what crossing it
+adds to Medicare premiums two years later, and the ACA MAGI against the Medicaid line and
+the 400% FPL subsidy cliff with the premium at stake. A `health_care` section totals
+lifetime Medicare premiums (with the IRMAA part and its years), ACA net premiums,
+out-of-pocket medical expenses, HSA withdrawals, and the medical inflation excess.
+Sensitivities are marginal and hold bracket selections and the self-consistent premiums
+(IRMAA, ACA) fixed.
 
 **Three distinct stress-test tools:**
 
@@ -528,11 +579,11 @@ what it tells you. Approximate Anthropic list prices per million input/output to
 a typical chat turn with a couple of tool calls costs cents (the system prompt is
 cache-marked, so repeat turns are cheaper):
 
-| Model (`OWL_ASSISTANT_MODEL`) | $/MTok in/out | Notes |
+| Model (`OWL_ASSISTANT_MODEL`) | \$/MTok in/out | Notes |
 |---|---|---|
-| `claude-opus-4-8` (default) | $5 / $25 | Most capable; best tool use and explanations |
-| `claude-sonnet-5` | $3 / $15 | Near-Opus on tool-driven work; the value pick |
-| `claude-haiku-4-5` | $1 / $5 | Cheapest; fine for casual Q&A, weaker on long tool chains |
+| `claude-opus-4-8` (default) | \$5 / \$25 | Most capable; best tool use and explanations |
+| `claude-sonnet-5` | \$3 / \$15 | Near-Opus on tool-driven work; the value pick |
+| `claude-haiku-4-5` | \$1 / \$5 | Cheapest; fine for casual Q&A, weaker on long tool chains |
 
 ### Using other or local models
 
@@ -611,10 +662,10 @@ translate your description into `--set` overrides, and interpret the results.
 ### Discovery
 
 > *"What cases are in my examples folder?"*
-> → calls `list_cases("examples/")`
+> → calls `list_cases("/path/to/Owl/examples/")`
 
 > *"Describe the jack+jill case."*
-> → calls `explain_case("examples/Case_jack+jill.toml")`
+> → calls `explain_case("/path/to/Owl/examples/Case_jack+jill.toml")`
 
 > *"What stochastic rate models are available?"*
 > → calls `list_rate_models("stochastic")`
@@ -679,10 +730,10 @@ translate your description into `--set` overrides, and interpret the results.
 ### Sensitivity and comparisons
 
 > *"Run the jack+jill case and tell me the optimal spending."*
-> → calls `run_case("examples/Case_jack+jill.toml")`
+> → calls `run_case("/path/to/Owl/examples/Case_jack+jill.toml")`
 
 > *"How much does moving to Minnesota change their spending?"*
-> → calls `compare_cases("examples/Case_jack+jill.toml", ["basic_info.state=MN"])`
+> → calls `compare_cases("/path/to/Owl/examples/Case_jack+jill.toml", ["basic_info.state=MN"])`
 
 > *"Compare delaying both SS claims to age 70 vs. the current plan."*
 > → calls `compare_cases(..., ["fixed_income.social_security_ages=[70,70]"])`
@@ -722,7 +773,7 @@ translate your description into `--set` overrides, and interpret the results.
   Historical mode is rejected because random lifespans can exceed the data window.
 - **Solver output** (progress, timing) goes to stderr and is never sent to the AI.
   Only the structured JSON result is returned as the tool output.
-- **Long solves**: `run_case` and `compare_cases` run the LP/MIP solver in a
+- **Long solves**: every tool that solves runs the LP/MIP solver in a
   background thread so the MCP event loop stays responsive. Complex cases can
   take 30 seconds to several minutes.
 - **Rate method parameters**: use `list_rate_models` to find the exact parameter

@@ -1,0 +1,441 @@
+"""
+Local search (fix-and-optimize) for the threshold binaries: mipStrategy="local-search".
+
+When tax families are solved with binary variables (withSSTaxability, withMedicare, withACA,
+withLTCG, withNIIT = "optimize"), the default strategy hands the whole mixed-integer program to
+branch-and-bound. That is a complete search that stops at a relative gap, and it can take tens of
+minutes per solve. Local search replaces it, inside each iteration of the self-consistent loop,
+by a sequence of small restricted problems, each solved with most binaries pinned:
+
+1. A feasible starting plan, cheapest first: the previous iteration's binaries (an LP); then a
+   repair from the self-consistent loop's plan, with its withdrawals and conversions held in a
+   narrow band and the binaries free. Never the full program: if every attempt fails, the
+   search stops and the caller keeps the loop's plan.
+2. (a) Social Security taxability pinned; the other families freed one at a time.
+   (b) Social Security taxability free within a local-branching ball of at most `radius` flips
+       from the current plan; the other families pinned.
+   (b') When neither moved: the same ball with the LTCG binaries free alongside it, once per
+       loop iteration. Moving ordinary income across an LTCG threshold and SS taxability with
+       it takes both families at once; freeing them together in every round is far slower.
+   (a') When nothing moved: the other families freed jointly, once.
+   (c)  The binaries of every family freed in the years where the plan's own income implies a
+        different cost than the one charged.
+   Repeat until no step improves the objective.
+   After an iteration that started from the previous iteration's binaries and moved none of them,
+   the next one skips (b), (b') and (a'): its problem differs only by the loop's fed-back
+   parameters, and those steps, mostly at their node cap, found nothing on the same binaries
+   (#252). The (a) and (c) steps still run, and a move by either restores the full search in the
+   iteration after it.
+
+The LTCG link rows tie each regime binary to ordinary income in both directions, but only one is
+needed: a binary at 0 closes the bracket below its threshold, which never lowers the tax, so
+"at 0, income at or above the threshold" is redundant for the optimum. Branch-and-bound keeps it
+(without it, one example's branch-and-bound ran 23x slower), but pinned it holds income
+above a threshold, blocking a move that drops below one. The search relaxes it in its own copy of
+the rows, and sets back to 1 every binary its plan leaves at 0 below its threshold, so that the
+repair, polish and dual solves, which pin the binaries on the full rows, stay feasible.
+
+Every restricted problem contains the current plan, so it is feasible and can never return a
+worse one: the search only descends. It carries no certificate, and it can stop short of the
+optimum, chiefly on the unrestricted problem, which has the most freedom.
+
+Each step is capped by branch-and-bound nodes (`STEP_NODES`, so that the answer does not depend on
+machine speed or load), with a time backstop (`stepTime`), and solved to a relative gap of at most
+`STEP_GAP`, whatever the case's gap; the whole search has a budget (`totalTime`). A capped step
+keeps the best plan it found. When the loop rebuilds the problem of the previous iteration, that
+iteration's plan is returned without searching again. Withdrawal-ordering gates
+(withdrawalOrder="taxable_first") are not searched: Plan.solve() hands such cases to branch-and-bound.
+Claiming ages (withSSAges) are chosen around the solve, one fixed-age solve per candidate, each of
+which can use this search.
+
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+import copy
+import hashlib
+import time
+
+import numpy as np
+
+# Binary families the search moves, and the fixed-point residual family that measures each.
+FAMILIES = ("zm", "zs", "za", "zl", "zj")
+# Binaries the search never pins: the senior-bonus phase-out has one per bonus year, two or three
+# in all, so every restricted problem keeps them free. Only an LP solve, which relaxes them, pins them.
+ALWAYS_FREE = ("zsb",)
+# Rows the search relaxes: the half "zl = 0 => ordinary income at or above the threshold". It is
+# redundant for the optimum (zl = 0 only closes the bracket below), and branch-and-bound wants it,
+# but pinned it holds income above a threshold that a move needs to cross.
+_RELAXED_LINKS = ("ltcg_zl15_link", "ltcg_zl20_link")
+RESIDUAL_FAMILY = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zj": "NIIT", "zl": "LTCG"}
+FAMILY_LABEL = {"zs": "SS", "zm": "IRMAA", "za": "ACA", "zl": "LTCG", "zj": "NIIT"}
+
+STEP_TIME = 60.0  # seconds per restricted solve: a backstop; the node limit below is the real cap
+# Branch-and-bound nodes per restricted solve. A node limit, unlike a time limit, gives the same
+# answer on any machine and under any load. The solvers count nodes differently; measured on the
+# shipped examples at STEP_GAP, finished steps need up to ~3,000 (HiGHS) or ~19,500 (MOSEK). The
+# caps favour speed: lifting them changes results by 0.07% at most, for up to 3.3x the time.
+STEP_NODES = {"HiGHS": 3000, "MOSEK": 20000}
+# Relative MIP gap of each restricted solve. A loose gap suits a full branch-and-bound, where it
+# saves real time; here the problems are small and the gap costs nothing, while a loose one stops
+# them before small preferences in the objective count (the partial-bequest weight, 0.1%, under
+# the 0.3% gap applied when Medicare is solved as MILP) and leaves money the household does not
+# need to be spent to no purpose.
+STEP_GAP = 1e-4
+TOTAL_TIME = 300.0  # seconds for the whole search, per plan solve
+RADIUS = 4  # local-branching radius on the SS-taxability binaries
+_IMPROVE = 1e-7  # relative objective improvement that counts as a move
+# Repairs from a plan: (label, absolute half-band in $, which withdrawals are held).
+_REPAIRS = (
+    ("withdrawals and conversions +-$1", 1.0, "all"),
+    ("withdrawals and conversions +-$1,000", 1000.0, "all"),
+    ("tax-deferred withdrawals and conversions +-$1", 1.0, "deferred"),
+    ("conversions +-$1", 1.0, "none"),
+)
+
+
+class NoIncumbent(Exception):
+    """No feasible starting plan: the caller keeps the self-consistent loop's plan."""
+
+
+# Rounds of the repair below. One nearly always settles it; a second catches a year the first
+# move pushes across another threshold.
+REPAIR_ROUNDS = 3
+
+
+def repair_inconsistent_years(plan, result, options, use_mosek):
+    """After a branch-and-bound solve, step (c) of the search: free every family's binaries in the
+    years where the plan's own income implies a different cost than the one charged, the others
+    pinned, and keep the result when it is better.
+
+    Branch-and-bound stops at a relative gap (3e-3 when Medicare is solved as MILP), and inside it
+    an incumbent can charge a cost its own income does not imply: in Case_robin, 85% of Social
+    Security taxed in two years whose provisional income is below the base amount, $1.6k of federal
+    tax a year that is not owed. A tighter gap finds the better plan, for up to 24x the time on
+    other cases; this restricted problem finds it in one small solve. It contains the incumbent,
+    so it is feasible and never worse. On the full rows, unlike the search's relaxed copy: the
+    pinned binaries already satisfy them. Returns the result with its message and gap unchanged.
+    """
+    if not result[2] or result[1] is None:
+        return result
+    ls = LocalSearch(plan, np.zeros(1), np.zeros(1))
+    ls.use_mosek = use_mosek
+    fams = ls._families()
+    if not fams:
+        return result
+    ls.A = plan.A
+    best = result
+    for rnd in range(REPAIR_ROUNDS):
+        free, where = ls._inconsistent_columns(best[1])
+        if not free:
+            break
+        ov = {c: v for c, v in ls._pin(best[1], fams).items() if c not in free}
+        res, dt = ls._mip(options, overrides=ov, warm=best[1])
+        desc = "; ".join(f"{k} {v}" for k, v in where.items())
+        moved = LocalSearch._better(res, best)
+        plan.mylog.vprint(f"Repair {rnd}: inconsistent years free [{desc}] -> "
+                          f"{'improved' if moved else 'no better plan'} ({dt:.1f}s).")
+        if not moved:
+            break
+        best = res
+    if best is result:
+        return result
+    plan._highs_warm_start = best[1].copy()
+    return (best[0], best[1], True, result[3], result[4])
+
+
+class LocalSearch:
+    """Fix-and-optimize over the threshold binaries; one instance per Plan.solve()."""
+
+    def __init__(self, plan, seed_w, seed_x, step_time=STEP_TIME, total_time=TOTAL_TIME, radius=RADIUS,
+                 step_nodes=None, seeds=None):
+        self.plan = plan
+        self.seed_w = np.asarray(seed_w, dtype=float)
+        self.seed_x = np.asarray(seed_x, dtype=float)
+        # Starting plans supplied by the caller, tried BEFORE the loop's own plan. Each is
+        # (label, w_ijn, x_in). Every restricted problem the search solves contains its own
+        # starting plan, so starting from a better one cannot return a worse answer; what it
+        # buys is a different basin. The caller is responsible for the plan being feasible
+        # here -- the regret sweep's pinned solves are, being restrictions of this problem.
+        self.seeds = [(str(lab), np.asarray(w, dtype=float), np.asarray(x, dtype=float))
+                      for lab, w, x in (seeds or [])]
+        self.step_time = float(step_time)
+        self.radius = int(radius)
+        self.step_nodes = int(step_nodes) if step_nodes else 0
+        self.deadline = time.time() + float(total_time)
+        self.use_mosek = False  # set by Plan.solve() from the solver asked for
+        self.prev = None  # the previous loop iteration's plan
+        self.A = None  # the plan's rows with the LTCG links relaxed (_relax_links)
+        self._last = None  # (problem fingerprint, objective, plan) of the previous loop iteration
+        self.settled = False  # the previous iteration started from its predecessor's binaries, moved none
+        self.iteration = 0
+        self.log = []  # one entry per loop iteration: {"steps": [...], "time": s}
+
+    # ----- helpers -----------------------------------------------------------------------------
+    def _cols(self, name):
+        blk = self.plan.vm._blocks.get(name)
+        return np.arange(blk.start, blk.end) if blk is not None else np.arange(0)
+
+    def _families(self):
+        return [f for f in FAMILIES if f in self.plan.vm._blocks]
+
+    def _pin(self, x, families):
+        """Column overrides holding the binaries of `families` at their values in x."""
+        ov = {}
+        for f in families:
+            for c in self._cols(f):
+                v = float(round(x[c]))
+                ov[int(c)] = (v, v)
+        return ov
+
+    def _band(self, ov, name, src, h0, which="all"):
+        cc = self._cols(name).reshape(self.plan.vm[name].shape)
+        for idx in np.ndindex(cc.shape):
+            if which == "deferred" and idx[1] != 1:
+                continue
+            v = float(src[idx])
+            h = max(h0, 1e-4 * abs(v))
+            ov[int(cc[idx])] = (max(0.0, v - h), v + h)
+
+    def _mip(self, options, overrides=None, A=None, warm=None, lp=False):
+        p = self.plan
+        opts = dict(options)
+        opts["maxTime"] = min(float(options.get("maxTime", self.step_time)), self.step_time)
+        opts["mipMaxNodes"] = self.step_nodes or STEP_NODES["MOSEK" if self.use_mosek else "HiGHS"]
+        opts["gap"] = min(float(options.get("gap", STEP_GAP)), STEP_GAP)
+        p._mip_warm_start = warm
+        p._localSearchStep = True  # tallies this run's node-limit stop apart from the main solves'
+        # _scSolve infers the backend from the solve method, which is this search's: say it here.
+        p._use_mosek = self.use_mosek
+        t = time.time()
+        try:
+            res = p._run_mip(A if A is not None else self.A, p.B, p.c, opts, lp_relax=lp,
+                             col_overrides=overrides, update_warm=False)
+        except Exception as e:  # a solver API error is a failed step, not a failed solve
+            res = (None, None, False, str(e)[:120], -1.0)
+        finally:
+            p._mip_warm_start = None
+            p._localSearchStep = False
+        return res, time.time() - t
+
+    def _relax_links(self):
+        """Copy of the plan's rows with the lower half of the LTCG link rows dropped."""
+        A = copy.deepcopy(self.plan.A)
+        for k, tag in enumerate(A.tags):
+            if tag is not None and tag[0] in _RELAXED_LINKS:
+                A.lb[k] = -np.inf
+                A.key[k] = "up"
+        return A
+
+    def _restore_links(self, x):
+        """Set back to 1 every LTCG binary left at 0 with income below its threshold, so that the
+        plan satisfies the full rows (the repair, polish and dual solves pin the binaries). A
+        binary at 0 already holds the bracket below it empty, so 1 is feasible and costs nothing."""
+        p = self.plan
+        zl = set(int(c) for c in self._cols("zl"))
+        x = x.copy()
+        for k, tag in enumerate(p.A.tags):
+            if tag is None or tag[0] not in _RELAXED_LINKS:
+                continue
+            ind, val = p.A.Aind[k], p.A.Aval[k]
+            if sum(v * x[i] for i, v in zip(ind, val)) < p.A.lb[k] - 1e-6:
+                for i in ind:
+                    if int(i) in zl:
+                        x[i] = 1.0
+        return x
+
+    def _fingerprint(self):
+        """Digest of the problem as built: equal digests mean the same restricted problems."""
+        p = self.plan
+        h = hashlib.sha1()
+        for arr in (*p.A.to_csr(), np.asarray(p.A.lb, dtype=float), np.asarray(p.A.ub, dtype=float),
+                    *p.B.arrays(), p.B.integralityArray(), p.c.arrays()):
+            h.update(np.ascontiguousarray(arr).tobytes())
+        return h.digest()
+
+    def _step(self, steps, label, res, dt):
+        steps.append({"step": label, "ok": bool(res[2]), "objective": res[0] if res[2] else None,
+                      "seconds": round(dt, 2), "nodes": getattr(self.plan, "_lastMipNodes", None)})
+        msg = f"objective {-res[0]:,.0f}" if res[2] else f"failed ({res[3]})"
+        self.plan.mylog.vprint(f"Local search, iteration {self.iteration}: {label}: {msg} in {dt:.2f}s.")
+
+    @staticmethod
+    def _better(res, best):
+        return res[2] and res[0] < best[0] - _IMPROVE * abs(best[0])
+
+    # ----- the starting plan -------------------------------------------------------------------
+    def _incumbent(self, options, steps):
+        p = self.plan
+        have_prev = self.prev is not None and len(self.prev) == p.nvars
+        if have_prev:
+            free = [f for f in ALWAYS_FREE if f in p.vm._blocks]
+            res, dt = self._mip(options, overrides=self._pin(self.prev, self._families() + free), lp=True)
+            self._step(steps, "start: previous binaries (LP)", res, dt)
+            if res[2]:
+                return res
+        sources = list(self.seeds)
+        if have_prev:
+            sources.append(("previous plan", self.prev[self._cols("w")].reshape(p.vm["w"].shape),
+                            self.prev[self._cols("x")].reshape(p.vm["x"].shape)))
+        sources.append(("loop plan", self.seed_w, self.seed_x))
+        for label, src_w, src_x in sources:
+            for what, h0, which in _REPAIRS:
+                ov = {}
+                if which != "none":
+                    self._band(ov, "w", src_w, h0, which)
+                self._band(ov, "x", src_x, h0)
+                res, dt = self._mip(options, overrides=ov)
+                self._step(steps, f"start: repair from the {label}, {what}", res, dt)
+                if res[2]:
+                    return res
+        raise NoIncumbent()
+
+    # ----- residual-targeted neighborhood ------------------------------------------------------
+    def _inconsistent_columns(self, x):
+        """Binary columns of every family in the years where the plan's own income implies a
+        different cost than the one charged (Plan._fixedPointResidualByYear)."""
+        p = self.plan
+        p._aggregateResults(x, short=True)  # the loop aggregates the returned plan again
+        res = p._fixedPointResidualByYear(includeMedicare="zm" in p.vm._blocks)
+        free, where = set(), {}
+        for f in self._families():
+            arr = res.get(RESIDUAL_FAMILY[f])
+            if arr is None:
+                continue
+            years = np.where(np.abs(arr) > 1.0)[0]
+            if len(years):
+                where[FAMILY_LABEL[f]] = [int(p.year_n[n]) for n in years]
+            free |= self._year_columns(f, years)
+        return free, where
+
+    def _year_columns(self, family, years):
+        p = self.plan
+        blk = p.vm[family]
+        out = []
+        for n in years:
+            if family in ("zs", "zj"):
+                rows = [n]
+            elif family == "zm":
+                rows = [n - p.nm] if 0 <= n - p.nm < blk.shape[0] else []
+            elif family == "za":
+                rows = [n] if n < blk.shape[0] else []
+            else:  # zl is (2, N_n): by column
+                out += [blk.idx(r, n) for r in range(blk.shape[0])]
+                continue
+            for r in rows:
+                if len(blk.shape) == 1:
+                    out.append(blk.idx(r))
+                else:
+                    out += [blk.idx(r, q) for q in range(blk.shape[1])]
+        return set(int(c) for c in out)
+
+    # ----- one loop iteration ------------------------------------------------------------------
+    def solve(self, objective, options):
+        """Drop-in for Plan._milpSolve / _mosekSolve: (objective, x, success, message, gap)."""
+        p = self.plan
+        p._buildConstraints(objective, options)
+        steps = []
+        t0 = time.time()
+        # The loop's last iteration often rebuilds the previous problem: reuse that plan.
+        fp = self._fingerprint()
+        if self._last is not None and self._last[0] == fp:
+            p.mylog.vprint(f"Local search, iteration {self.iteration}: same problem as the last; reusing its plan.")
+            self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
+            self.iteration += 1
+            _, obj, x = self._last
+            p._highs_warm_start = x.copy()
+            return obj, x.copy(), True, "Local search", -1.0
+        self.A = self._relax_links()
+        try:
+            best = self._incumbent(options, steps)
+        except NoIncumbent:
+            self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
+            raise
+        from_prev = steps[-1]["step"] == "start: previous binaries (LP)"
+        skip, moved = self.settled, False
+        if skip:
+            p.mylog.vprint(f"Local search, iteration {self.iteration}: binaries settled; skipping (b), (b') and (a').")
+
+        fams = self._families()
+        others = [f for f in fams if f != "zs"]
+        joint_done = False
+        for rnd in range(8):
+            if time.time() > self.deadline:
+                p.mylog.vprint("Local search: time budget spent; keeping the current plan.")
+                break
+            improved = False
+            # (a) SS taxability pinned; the other families freed one at a time.
+            for f in others:
+                res, dt = self._mip(options, overrides=self._pin(best[1], [g for g in fams if g != f]), warm=best[1])
+                self._step(steps, f"round {rnd} (a): {FAMILY_LABEL[f]} free", res, dt)
+                if self._better(res, best):
+                    best, improved = res, True
+            # (b) SS taxability within a local-branching ball; the others pinned.
+            if "zs" in fams and not skip:
+                A = copy.deepcopy(self.A)
+                row, ones = {}, 0
+                for c in self._cols("zs"):
+                    if round(best[1][c]) >= 1:
+                        row[int(c)] = -1.0
+                        ones += 1
+                    else:
+                        row[int(c)] = 1.0
+                A.addNewRow(row, -np.inf, self.radius - ones, tag=("local_branching", 0))
+                res, dt = self._mip(options, overrides=self._pin(best[1], others), A=A, warm=best[1])
+                self._step(steps, f"round {rnd} (b): SS within {self.radius} flips", res, dt)
+                if self._better(res, best):
+                    best, improved = res, True
+            if improved:
+                moved = True
+                continue
+            # (b') nothing moved: SS within the ball with LTCG free alongside it, once per iteration.
+            if "zs" in fams and "zl" in fams and not joint_done and not skip:
+                joint_done = True
+                pinned = [f for f in others if f != "zl"]
+                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), A=A, warm=best[1])
+                self._step(steps, f"round {rnd} (b'): SS within {self.radius} flips, LTCG free", res, dt)
+                if self._better(res, best):
+                    best, moved = res, True
+                    continue
+            # (a') nothing moved one family at a time: the others jointly, once.
+            if len(others) > 1 and not skip:
+                pinned = [f for f in fams if f not in others]
+                res, dt = self._mip(options, overrides=self._pin(best[1], pinned), warm=best[1])
+                self._step(steps, f"round {rnd} (a'): {', '.join(FAMILY_LABEL[f] for f in others)} free", res, dt)
+                if self._better(res, best):
+                    best, moved = res, True
+                    continue
+            # (c) every family freed in the years where the plan is inconsistent.
+            free, where = self._inconsistent_columns(best[1])
+            if not free:
+                break
+            ov = {c: v for c, v in self._pin(best[1], fams).items() if c not in free}
+            res, dt = self._mip(options, overrides=ov, warm=best[1])
+            desc = "; ".join(f"{k} {v}" for k, v in where.items())
+            self._step(steps, f"round {rnd} (c): inconsistent years free [{desc}]", res, dt)
+            if self._better(res, best):
+                best, moved = res, True
+                continue
+            break
+
+        best = (best[0], self._restore_links(best[1]), *best[2:])
+        self.prev = best[1].copy()
+        p._highs_warm_start = best[1].copy()
+        self._last = (fp, best[0], best[1].copy())
+        self.settled = from_prev and not moved
+        self.log.append({"steps": steps, "time": round(time.time() - t0, 2)})
+        self.iteration += 1
+        # No certificate: report the gap as unknown.
+        return best[0], best[1], True, "Local search", -1.0

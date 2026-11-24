@@ -33,10 +33,12 @@ from openpyxl.utils import get_column_letter
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 from . import config
+from . import localsearch
 from . import utils as u
 from . import tax_federal as tx
 from .rate_models.constants import RATE_DISPLAY_NAMES_SHORT
 from .utils import worksheet_age_on_dec_31_or_blank
+from .version import __version__, engine_commit
 
 
 def _person_index_for_worksheet(sheet_name, inames):
@@ -155,6 +157,7 @@ def _summary_currency_pair(dic, label, val_today, val_nominal, prefix=""):
 
 def _save_workbook(wb, basename, overwrite, mylog):
     """Save workbook to file with overwrite prompt. Return filename on success, None if skipped."""
+    basename = str(basename)
     if Path(basename).suffixes == []:
         fname = "workbook" + "_" + basename + ".xlsx"
     else:
@@ -352,6 +355,66 @@ def fixedIncomeStreams(plan, N=None):
     }
 
 
+def _duration(seconds):
+    """Seconds as '8.2 s' or '2m 05s'."""
+    if seconds < 60:
+        return f"{seconds:.1f} s"
+    m, sec = divmod(int(round(seconds)), 60)
+    return f"{m}m {sec:02d}s"
+
+
+def _solve_time(plan):
+    """Wall-clock time of the last solve, with the process CPU time in parentheses.
+
+    Machine- and load-dependent, unlike every other row: a fact about the run, like its date.
+    """
+    wall = getattr(plan, "lastSolveWallTime", None)
+    if wall is None:
+        return "n/a"
+    cpu = getattr(plan, "lastSolveCPUTime", None)
+    return f"{_duration(wall)} wall clock" + ("" if cpu is None else f" (CPU {_duration(cpu)})")
+
+
+def _mip_nodes(plan):
+    """Branch-and-bound nodes: of the accepted solution's solve / of the whole solve."""
+    total = plan.solverNodesTotal
+    if total < 0:
+        return "n/a (no mixed-integer solve)"
+    accepted = plan.solverNodes
+    return f"{accepted:,} / {total:,}" if accepted >= 0 else f"n/a / {total:,}"
+
+
+def _mip_node_limit(plan):
+    """Branch-and-bound cap in force, in the engine's own unit (HiGHS nodes, MOSEK branchings)."""
+    mosek = getattr(plan, "_use_mosek", False)
+    limit = type(plan)._mipNodeLimit(plan.solverOptions or {}, mosek=mosek)
+    engine = "MOSEK" if mosek else "HiGHS"
+    if limit < 0:
+        return f"unlimited ({engine})"
+    return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
+
+
+def _node_limit_hits(plan):
+    """Engine runs stopped at the node limit: main solves, then the local search's steps apart."""
+    hits = getattr(plan, "solverNodeLimitHits", None)
+    if hits is None:
+        return "n/a (no mixed-integer solve)"
+    capped, runs, steps_capped, steps = hits
+    text = f"{capped:,} of {runs:,}"
+    return text + (f" (local search steps: {steps_capped:,} of {steps:,})" if steps else "")
+
+
+def _local_search_step_limit(plan):
+    """Cap on each of the local search's restricted solves, in the engine's own unit."""
+    options = plan.solverOptions or {}
+    if options.get("mipStrategy") != "local-search":
+        return "n/a (no local search)"
+    mosek = getattr(plan, "_use_mosek", False)
+    engine = "MOSEK" if mosek else "HiGHS"
+    limit = int(u.get_numeric_option(options, "localSearchStepNodes", 0, min_value=0)) or localsearch.STEP_NODES[engine]
+    return f"{limit:,} {'branches' if mosek else 'nodes'} ({engine})"
+
+
 def build_summary_dic(plan, N=None):
     """Return dictionary containing summary of plan values.
 
@@ -380,42 +443,60 @@ def build_summary_dic(plan, N=None):
 
     streams = fixedIncomeStreams(plan, N)
     inv_gamma = 1.0 / plan.gamma_n[:N]
+    # Every row below is reported for every plan, $0 or "none" included: the side-by-side
+    # comparison keeps only the rows all its cases have, so a row present in one variant only
+    # (wages, a pension, giving, a state tax) would drop out of the comparison of all of them.
     totFixed = float(np.sum(streams["total"]))
-    if totFixed > 0:
-        tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
-        _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
-        labels = [
-            ("ss", "Social Security"),
-            ("pension", "Pension"),
-            ("spia", "SPIA income"),
-            ("wages", "Wages"),
-            ("other", "Other income"),
-            ("fa_income", "Fixed assets income"),
-        ]
-        for key, label in labels:
-            tot = float(np.sum(streams[key]))
-            if tot > 0:
-                _summary_currency_pair(
-                    dic,
-                    label,
-                    float(np.sum(streams[key] * inv_gamma)),
-                    tot,
-                    prefix="»  ",
-                )
+    tot_fixed_now = float(np.sum(streams["total"] * inv_gamma))
+    _summary_currency_pair(dic, "Total fixed income", tot_fixed_now, totFixed)
+    labels = [
+        ("ss", "Social Security"),
+        ("pension", "Pension"),
+        ("spia", "SPIA income"),
+        ("wages", "Wages"),
+        ("other", "Other income"),
+        ("fa_income", "Fixed assets income"),
+    ]
+    for key, label in labels:
+        _summary_currency_pair(
+            dic,
+            label,
+            float(np.sum(streams[key] * inv_gamma)),
+            float(np.sum(streams[key])),
+            prefix="»  ",
+        )
+
+    # SSA earnings test: benefits withheld before FRA and returned at FRA by the ARF.
+    _summary_currency_pair(
+        dic,
+        "SS withheld by the earnings test",
+        float(np.sum(plan.ss_withheld_in[:, :N] * inv_gamma)),
+        float(np.sum(plan.ss_withheld_in[:, :N])),
+    )
+    # The ARF takes effect at FRA: counted only where FRA falls within the N years.
+    last_abs = (int(plan.year_n[0]) + N) * 12
+    fra_abs_i = plan._ssFRAStartAbs()
+    credited = []
+    for i in range(plan.N_i):
+        if fra_abs_i[i] >= last_abs:
+            continue
+        own, sp = int(plan.ss_arf_months_i[i]), int(plan.ss_arf_months_spousal_i[i])
+        parts = ([f"{own} own"] if own else []) + ([f"{sp} spouse"] if sp else [])
+        if parts:
+            credited.append(f"{plan.inames[i]} {' + '.join(parts)}")
+    dic["ARF months"] = ", ".join(credited) if credited else "none"
 
     totRoth = np.sum(plan.x_in[:, :N], axis=(0, 1))
     totRothNow = np.sum(np.sum(plan.x_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total Roth conversions", totRothNow, totRoth)
 
-    # Only reported when the household actually gives this way, to keep the
-    # summary of an ordinary plan unchanged.
+    # Reported with or without giving, so that a plan with QCDs compares against one without.
     totQCD = np.sum(plan.qcd_in[:, :N], axis=(0, 1))
-    if totQCD > 0:
-        totQCDNow = np.sum(np.sum(plan.qcd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total qualified charitable distributions", totQCDNow, totQCD)
-        totQCDRmd = np.sum(plan.qcd_rmd_in[:, :N], axis=(0, 1))
-        totQCDRmdNow = np.sum(np.sum(plan.qcd_rmd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Satisfying RMDs", totQCDRmdNow, totQCDRmd, prefix="»  ")
+    totQCDNow = np.sum(np.sum(plan.qcd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total qualified charitable distributions", totQCDNow, totQCD)
+    totQCDRmd = np.sum(plan.qcd_rmd_in[:, :N], axis=(0, 1))
+    totQCDRmdNow = np.sum(np.sum(plan.qcd_rmd_in[:, :N], axis=0) / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Satisfying RMDs", totQCDRmdNow, totQCDRmd, prefix="»  ")
 
     _summary_section(dic, SUMMARY_SECTION_TAXES)
     taxPaid = np.sum(plan.T_n[:N], axis=0)
@@ -439,10 +520,14 @@ def build_summary_dic(plan, N=None):
     taxPaidNow = np.sum(plan.J_n[:N] / plan.gamma_n[:N], axis=0)
     _summary_currency_pair(dic, "Total net investment income tax paid", taxPaidNow, taxPaid)
 
-    if np.any(plan.st_T_n > 0):
-        stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
-        stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
-        _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
+    taxPaid = np.sum(plan.payroll_n[:N], axis=0)
+    taxPaidNow = np.sum(plan.payroll_n[:N] / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total payroll tax paid", taxPaidNow, taxPaid)
+
+    # $0 in a state without income tax, so a move to one compares against staying.
+    stTaxPaid = np.sum(plan.st_T_n[:N], axis=0)
+    stTaxPaidNow = np.sum(plan.st_T_n[:N] / plan.gamma_n[:N], axis=0)
+    _summary_currency_pair(dic, "Total state income tax paid", stTaxPaidNow, stTaxPaid)
 
     taxPaid = np.sum(plan.medicare_n[:N], axis=0)
     taxPaidNow = np.sum(plan.medicare_n[:N] / plan.gamma_n[:N], axis=0)
@@ -598,14 +683,19 @@ def build_summary_dic(plan, N=None):
     for i in range(plan.N_i):
         dic[f"{plan.inames[i]:>14}'s life horizon"] = f"{now} -> {now + plan.horizons[i] - 1}"
         dic[f"{plan.inames[i]:>14}'s years planned"] = f"{plan.horizons[i]}"
-        if hasattr(plan, "ssecAges") and plan.ssecAmounts[i] > 0:
+        # A claiming age matters with a benefit of one's own or a spousal one on the other record.
+        has_benefit = plan.ssecAmounts[i] > 0 or (plan.N_i == 2 and plan.ssecAmounts[1 - i] > 0)
+        if has_benefit:
             age_y = int(plan.ssecAges[i])
             age_m = round((plan.ssecAges[i] - age_y) * 12)
             dic[f"{plan.inames[i]:>14}'s SS claiming age"] = f"{age_y}y {age_m:02d}m"
+        else:
+            dic[f"{plan.inames[i]:>14}'s SS claiming age"] = "none"
 
     dic["Number of decision variables"] = str(plan.A.nvars)
     dic["Number of constraints"] = str(plan.A.ncons)
     dic["Convergence"] = plan.convergenceType
+    dic["Breakpoint method"] = getattr(plan, "breakpointMethodUsed", "loop")
     # Residual uncertainty from a self-consistent loop that did not settle: the accepted
     # objective sits inside the oscillation band, so report an error bar in the units of
     # the final modified objective (today's dollars: spending basis for maxSpending,
@@ -616,7 +706,14 @@ def build_summary_dic(plan, N=None):
     half = plan.oscillationAbs / 2.0
     rel_half = plan.oscillationRel / 2.0
     dic[f"Objective error bar ({obj_kind}, today's $)"] = f"± {u.d(half)} (± {u.pc(rel_half)})"
+    dic["MIP nodes (accepted solution / whole solve)"] = _mip_nodes(plan)
+    dic["MIP node limit"] = _mip_node_limit(plan)
+    dic["Local search step node limit"] = _local_search_step_limit(plan)
+    dic["MIP solves stopped at node limit"] = _node_limit_hits(plan)
     dic["Case executed on"] = str(plan._timestamp)
+    dic["Solve time"] = _solve_time(plan)
+    # Which Owl produced these numbers: a saved workbook outlives the version that wrote it.
+    dic["Owl version"] = f"{__version__} ({engine_commit() or 'no git'})"
 
     return dic
 
@@ -787,6 +884,8 @@ def plan_metrics(plan, N=None) -> dict:
         "ltcg_tax_nominal": _s(plan.U_n[:N]),
         "niit_today": _st(plan.J_n[:N]),
         "niit_nominal": _s(plan.J_n[:N]),
+        "payroll_tax_today": _st(plan.payroll_n[:N]),
+        "payroll_tax_nominal": _s(plan.payroll_n[:N]),
         "state_tax_today": _st(plan.st_T_n[:N]),
         "state_tax_nominal": _s(plan.st_T_n[:N]),
         "medicare_today": _st(plan.medicare_n[:N]),
@@ -795,6 +894,9 @@ def plan_metrics(plan, N=None) -> dict:
         "aca_nominal": _s(plan.aca_costs_n[:N]),
         "debt_payments_today": _st(plan.debt_payments_n[:N]),
         "debt_payments_nominal": _s(plan.debt_payments_n[:N]),
+        # SSA earnings test: 0 when it withholds nothing.
+        "ss_withheld_today": _st(plan.ss_withheld_in[:, :N]),
+        "ss_withheld_nominal": _s(plan.ss_withheld_in[:, :N]),
         # Final bequest
         "final_bequest_today": total_estate / float(gamma[N]),
         "final_bequest_nominal": total_estate,
@@ -852,6 +954,8 @@ METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     "ltcg_tax_nominal": (f"Total tax paid on gains and dividends{_N}", "usd"),
     "niit_today": (f"Total net investment income tax paid{_T}", "usd"),
     "niit_nominal": (f"Total net investment income tax paid{_N}", "usd"),
+    "payroll_tax_today": (f"Total payroll tax paid{_T}", "usd"),
+    "payroll_tax_nominal": (f"Total payroll tax paid{_N}", "usd"),
     "state_tax_today": (f"Total state income tax paid{_T}", "usd"),
     "state_tax_nominal": (f"Total state income tax paid{_N}", "usd"),
     "medicare_today": (f"Total Medicare premiums paid{_T}", "usd"),
@@ -860,6 +964,8 @@ METRICS_COLUMN_MAP: dict[str, tuple[str, str]] = {
     "aca_nominal": (f"Total ACA premiums paid{_N}", "usd"),
     "debt_payments_today": (f"Total debt payments{_T}", "usd"),
     "debt_payments_nominal": (f"Total debt payments{_N}", "usd"),
+    "ss_withheld_today": (f"SS withheld by the earnings test{_T}", "usd"),
+    "ss_withheld_nominal": (f"SS withheld by the earnings test{_N}", "usd"),
     "final_bequest_today": (f"Total after-tax value of final bequest{_T}", "usd"),
     "final_bequest_nominal": (f"Total after-tax value of final bequest{_N}", "usd"),
     "heirs_tax_liability_nominal": (f"With heirs assuming tax liability of{_N}", "usd"),
@@ -907,7 +1013,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     """
     Build Excel workbook from plan. Optionally save to file.
 
-    Returns wb if saveToFile is False, else None.
+    Returns wb if saveToFile is False, else the name of the file saved (None if skipped).
+    basename may be a str or a path; in real dollars, "_real" is added before any suffix.
     """
     if with_config not in {"no", "first", "last"}:
         raise ValueError(f"Invalid with_config option '{with_config}'.")
@@ -958,7 +1065,9 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "net spending": plan.g_n,
         "taxable ord. income": plan.G_n,
         "taxable gains + divs": plan.Q_n,
-        "Tax bills + Med.": plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n,
+        "Tax bills + Med.": (
+            plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n + plan.payroll_n
+        ),
     }
     fillsheet(ws, incomeDic, "currency", scale=inv_gamma, sheet_name="Income")
 
@@ -979,9 +1088,11 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "ord taxes": -plan.T_n,
         "div taxes": -plan.U_n,
         "NIIT": -plan.J_n,
-        "Medicare": -plan.medicare_n,
-        "ACA premiums": -plan.aca_costs_n,
     }
+    if np.any(plan.payroll_n > 0):
+        cashFlowDic["payroll tax"] = -plan.payroll_n
+    cashFlowDic["Medicare"] = -plan.medicare_n
+    cashFlowDic["ACA premiums"] = -plan.aca_costs_n
     if np.any(plan.st_T_n > 0):
         cashFlowDic["state taxes"] = -plan.st_T_n
     ws = wb.create_sheet("Cash Flow")
@@ -992,6 +1103,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
         "other inc": plan.sources_in["other inc"],
         "net inv": plan.sources_in["net inv"],
         "social sec": plan.sources_in["ssec"],
+        # SSA earnings-test withholding, next to the SS it reduces.
+        **({"SS withheld": plan.ss_withheld_in} if np.any(plan.ss_withheld_in > 0) else {}),
         "pension": plan.sources_in["pension"],
         "txbl acc wdrwl": plan.sources_in["txbl acc wdrwl"],
         "RMDs": plan.sources_in["RMD"],
@@ -1139,6 +1252,8 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     TxDic["NIIT"] = plan.J_n
     TxDic["LTCG tax"] = plan.U_n
     TxDic["10% penalty"] = plan.P_n
+    if np.any(plan.payroll_n > 0):
+        TxDic["payroll tax"] = plan.payroll_n
     if np.any(plan.st_T_n > 0):
         TxDic["State tax"] = plan.st_T_n
     TxDic["Medicare+IRMAA"] = plan.medicare_n
@@ -1192,24 +1307,29 @@ def plan_to_excel(plan, overwrite=False, *, basename=None, saveToFile=True, with
     add_config_sheet("last")
 
     if saveToFile:
-        if basename is None:
-            basename = plan._name
+        basename = plan._name if basename is None else str(basename)
         if real:
-            basename = basename + "_real"
-        _save_workbook(wb, basename, overwrite, plan.mylog)
-        return None
+            path = Path(basename)
+            if path.suffix:
+                basename = str(path.with_name(path.stem + "_real" + path.suffix))
+            else:
+                basename = basename + "_real"
+        return _save_workbook(wb, basename, overwrite, plan.mylog)
 
     return wb
 
 
 def plan_to_csv(plan, basename, mylog):
-    """Build plan data and write to CSV file."""
+    """Build plan data and write to CSV file. basename may be a str or a path."""
+    basename = str(basename)
     planData = {}
     planData["year"] = plan.year_n
     planData["net spending"] = plan.g_n
     planData["taxable ord. income"] = plan.G_n
     planData["taxable gains + divs"] = plan.Q_n
-    planData["Tax bills + Med."] = plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n
+    planData["Tax bills + Med."] = (
+        plan.T_n + plan.U_n + plan.medicare_n + plan.J_n + plan.aca_costs_n + plan.st_T_n + plan.payroll_n
+    )
     planData["all wages"] = np.sum(plan.omega_in, axis=0)
     planData["all other inc"] = np.sum(plan.other_inc_in, axis=0)
     planData["all net inv"] = np.sum(plan.netinv_in, axis=0)
@@ -1225,6 +1345,8 @@ def plan_to_csv(plan, basename, mylog):
     planData["ord taxes"] = -plan.T_n
     planData["div taxes"] = -plan.U_n
     planData["NIIT"] = -plan.J_n
+    if np.any(plan.payroll_n > 0):
+        planData["payroll tax"] = -plan.payroll_n
     planData["Medicare"] = -plan.medicare_n
     planData["ACA premiums"] = -plan.aca_costs_n
     if np.any(plan.st_T_n > 0):

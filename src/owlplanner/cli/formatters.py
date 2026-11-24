@@ -12,6 +12,7 @@ import json
 import numpy as np
 
 from owlplanner.export import plan_metrics, balance_sheet_arrays
+from owlplanner.version import engine_provenance
 
 
 class _NumpyEncoder(json.JSONEncoder):
@@ -32,6 +33,11 @@ def _round(val, decimals=0):
     if decimals == 0:
         return int(round(float(val)))
     return round(float(val), decimals)
+
+
+def _round_opt(val, decimals=2):
+    """Round to *decimals*, passing None through."""
+    return None if val is None else round(float(val), decimals)
 
 
 def _metrics_to_summary(m: dict) -> dict:
@@ -64,6 +70,11 @@ def _metrics_to_summary(m: dict) -> dict:
         "federal_income_tax_today_dollars": r("federal_income_tax_today"),
         "ltcg_tax_nominal": r("ltcg_tax_nominal"),
         "niit_nominal": r("niit_nominal"),
+        "payroll_tax_nominal": r("payroll_tax_nominal"),
+        "payroll_tax_today_dollars": r("payroll_tax_today"),
+        # SSA earnings test: 0 when it withholds nothing.
+        "ss_withheld_nominal": r("ss_withheld_nominal"),
+        "ss_withheld_today_dollars": r("ss_withheld_today"),
         "state_tax_nominal": r("state_tax_nominal"),
         "medicare_nominal": r("medicare_nominal"),
         "aca_nominal": r("aca_nominal"),
@@ -83,6 +94,44 @@ def _metrics_to_summary(m: dict) -> dict:
         "liquidation_capgains_rate": round(m["liquidation_capgains_rate"], 4),
         "time_horizon_years": int(m["time_horizon_years"]),
         "cumulative_inflation_factor": round(m["inflation_factor"], 4),
+    }
+
+
+def plan_convergence(plan) -> dict:
+    """How the self-consistent loop ended, and how far the plan is from the model its own income implies.
+
+    "solved" says the loop stopped, not that the answer is self-consistent. Reporting the
+    residual lets a caller tell a converged plan from one that merely ran out of patience,
+    without re-deriving the tax quantities itself.
+    """
+    fpr = getattr(plan, "fixedPointResidual", None) or {}
+    residual = {family: _round(v["abs_sum"]) for family, v in fpr.items()}
+    # The families the log warns about (Plan._warnSSResidual, _warnLTCGResidual): the loop left
+    # them above its own tolerance, and the exact model would settle them.
+    tol = plan.N_n * getattr(plan, "_residual_tol", 0.0)
+    vm = getattr(plan, "vm", None) or {}
+    remedies = {}
+    if "tss" not in vm and not isinstance(plan.solverOptions.get("withSSTaxability"), (int, float)):
+        remedies["SS"] = 'withSSTaxability="optimize"'
+    if not getattr(plan, "_ltcg_lp", False):
+        remedies["LTCG"] = 'withLTCG="optimize"'
+    unsettled = {
+        family: remedy for family, remedy in remedies.items() if fpr.get(family, {}).get("abs_sum", 0.0) > tol
+    }
+    return {
+        "convergence": plan.convergenceType,
+        # How the tax breakpoints were solved: "loop", "branch-and-bound (...)", "local search (...)",
+        # or "local search -> loop" when the search kept the loop's plan.
+        "breakpoint_method": getattr(plan, "breakpointMethodUsed", "loop"),
+        "fixed_point_residual_today_dollars": residual,
+        # Families left above the loop's tolerance (residualTol per year), each with the option
+        # whose exact model settles it; empty when the plan settled.
+        "unsettled": unsettled,
+        # Last solve's wall-clock and CPU seconds (machine- and load-dependent), as in the Summary.
+        "solve_time_seconds": {
+            "wall": _round_opt(getattr(plan, "lastSolveWallTime", None)),
+            "cpu": _round_opt(getattr(plan, "lastSolveCPUTime", None)),
+        },
     }
 
 
@@ -106,6 +155,7 @@ def plan_to_dict(plan) -> dict:
     fed_tax = plan.T_n[:N]
     ltcg_tax = plan.U_n[:N]
     niit = plan.J_n[:N]
+    payroll = plan.payroll_n[:N]
     state_tax = plan.st_T_n[:N]
     medicare = plan.medicare_n[:N]
     aca = plan.aca_costs_n[:N]
@@ -128,6 +178,7 @@ def plan_to_dict(plan) -> dict:
                 "federal_income_tax": _round(fed_tax[n]),
                 "ltcg_tax": _round(ltcg_tax[n]),
                 "niit": _round(niit[n]),
+                "payroll_tax": _round(payroll[n]),
                 "state_tax": _round(state_tax[n]),
                 "medicare_premiums": _round(medicare[n]),
                 "aca_premiums": _round(aca[n]),
@@ -164,18 +215,27 @@ def plan_to_dict(plan) -> dict:
 
     # ---- top-level document ---------------------------------------------
     state = plan.state if plan.state else "none"
+    # What passes to non-spouse heirs at the first death (beneficiary fractions below 1), after
+    # the heirs' tax, in today's dollars; year_n[n_d - 1] is the decedent's last year.
+    partial = float(getattr(plan, "partialBequest", 0.0) or 0.0)
+    partial_year = int(plan.year_n[max(0, plan.n_d - 1)]) if partial > 0 and plan.n_d < N else None
     return {
+        "engine": engine_provenance(),
         "status": plan.caseStatus,
+        **plan_convergence(plan),
         "case_name": plan._name,
         "objective": plan.objective,
         "individuals": list(plan.inames),
         "state": state,
+        "state_moves": [{"year": int(y), "state": s} for y, s in plan.state_moves],
         "start_year": int(plan.year_n[0]),
         "end_year": int(plan.year_n[-1]),
         "time_horizon_years": N,
         "spending_year1_today_dollars": _round(spending[0]),
         "total_bequest_nominal": summary["final_bequest_nominal"],
         "total_bequest_today_dollars": summary["final_bequest_today_dollars"],
+        "partial_bequest_today_dollars": _round(partial),
+        "partial_bequest_year": partial_year,
         "summary": summary,
         "roth_conversions": {
             "total_nominal": summary["roth_conversions_nominal"],

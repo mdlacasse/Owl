@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 name = "owlplanner"
 # Single source of truth for the version. Keep in sync with src/owlplanner/version.py
 # via `make sync-version` (enforced by tests/utils/test_version.py).
-version = "2026.9.16"
+version = "2026.11.22"
 authors = [
   { name="Martin-D. Lacasse", email="martin.d.lacasse@gmail.com" },
 ]
@@ -68,6 +68,7 @@ owlcli  = "owlplanner.cli._main:cli"
 dev = [
     "flake8",
     "pytest>=9.0.2",
+    "pytest-benchmark>=5.3.0",
     "pytest-xdist",
     "scikit-learn",
     "watchdog",

@@ -67,21 +67,30 @@ def getIntInput(i, key, thing, defval=0, help=None, min_val=0, max_val=None, pro
     )
 
 
-def getFloatInput(i, key, thing, defval=0.0):
-    nkey = key + str(i)
-    kz.initCaseKey(nkey, defval)
-    inamex = kz.getCaseKey("iname" + str(i))
-    return st.number_input(
-        f"{inamex}'s {thing}",
-        min_value=0.0,
-        help=kz.help1000,
-        value=float(kz.getCaseKey(nkey)),
-        format="%.1f",
-        step=10.0,
-        on_change=kz.setpull,
-        args=[nkey],
-        key=kz.genCaseKey(nkey),
-    )
+def raiseSSAgeToEligibility(i, born_first_days):
+    """Raise a stored claiming age below the first month one is 62 throughout to that month, years
+    and months together: clamping the years alone would turn 61 y 11 m into 62 y 11 m."""
+    first = 62 * 12 + (0 if born_first_days else 1)
+    years, months = kz.getCaseKey(f"ssAge_y{i}"), kz.getCaseKey(f"ssAge_m{i}") or 0
+    if years is not None and 12 * int(years) + int(months) < first:
+        kz.setCaseKey(f"ssAge_y{i}", first // 12)
+        kz.setCaseKey(f"ssAge_m{i}", first % 12)
+
+
+def keepSurvivorAgeInWindow(earliest, full_rate):
+    """Move a stored survivor claiming age into [earliest, full_rate] (whole months), years and
+    months together, in the case and in the widgets: the window moves with the birth dates
+    (a month earlier for a survivor born on the 1st), and a stored value outside it would
+    make the number inputs fail."""
+    lo, hi = round(earliest * 12), round(full_rate * 12)
+    years, months = kz.getCaseKey("ssSurvivorAge_y"), kz.getCaseKey("ssSurvivorAge_m") or 0
+    if years is None:
+        return
+    total = min(max(12 * int(years) + int(months), lo), hi)
+    if total != 12 * int(years) + int(months):
+        for key, val in (("ssSurvivorAge_y", total // 12), ("ssSurvivorAge_m", total % 12)):
+            kz.storeCaseKey(key, val)
+            kz.storeGlobalKey(kz.genCaseKey(key), val)
 
 
 def getToggleInput(i, key, thing):
@@ -105,6 +114,11 @@ else:
     _ss_mode = kz.getCaseKey("ssAgesMode") or "none"
     _iname0 = kz.getCaseKey("iname0")
     _iname1 = kz.getCaseKey("iname1")
+    # A selection naming someone whose age is now past cannot be solved (Run Options no longer
+    # offers it and resets it, the solver refuses it): keep the fields editable to correct the age.
+    _past = kz.ssPastAgeNames()
+    if _ss_mode in _past or (_ss_mode in ("optimize", "both") and _past):
+        _ss_mode = "none"
     ss_age0_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname0
     ss_age1_disabled = _ss_mode in ("optimize", "both") or _ss_mode == _iname1
     col1, col2, col3 = st.columns((1, 1, 0.5), gap="large", vertical_alignment="top")
@@ -112,13 +126,16 @@ else:
         dob0 = kz.getCaseKey("dob0")
         specialcase0 = dob0.endswith("01") or dob0.endswith("02")
         msg1 = "This is the **monthly** amount at Full Retirement Age (FRA)."
+        # Benefits start in the first month one is 62 throughout (POMS RS 00201.001): the birth month
+        # for those born on the 1st or 2nd, the month after for everyone else. The engine resets an
+        # earlier age to that month (socialsecurity.compute_social_security_benefits).
         if specialcase0:
             msg2 = (
                 "Claiming age in years and months. "
-                "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd). Maximum 70."
+                "Minimum: 62 (born on the 1st or 2nd, one is 62 throughout the birth month). Maximum: 70."
             )
         else:
-            msg2 = "Claiming age in years and months. Minimum: 62, maximum: 70."
+            msg2 = "Claiming age in years and months. Minimum: 62 years 1 month, maximum: 70."
         if ss_age0_disabled:
             msg2 = msg2 + " (Set by optimizer — shown as last solved result.)"
         getIntInput(0, "ssAmt", "**monthly** PIA amount (in today's \\$)", help=msg1)
@@ -126,9 +143,10 @@ else:
         with incol1:
             kz.initCaseKey("ssAge_y0", 67)
             kz.initCaseKey("ssAge_m0", 0)
+            raiseSSAgeToEligibility(0, specialcase0)
             m0 = kz.getCaseKey("ssAge_m0")
             maxyear = 70 if m0 == 0 else 69
-            minyear = 61 if specialcase0 else 62
+            minyear = 62
             ret = getIntInput(
                 0,
                 "ssAge_y",
@@ -141,7 +159,7 @@ else:
             )
         with incol2:
             maxmonth = 0 if ret == 70 else 11
-            minmonth = 11 if (ret == 61 and specialcase0) else 0
+            minmonth = 1 if (ret == 62 and not specialcase0) else 0
             getIntInput(
                 0,
                 "ssAge_m",
@@ -162,19 +180,20 @@ else:
             if specialcase1:
                 msg2_spouse = (
                     "Claiming age in years and months. "
-                    "Minimum: 61 years 11 months (SSA rule for those born on 1st or 2nd)."
+                    "Minimum: 62 (born on the 1st or 2nd, one is 62 throughout the birth month). Maximum: 70."
                 )
             else:
-                msg2_spouse = "Claiming age in years and months. Minimum: 62 years."
+                msg2_spouse = "Claiming age in years and months. Minimum: 62 years 1 month, maximum: 70."
             if ss_age1_disabled:
                 msg2_spouse = msg2_spouse + " (Set by optimizer — shown as last solved result.)"
             incol1, incol2 = st.columns(2, gap="large", vertical_alignment="top")
             with incol1:
                 kz.initCaseKey("ssAge_y1", 67)
                 kz.initCaseKey("ssAge_m1", 0)
+                raiseSSAgeToEligibility(1, specialcase1)
                 m1 = kz.getCaseKey("ssAge_m1")
                 maxyear = 70 if m1 == 0 else 69
-                minyear = 61 if specialcase1 else 62
+                minyear = 62
                 ret = getIntInput(
                     1,
                     "ssAge_y",
@@ -187,7 +206,7 @@ else:
                 )
             with incol2:
                 maxmonth = 0 if ret == 70 else 11
-                minmonth = 11 if (ret == 61 and specialcase1) else 0
+                minmonth = 1 if (ret == 62 and not specialcase1) else 0
                 getIntInput(
                     1,
                     "ssAge_m",
@@ -285,7 +304,9 @@ to estimate {iname1}'s PIA.""")
                     "the survivor's own age when they file for it. Filing before the survivor FRA — a "
                     "separate SSA schedule, up to four months earlier than the retirement FRA used above "
                     "— reduces the benefit permanently, to 71.5% at age 60; waiting past it earns nothing "
-                    "extra. It can never start before age 60 or before the first passing. "
+                    "extra. It can never start before age 60 or before the first passing. Someone born on "
+                    "the 1st of a month reaches both ages a month early: 60 at 59 years 11 months, and "
+                    "the survivor FRA a month before their birthday. "
                     "See the Documentation page for details."
                 )
                 help_surv_age = (
@@ -295,9 +316,14 @@ to estimate {iname1}'s PIA.""")
                 # there rather than at 70. The window's lower end is age 60 in every scenario;
                 # the age at the first passing is only the deterministic floor, and is reported
                 # below instead of enforced, since longevity sampling redraws the death year.
+                # Both ends are conventional ages, a month earlier for a survivor born on the 1st
+                # (socialsecurity.survivor_claim_limits), as the engine resolves them.
                 surv_ctx = owb.getSurvivorClaimContext()
                 surv_fra = surv_ctx["survivor_fra"] if surv_ctx else 67.0
-                fra_y, fra_m = int(surv_fra), round((surv_fra % 1) * 12)
+                earliest = surv_ctx["earliest_age"] if surv_ctx else 60.0
+                full_rate = surv_ctx["full_rate_age"] if surv_ctx else surv_fra
+                fra_y, fra_m = round(full_rate * 12) // 12, round(full_rate * 12) % 12
+                min_y, min_m = round(earliest * 12) // 12, round(earliest * 12) % 12
                 incol1, incol2, incol3 = st.columns(3, gap="large", vertical_alignment="top")
                 with incol1:
                     kz.initCaseKey("ssSurvivorMode", "immediate")
@@ -309,22 +335,23 @@ to estimate {iname1}'s PIA.""")
                     )
                 with incol2:
                     kz.initCaseKey("ssSurvivorAge_y", min(67, fra_y))
+                    kz.initCaseKey("ssSurvivorAge_m", 0)
+                    keepSurvivorAgeInWindow(earliest, full_rate)
                     surv_y = kz.getIntNum(
                         "...at age",
                         "ssSurvivorAge_y",
                         disabled=(surv_mode != "age"),
-                        min_value=60,
+                        min_value=min_y,
                         max_value=fra_y,
                         step=1,
                         help=help_surv_age,
                     )
                 with incol3:
-                    kz.initCaseKey("ssSurvivorAge_m", 0)
                     kz.getIntNum(
                         "...and month(s)",
                         "ssSurvivorAge_m",
                         disabled=(surv_mode != "age"),
-                        min_value=0,
+                        min_value=min_m if surv_y == min_y else 0,
                         max_value=fra_m if surv_y == fra_y else 11,
                         step=1,
                         help=help_surv_age,
@@ -332,18 +359,18 @@ to estimate {iname1}'s PIA.""")
                 if surv_ctx is not None:
                     at_death = surv_ctx["age_at_first_passing"]
                     who = surv_ctx["name"]
-                    if at_death >= surv_fra:
+                    if at_death >= full_rate:
                         st.caption(
                             f"With the life expectancies entered, {who} is already "
-                            f"{at_death:.1f} at the first passing — past their survivor FRA of "
-                            f"{fra_y} y {fra_m} m — so every choice above resolves to the same "
+                            f"{at_death:.1f} at the first passing — past the age they reach their survivor "
+                            f"FRA, {fra_y} y {fra_m} m — so every choice above resolves to the same "
                             "date and this setting has no effect on this plan. It still applies "
                             "when lifespans are sampled on the Stochastic Longevity page."
                         )
                     else:
                         st.caption(
-                            f"{who} is {at_death:.1f} at the first passing, below their survivor "
-                            f"FRA of {fra_y} y {fra_m} m, so this setting changes the plan. "
+                            f"{who} is {at_death:.1f} at the first passing, before the age they reach their "
+                            f"survivor FRA, {fra_y} y {fra_m} m, so this setting changes the plan. "
                             "An age earlier than that is not payable and is reported in the log."
                         )
 

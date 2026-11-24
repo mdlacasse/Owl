@@ -6,12 +6,14 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 
 import copy
 import os
+import tomllib
 from datetime import date
 from io import BytesIO, StringIO
 from typing import Union
 
 import toml
 
+from ..utils import last_year_entered
 from .legacy import translate_old_keys
 
 
@@ -59,14 +61,32 @@ def sanitize_config(diconf: dict, *, mylog=None) -> None:
             aa["generic"] = [copy.deepcopy(pair) for _ in range(ni)]
         aa["type"] = "individual"
 
+    # A year past what the UI accepts is held at that limit, which is still past any plan:
+    # its meaning ("never") is kept, and Run Options can draw it.
+    thisyear = date.today().year
+    lastyear = last_year_entered(thisyear)
+
+    def _hold(section, key, signed=False):
+        val = section.get(key) if isinstance(section, dict) else None
+        if val is None or abs(int(val)) <= lastyear:
+            return
+        section[key] = -lastyear if signed and int(val) < 0 else lastyear
+        if mylog:
+            mylog.print(f"{key} ({int(val)}) is past {lastyear}; held at {section[key]}.", tag="WARNING")
+
+    _hold(diconf.get("aca_settings"), "aca_start_year")
+
     so = diconf.get("solver_options")
     if so is None:
         return
 
+    for key in ("startRothConversions", "stopRothConversions"):
+        _hold(so, key)
+    _hold(so, "swapRothConverters", signed=True)
+
     # Clamp startRothConversions to this year if in the past
     start_roth = so.get("startRothConversions")
     if start_roth is not None:
-        thisyear = date.today().year
         year_val = int(start_roth)
         if year_val < thisyear:
             so["startRothConversions"] = thisyear
@@ -122,7 +142,7 @@ def _convert_for_toml(obj):
 
 
 def load_toml(
-    file: Union[str, BytesIO, StringIO],
+    file: Union[str, os.PathLike, BytesIO, StringIO],
     *,
     mylog=None,
 ) -> tuple[dict, str, Union[str, None]]:
@@ -130,7 +150,7 @@ def load_toml(
     Load configuration from TOML file. Unknown keys are preserved.
 
     Args:
-        file: File path (str), BytesIO, or StringIO
+        file: File path (str or path), BytesIO, or StringIO
         mylog: Optional :class:`mylogging.Logger` for warnings (e.g. the case's logger).
 
     Returns:
@@ -142,30 +162,34 @@ def load_toml(
     dirname = ""
     filename = None
 
+    if isinstance(file, os.PathLike):
+        file = os.fspath(file)
     if isinstance(file, str):
         filename = file
         dirname = os.path.dirname(filename)
         if not filename.endswith(".toml"):
             filename = filename + ".toml"
         try:
-            f = open(filename, "r")
+            f = open(filename, "rb")
         except OSError as e:
             raise FileNotFoundError(f"File {filename} not found: {e}") from e
         try:
             with f:
-                diconf = toml.load(f)
-        except toml.TomlDecodeError as e:
+                diconf = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
             raise ValueError(f"TOML parse error in {filename}: {e}") from e
+    # Read with tomllib, write with toml: toml's reader drops every key after a triple-quoted
+    # string when the text has CRLF line endings (#248).
     elif isinstance(file, BytesIO):
         try:
             string = file.getvalue().decode("utf-8")
-            diconf = toml.loads(string)
+            diconf = tomllib.loads(string)
         except Exception as e:
             raise RuntimeError(f"Cannot read from BytesIO: {e}") from e
     elif isinstance(file, StringIO):
         try:
             string = file.getvalue()
-            diconf = toml.loads(string)
+            diconf = tomllib.loads(string)
         except Exception as e:
             raise RuntimeError(f"Cannot read from StringIO: {e}") from e
     else:
@@ -179,7 +203,7 @@ def load_toml(
 
 def save_toml(
     diconf: dict,
-    file: Union[str, None, StringIO],
+    file: Union[str, os.PathLike, None, StringIO],
     *,
     mylog=None,
 ) -> None:
@@ -188,7 +212,7 @@ def save_toml(
 
     Args:
         diconf: Configuration dictionary (from plan_to_config or load_toml)
-        file: File path (str), StringIO, or None (no-op)
+        file: File path (str or path), StringIO, or None (no-op)
         mylog: Optional logger for messages
     """
     if file is None:
@@ -196,6 +220,8 @@ def save_toml(
 
     diconf = _convert_for_toml(diconf)
 
+    if isinstance(file, os.PathLike):
+        file = os.fspath(file)
     if isinstance(file, str):
         filename = file
         if not file.endswith(".toml"):
@@ -207,7 +233,7 @@ def save_toml(
         filename = os.path.join(dirpart, base) if dirpart else base
         if mylog:
             mylog.vprint(f"Saving plan case file as '{filename}'.")
-        with open(filename, "w") as casefile:
+        with open(filename, "w", encoding="utf-8") as casefile:
             toml.dump(diconf, casefile, encoder=_CleanFloatEncoder())
     elif isinstance(file, StringIO):
         string = toml.dumps(diconf, encoder=_CleanFloatEncoder())

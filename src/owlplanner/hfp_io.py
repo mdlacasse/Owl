@@ -34,10 +34,12 @@ from . import utils as u
 _timeHorizonItems = [
     "year",
     "anticipated wages",
+    "months worked",
     "other inc",
     "net inv",
     "taxable ctrb",
     "401k ctrb",
+    "employer ctrb",
     "Roth 401k ctrb",
     "IRA ctrb",
     "Roth IRA ctrb",
@@ -53,6 +55,16 @@ _timeHorizonItems = [
 _requiredTimeHorizonItems = ["year"]
 _optionalTimeHorizonItems = [c for c in _timeHorizonItems if c not in _requiredTimeHorizonItems]
 
+# Input of the SSA earnings test where zero means "not given", so a year's value is
+# derived from other columns (Plan._earnings_test_inputs). An absent one is read as zero
+# like any other but not reported as "treated as zero": most households have no use for it.
+_derivedTimeHorizonItems = ["months worked"]
+
+# Columns whose absence is not reported as "treated as zero": the derived ones, and
+# 'employer ctrb', whose zero leaves the employer's contributions in '401k ctrb' where
+# workbooks older than the column put them.
+_quietTimeHorizonItems = _derivedTimeHorizonItems + ["employer ctrb"]
+
 # Columns holding a flag rather than an amount. They are excluded from the
 # non-negativity check below and coerced to bool on load.
 _booleanTimeHorizonItems = ["Roth conv fixed"]
@@ -66,7 +78,12 @@ _debtItems = [
     "term",
     "amount",
     "rate",
+    "property",
 ]
+
+# Optional house-table columns: a workbook written before they existed still loads (read as blank).
+# property: the residence or real estate whose sale pays off the loan (debts.resolve_payoff_years).
+_optionalHouseItems = {"Debts": ["property"]}
 
 
 _debtTypes = [
@@ -128,7 +145,7 @@ def _asBoolColumn(col):
     return (numeric.notna() & (numeric != 0)) | (numeric.isna() & text)
 
 
-def read(finput, inames, horizons, mylog, filename=None):
+def read(finput, inames, horizons, mylog, filename=None, houseTables=True):
     """
     Read listed parameters from an excel spreadsheet or through
     a dictionary of dataframes through Pandas.
@@ -141,8 +158,10 @@ def read(finput, inames, horizons, mylog, filename=None):
     that differs from a recognized one only by case, spacing, or punctuation is
     rejected as a typo rather than silently dropped.
     Legacy header "other inc." is accepted as "other inc".
-    "anticipated wages" is expected net of all contribution columns
-    (see Plan.readHFP).
+    "anticipated wages" are the wages in AGI, net of pre-tax deferrals; an
+    after-tax contribution paid from pay is offset by a negative "big-ticket
+    items" entry (see Plan.readHFP). Only "other inc" (a deduction) and "big-ticket
+    items" (an expense) may be negative.
     Supports xls, xlsx, xlsm, xlsb, odf, ods, and odt file extensions.
     Return the input handle, the time lists by individual's name, the household
     tables, the raw sheet dictionary, and the absent optional columns per
@@ -169,6 +188,7 @@ def read(finput, inames, horizons, mylog, filename=None):
         dfDict = finput
         finput = "dictionary of DataFrames"
         streamName = "dictionary of DataFrames"
+        pctCells = {}
     else:
         if filename is not None:
             streamName = f"file '{filename}'"
@@ -183,12 +203,17 @@ def read(finput, inames, horizons, mylog, filename=None):
             dfDict = pd.read_excel(finput, sheet_name=None)
         except Exception as e:
             raise Exception(f"Could not read file {streamName}: {e}.") from e
+        pctCells = _percentFormattedCells(finput) if houseTables else {}
 
     timeLists, absentCols = _conditionTimetables(dfDict, inames, horizons, mylog)
     mylog.vprint(f"Successfully read time horizons from {streamName}.")
 
-    houseLists = _conditionHouseTables(dfDict, mylog)
-    mylog.vprint(f"Successfully read household tables from {streamName}.")
+    # houseTables=False reads the per-person sheets only (the UI hands over those alone, and
+    # keeps the Debts and Fixed Assets tables itself): return None rather than empty tables.
+    houseLists = None
+    if houseTables:
+        houseLists = _conditionHouseTables(dfDict, mylog, pctCells)
+        mylog.vprint(f"Successfully read household tables from {streamName}.")
 
     return finput, timeLists, houseLists, dfDict, absentCols
 
@@ -201,6 +226,16 @@ def timeHorizonItems():
 def booleanTimeHorizonItems():
     """Person-sheet columns holding a flag rather than an amount."""
     return list(_booleanTimeHorizonItems)
+
+
+def derivedTimeHorizonItems():
+    """Person-sheet columns where zero means "not given" (a value derived from other columns)."""
+    return list(_derivedTimeHorizonItems)
+
+
+def quietTimeHorizonItems():
+    """Person-sheet columns whose absence is not reported as "treated as zero"."""
+    return list(_quietTimeHorizonItems)
 
 
 def _normalizeHeader(col):
@@ -288,9 +323,10 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         for col in absent:
             df[col] = 0
         absentCols[iname] = absent
-        if absent:
+        zeroed = [col for col in absent if col not in _quietTimeHorizonItems]
+        if zeroed:
             mylog.print(
-                f"Column(s) absent from HFP sheet {iname!r}, treated as zero: {absent}.",
+                f"Column(s) absent from HFP sheet {iname!r}, treated as zero: {zeroed}.",
                 tag="WARNING",
             )
 
@@ -316,8 +352,21 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
                     # Flags carry no magnitude, so the sign check does not apply.
                     if item in _booleanTimeHorizonItems:
                         continue
-                    if year_rows[item].iloc[0] < 0:
-                        if item == "big-ticket items":
+                    val = year_rows[item].iloc[0]
+                    if pd.isna(val):
+                        continue  # a blank cell; read as zero below
+                    if item == "months worked":
+                        # A count of months, not an amount: integer in [0, 12].
+                        if val < 0 or val > 12 or float(val) != int(float(val)):
+                            raise ValueError(
+                                f"Item {item} for {iname} in year {year} is {val}: "
+                                "months worked must be a whole number of months from 0 to 12."
+                            )
+                        continue
+                    if val < 0:
+                        # A negative big-ticket item is an expense; a negative "other inc" is an
+                        # above-the-line deduction, such as an HSA contribution without wages.
+                        if item in ("big-ticket items", "other inc"):
                             continue
                         if item == "Roth conv":
                             # A negative amount used to mean "force no conversion this
@@ -331,9 +380,9 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
         if len(missing) > 0:
             mylog.vprint(f"Adding {len(missing)} missing years for {iname}: {missing}.")
 
-        df.sort_values("year", inplace=True)
+        df = df.sort_values("year")
         # Replace empty (NaN) cells with 0 value.
-        df.fillna(0, inplace=True)
+        df = df.fillna(0)
 
         # Excel round-trips a flag as TRUE/FALSE, 1/0, or a blank; settle on bool.
         for item in _booleanTimeHorizonItems:
@@ -363,9 +412,83 @@ def _conditionTimetables(dfDict, inames, horizons, mylog):
     return timeLists, absentCols
 
 
-def _conditionHouseTables(dfDict, mylog):
+def _percentFormattedCells(finput):
+    """
+    Rows of the Debts and Fixed Assets percent columns that the workbook formats as a percentage.
+
+    Those columns hold percent numbers (4.5 for 4.5%), but a cell formatted as a percentage
+    displays 4.50% and stores the fraction 0.045. Only such cells are converted: a value's size
+    says nothing, since 0.5 is a plausible real growth rate for a residence. Returns
+    {sheet: {column: {row_label: stored_value}}}, where row_label is the pandas row index
+    (sheet row minus 2, the header being row 1). A workbook openpyxl cannot read (xls, ods)
+    gives none, so its values are read as typed. A file-like input is rewound before and after.
+    """
+    try:
+        import openpyxl
+    except ImportError:
+        return {}
+
+    if hasattr(finput, "seek"):
+        finput.seek(0)
+    try:
+        wb = openpyxl.load_workbook(finput, read_only=True, data_only=True)
+    except Exception:
+        return {}
+    finally:
+        if hasattr(finput, "seek"):
+            finput.seek(0)
+
+    cells = {}
+    try:
+        for sheet, cols in _pctCols.items():
+            if sheet not in wb.sheetnames:
+                continue
+            rows = wb[sheet].iter_rows()
+            header = next(rows, None)
+            if header is None:
+                continue
+            where = {cell.value: k for k, cell in enumerate(header) if cell.value in cols}
+            for r, row in enumerate(rows):
+                for col, k in where.items():
+                    if k >= len(row):
+                        continue
+                    cell = row[k]
+                    if isinstance(cell.value, (int, float)) and "%" in str(cell.number_format or ""):
+                        cells.setdefault(sheet, {}).setdefault(col, {})[r] = float(cell.value)
+    finally:
+        wb.close()
+    return cells
+
+
+def _convertPercentCells(df, page, cells, mylog):
+    """Multiply by 100 the percent-formatted cells found by _percentFormattedCells."""
+    for col, rows in cells.get(page, {}).items():
+        if col not in df.columns:
+            continue
+        converted = 0
+        for label, stored in rows.items():
+            # Match the row by its value as well as its position, so that a sheet whose rows
+            # pandas numbered differently is never converted on the wrong row.
+            if label in df.index and np.isclose(df.at[label, col], stored):
+                df.at[label, col] = stored * 100.0
+                converted += 1
+            else:
+                mylog.print(
+                    f"Cell {col!r} on row {label + 2} of {page} is formatted as a percentage but could "
+                    "not be matched to its row; read as typed.",
+                    tag="WARNING",
+                )
+        if converted:
+            mylog.vprint(f"Read {converted} percent-formatted {col} cell(s) in {page} as percent.")
+    return df
+
+
+def _conditionHouseTables(dfDict, mylog, pctCells=None):
     """
     Read debts and fixed assets from Household Financial Profile workbook.
+
+    Rates and commissions are percent numbers, read as typed, except cells the workbook
+    formats as a percentage (pctCells, from _percentFormattedCells), which hold fractions.
     """
     houseDic = {}
 
@@ -374,12 +497,19 @@ def _conditionHouseTables(dfDict, mylog):
     for page in items.keys():
         if page in dfDict:
             df = dfDict[page]
-            df = _checkColumns(df, page, items[page])
+            optional = _optionalHouseItems.get(page, [])
+            required = [c for c in items[page] if c not in optional]
+            df = _checkColumns(df, page, items[page], required_cols=required)
+            if pctCells:
+                for col in _pctCols[page]:
+                    if col in df.columns:
+                        df[col] = pd.to_numeric(df[col], errors="coerce")
+                df = _convertPercentCells(df, page, pctCells, mylog)
             # Check categorical variables.
             isInList = df["type"].isin(types[page])
             df = df[isInList]
 
-            houseDic[page] = conditionDebtsAndFixedAssetsDF(df, page, mylog=mylog, convert_decimal_pct=True)
+            houseDic[page] = conditionDebtsAndFixedAssetsDF(df, page, mylog=mylog)
         else:
             houseDic[page] = pd.DataFrame(columns=items[page])
             mylog.vprint(f"Table for {page} not found. Assuming empty table.")
@@ -393,7 +523,7 @@ _pctCols = {
 }
 
 
-def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pct=False):
+def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None):
     """
     Condition a DataFrame for Debts or Fixed Assets by:
     - Creating an empty DataFrame with proper columns if df is None or empty
@@ -408,9 +538,6 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
         Type of table: "Debts" or "Fixed Assets"
     mylog : logger, optional
         Logger instance for optional UI/log output
-    convert_decimal_pct : bool, optional
-        When True, percentage columns (see _pctCols) with values in (0, 1) are
-        multiplied by 100 to convert Excel decimal fractions to percent format.
 
     Returns
     -------
@@ -427,7 +554,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
     df = u.ensure_dataframe(df, pd.DataFrame(columns=columnItems))
 
     df = df.copy()
-    df.reset_index(drop=True, inplace=True)
+    df = df.reset_index(drop=True)
 
     # Ensure all required columns exist
     for col in columnItems:
@@ -438,9 +565,11 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
     df = df[columnItems].copy()
 
     # Define which columns are integers vs floats
+    string_cols = ["name", "type"]
     if tableType == "Debts":
         int_cols = ["year", "term"]
         float_cols = ["amount", "rate"]
+        string_cols.append("property")
     else:  # Fixed Assets
         int_cols = ["year", "yod"]
         float_cols = ["basis", "value", "rate", "commission"]
@@ -449,8 +578,8 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
     if len(df) == 0:
         dtype_dict = {}
         dtype_dict["active"] = bool
-        for col in ["name", "type"]:
-            dtype_dict[col] = "object"  # string columns
+        for col in string_cols:
+            dtype_dict[col] = "object"
         for col in int_cols:
             dtype_dict[col] = "int64"
         for col in float_cols:
@@ -462,7 +591,7 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
             if col == "active":
                 # Ensure "active" column is boolean, handling strings/numbers from Excel
                 df[col] = df[col].apply(u.convert_to_bool).astype(bool)
-            elif col in ["name", "type"]:
+            elif col in string_cols:
                 # String columns: ensure they are strings, not lists
                 # Streamlit data_editor can return lists for string columns in some cases
                 df[col] = df[col].apply(_convert_to_string).astype(str)
@@ -474,18 +603,6 @@ def conditionDebtsAndFixedAssetsDF(df, tableType, mylog=None, convert_decimal_pc
             elif col in float_cols:
                 # Float columns: convert to float64, fill NaN with 0.0
                 df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype("float64")
-
-    # Convert decimal percentages to percent format if requested (e.g. 0.045 → 4.5)
-    if convert_decimal_pct and len(df) > 0 and tableType in _pctCols:
-        for col in _pctCols[tableType]:
-            if col in df.columns:
-                mask = (df[col] > 0) & (df[col] < 1)
-                if mask.any():
-                    df.loc[mask, col] = df.loc[mask, col] * 100.0
-                    if mylog is not None:
-                        mylog.vprint(
-                            f"Converted {mask.sum()} {col} value(s) from decimal to percentage in {tableType} table."
-                        )
 
     # For Fixed Assets, validate and reset "year" column if in the past
     if tableType == "Fixed Assets" and "year" in df.columns and len(df) > 0:
@@ -518,10 +635,11 @@ def build_hfp_dataframes(plan):
     The full column set is always written, so exporting a workbook that was read
     with optional columns absent fills them in explicitly with zeros.
 
-    Note that the internal arrays merge '401k ctrb' with 'IRA ctrb'
-    (tax-deferred) and 'Roth 401k ctrb' with 'Roth IRA ctrb' (tax-free);
-    the original column split cannot be recovered. Merged amounts are written
-    to the '401k ctrb' and 'Roth IRA ctrb' columns respectively.
+    Note that the internal arrays merge 'Roth 401k ctrb' with 'Roth IRA ctrb'
+    (tax-free); the original column split cannot be recovered and the merged
+    amount is written to the 'Roth IRA ctrb' column. The tax-deferred sum is
+    split back into '401k ctrb', 'employer ctrb' and 'IRA ctrb' from the plan's
+    kappa401k_in and kappaEmployer_in.
 
     Parameters
     ----------
@@ -549,21 +667,36 @@ def build_hfp_dataframes(plan):
         for n in range(h):
             row = lead_in + n
             df.at[row, "anticipated wages"] = float(plan.omega_in[i, n])
+            df.at[row, "months worked"] = float(plan.etMonths_in[i, n])
             df.at[row, "other inc"] = float(plan.other_inc_in[i, n])
             df.at[row, "net inv"] = float(plan.netinv_in[i, n])
             df.at[row, "big-ticket items"] = float(plan.Lambda_in[i, n])
             df.at[row, "QCD"] = float(plan.qcd_in[i, n])
             df.at[row, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, n])
-            df.at[row, "401k ctrb"] = float(plan.kappa_ijn[i, 1, n])
+            df.at[row, "401k ctrb"] = float(plan.kappa401k_in[i, n])
+            df.at[row, "employer ctrb"] = float(plan.kappaEmployer_in[i, n])
+            df.at[row, "IRA ctrb"] = float(
+                plan.kappa_ijn[i, 1, n] - plan.kappa401k_in[i, n] - plan.kappaEmployer_in[i, n]
+            )
             df.at[row, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, n])
-            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n])
+            # The array holds the share of the year before Medicare (Plan._setHSAStop); the workbook
+            # holds the amount entered, which reading it scales again. Nothing is left to recover
+            # once Medicare has started.
+            frac = float(plan.hsaFrac_in[i, n])
+            df.at[row, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, n]) / frac if frac > 0 else 0.0
             df.at[row, "Roth conv"] = float(plan.myRothX_in[i, n])
             df.at[row, "Roth conv fixed"] = bool(plan.rothXfixed_in[i, n])
         # Lead-in years live in the last 5 slots of kappa_ijn and myRothX_in.
         for r in range(lead_in):
             slot = plan.N_n + r
+            df.at[r, "anticipated wages"] = float(plan.omegaPast_in[i, r])
+            df.at[r, "months worked"] = float(plan.etMonthsPast_in[i, r])
             df.at[r, "taxable ctrb"] = float(plan.kappa_ijn[i, 0, slot])
-            df.at[r, "401k ctrb"] = float(plan.kappa_ijn[i, 1, slot])
+            df.at[r, "401k ctrb"] = float(plan.kappa401k_in[i, slot])
+            df.at[r, "employer ctrb"] = float(plan.kappaEmployer_in[i, slot])
+            df.at[r, "IRA ctrb"] = float(
+                plan.kappa_ijn[i, 1, slot] - plan.kappa401k_in[i, slot] - plan.kappaEmployer_in[i, slot]
+            )
             df.at[r, "Roth IRA ctrb"] = float(plan.kappa_ijn[i, 2, slot])
             df.at[r, "HSA ctrb"] = float(plan.kappa_ijn[i, 3, slot])
             df.at[r, "Roth conv"] = float(plan.myRothX_in[i, slot])
@@ -581,8 +714,8 @@ def time_lists_agree(a, b):
     """
     Check whether two time-list dictionaries represent the same values.
 
-    Columns that are merged in the plan's internal arrays ('401k ctrb' +
-    'IRA ctrb', and 'Roth 401k ctrb' + 'Roth IRA ctrb') are compared as sums.
+    Columns that are merged in the plan's internal arrays ('Roth 401k ctrb' +
+    'Roth IRA ctrb') are compared as sums.
     Used by Plan.saveHFP() to detect time lists that are stale with respect
     to the plan's arrays (e.g., when a plan was populated by writing directly
     into the arrays).
@@ -609,6 +742,9 @@ def time_lists_agree(a, b):
     # Carried by the arrays for every row, the five lead-in years included.
     plainCols = [
         "taxable ctrb",
+        "401k ctrb",
+        "employer ctrb",
+        "IRA ctrb",
         "HSA ctrb",
         "Roth conv",
         "Roth conv fixed",
@@ -616,12 +752,13 @@ def time_lists_agree(a, b):
     # Carried by the arrays for plan years only (see the note above).
     planOnlyCols = [
         "anticipated wages",
+        "months worked",
         "other inc",
         "net inv",
         "QCD",
         "big-ticket items",
     ]
-    mergedCols = [("401k ctrb", "IRA ctrb"), ("Roth 401k ctrb", "Roth IRA ctrb")]
+    mergedCols = [("Roth 401k ctrb", "Roth IRA ctrb")]
     allCols = plainCols + planOnlyCols + [col for pair in mergedCols for col in pair] + ["year"]
     thisyear = date.today().year
     for iname in a:

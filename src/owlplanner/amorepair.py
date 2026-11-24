@@ -68,7 +68,6 @@ class AmoContext:
     N_n: int
     n_d: int  # first year the deceased spouse is gone (== N_n for a single)
     i_s: int  # index of the surviving spouse
-    eta: float  # spousal surplus deposit split
     n595: np.ndarray  # (N_i,) first year each individual is past 59 1/2
     horizons: np.ndarray  # (N_i,)
     xnet: float  # 1 - oppCostX/100
@@ -85,21 +84,6 @@ class AmoContext:
             # substitution's larger tax-deferred withdrawal would violate wdorder_txdef_gate.
             return "withdrawalOrder='taxable_first' pins tax-deferred withdrawals to the RMD"
         return None
-
-
-def deposit_split(ctx, n):
-    """Fraction of the year-n surplus deposited into each individual's taxable account.
-
-    Mirrors ``Plan._add_surplus_deposit_linking``: before the first death the surplus is
-    split by ``eta``; afterwards it all lands with the survivor.
-    """
-    fac = np.zeros(ctx.N_i)
-    if n < ctx.n_d:
-        for i in range(ctx.N_i):
-            fac[i] = (1 - ctx.eta) if i == 0 else (ctx.eta if i == 1 else 0.0)
-    else:
-        fac[ctx.i_s] = 1.0
-    return fac
 
 
 def count_amo_violations(x, ctx, tol=TOL_DOLLAR):

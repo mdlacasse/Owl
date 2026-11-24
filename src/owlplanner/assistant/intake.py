@@ -32,7 +32,13 @@ first solve, confirm a short summary of everything collected.
 - Planning horizon: life expectancy per person (this sets the plan length).
 - Balances per person: taxable brokerage, tax-deferred (401k/IRA/403b), Roth, HSA.
 - State of residence — state income tax materially changes results.
-- Work: annual wages and expected retirement year, if still working.
+- Work: annual wages and expected retirement year, if still working.  If someone will claim
+  Social Security before full retirement age while still working, the earnings test applies:
+  ask in which month work stops that year (months_worked), as the months after it are paid.
+  If someone already collects Social Security before full retirement age and has worked since
+  claiming, ask for those past years' wages too (a wages entry whose start_year is the year of
+  the claim, up to 5 years back): they decide which months were withheld, which come back at
+  full retirement age, and whether the grace year was used.
 - Social Security: monthly PIA at full retirement age per person (from the SSA statement)
   and intended claiming ages — or offer optimize_ss_ages to let the optimizer choose.
 - Objective: maximize retirement spending (optionally with a bequest floor), or maximize
@@ -45,10 +51,21 @@ first solve, confirm a short summary of everything collected.
 - Taxable cost basis per person (brokerage statements show it) — needed for accurate
   capital-gains tax on withdrawals.
 - Ongoing retirement contributions until retirement, per account type (check IRS caps
-  with list_contribution_limits, including 50+ catch-up).
+  with list_contribution_limits, including 50+ catch-up).  A traditional 401k/403b
+  deferral is account "tax_deferred", the employer's match into it account "employer",
+  and a traditional IRA account "ira": only the deferral is always payroll-taxed
+  earnings, and the match never is.
 - Debts (balance, rate, years remaining) and fixed assets (home, real estate,
-  collectibles: basis, value, planned sale year).
-- Planned large expenses (big_ticket_items): weddings, cars, travel budgets.
+  collectibles: basis, value, planned sale year).  For each mortgage or home loan, ask
+  which property it is on: a loan linked to a property (debts "property" = that fixed
+  asset's label) is paid off from the proceeds when the property is sold.
+- Other ordinary income outside wages (other_income): consulting, part-time work, alimony.
+  Before 65 without wages, ask whether they contribute to an HSA from savings (an ACA bronze
+  plan qualifies from 2026): that contribution is a NEGATIVE other_income beside the "hsa"
+  contribution, which lowers the MAGI the ACA credit is figured on.
+- Planned large expenses and windfalls (big_ticket_items): weddings, cars, travel
+  budgets; inheritances, gifts received.  Amounts are signed: enter an expense as a
+  NEGATIVE annual_amount and an inflow as a positive one.
 - Charitable giving, for anyone 70 or older: ask whether they already give, or would
   consider giving, from an IRA.  Routed as a qualified charitable distribution (qcds)
   rather than as cash, the same gift is excluded from AGI and counts toward the RMD —
@@ -58,28 +75,63 @@ first solve, confirm a short summary of everything collected.
 - Prior two years' MAGI — sets Medicare IRMAA for the first two plan years; ask when
   anyone is 63 or older.
 - Roth conversion preferences: annual cap, start year, per-person exclusions, or none.
+- HSA: when anyone has an HSA balance, ask for the household's yearly out-of-pocket
+  qualified medical expenses (other_medical_expenses: dental, vision, co-pays,
+  deductibles).  Without them the HSA can pay only Medicare premiums and is mostly locked.
+- Medicare drug coverage, for anyone 63 or older: Part D through Medicare, or coverage
+  from elsewhere (employer, VA → include_medicare_part_d=False)?  A Part D base premium
+  (medicare_part_d_base_premium, $/month per person) can be added; default is 0.
 
 ## Tier 3 — assume with disclosure (fine to start with defaults)
 Return model ('conservative' fixed rates), asset allocation (60/40 gliding to 40/60),
 spending profile ('smile' vs 'flat'), survivor spending fraction (60%), heirs' tax
-rate (30%).  Solve responses echo every applied default in assumed_defaults — relay
+rate (30%), medical prices growing with inflation (medical_inflation_excess=0; raise it
+to let health-care costs outpace inflation).  Solve responses echo every applied default in assumed_defaults — relay
 those entries to the user and refine the ones that could change their decisions.
 
 ## Units and conventions
 - Social Security and pensions are $/month; wages, contributions, and expenses are
   $/year; balances are $.
-- Wages must be net of the retirement contributions listed separately — Owl deposits
-  contributions into their accounts without subtracting them from wages, so gross wages
-  plus contributions would double-count.
+- Wages are the wages in AGI: pay minus pre-tax 401k/403b deferrals, deductible IRA and
+  payroll HSA contributions.  Owl deposits contributions into their accounts without
+  subtracting them from wages or cash, so gross wages plus pre-tax contributions would
+  double-count.  An after-tax contribution paid from pay (Roth 401k, Roth IRA, taxable)
+  stays in the wages, since it is taxed, and is paid for with a NEGATIVE big_ticket_items
+  entry of the same amount and years: $20k into a Roth 401k from $100k of pay is wages
+  100000, contribution 20000 (account "roth"), big_ticket_items -20000.
+- An HSA contribution made without wages (a retiree or early retiree paying from savings)
+  has no wages to be netted from: list it under contributions (account "hsa") and the same
+  amount as a negative other_income, the above-the-line deduction that also pays it from
+  cash (in the year Medicare starts, only the months before it). In an HFP file these are the
+  "HSA ctrb" and "other inc" columns. other_income and
+  big_ticket_items ("other inc" and "big-ticket items") are the only signed inputs.
 - Allocation arrays are [equities, corporate_bonds, t_notes, cash]; ask whether "bonds"
   means corporate bonds or Treasuries before filling one in.
+
+## Run time
+- Analyses differ widely in cost.  A single solve takes seconds; a scenario sweep repeats
+  it once per scenario (per bequest level and scenario for the frontier), and MILP
+  options (with_medicare/with_aca='optimize', optimize_ss_ages) make each solve slower.
+- "Long" means projected beyond 2 minutes; "very long" means beyond an hour.
+- Before the first sweep, ask how long the user is willing to wait for an analysis
+  (a minute, ten minutes, up to an hour).  Remember the answer for the session.
+- A long sweep returns needs_confirmation with an estimate.  If the estimate fits the
+  budget the user gave, that answer is their consent: call again with
+  confirm_long_run=true and say how long it should take.  Otherwise relay the estimate
+  and the cheaper alternatives and ask whether to proceed.
+- A very long sweep (very_long: true) always gets its own question, quoting
+  estimated_duration, whatever budget was given.  If the user agrees, run it.
 
 ## After the first solve
 - Relay assumed_defaults and the headline numbers (first-year net spending in today's
   dollars, lifetime taxes, final bequest).
 - Offer next steps: stress-test with run_historical or run_monte_carlo, a
   probability-of-success frontier with run_stochastic, Social Security claiming
-  optimization, and Roth conversion policies.
+  optimization, and Roth conversion policies.  Quote the first solve's time
+  (solve_time_seconds.wall) with a rough cost for each: about that time per scenario
+  (200 scenarios by default for Monte Carlo, one per start year since 1928 for
+  historical), less for run_stochastic and the frontier, which solve their scenarios
+  in parallel.  The sweep's own estimate is the reliable one.
 - Offer save_case so the user can reload the setup in the Owl UI or CLI.
 - Remind the user that Owl is an educational and research tool, not financial advice.
 """

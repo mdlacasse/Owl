@@ -56,6 +56,7 @@ _INCOME_COLORS = {
 _OUTFLOW_COLORS = {
     "living": "#2196F3",
     "taxes": "#F44336",
+    "payroll": "#E57373",
     "state_taxes": "#C62828",
     "healthcare": "#FF9800",
     "debt": "#9E9E9E",
@@ -202,7 +203,7 @@ class MatplotlibBackend(PlotBackend):
         if (phi_j is not None and np.all((1 - phi_j) < 0.01)) or medians.iloc[0] < 1:
             if medians.iloc[0] < 1:
                 print(f"Optimized solutions all have null partial bequest in year {my[0]}.", file=description)
-            df.drop("partial", axis=1, inplace=True)
+            df = df.drop(columns="partial")
             means = df.mean(axis=0, numeric_only=True)
             medians = df.median(axis=0, numeric_only=True)
             my[0] = my[1]
@@ -725,8 +726,9 @@ class MatplotlibBackend(PlotBackend):
 
         return fig
 
-    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None, ST_n=None):
-        """Plot taxes over time. A_n: optional ACA costs. ST_n: optional state income tax."""
+    def plot_taxes(self, year_n, T_n, M_n, gamma_n, value, title, inames, A_n=None, ST_n=None, P_n=None):
+        """Plot taxes over time. A_n: optional ACA costs. ST_n: optional state income tax.
+        P_n: optional employee payroll tax (FICA)."""
         style = {"income tax": "-", "Medicare": "-."}
         if value == "nominal":
             series = {"income tax": T_n, "Medicare": M_n}
@@ -746,6 +748,12 @@ class MatplotlibBackend(PlotBackend):
                 series["state tax"] = ST_n
             else:
                 series["state tax"] = ST_n / gamma_n[:-1]
+        if P_n is not None and np.any(P_n > 0):
+            style["payroll tax"] = (0, (3, 1, 1, 1, 1, 1))
+            if value == "nominal":
+                series["payroll tax"] = P_n
+            else:
+                series["payroll tax"] = P_n / gamma_n[:-1]
         fig, ax = self._line_income_plot(year_n, series, style, title, yformat)
 
         return fig
@@ -1195,6 +1203,7 @@ class MatplotlibBackend(PlotBackend):
         outflow_labels_map = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",
@@ -1256,6 +1265,7 @@ class MatplotlibBackend(PlotBackend):
         outflow_labels = {
             "living": "Living expenses",
             "taxes": "Taxes",
+            "payroll": "Payroll tax",
             "state_taxes": "State taxes",
             "healthcare": "Healthcare",
             "debt": "Debt payments",

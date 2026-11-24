@@ -74,13 +74,9 @@ def _apply_assets_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         hsa=balances["hsa"],
         startDate=start_date,
     )
-    # Set n_hsa_i so HSA contributions from HFP are zeroed at Medicare age.
+    # HSA contributions from HFP end at Medicare age 65, prorated in the year it starts.
     # (Do not call setHSA here—it would re-apply unit scaling and corrupt balances.)
-    thisyear = date.today().year
-    ages = [65] * icount
-    for i in range(icount):
-        n_hsa = plan.yobs[i] + ages[i] - thisyear
-        plan.n_hsa_i[i] = min(max(0, n_hsa), plan.N_n)
+    plan._setHSAStop([65] * icount)
     cost_basis = known["savings_assets"].get("taxable_cost_basis", [])
     if cost_basis and any(v > 0 for v in cost_basis):
         plan.setCostBasis(cost_basis)
@@ -115,8 +111,8 @@ def _apply_fixed_income_to_plan(plan: "Plan", known: dict, icount: int) -> None:
         known["fixed_income"].get("pension_monthly_amounts", [0] * icount),
         dtype=np.float32,
     )
-    pension_ages = np.array(known["fixed_income"].get("pension_ages", [65.0]))
-    pension_indexed = known["fixed_income"].get("pension_indexed", [True])
+    pension_ages = np.array(known["fixed_income"].get("pension_ages", [65.0] * icount))
+    pension_indexed = known["fixed_income"].get("pension_indexed", [True] * icount)
     survivor_frac = known["fixed_income"].get("pension_survivor_fraction")
     if survivor_frac is not None:
         survivor_frac = [float(x) for x in survivor_frac]
@@ -257,13 +253,7 @@ def _apply_solver_options_to_plan(plan: "Plan", known: dict) -> None:
         plan.solverOptions["withLTCG"] = "loop"
     if "withNIIT" not in plan.solverOptions:
         plan.solverOptions["withNIIT"] = "loop"
-    with_medicare = plan.solverOptions.get("withMedicare")
-    if isinstance(with_medicare, bool):
-        # Legacy TOML compat: pre-2025 files used withMedicare = true/false.
-        plan.solverOptions["withMedicare"] = "loop" if with_medicare else "none"
-    elif with_medicare == "None":
-        # Legacy TOML compat: old files used capital "None".
-        plan.solverOptions["withMedicare"] = "none"
+    # Old withMedicare spellings (true/false, "None") are read by parse_solver_options.
     name_opt = plan.solverOptions.get("noRothConversions", "none")
     if name_opt == "None":
         # Legacy TOML compat: old files used capital "None".
@@ -281,6 +271,9 @@ def _apply_aca_to_plan(plan: "Plan", known: dict) -> None:
     other_med = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
     if other_med > 0:
         plan.setMedicalExpenses(other_med, units="k")
+    excess = float(known.get("optimization_parameters", {}).get("medical_inflation_excess", 0.0))
+    if excess != 0:
+        plan.setMedicalInflation(excess)
     aca = known.get("aca_settings")
     if aca is None:
         return
@@ -358,9 +351,10 @@ def config_to_plan(
     _apply_solver_options_to_plan(p, known)
     _apply_aca_to_plan(p, known)
     state = known["basic_info"].get("state", "")
-    if state:
+    moves = known["basic_info"].get("moves") or []
+    if state or moves:
         try:
-            p.setStateTax(state)
+            p.setStateTax(state, moves)
         except ValueError as e:
             raise ValueError(f"Invalid state in config: {e}") from e
 
@@ -393,12 +387,13 @@ def apply_config_to_plan(plan: "Plan", diconf: dict) -> None:
     _apply_optimization_to_plan(plan, known)
     _apply_solver_options_to_plan(plan, known)
     _apply_aca_to_plan(plan, known)
+    # Always applied, so that clearing the state or the move in the UI clears it on the plan.
     state = known["basic_info"].get("state", "")
-    if state:
-        try:
-            plan.setStateTax(state)
-        except ValueError as e:
-            raise ValueError(f"Invalid state in config: {e}") from e
+    moves = known["basic_info"].get("moves") or []
+    try:
+        plan.setStateTax(state, moves)
+    except ValueError as e:
+        raise ValueError(f"Invalid state in config: {e}") from e
 
     res = known.get("results", {})
     plan.setDefaultPlots(res.get("default_plots", "nominal"))
@@ -427,6 +422,9 @@ def plan_to_config(myplan: "Plan") -> dict:
         "start_date": myplan.startDate,
         "state": getattr(myplan, "state", ""),
     }
+    moves = getattr(myplan, "state_moves", [])
+    if moves:
+        diconf["basic_info"]["moves"] = [{"year": int(y), "state": s} for y, s in moves]
 
     # Savings Assets
     diconf["savings_assets"] = {}
@@ -437,7 +435,7 @@ def plan_to_config(myplan: "Plan") -> dict:
         diconf["savings_assets"]["taxable_cost_basis"] = (myplan.taxable_basis_i / 1000).tolist()
     if myplan.N_i == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = myplan.phi_j.tolist()
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = myplan.eta
+        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = "optimize" if myplan.etaOptimize else myplan.eta
 
     # Household Financial Profile
     diconf["household_financial_profile"] = {
@@ -545,6 +543,8 @@ def plan_to_config(myplan: "Plan") -> dict:
             diconf["aca_settings"]["aca_start_year"] = myplan.aca_start_year
     if myplan.other_medical_k > 0:
         diconf["optimization_parameters"]["other_medical_expenses"] = round(myplan.other_medical_k / 1000, 4)
+    if getattr(myplan, "medical_excess", 0.0) != 0:
+        diconf["optimization_parameters"]["medical_inflation_excess"] = round(myplan.medical_excess * 100, 4)
 
     # Merge user-defined sections for round-trip
     extra = getattr(myplan, "_config_extra", None)
@@ -609,7 +609,10 @@ def clone(plan: "Plan", newname=None, *, expectancy=None, verbose=True, logstrea
         newplan = config_to_plan(diconf, verbose=verbose, logstreams=eff_logstreams, loadHFP=False)
         # Re-apply HFP from in-memory raw data (no file I/O; HFP timeLists re-conditioned for new horizon)
         if getattr(plan, "rawHFP", None):
-            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.hfpFileName)
+            newplan.readHFP(plan.rawHFP, filename_for_logging=plan.hfpFileName, houseTables=False)
+        # Debts and fixed assets are dated by calendar year, not by horizon: copy the plan's own
+        # tables, which carry any edits made since the workbook was read (the UI edits them in place).
+        newplan.houseLists = copy.deepcopy(getattr(plan, "houseLists", {}) or {})
 
     if newname is None:
         # Strip any existing " (copy)" or " (copy N)" suffix so repeated cloning

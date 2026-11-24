@@ -383,6 +383,17 @@ def no_case_info():
         st.page_link("Create_Case.py", label="Create Case", icon=":material/person_add:")
 
 
+def hfp_loaded_caption():
+    """Confirm the workbook read for the current case, if any."""
+    if getCaseKey("stHFP") is None:
+        return
+    hfp_name = getCaseKey("hfpFileName") or ""
+    if hfp_name.endswith(" *"):
+        st.caption(f":white_check_mark: *{hfp_name[:-2]}*\\* loaded — values modified.")
+    else:
+        st.caption(f":white_check_mark: *{hfp_name}* loaded.")
+
+
 def dumpSession():
     print("State Dump:", ss)
 
@@ -466,6 +477,27 @@ def ensureCaseConfigDefaults(ni: int | None = None) -> None:
     for k, v in defaults.items():
         if k not in case:
             case[k] = v
+
+
+def ssPastAgeNames():
+    """
+    Return the names of individuals whose entered SS claiming age is already past this month.
+
+    Such an age reads as benefits already being collected, so the solver refuses to optimize it
+    (Plan._ssaCheckPastAges, same month arithmetic): these individuals are not offered for
+    claiming-age optimization.
+    """
+    today = date.today()
+    ni = 2 if getCaseKey("status") == "married" else 1
+    names = []
+    for i in range(ni):
+        dob, years = getCaseKey(f"dob{i}"), getCaseKey(f"ssAge_y{i}")
+        if not dob or years is None:
+            continue
+        current = 12 * (today.year - int(dob[:4])) + today.month - int(dob[5:7])
+        if current > 12 * int(years) + int(getCaseKey(f"ssAge_m{i}") or 0):
+            names.append(getCaseKey(f"iname{i}"))
+    return names
 
 
 def initCaseKey(key, val):
@@ -645,14 +677,12 @@ def getSolveParameters():
     options["withLTCG"] = "optimize" if ltcgopt else "loop"
     niitopt = getCaseKey("optimizeNIIT")
     options["withNIIT"] = "optimize" if niitopt else "loop"
-    decomp_mode = getCaseKey("useDecomposition") or "none"
-    # Treat legacy boolean True as "sequential"; force "none" if no optimize mode is active.
-    if decomp_mode is True:
-        decomp_mode = "sequential"
-    if not (mediopt or acaopt or ltcgopt or niitopt):
-        decomp_mode = "none"
-    options["withDecomposition"] = decomp_mode
-
+    # Local search: the preset sets every applicable family to MILP; otherwise the strategy
+    # applies to whichever families are on.
+    if getCaseKey("localSearch"):
+        options["breakpointMethod"] = "local-search"
+    elif getCaseKey("mipStrategy") == "local-search":
+        options["mipStrategy"] = "local-search"
     # SS taxability — "loop", "optimize", or numeric fixed fraction.
     ss_mode = getCaseKey("ssTaxabilityMode")
     if ss_mode == "value":
@@ -678,6 +708,14 @@ def getSolveParameters():
         getCaseKey("swapRothConvertersFirst"),
         swapYear,
     )
+
+    # Stop Roth conversions mid-plan: the toggle and year become stopRothConversions (absent = no end).
+    if getCaseKey("stopRothConversionsEnabled"):
+        options["stopRothConversions"] = int(getCaseKey("stopRothConversions") or date.today().year)
+
+    # Part D premiums are included unless the Run Options toggle turns them off.
+    part_d = getCaseKey("includeMedicarePartD")
+    options["includeMedicarePartD"] = True if part_d is None else bool(part_d)
 
     # Build minTaxableBalance list from per-spouse UI values (today's $k)
     ni = 2 if getCaseKey("status") == "married" else 1

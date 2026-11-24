@@ -46,6 +46,7 @@ from owlplanner.rates import FROM, TO, get_fixed_rate_values
 from owlplanner.hfp_io import booleanTimeHorizonItems, conditionDebtsAndFixedAssetsDF
 from owlplanner.mylogging import Logger
 from owlplanner.plotting.regret_common import _regret_units
+from owlplanner.stresstests import frontier_reach_sentence
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     HISTORICAL_RANGE_METHODS,
@@ -577,7 +578,7 @@ def conditionSpiaDF(df, is_married):
         return pd.DataFrame(columns=columns).astype(dtype_base)
 
     df = df.copy()
-    df.reset_index(drop=True, inplace=True)
+    df = df.reset_index(drop=True)
 
     if is_married and "Survivor (%)" not in df.columns:
         df["Survivor (%)"] = 0
@@ -830,21 +831,13 @@ def _render_frontier(result, plotter):
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if show_estate else "this plan"  # be explicit when assets sit outside
-    n_failed = summary["n_levels_failed"]
-    if lo is None:
-        notes.append(f"No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
-    elif hi is None and not n_failed:
-        notes.append(f"Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
-    elif hi is None:
-        # Nothing failed above the best success, but something below it did, so the
-        # levels are not simply reachable up to a ceiling.
-        notes.append(
-            f"The most {what} can leave is above ${lo:,.0f}, though {n_failed} lower level(s) did not solve."
-        )
-    else:
-        notes.append(f"The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
-    # Fold each note to the table's width, keeping any leading indent on every continuation
-    # line so an indented sub-note stays visually attached to its parent. The floor is a
+    reach = frontier_reach_sentence(lo, hi, summary["n_levels_failed"], what)
+    if reach:
+        notes.append(reach)
+    # Fold each note to the table's width under a bullet, with a hanging indent so every
+    # continuation line sits under the text rather than the bullet; otherwise consecutive
+    # notes run together into one block. A note given a leading indent is a sub-note and
+    # takes a lesser mark one level in, so it reads as part of its parent. The floor is a
     # reading width, not a guess: the header runs from 62 columns (savings and spending
     # alone) to 104 (three success rates plus the estate columns), and folding prose to the
     # narrow end leaves it in a cramped ribbon down the left of a much wider block. Going
@@ -852,8 +845,10 @@ def _render_frontier(result, plotter):
     # whatever the table does.
     wrap_at = max(len(head), 88)
     for note in notes:
-        indent = " " * (len(note) - len(note.lstrip(" ")))
-        lines.extend(textwrap.wrap(note.strip(), width=wrap_at, initial_indent=indent, subsequent_indent=indent))
+        lead = "  \u2013 " if note.startswith(" ") else "\u2022 "
+        lines.extend(
+            textwrap.wrap(note.strip(), width=wrap_at, initial_indent=lead, subsequent_indent=" " * len(lead))
+        )
     kz.storeCaseKey("frontierSummary", "\n".join(lines))
 
 
@@ -1225,13 +1220,16 @@ def _setContributions(plan, action):
             original_houseLists[key] = conditionDebtsAndFixedAssetsDF(None, key)
 
     original_filename = kz.getCaseKey("hfpFileName")
+    # readHFP marks the plan modified. Kept to restore it when the tables turn out unchanged.
+    original_status = plan.caseStatus
 
     dicDf = {kz.getCaseKey("iname0"): kz.getCaseKey("timeList0")}
     if kz.getCaseKey("status") == "married":
         dicDf[kz.getCaseKey("iname1")] = kz.getCaseKey("timeList1")
 
     try:
-        plan.readHFP(dicDf)
+        # The tables here are the per-person ones; the household tables follow in syncHouseLists.
+        plan.readHFP(dicDf, houseTables=False)
     except Exception as e:
         # These tables came from the editor, so they always parse. What can fail here
         # is a value rule -- a QCD before age 70½, say -- and calling that a parse
@@ -1244,8 +1242,10 @@ def _setContributions(plan, action):
 
     # readHFP above re-derived this from the edited tables, which carry every column,
     # so it now reads as empty. Refresh rather than leave the file-load notice standing
-    # over values the user has since filled in.
-    kz.setCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
+    # over values the user has since filled in. Display bookkeeping, not a plan input: store
+    # it without flagging the case modified, or every page that syncs the tables (Reports does
+    # on each visit, to offer the workbook download) would force a re-solve.
+    kz.storeCaseKey("hfpAbsentCols", dict(plan.hfpAbsentCols))
 
     # Check if data actually changed
     data_changed = False
@@ -1280,6 +1280,11 @@ def _setContributions(plan, action):
         kz.setCaseKey("hfpFileName", marked)
         plan.hfpFileName = marked
     elif action == "set":
+        if not data_changed:
+            # Same tables as the plan was solved with: its results still stand. Reports syncs on
+            # every visit; leaving the plan marked modified made its plotting methods refuse to
+            # run, so Graphs showed no images while the case still read as solved.
+            plan.caseStatus = original_status
         if data_changed:
             if original_filename and original_filename != "None" and not original_filename.endswith(" *"):
                 marked = original_filename + " *"
@@ -1440,17 +1445,17 @@ def plotSummaryMetrics(plan):
     fa_bequest = plan.fixed_assets_bequest_value / plan.gamma_n[-1]
 
     if plan.objective == "maxBequest":
-        spending_label = "Spending target (today's $)"
-        estate_label = "Liquid bequest (today's $)"
+        spending_label = "Spending target (today's \\$)"
+        estate_label = "Liquid bequest (today's \\$)"
     else:
-        spending_label = "Yearly spending (today's $)"
-        estate_label = "Target liquid estate (today's $)"
+        spending_label = "Yearly spending (today's \\$)"
+        estate_label = "Target liquid estate (today's \\$)"
     partial_bequest = getattr(plan, "partialBequest", 0)
     show_partial = plan.N_i == 2 and plan.n_d < plan.N_n and any(plan.phi_j < 1)
     n_cols = 3 + (1 if fa_bequest > 0 else 0) + (1 if show_partial else 0)
     cols = st.columns(n_cols, gap="large")
     col = 0
-    cols[col].metric(spending_label, f"${spending:,.0f}")
+    cols[col].metric(spending_label, f"\\${spending:,.0f}")
     col += 1
     if show_partial:
         # n_d - 1 is the decedent's last year: passings are assumed at the end of it
@@ -1458,12 +1463,12 @@ def plotSummaryMetrics(plan):
         # by gamma_n[n_d], the multiplier at the beginning of n_d -- the same instant.
         # year_n[n_d] named the year after the death, disagreeing with the summary.
         partial_year = int(plan.year_n[plan.n_d - 1])
-        cols[col].metric(f"Partial bequest {partial_year} (today's $)", f"${partial_bequest:,.0f}")
+        cols[col].metric(f"Partial bequest {partial_year} (today's \\$)", f"\\${partial_bequest:,.0f}")
         col += 1
-    cols[col].metric(estate_label, f"${bequest:,.0f}")
+    cols[col].metric(estate_label, f"\\${bequest:,.0f}")
     col += 1
     if fa_bequest > 0:
-        cols[col].metric("Fixed assets bequest (today's $)", f"${fa_bequest:,.0f}")
+        cols[col].metric("Fixed assets bequest (today's \\$)", f"\\${fa_bequest:,.0f}")
         col += 1
     cols[col].metric("Planning horizon", horizon)
 
@@ -1522,7 +1527,7 @@ def plotTaxGraphs(plan):
     fig = plan.showTaxes(figure=True)
     if fig:
         has_aca = getattr(plan, "slcsp_annual", 0) > 0
-        taxes = "Income Taxes"
+        taxes = "Income and Payroll Taxes" if np.any(getattr(plan, "payroll_n", 0) > 0) else "Income Taxes"
         if has_aca:
             tax_title = f"{taxes}, Medicare (+IRMAA), and ACA"
         else:
@@ -1793,7 +1798,7 @@ def showWorkbook(plan):
                     placeholder="-",
                 )
 
-            dollar_label = "real (today's) $" if getattr(plan, "worksheetRealDollars", False) else "nominal $"
+            dollar_label = "real (today's) \\$" if getattr(plan, "worksheetRealDollars", False) else "nominal \\$"
             age_note = (
                 (" Ages are as of December 31 of each row's calendar year; blank after an individual's plan horizon.")
                 if plan.worksheetShowAges
@@ -1862,6 +1867,10 @@ def saveWorkbook(plan):
 
 @_checkPlan
 def saveContributions(plan):
+    # The Financial Profile editors update the session's tables, not the plan's, which are
+    # otherwise refreshed only when the case runs. Sync first, or the download writes the
+    # tables as they were at the last upload or run, dropping every edit made since.
+    _setContributions(plan, "set")
     wb = plan.saveContributions()
     buffer = BytesIO()
     if wb is None:
@@ -1967,6 +1976,10 @@ def genDic(plan):
     dic["caseStatus"] = "new"
     dic["status"] = ["unknown", "single", "married"][plan.N_i]
     dic["state"] = getattr(plan, "state", "")
+    moves = getattr(plan, "state_moves", [])
+    dic["stateMoveEnabled"] = bool(moves)
+    dic["stateMoveYear"] = int(moves[0][0]) if moves else date.today().year + 5
+    dic["stateMoveState"] = moves[0][1] if moves else ""
     # Prepend year if not there.
     tdate = plan.startDate.replace("/", "-").split("-")
     if len(tdate) == 2:
@@ -1999,6 +2012,7 @@ def genDic(plan):
     dic["liquidationCG"] = 100 * plan.liquidationCapGainsRate
     dic["yOBBBA"] = plan.yOBBBA
     dic["surplusFraction"] = plan.eta
+    dic["surplusFractionOptimize"] = plan.etaOptimize
     dic["plots"] = plan.defaultPlots
     dic["worksheetShowAges"] = plan.worksheetShowAges
     dic["worksheetHideZeroColumns"] = plan.worksheetHideZeroColumns
@@ -2059,10 +2073,12 @@ def genDic(plan):
 
     dic["slcspAnnual"] = getattr(plan, "slcsp_annual", 0.0) / 1000
     dic["otherMedical"] = getattr(plan, "other_medical_k", 0.0) / 1000
+    dic["medicalExcess"] = getattr(plan, "medical_excess", 0.0) * 100
     dic["optimizeACA"] = plan.solverOptions.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = plan.solverOptions.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = plan.solverOptions.get("withNIIT", "loop") == "optimize"
-    dic["useDecomposition"] = plan.solverOptions.get("withDecomposition", "none")
+    dic["localSearch"] = plan.solverOptions.get("breakpointMethod", "loop") == "local-search"
+    dic["mipStrategy"] = plan.solverOptions.get("mipStrategy", "branch-and-bound")
 
     enabled, swap_year, swap_first = parse_swap_roth_converters(
         plan.solverOptions.get("swapRothConverters", 0), plan.inames
@@ -2220,6 +2236,14 @@ def renderPlot(fig, col=None):
 
 def version():
     return owl.__version__
+
+
+def engine_label():
+    """The version, with the git commit when running from a checkout, for diagnostic displays."""
+    from owlplanner.version import engine_commit
+
+    commit = engine_commit()
+    return f"{owl.__version__} (commit {commit})" if commit else owl.__version__
 
 
 @_checkPlan
@@ -2390,7 +2414,7 @@ def regretCost():
     yend = kz.getCaseKey("regret_yend") or histYendMax()
     S = regretScenarioCount(preset, ystart, yend)
     n = estimateRegretSolves(preset, ystart, yend)
-    return n, S, f"**{preset}**: {S} scenarios x {(n // S) if S else 0} solves"
+    return n, S, f"**{preset}**: {S} scenarios × {(n // S) if S else 0} solves"
 
 
 def histRangeCost():
@@ -2402,14 +2426,14 @@ def histRangeCost():
         plan = kz.getCaseKey("plan")
         # Augmented sweeps every (reverse, roll) pair: 2 x N_n variants of each year.
         variants = 2 * (plan.N_n if plan is not None else 30)
-        return S * variants, S, f"{S} years x {variants} variants"
-    return S, S, f"{S} years x 1 solve"
+        return S * variants, S, f"{S} years × {variants} variants"
+    return S, S, f"{S} years × 1 solve"
 
 
 def monteCarloCost():
     """(solves, width, detail) for a Monte Carlo run: one solve per trial."""
     n = int(kz.getCaseKey("MC_cases") or 0)
-    return n, n, f"{n:,} trials x 1 solve"
+    return n, n, f"{n:,} trials × 1 solve"
 
 
 def stochasticSpendingCost():
@@ -2418,9 +2442,9 @@ def stochasticSpendingCost():
         ystart = kz.getCaseKey("stoch_ystart") or FROM
         yend = kz.getCaseKey("stoch_yend") or histYendMax()
         S = max(int(yend) - int(ystart) + 1, 0)
-        return S, S, f"{S} historical windows"
+        return S, S, f"{S} historical windows × 1 solve"
     n = int(kz.getCaseKey("stoch_N_mc") or 0)
-    return n, n, f"{n:,} scenarios"
+    return n, n, f"{n:,} scenarios × 1 solve"
 
 
 def frontierCost():
@@ -2435,15 +2459,16 @@ def frontierCost():
     except ValueError:
         levels = 1
     method = kz.getCaseKey("frontier_scenario_method") or "deterministic"
+    plural = "level" if levels == 1 else "levels"
     if method == "deterministic":
-        return levels, 1, f"{levels} level(s) x 1 solve"
+        return levels, 1, f"{levels} bequest {plural} × 1 solve"
     if method == "historical":
         ystart = kz.getCaseKey("frontier_ystart") or FROM
         yend = kz.getCaseKey("frontier_yend") or histYendMax()
         S = max(int(yend) - int(ystart) + 1, 0)
     else:
         S = int(kz.getCaseKey("frontier_N_mc") or 0)
-    return levels * S, S, f"{levels} level(s) x {S:,} scenarios"
+    return levels * S, S, f"{levels} bequest {plural} × {S:,} scenarios"
 
 
 def costOfRun(nsolves, width, detail=""):
@@ -2455,13 +2480,15 @@ def costOfRun(nsolves, width, detail=""):
     """
     nsolves = int(nsolves)
     secs = estimateSeconds(nsolves, width)
-    parts = [f"{detail} = **{nsolves:,} optimizations**" if detail else f"**{nsolves:,} optimizations**"]
+    parts = [f"{detail} = **{nsolves:,} optimizations**." if detail else f"**{nsolves:,} optimizations**."]
     if secs is None:
-        parts.append("Solve this case once for a time estimate.")
+        parts.append("Solve this case once on the *Graphs* page to also get a run-time estimate.")
+    elif secs < 1:
+        parts.append("Estimated run time **under 1 s**, scaled from this case's last single solve.")
     elif secs < 90:
-        parts.append(f"Roughly **{secs:.0f} s** at this case's measured solve time.")
+        parts.append(f"Estimated run time **{secs:.0f} s**, scaled from this case's last single solve.")
     else:
-        parts.append(f"Roughly **{secs / 60:.0f} min** at this case's measured solve time.")
+        parts.append(f"Estimated run time **{secs / 60:.0f} min**, scaled from this case's last single solve.")
 
     if budgetIsUncapped():
         return True, " ".join(parts)

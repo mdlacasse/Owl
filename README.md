@@ -12,6 +12,7 @@ This documentation is licensed under Creative Commons Attribution-NonCommercial-
 [![Python](https://img.shields.io/pypi/pyversions/owlplanner)](https://pypi.org/project/owlplanner/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Docker](https://img.shields.io/docker/v/owlplanner/owldocker?label=docker&cacheSeconds=86400)](https://hub.docker.com/r/owlplanner/owldocker)
+[![GitHub stars](https://img.shields.io/github/stars/mdlacasse/owl?style=flat)](https://github.com/mdlacasse/owl/stargazers)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://owlplanner.streamlit.app)
 
 ## Open-source retirement planning optimizer powered by Actual Intelligence — connect it to your AI assistant
@@ -55,15 +56,15 @@ accounts while growing tax-free Roth balances through early-retirement conversio
 - **Roth conversions** — amounts and timing co-optimized with spending and bequest goals
 - **Value of optimization** — `compare_to_baseline` solves the same plan with and without the strategy (no Roth conversions, Social Security at stated ages, taxable-first withdrawal ordering) and reports the advantage in today's dollars — a mathematical lower bound from the optimizer itself, not a simulation estimate
 - **Explainability** — `explain_results` reads the LP shadow prices to report what each goal and rule costs at the margin, which tax brackets the plan deliberately fills (and why), and the order in which accounts are drawn down. Every recommendation is explained using the mathematics of the optimization itself: the AI interprets and narrates quantities computed by the solver — it does not find the answer
-- **Social Security** — own, spousal, and survivor benefits; optional MILP co-optimization of claiming age (monthly resolution, 62–70)
+- **Social Security** — own, spousal, and survivor benefits; optional optimization of claiming age (monthly resolution, 62–70)
 - **Pension & SPIA** — pension income with survivor fractions; IRA-funded SPIA with optional CPI indexing and joint-and-survivor benefit
 - **Two objectives** — maximize net spending subject to a bequest floor, or maximize after-tax bequest subject to a spending floor
 - **Spending profile** — flat or smile-curve shape with survivorship factor; optional time-preference discounting to reduce end-of-life back-loading
 - **Asset allocation** — user-specified glide path (linear or s-curve) across four asset classes (equities, corporate bonds, T-notes, cash); per-account, per-individual, or household-wide
 - **Stochastic analysis** — Monte Carlo with optional longevity risk (mortality tables by sex and category: SSA, VBT, RP-2014, IAM-2012, Pub-2010); spending efficiency frontier tracing the optimal spending vs. shortfall-risk trade-off
-- **Rate models** — 14 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
+- **Rate models** — 17 models including historical replay, bootstrap, VAR, GARCH-DCC, HMM, GMM, and Gaussian copula
 - **AI assistant** — MCP server lets Claude Desktop, Claude Code, Gemini CLI, Cursor, Zed, VS Code (Copilot/Cline), and other MCP-compatible AI clients run optimizations, compute probability-of-success frontiers, quantify and explain strategies, and compare scenarios through natural conversation — eighteen tools plus a guided `owl_intake` interview prompt, with every assumption made for omitted inputs disclosed in the response (`assumed_defaults`). No TOML files required:
-  > *"I'm 65, have $800k in my IRA and $200k taxable, $2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
+  > *"I'm 65, have \$800k in my IRA and \$200k taxable, \$2,400/month Social Security at 67 — what can I safely spend each year with 90% historical probability of success?"*
 
   Self-hosted installs can also enable a built-in **Assistant** chat page that reads the case open in the app (`OWL_ASSISTANT=1`); the **Connect your AI** page in the web UI generates the client configuration either way.
 
@@ -110,6 +111,17 @@ configuration for Claude Desktop, Claude Code, Cursor, Gemini CLI, VS Code, and 
 
 
 ## Credits and Acknowledgements
+🦉 **Thank you!** In November 2026, Owl reached 100 stars on GitHub.
+Thanks to everyone who starred, tried, questioned, and improved it —
+your bug reports and feedback have made Owl wiser.
+
+<a href="https://star-history.com/#mdlacasse/owl&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=mdlacasse/owl&type=Date&theme=dark" />
+    <img alt="Star history chart" src="https://api.star-history.com/svg?repos=mdlacasse/owl&type=Date" width="500" />
+  </picture>
+</a>
+
 See <a href="https://github.com/mdlacasse/Owl/blob/main/CREDITS.md" target="_blank" rel="noopener noreferrer">CREDITS.md</a>.
 
 ## Bugs and Feature Requests
@@ -149,7 +161,7 @@ This project is distributed under three separate licenses depending on the type 
 
 ## Disclaimers
 
-**Owl** is for **educational and research purposes** only. Nothing in this session constitutes **financial, tax, or
+**Owl** is for **educational and research purposes** only. Nothing here constitutes **financial, tax, or
 investment advice**—consult a qualified professional for decisions specific to your situation.
 
 Code output has been verified with analytical solutions when applicable, and comparative approaches otherwise.

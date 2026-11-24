@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .. import socialsecurity as socsec
+from ..utils import normalize_mode_options
 from .defaults import (
     DEFAULT_DOB,
     DEFAULT_LIFE_EXPECTANCY,
@@ -64,6 +65,12 @@ class BasicInfo(BaseModel):
     sexes: Optional[List[str]] = Field(default=None, description="Biological sex per individual: 'M' or 'F'")
     start_date: Optional[str] = Field(default="today", description="Plan start date")
     state: str = Field(default="", description="Two-letter US state abbreviation (e.g. 'MN'). Empty = no state tax.")
+    moves: List[Dict[str, Any]] = Field(
+        default=[],
+        max_length=1,
+        description="At most one change of state: [{year = 2031, state = 'FL'}]. The new state taxes that year "
+        "and every year after.",
+    )
 
 
 class SavingsAssets(BaseModel):
@@ -79,7 +86,8 @@ class SavingsAssets(BaseModel):
         default=[], description="Cost basis of taxable account per person ($k); empty = use legacy approximation"
     )
     beneficiary_fractions: Optional[List[float]] = None  # Married only
-    spousal_surplus_deposit_fraction: Optional[float] = None  # Married only
+    # Married only: a fraction in [0, 1], or "optimize" for the optimizer to split each surplus
+    spousal_surplus_deposit_fraction: Optional[Union[float, Literal["optimize"]]] = None
 
 
 class HouseholdFinancialProfile(BaseModel):
@@ -112,7 +120,7 @@ class FixedIncome(BaseModel):
         default=DEFAULT_SS_SURVIVOR_CLAIM_AGE,
         description=(
             "When the surviving spouse claims the survivor benefit: 'immediate' (as soon as eligible),"
-            " 'fra' (at the survivor's FRA), or an explicit age in [60, 70]."
+            " 'fra' (at the survivor's FRA), or an explicit age in [60, 70] (59 11/12 for a survivor born on the 1st)."
         ),
     )
 
@@ -258,6 +266,12 @@ class OptimizationParameters(BaseModel):
         default=0.0,
         description="Annual non-Medicare qualified medical expenses for HSA withdrawal cap ($k, today's $)",
     )
+    medical_inflation_excess: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=10.0,
+        description="Yearly growth of medical premiums and expenses above inflation (%)",
+    )
 
 
 class ACASettings(BaseModel):
@@ -336,7 +350,6 @@ class SolverOptions(BaseModel):
 
     # Iteration limits
     maxIter: Optional[int] = None
-    bendersMaxIter: Optional[int] = None
 
     # Roth conversion options
     maxRothConversion: Optional[float] = None
@@ -345,6 +358,7 @@ class SolverOptions(BaseModel):
     startRothConversions: Optional[int] = None
     stopRothConversions: Optional[int] = None
     swapRothConverters: Optional[int] = None
+    netRothPins: Optional[bool] = None
 
     # Objectives and constraints
     bequest: Optional[float] = None
@@ -359,25 +373,39 @@ class SolverOptions(BaseModel):
     spendingSlack: Optional[int] = None
     noLateSurplus: Optional[bool] = None
 
-    # AMO / Big-M
-    bigMamo: Optional[float] = None
-    bigMaca: Optional[float] = None
-    bigMss: Optional[float] = None
-    bigMltcg: Optional[float] = None
-    bigMniit: Optional[float] = None
-
     # Medicare, ACA, LTCG, NIIT, SS taxability
-    withMedicare: Optional[Union[str, bool]] = None
+    withMedicare: Optional[Literal["none", "loop", "optimize"]] = None
     includeMedicarePartD: Optional[bool] = None
     medicarePartDBasePremium: Optional[float] = None
-    withACA: Optional[str] = None
-    withLTCG: Optional[str] = None
-    withNIIT: Optional[str] = None
-    withSSTaxability: Optional[Union[str, float]] = None
-    withDecomposition: Optional[str] = None
+    withACA: Optional[Literal["loop", "optimize"]] = None
+    withLTCG: Optional[Literal["loop", "optimize"]] = None
+    withNIIT: Optional[Literal["loop", "optimize"]] = None
+    withSSTaxability: Optional[Union[Literal["loop", "optimize"], float]] = None
+    withSeniorBonus: Optional[Literal["loop", "optimize"]] = None
     withSSAges: Optional[Union[str, List[str]]] = None
     withDuals: Optional[bool] = None
-    withdrawalOrder: Optional[str] = None
+    withdrawalOrder: Optional[Literal["optimal", "taxable_first"]] = None
+    mipStrategy: Optional[Literal["branch-and-bound", "local-search"]] = None
+    breakpointMethod: Optional[Literal["loop", "branch-and-bound", "local-search"]] = None
+    localSearchTime: Optional[float] = Field(default=None, ge=0.0, description="Local search: total budget (s).")
+    localSearchStepTime: Optional[float] = Field(
+        default=None, ge=0.0, description="Local search: cap per restricted solve (s)."
+    )
+    localSearchRadius: Optional[int] = Field(default=None, ge=0, description="Local search: SS-taxability flips.")
+    partialBequestWeight: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="Value of a dollar left to non-spouse heirs at the first death (max(0.01, 2 x gap)).",
+    )
+    localSearchStepNodes: Optional[int] = Field(
+        default=None, ge=0, description="Local search: node limit per restricted solve (default by solver)."
+    )
+    mipMaxNodes: Optional[int] = Field(
+        default=None, ge=0, description="Branch-and-bound cap: HiGHS nodes (default 1e6), MOSEK branchings (none)."
+    )
+    mipScaleOrder: Optional[int] = Field(
+        default=None, ge=0, le=6, description="Money unit in a MIP solve: 10**order dollars (default 2; 0 = dollars)."
+    )
 
     # Other
     previousMAGIs: Optional[List[float]] = None
@@ -397,6 +425,20 @@ class SolverOptions(BaseModel):
             for name in raw:
                 if name in REMOVED_OPTIONS:
                     raise ValueError(f"Solver option '{name}' has been removed: {REMOVED_OPTIONS[name]}.")
+        return raw
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_modes(cls, raw: Any) -> Any:
+        """
+        Canonical values for the options that select a mode by name (utils.normalize_mode_option).
+
+        A value that is none of them is refused: the solver compares these options to exact
+        strings, so "optimise", "Loop" or the text "0.85" from the command line would otherwise
+        solve as something else without saying so.
+        """
+        if isinstance(raw, dict):
+            raw = normalize_mode_options(dict(raw))
         return raw
 
 

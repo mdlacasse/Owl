@@ -73,7 +73,6 @@ withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"
 withNIIT = "loop"
-withDecomposition = "none"
 withSSTaxability = 0.85
 minTaxableBalance = [ 120.0, 0.0,]
 previousMAGIs = [ 400.0, 420.0,]

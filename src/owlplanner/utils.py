@@ -120,6 +120,72 @@ def getUnits(units) -> int:
     return fac
 
 
+# Solver options that select a mode by name. The solver compares them to these exact strings, so a
+# misspelling ("optimise", "Loop", "true") would otherwise solve as something else without a word.
+# "none" for the four families other than Medicare is an old spelling of "loop": it never turned
+# the family off, and it is read as what it always did.
+_MODE_OPTIONS = {
+    "withMedicare": ("none", "loop", "optimize"),
+    "withACA": ("loop", "optimize"),
+    "withLTCG": ("loop", "optimize"),
+    "withNIIT": ("loop", "optimize"),
+    "withSSTaxability": ("loop", "optimize"),
+    "withSeniorBonus": ("loop", "optimize"),
+    "withdrawalOrder": ("optimal", "taxable_first"),
+}
+_MODE_ALIASES = {
+    "withMedicare": {"true": "loop", "false": "none"},
+    "withACA": {"none": "loop"},
+    "withLTCG": {"none": "loop"},
+    "withNIIT": {"none": "loop"},
+    "withSSTaxability": {"none": "loop"},
+    "withSeniorBonus": {"none": "loop"},
+}
+
+
+def normalize_mode_option(key, value):
+    """
+    Return the canonical value of a mode option, or raise ValueError when it is not one.
+
+    Names are read without regard to case. withMedicare also takes a boolean (old case files:
+    true for "loop", false for "none"). withSSTaxability also takes a fraction in [0, 1], as a
+    number or as text that reads as one (from the command line), which pins the taxable share
+    of Social Security. Options not listed in _MODE_OPTIONS are returned unchanged.
+    """
+    allowed = _MODE_OPTIONS.get(key)
+    if allowed is None or value is None:
+        return value
+    if key == "withMedicare" and isinstance(value, bool):
+        return "loop" if value else "none"
+    if key == "withSSTaxability" and not isinstance(value, bool):
+        fraction = value
+        if isinstance(value, str):
+            try:
+                fraction = float(value)
+            except ValueError:
+                fraction = None
+        if isinstance(fraction, (int, float)):
+            if not 0 <= fraction <= 1:  # also refuses nan
+                raise ValueError(f"withSSTaxability {value!r} must be 'loop', 'optimize' or a fraction in [0, 1].")
+            return float(fraction)
+    if isinstance(value, str):
+        name = value.strip().lower()
+        name = _MODE_ALIASES.get(key, {}).get(name, name)
+        if name in allowed:
+            return name
+    choices = ", ".join(f"'{a}'" for a in allowed)
+    extra = " or a fraction in [0, 1]" if key == "withSSTaxability" else ""
+    raise ValueError(f"{key} {value!r} must be one of {choices}{extra}.")
+
+
+def normalize_mode_options(options):
+    """Canonical values for every mode option in `options` (modified in place and returned)."""
+    for key in _MODE_OPTIONS:
+        if key in options:
+            options[key] = normalize_mode_option(key, options[key])
+    return options
+
+
 def get_numeric_option(options, key, default, *, min_value=None) -> float:
     value = options.get(key, default)
     if not isinstance(value, (int, float)):
@@ -177,6 +243,14 @@ def get_monetary_list_option(options, key, min_length, *, min_value=None) -> lis
     return [units * v for v in get_numeric_list_option(options, key, min_length, min_value=min_value)]
 
 
+def last_year_entered(thisyear) -> int:
+    """
+    Latest calendar year a year input accepts: past any plan (longevity is at most 120), so a
+    year beyond the plan can still say "never", while an extra digit (20300 for 2030) is refused.
+    """
+    return thisyear + 120
+
+
 def derive_swap_roth_converters(inames, enabled, first_name, year) -> int:
     """
     Signed 'swapRothConverters' solver option from UI/MCP-style inputs.
@@ -220,6 +294,33 @@ def heaviside(x) -> int:
     Heaviside step function.
     """
     return 1 if x >= 0 else 0
+
+
+def nominal_by_year(table, year0, gamma_n, N_n):
+    """
+    Return the nominal amounts of the plan years ``year0`` .. ``year0 + N_n - 1`` from
+    ``table``, published nominal amounts keyed by year (a value may be a tuple), as an
+    array of shape (N_n,) or (N_n, len(value)).
+
+    A year in the table takes its amount. A later year holds the last amount flat in real
+    terms from its year, an earlier one the first amount, grown or shrunk with ``gamma_n``
+    (the plan's inflation factors, 1 in the first plan year). A plan starting after the
+    table takes the last amount as its first year's dollars: for an amount that follows
+    wages and never falls, a floor until the table is updated.
+    """
+    gamma = np.asarray(gamma_n, dtype=float)
+    first, last = min(table), max(table)
+    out = []
+    for n in range(N_n):
+        y = year0 + n
+        if y in table:
+            out.append(np.asarray(table[y], dtype=float))
+            continue
+        ref = last if y > last else first
+        k = ref - year0
+        scale = gamma[n] / gamma[k] if 0 <= k < len(gamma) else gamma[n]
+        out.append(np.asarray(table[ref], dtype=float) * scale)
+    return np.array(out)
 
 
 def roundCents(values, decimals=2):

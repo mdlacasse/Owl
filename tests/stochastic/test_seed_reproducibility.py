@@ -29,7 +29,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
-from sys import platform
 
 import numpy as np
 import pytest
@@ -48,12 +47,14 @@ RTOL = 1e-9
 # is the only thing that actually exercises it.
 
 # examples/Case_chris+pat.toml, method historical_lognormal, rate_seed 2026.
-# First three years, four asset classes. Recorded on darwin, 2026-08-12.
+# First three years, four asset classes. Recorded on darwin, 2026-08-12; inflation column
+# re-recorded 2026-10-28, when the inflation-transform fit started from the identity and
+# settled a few parts in 1e8 away from where it had.
 CHRIS_PAT_FIRST_YEARS = np.array(
     [
-        [-0.052778640806826, 0.055571513781582, -0.041408929662749, 0.081734169199666],
-        [0.241031172520921, 0.068217765741840, 0.013832513973259, 0.045402036114079],
-        [0.045978746612122, 0.041870930372280, 0.071587808447754, 0.051001821293578],
+        [-0.052778640806826, 0.055571513781582, -0.041408929662749, 0.081734171873052],
+        [0.241031172520921, 0.068217765741840, 0.013832513973259, 0.045402035516840],
+        [0.045978746612122, 0.041870930372280, 0.071587808447754, 0.051001820073128],
     ]
 )
 
@@ -74,33 +75,57 @@ def test_seeded_case_series_matches_reference():
     )
 
 
-# Identical inputs should give an identical plan, so the objective is pinned too: it is
-# the number a reader would try to reproduce, and pinning the series alone would not tell
-# us whether it carried through to a result.
+# Identical inputs should give an identical plan, so the objective is pinned too: pinning the
+# series alone would not tell us whether it carried through to a result.
 #
-# The series above is bit-identical on every platform, so what varies here is the solve,
-# not the draw: the basis has to be keyed by platform as well as by solver. darwin was
-# recorded 2026-08-12, win32 measured 2026-08-28. linux/HiGHS is confirmed by CI;
-# linux/MOSEK is untested (CI installs MOSEK without a license) and inherits the darwin
-# value until someone runs it on a licensed Linux machine.
-CHRIS_PAT_BASIS = {
-    "darwin": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
-    "linux": {"HiGHS": 117_194.50, "MOSEK": 117_050.45},
-    "win32": {"HiGHS": 117_069.00, "MOSEK": 116_967.00},
-}
+# The draw depends on the rate model, its window and the seed -- not on the household -- so any
+# case can carry it, and the series above is reproduced exactly by every one tried. That matters
+# because the case used here decides how noisy the pin is, and Case_chris+pat was a poor choice:
+# it is the pool's most oscillation-prone plan, cycling on the Social Security ramp so that the
+# loop returns the better of two states. Which state it lands on moves with anything that
+# perturbs the arithmetic -- $84 with the MOSEK thread count, $103 between HiGHS builds, and a
+# different value on each platform -- so the pin needed a platform-by-solver table and had to be
+# re-measured three times in two months, every time telling us about branch-and-bound rather than
+# about seeds.
+#
+# Case_bill carries the same draw and converges monotonically in 2 iterations with a zero
+# residual, giving 52,032.45 under HiGHS and MOSEK alike. So the objective is a constant here
+# rather than a fixed point that happened to be selected, and one number needs no keying.
+BILL_SEEDED_BASIS = 52_032.45
 
 
 @pytest.mark.toml
-def test_seeded_case_objective_matches_reference():
-    """A reproducible series should give a reproducible plan."""
+def test_a_seeded_series_carries_through_to_a_plan():
+    """The series is exact; this checks it reaches the solver and yields the same plan.
+
+    Any case can carry the draw, so this uses one whose answer does not wander: Case_bill is
+    monotonic in 2 iterations and agrees between solvers to the cent. A failure here means the
+    seeded series stopped reaching the plan, not that branch-and-bound picked differently.
+    """
     solver = "MOSEK" if os.getenv("OWL_TEST_SOLVER", "").lower() == "mosek" else "HiGHS"
-    if platform not in CHRIS_PAT_BASIS:
-        pytest.skip(f"No reference basis recorded for platform {platform!r}")
-    p = owl.readConfig(os.path.join("examples", "Case_chris+pat"))
+    p = owl.readConfig(os.path.join("examples", "Case_bill"))
+    p.setReproducible(True, seed=2026)
+    p.setRates("historical_lognormal", frm=1928, to=2025)
     p.solverOptions["solver"] = solver
     p.resolve()
     assert p.caseStatus == "solved"
-    assert p.basis == pytest.approx(CHRIS_PAT_BASIS[platform][solver], rel=5e-4, abs=50)
+    np.testing.assert_allclose(p.tau_kn[:, :3].T, CHRIS_PAT_FIRST_YEARS, rtol=RTOL,
+                               err_msg="the seeded draw is not reproduced when another case carries it")
+    assert p.basis == pytest.approx(BILL_SEEDED_BASIS, rel=5e-4, abs=50)
+
+
+@pytest.mark.toml
+def test_the_shipped_stochastic_case_still_solves():
+    """Case_chris+pat is the one shipped example that draws its returns, so it must still solve.
+
+    Its objective is deliberately not pinned: see the note above. This keeps the end-to-end
+    coverage -- a stochastic case loading, drawing and solving -- without pinning a number that
+    moves for reasons unrelated to the seed.
+    """
+    p = owl.readConfig(os.path.join("examples", "Case_chris+pat"))
+    p.resolve()
+    assert p.caseStatus == "solved"
+    assert p.basis > 0
 
 
 @pytest.mark.toml

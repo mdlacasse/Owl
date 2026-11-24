@@ -48,7 +48,7 @@ def _make_couple_plan(name, horizon_years=12):
     return p
 
 
-_BASE_OPTIONS = {"withMedicare": "None", "withDecomposition": "none"}
+_BASE_OPTIONS = {"withMedicare": "None"}
 
 
 def test_no_roth_conversions_excludes_spouse():

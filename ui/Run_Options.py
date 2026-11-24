@@ -22,11 +22,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import streamlit as st
 from datetime import date
+from owlplanner.utils import last_year_entered
 
 import sskeys as kz
 import owlbridge as owb
 import case_progress as cp
 from moseklicense import hasMOSEK
+
+
+def _ssAgesMode(names, selected):
+    """The ssAgesMode value for the individuals selected for claiming-age optimization."""
+    if len(names) == 2 and len(selected) == 2:
+        return "both"
+    return selected[0] if selected else "none"
+
+
+def _onSSAgesChange(names):
+    selected = [n for i, n in enumerate(names) if st.session_state.get(kz.genCaseKey(f"ssAgesOpt{i}"))]
+    kz.setCaseKey("ssAgesMode", _ssAgesMode(names, selected))
 
 
 kz.initCaseKey("computeMedicare", True)
@@ -35,9 +48,11 @@ kz.initCaseKey("slcspAnnual", 0)
 kz.initCaseKey("acaStartYear", 0)
 kz.initCaseKey("optimizeACA", False)
 kz.initCaseKey("otherMedical", 0)
+kz.initCaseKey("medicalExcess", 0)
 kz.initCaseKey("optimizeLTCG", False)
 kz.initCaseKey("optimizeNIIT", False)
-kz.initCaseKey("useDecomposition", "none")
+kz.initCaseKey("localSearch", False)
+kz.initCaseKey("mipStrategy", "branch-and-bound")
 kz.initCaseKey("ssTaxabilityMode", "loop")
 kz.initCaseKey("ssTaxabilityValue", 0.85)
 
@@ -67,7 +82,11 @@ else:
         thisyear = date.today().year
         kz.initCaseKey("startRothConversions", thisyear)
         ret = kz.getIntNum(
-            "Year to start considering Roth conversions", "startRothConversions", min_value=thisyear, help=helpmsg
+            "Year to start considering Roth conversions",
+            "startRothConversions",
+            min_value=thisyear,
+            max_value=last_year_entered(thisyear),
+            help=helpmsg,
         )
         # An explicit toggle, not a year derived from the plan horizon: a derived default
         # is stored once and never revisited, so extending life expectancy later would
@@ -82,7 +101,11 @@ else:
             kz.initCaseKey("stopRothConversions", thisyear + 10)
             helpmsg = "No Roth conversions are performed in this year or later."
             ret = kz.getIntNum(
-                "Year to stop considering Roth conversions", "stopRothConversions", min_value=thisyear, help=helpmsg
+                "Year to stop considering Roth conversions",
+                "stopRothConversions",
+                min_value=thisyear,
+                max_value=last_year_entered(thisyear),
+                help=helpmsg,
             )
     with col3:
         if kz.getCaseKey("status") == "married":
@@ -120,7 +143,11 @@ else:
                 kz.initCaseKey("swapRothConvertersYear", thisyear)
                 helpmsg = "Year in which the other spouse takes over Roth conversions."
                 ret = kz.getIntNum(
-                    "Year to switch converters", "swapRothConvertersYear", min_value=thisyear, help=helpmsg
+                    "Year to switch converters",
+                    "swapRothConvertersYear",
+                    min_value=thisyear,
+                    max_value=last_year_entered(thisyear),
+                    help=helpmsg,
                 )
 
     st.divider()
@@ -134,7 +161,30 @@ else:
             "These expenses are treated as part of general living costs, not as separate healthcare costs. "
             "Ignore if plan has no HSA."
         )
-        kz.getNum("Other medical expenses ($k/year)", "otherMedical", min_value=0.0, help=helpmsg_med)
+        kz.getNum(
+            "Other medical expenses (\\$k/year)",
+            "otherMedical",
+            step=1.0,
+            min_value=0.0,
+            format="%.2f",
+            help=helpmsg_med,
+        )
+    with cols[1]:
+        helpmsg_excess = (
+            "How much faster than inflation medical prices grow each year, in percent. "
+            "Applies to Medicare premiums, the ACA benchmark premium, and other medical expenses. "
+            "Tax brackets, IRMAA thresholds, and the poverty line still follow inflation. "
+            "Set to 0 to keep medical prices in step with inflation."
+        )
+        kz.getNum(
+            "Medical prices above inflation (%/year)",
+            "medicalExcess",
+            step=0.5,
+            min_value=0.0,
+            max_value=10.0,
+            format="%.2f",
+            help=helpmsg_excess,
+        )
 
     st.markdown("##### ACA Marketplace (Pre-65)")
     helpmsg = (
@@ -145,7 +195,14 @@ else:
     )
     cols = st.columns(3, gap="large", vertical_alignment="top")
     with cols[0]:
-        kz.getNum("Benchmark Silver plan premium (SLCSP) ($k/year)", "slcspAnnual", min_value=0.0, help=helpmsg)
+        kz.getNum(
+            "Benchmark Silver plan premium (SLCSP) (\\$k/year)",
+            "slcspAnnual",
+            step=1.0,
+            min_value=0.0,
+            format="%.2f",
+            help=helpmsg,
+        )
     with cols[1]:
         acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
         helpmsg_start = (
@@ -159,7 +216,7 @@ else:
             "ACA start year (0 = plan start, else 4-digit year)",
             "acaStartYear",
             min_value=0,
-            max_value=thisyear + 50,
+            max_value=last_year_entered(thisyear),
             step=1,
             help=helpmsg_start,
             disabled=acaoff,
@@ -179,7 +236,7 @@ else:
             kz.initCaseKey("MAGI" + str(ii), 0)
             if years[ii] > 0:
                 with cols[1 + ii]:
-                    ret = kz.getNum(f"MAGI for {years[ii]} ($k)", "MAGI" + str(ii), help=helpmsg)
+                    ret = kz.getNum(f"MAGI for {years[ii]} (\\$k)", "MAGI" + str(ii), help=helpmsg)
 
         cols = st.columns(3, gap="large", vertical_alignment="top")
         with cols[0]:
@@ -193,12 +250,14 @@ else:
             kz.initCaseKey("medicarePartDBasePremium", None)
             helpmsg_partd_base = (
                 "Optional monthly Part D base premium per person (today's \\$). "
-                "Set to 0 to omit. National average ~\\$$39–47$ per month."
+                "Set to 0 to omit. National average ~\\$39–47 per month."
             )
             kz.getNum(
-                "Part D base premium ($/month per person)",
+                "Part D base premium (\\$/month per person)",
                 "medicarePartDBasePremium",
+                step=1.0,
                 min_value=0.0,
+                format="%.2f",
                 help=helpmsg_partd_base,
             )
 
@@ -211,19 +270,48 @@ else:
     )
     col1, col2 = st.columns(2, gap="large", vertical_alignment="top")
     with col1:
-        iname0 = kz.getCaseKey("iname0")
+        names = [kz.getCaseKey("iname0")]
         if kz.getCaseKey("status") == "married":
-            iname1 = kz.getCaseKey("iname1")
-            choices = ["none", iname0, iname1, "both"]
-        else:
-            choices = ["none", iname0]
+            names.append(kz.getCaseKey("iname1"))
 
+        # Someone whose entered claiming age is already past cannot be optimized (the solver
+        # refuses it): that name stays listed, disabled, and is dropped from the selection.
+        past = kz.ssPastAgeNames()
         kz.initCaseKey("ssAgesMode", "none")
-        ret = kz.getRadio("Optimize SS claiming age for...", choices, "ssAgesMode", help=helpmsg)
+        mode = kz.getCaseKey("ssAgesMode") or "none"
+        selected = [n for n in names if (mode == "both" or mode == n) and n not in past]
+        if _ssAgesMode(names, selected) != mode:
+            kz.setCaseKey("ssAgesMode", _ssAgesMode(names, selected))
+        st.markdown("Optimize SS claiming age for...", help=helpmsg)
+        for i, (box, name) in enumerate(zip(st.columns(len(names)), names)):
+            key = kz.genCaseKey(f"ssAgesOpt{i}")
+            st.session_state[key] = name in selected
+            with box:
+                st.checkbox(name, key=key, disabled=name in past, on_change=_onSSAgesChange, args=[names])
+        for name in past:
+            st.caption(
+                f"{name}'s claiming age entered on the *Fixed Income* page is already past, so it cannot be "
+                f"optimized. If {name} is not yet collecting, enter a claiming age from this month on to "
+                "make it available here."
+            )
 
     st.divider()
     with st.expander("*Advanced options*"):
         st.markdown("#### :orange[Calculations]")
+        helpmsg_ls = (
+            "Carry the tax breakpoints (Social Security taxability, Medicare, ACA, capital gains and "
+            "NIIT) as binary variables and solve them by local search (fix-and-optimize): small "
+            "restricted problems around the iteration's plan instead of a full branch-and-bound. "
+            "Usually a somewhat better plan than the iteration, in seconds to a few minutes; "
+            "not a proven optimum. The plan is never worse than the iteration's. "
+            "Overrides a fixed Social Security taxable fraction: the IRS formula applies instead."
+        )
+        ls_on = kz.getToggle("Solve tax breakpoints by local search (expert)", "localSearch", help=helpmsg_ls)
+        if ls_on:
+            st.caption(
+                "Local search sets every breakpoint below to MILP, Social Security taxability included; "
+                "the individual settings do not apply."
+            )
         col1, col2 = st.columns([40, 60], gap="large", vertical_alignment="top")
         with col1:
             helpmsg = (
@@ -233,7 +321,8 @@ else:
             )
             medioff = not medion
             ret = kz.getToggle(
-                "Solve Medicare brackets with MILP (expert)", "optimizeMedicare", help=helpmsg, disabled=medioff
+                "Solve Medicare brackets with MILP (expert)", "optimizeMedicare", help=helpmsg,
+                disabled=medioff or ls_on,
             )
             acaoff = (kz.getCaseKey("slcspAnnual") or 0) <= 0
             helpmsg_aca = (
@@ -241,31 +330,7 @@ else:
                 "Exact at a bracket edge, and slower. Only applies when SLCSP > 0."
             )
             ret = kz.getToggle(
-                "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff
-            )
-            # The last two toggles are drawn in the next column, below. Reading them here is
-            # still current: each toggle writes to the case on change, before the rerun.
-            decompoff = not (
-                kz.getCaseKey("optimizeMedicare")
-                or kz.getCaseKey("optimizeACA")
-                or kz.getCaseKey("optimizeLTCG")
-                or kz.getCaseKey("optimizeNIIT")
-            )
-            decomp_choices = ["none", "sequential", "benders"]
-            helpmsg_decomp = (
-                "'none': monolithic MIP (default). "
-                "'sequential': relax-and-fix heuristic — fixes Medicare/ACA/SS bracket binaries "
-                "sequentially; fast but not guaranteed globally optimal. "
-                "'benders': classical Benders decomposition — certified globally optimal within "
-                "the MIP gap; slower per iteration but provably correct. "
-                "Only applies when the Medicare or ACA brackets are solved with MILP."
-            )
-            ret = kz.getRadio(
-                "MIP decomposition (expert)",
-                decomp_choices,
-                "useDecomposition",
-                help=helpmsg_decomp,
-                disabled=decompoff,
+                "Solve ACA brackets with MILP (expert)", "optimizeACA", help=helpmsg_aca, disabled=acaoff or ls_on
             )
         with col2:
             kz.initCaseKey("noLateSurplus", False)
@@ -279,13 +344,29 @@ else:
                 "iteration, for the stacking of ordinary income under long-term gains. "
                 "Exact at a bracket edge, and slower."
             )
-            ret = kz.getToggle("Solve LTCG brackets with MILP (expert)", "optimizeLTCG", help=helpmsg_ltcg)
+            ret = kz.getToggle(
+                "Solve LTCG brackets with MILP (expert)", "optimizeLTCG", help=helpmsg_ltcg, disabled=ls_on
+            )
             helpmsg_niit = (
                 "Decide inside the optimization whether income crosses the Net Investment "
                 "Income Tax threshold, instead of by iteration. Only has an effect when the "
                 "capital-gains brackets are solved the same way."
             )
-            ret = kz.getToggle("Solve NIIT threshold with MILP (expert)", "optimizeNIIT", help=helpmsg_niit)
+            ret = kz.getToggle(
+                "Solve NIIT threshold with MILP (expert)", "optimizeNIIT", help=helpmsg_niit, disabled=ls_on
+            )
+        any_milp = any(
+            kz.getCaseKey(k) for k in ("optimizeMedicare", "optimizeACA", "optimizeLTCG", "optimizeNIIT")
+        ) or kz.getCaseKey("ssTaxabilityMode") == "optimize"
+        helpmsg_strategy = (
+            "How the breakpoints set to MILP are solved. 'branch-and-bound': the complete search, "
+            "which stops at the solver gap or time limit. 'local-search': fix-and-optimize around the "
+            "iteration's plan, faster, not a proven optimum."
+        )
+        ret = kz.getRadio(
+            "MILP strategy (expert)", ["branch-and-bound", "local-search"], "mipStrategy",
+            help=helpmsg_strategy, disabled=ls_on or not any_milp,
+        )
 
         st.divider()
         st.markdown("#### :orange[Social Security Taxability]")
@@ -296,9 +377,9 @@ else:
             helpmsg = (
                 "’loop’: compute SS taxable fraction dynamically via the self-consistent loop. "
                 "’value’: pin SS taxable fraction to a fixed value (enter in box). "
-                "’optimize’: solve taxable SS exactly within the LP using binary variables (expert)."
+                "’optimize’: solve taxable SS within the optimization using binary variables (expert)."
             )
-            ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg)
+            ret = kz.getRadio("SS taxability method", choices, "ssTaxabilityMode", help=helpmsg, disabled=ls_on)
         with col2:
             if kz.getCaseKey("ssTaxabilityMode") == "value":
                 kz.initCaseKey("ssTaxabilityValue", 0.85)

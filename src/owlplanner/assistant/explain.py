@@ -29,6 +29,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 import numpy as np
 
 from .. import tax_federal as tx
+from ..plan import BRACKET_MARGIN
 from .explain_schema import PlanExplanation
 
 _TOL = 1e-9  # dual significance
@@ -39,7 +40,7 @@ _BIND_TOL = 1.0  # $ slack below which a constraint counts as binding
 #   policy:     user goals and legal rules; binding rows are reported to the user.
 #   structural: accounting identities and definitions; always (or trivially) binding,
 #               their duals are valuation data used case-by-case in shadow-price handlers.
-#   artifact:   big-M links, AMO/SOS1 selectors, convexification and Benders machinery;
+#   artifact:   big-M links, AMO/SOS1 selectors, convexification;
 #               never shown to the user.
 # Policy families without a dedicated handler declare "indices" (names for tag[1:])
 # and a "note"; the generic explainer reports their binding rows and relaxation values.
@@ -84,10 +85,11 @@ CONSTRAINT_FAMILIES = {
     },
     "state_ret_exempt_cap": {
         "class": "policy",
-        "label": "state retirement-income exemption capped by IRA withdrawals",
-        "indices": ("year",),
-        "note": "Years where the state retirement-income exemption is limited by actual IRA "
-        "withdrawals; the value is the gain per today's-$ of additional exemptible income.",
+        "label": "state retirement-income exemption capped by eligible income",
+        "indices": ("person", "year"),
+        "note": "Years where a person's state retirement-income exemption is limited by their own "
+        "tax-deferred withdrawals, Roth conversions, and pension; the value is the gain per "
+        "today's-$ of additional exemptible income.",
     },
     "ltcg_room20": {
         "class": "policy",
@@ -96,21 +98,40 @@ CONSTRAINT_FAMILIES = {
         "note": "Years where realized gains fill the 0%/15% capital-gains brackets completely; "
         "the value is the gain per today's-$ of additional sub-20% bracket room.",
     },
+    "roth_early_basis": {
+        "class": "policy",
+        "label": "Roth withdrawals before 59 1/2 limited to contributions and matured conversions",
+        "indices": ("person", "year"),
+        "note": "Years before 59 1/2 where Roth withdrawals are held to the person's contributions and "
+        "matured conversions, keeping earnings in the account; the value is the objective gain per "
+        "today's-$ of additional Roth basis available early.",
+    },
+    "roth_pin_net": {
+        "class": "policy",
+        "label": "pinned Roth conversion, net of same-year Roth withdrawals",
+        "indices": ("person", "year"),
+        "note": "Years flagged in 'Roth conv fixed' with a positive amount, where the "
+        "conversion less the same-year Roth withdrawal must equal that amount. An equality, so the generic "
+        "explainer, which needs a single relaxation direction, does not report it.",
+    },
     # structural
     "cash_flow": {"class": "structural", "label": "yearly net cash-flow balance"},
     "taxable_income": {"class": "structural", "label": "yearly federal taxable-income identity"},
     "state_taxable_income": {"class": "structural", "label": "yearly state taxable-income identity"},
+    "state_credit_cap": {"class": "structural", "label": "state personal credit limited to the state tax"},
     "account_carryover": {"class": "structural", "label": "account balance carryover dynamics"},
     "withdrawal_limit": {"class": "structural", "label": "withdrawals limited to account balance"},
     "surplus_deposit": {"class": "structural", "label": "surplus-to-deposit split between spouses"},
-    "ss_age_benefit": {"class": "structural", "label": "SS benefit implied by claiming-age choice"},
     "ltcg_gn_def": {"class": "structural", "label": "ordinary taxable income definition (MILP mode)"},
     "ltcg_partition_lo": {"class": "structural", "label": "capital gains partitioned across LTCG brackets"},
+    "ltcg_room15_deduction": {"class": "structural", "label": "unused deduction widening the 0% gains bracket"},
+    "ltcg_room20_deduction": {"class": "structural", "label": "unused deduction widening the 15% gains bracket"},
     "niit_magi_def": {"class": "structural", "label": "NIIT MAGI definition"},
     "irmaa_magi_def": {"class": "structural", "label": "Medicare IRMAA MAGI definition"},
     "irmaa_cost_def": {"class": "structural", "label": "Medicare premium implied by IRMAA bracket"},
     "aca_magi_def": {"class": "structural", "label": "ACA MAGI definition"},
     "aca_cost_def": {"class": "structural", "label": "ACA premium implied by subsidy bracket"},
+    "senior_bonus_deduction": {"class": "structural", "label": "deduction less the senior-bonus phase-out"},
     # artifacts
     "wdorder_txdef_gate": {"class": "artifact", "label": "withdrawal-order big-M gate"},
     "wdorder_roth_gate": {"class": "artifact", "label": "withdrawal-order big-M gate"},
@@ -125,7 +146,6 @@ CONSTRAINT_FAMILIES = {
     "ss_tax_tss_ub": {"class": "artifact", "label": "SS-taxability min() linearization"},
     "ss_tax_tss_lb_cap": {"class": "artifact", "label": "SS-taxability min() big-M"},
     "ss_tax_tss_lb_formula": {"class": "artifact", "label": "SS-taxability min() big-M"},
-    "ss_age_amo": {"class": "artifact", "label": "SS claiming-month exactly-one selector"},
     "ltcg_zl15_link": {"class": "artifact", "label": "LTCG bracket-regime big-M link"},
     "ltcg_zl20_link": {"class": "artifact", "label": "LTCG bracket-regime big-M link"},
     "ltcg_room15_mip": {"class": "artifact", "label": "LTCG 0% room big-M (MILP mode)"},
@@ -134,18 +154,25 @@ CONSTRAINT_FAMILIES = {
     "ltcg_q01_zero": {"class": "artifact", "label": "LTCG 15% shutoff big-M (MILP mode)"},
     "ltcg_zl_monotone": {"class": "artifact", "label": "LTCG regime-binary ordering"},
     "ltcg_partition_hi": {"class": "artifact", "label": "LTCG partition anti-degeneracy bound"},
-    "niit_floor": {"class": "artifact", "label": "NIIT floor big-M"},
-    "niit_j_zero": {"class": "artifact", "label": "NIIT shutoff big-M"},
-    "niit_magi_cap": {"class": "artifact", "label": "NIIT MAGI-threshold big-M"},
-    "niit_surplus_cap": {"class": "artifact", "label": "NIIT surplus cap big-M"},
+    "niit_excess": {"class": "artifact", "label": "NIIT excess-over-threshold big-M"},
+    "niit_nii": {"class": "artifact", "label": "NIIT investment-income big-M"},
+    "niit_nii_cap": {"class": "artifact", "label": "NIIT cap at 3.8% of investment income"},
     "irmaa_amo": {"class": "artifact", "label": "IRMAA bracket exactly-one selector"},
     "irmaa_bracket_lb": {"class": "artifact", "label": "IRMAA bracket bound big-M"},
     "irmaa_bracket_ub": {"class": "artifact", "label": "IRMAA bracket bound big-M"},
     "aca_amo": {"class": "artifact", "label": "ACA bracket exactly-one selector"},
     "aca_bracket_lb": {"class": "artifact", "label": "ACA bracket bound big-M"},
     "aca_bracket_ub": {"class": "artifact", "label": "ACA bracket bound big-M"},
-    "benders_cut": {"class": "artifact", "label": "Benders optimality cut"},
+    "senior_bonus_phaseout": {"class": "artifact", "label": "senior-bonus phase-out big-M"},
+    "senior_bonus_cap": {"class": "artifact", "label": "senior-bonus full phase-out link"},
 }
+
+
+# A MAGI the optimizer parks on an IRMAA or ACA threshold comes back a fraction of a cent above it,
+# within solver tolerance. The binary formulations start each higher bracket BRACKET_MARGIN above
+# its threshold, so no MAGI lies in between: compare with half the margin of slack, as the
+# fixed-point residual does, or a plan on a threshold reads as one past it.
+THRESHOLD_SLACK = BRACKET_MARGIN / 2
 
 
 def _round(v, digits=2):
@@ -173,14 +200,17 @@ def build_explanation(plan) -> dict:
         "binding_constraints": _binding_constraints(plan, dd),
         "roth_conversions": _roth_analysis(plan, cols),
         "tax_brackets": _bracket_analysis(plan),
+        "state_tax_brackets": _state_bracket_analysis(plan),
         "account_depletion": _depletion(plan),
+        "health_care": _health_care(plan),
         "caveats": [
             "Only the first year's decisions are executed. Later years are projections under "
             "current tax law and the assumed return path; they will change when the plan is "
             "re-solved next year, so present them as trajectory context, not recommendations.",
             "Shadow prices are marginal (valid for small changes) and hold any discrete choices "
             "(an optimized Social Security claiming age, a prescribed withdrawal order) and the "
-            "self-consistent quantities (SS taxability, IRMAA premiums) fixed at their solved values.",
+            "self-consistent quantities (SS taxability, Medicare IRMAA and ACA premiums) fixed at their "
+            "solved values.",
             "Large parameter changes can move the plan into a different tax bracket or flip one of "
             "those choices; re-solve to evaluate them.",
         ],
@@ -334,6 +364,41 @@ def _year0_bracket(plan):
     }
 
 
+def _has_state_tax(plan):
+    """True when the plan's state levies an income tax (the state LP was built and solved)."""
+    return bool(getattr(plan, "_st_lp", False)) and getattr(plan, "st_f_tn", None) is not None
+
+
+def _state_bracket(plan, n):
+    """Top state bracket reached in year n: rate, headroom (None when open-ended), fill flag."""
+    f = plan.st_f_tn
+    filled = [t for t in range(f.shape[0]) if f[t, n] > 1.0]
+    # No bracket to report in a year without a state income tax (after a move, or before one).
+    if not filled or not np.any(plan.st_theta_tn[:, n] > 0):
+        return None
+    t_top = max(filled)
+    width = plan.st_DeltaBar_tn[:, n]
+    # Padding brackets have zero width, so the top real bracket is the last one with any.
+    open_ended = not np.any(width[t_top + 1 :] > 0)
+    headroom = None if open_ended else max((width[t_top] - f[t_top, n]) / plan.gamma_n[n], 0.0)
+    return {
+        "top_bracket_rate_pct": _round(plan.st_theta_tn[t_top, n] * 100, 3),
+        "headroom": None if headroom is None else _round(headroom),
+        "filled_to_boundary": headroom is not None and headroom < 1.0,
+    }
+
+
+def _year0_state_tax(plan):
+    """This year's state income tax and state bracket position."""
+    out = {"state": plan._states_n()[0], "state_tax": _round(float(plan.st_T_n[0]) / plan.gamma_n[0])}
+    bracket = _state_bracket(plan, 0)
+    if bracket:
+        out["top_bracket_rate_pct"] = bracket["top_bracket_rate_pct"]
+        out["headroom_in_bracket"] = bracket["headroom"]
+        out["filled_to_boundary"] = bracket["filled_to_boundary"]
+    return out
+
+
 def _year0_thresholds(plan):
     """Proximity to the tax cliffs this year's income can trigger (primal headroom,
     not duals: marginal prices are the wrong tool for discrete threshold effects)."""
@@ -354,15 +419,12 @@ def _year0_thresholds(plan):
     # IRMAA: this year's MAGI sets Medicare premiums two years from now.
     n_prem = 2
     if plan.N_n > n_prem:
-        on_medicare = [
-            i
-            for i in range(plan.N_i)
-            if thisyear + n_prem - plan.yobs[i] >= 65 and n_prem < plan.horizons[i]
-        ]
+        months = tx.medicareMonths(plan.yobs, plan.horizons, n_prem + 1, plan.mobs, plan.tobs, thisyear)
+        on_medicare = [i for i in range(plan.N_i) if months[i, n_prem] > 0]
         if on_medicare:
-            status = 1 if (plan.N_i == 2 and plan.n_d > n_prem) else 0
-            thresholds = plan.gamma_n[n_prem] * tx.irmaaBrackets[status][1:]
-            tier = int(np.sum(magi0 > thresholds))
+            # The table of this year's return, which sets the premium (#213).
+            thresholds = tx.irmaaThresholds(tx.irmaaStatus(plan.horizons, n_prem), plan.gamma_n, n_prem, thisyear)
+            tier = tx.irmaaTier(magi0, thresholds, THRESHOLD_SLACK)  # the top tier includes its edge (#216)
             entry = {
                 "affects_premium_year": thisyear + n_prem,
                 "current_tier": tier,
@@ -370,23 +432,125 @@ def _year0_thresholds(plan):
                 f"{thisyear + n_prem}.",
             }
             if tier < len(thresholds):
-                entry["headroom_to_next_tier"] = _round(float(thresholds[tier]) - magi0)
+                entry["headroom_to_next_tier"] = _round(max(0.0, float(thresholds[tier]) - magi0))
+                entry["next_tier_premium_increase_today"] = _round(
+                    _irmaa_step(plan, float(thresholds[tier]) + THRESHOLD_SLACK, n_prem)
+                )
             prox["irmaa"] = entry
 
     # ACA: current-year MAGI drives this year's subsidy when pre-Medicare years exist.
     if getattr(plan, "n_aca", 0) > 0:
         prox["aca"] = {
-            "net_premium_this_year": _round(float(plan.ACA_n[0])),
+            "net_premium_this_year": _round(float(plan.aca_costs_n[0])),  # ACA_n is zero in optimize mode
             "aca_years_remaining": int(plan.n_aca),
             "note": "ACA subsidies depend on current-year MAGI; extra income this year raises "
             "this year's premium.",
         }
+        prox["aca"].update(_aca_cliffs(plan))
 
     # SS taxability tier actually reached this year.
     if float(np.sum(plan.zetaBar_in[:, 0])) > 0:
         prox["social_security"] = {"taxable_fraction_pct": _round(float(plan.Psi_n[0]) * 100, 1)}
 
     return prox
+
+
+def _irmaa_step(plan, magi_year0, n_prem):
+    """Household Medicare premium change in year n_prem (today's $) if year-0 MAGI were magi_year0."""
+    N = plan.N_n
+    g = plan.gamma_n[:N]
+    kw = dict(
+        include_part_d=getattr(plan, "_include_medicare_part_d", True),
+        part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
+        medical_n=plan._medical_n(g),
+        mobs=plan.mobs,
+        tobs=plan.tobs,
+    )
+    magi = np.array(plan.MAGI_n[:N], dtype=float)
+    now = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, slack=THRESHOLD_SLACK, **kw)[n_prem]
+    magi[0] = magi_year0  # past the edge already: read as is
+    then = tx.mediCosts(plan.yobs, plan.horizons, magi, plan.prevMAGI, g, N, **kw)[n_prem]
+    return (then - now) / float(g[n_prem])
+
+
+def _aca_cliffs(plan):
+    """First-year ACA MAGI against the Medicaid line and the 400% FPL cliff (today's $).
+
+    ACA uses the full-SS MAGI (IRC 36B), not the AGI-basis MAGI of NIIT and IRMAA. The Medicaid line
+    is the state's (138% FPL in expansion states, 100% in Wisconsin, none in the other states without
+    the expansion); where it is below 100% FPL, income under 100% is in the coverage gap, with
+    neither Medicaid nor the credit (#202). Empty when nobody is on the marketplace in the first year
+    (coverage starting later)."""
+    thisyear = int(plan.year_n[0])
+    n_start = max(0, plan.aca_start_year - thisyear) if plan.aca_start_year > 0 else 0
+    # The poverty line is the tax household's, whoever is enrolled (#199).
+    family, parts = tx._aca_coverage(plan.yobs, plan.horizons, 1, plan.mobs, plan.tobs, thisyear)
+    if n_start > 0 or not parts[0]:
+        return {}
+    fpl = tx._aca_fpl(thisyear, family[0], plan.gamma_n, thisyear)
+    magi = float(plan.MAGI_aca_n[0])
+    medicaid_ratio = float(plan._medicaid_n()[0])
+    medicaid, cliff = medicaid_ratio * fpl, 4.0 * fpl
+    gap = "exact" if getattr(plan, "_aca_lp", False) else "approx"
+
+    def cost(m):
+        g = plan.gamma_n[:1]
+        return float(
+            tx.acaCosts(plan.yobs, plan.horizons, np.array([m]), g, plan.slcsp_annual, 1,
+                        thisyear=thisyear, medical_n=plan._medical_n(g), mobs=plan.mobs, tobs=plan.tobs,
+                        medicaid_n=[medicaid_ratio], gap=gap)[0]
+        )
+
+    out = {
+        "aca_magi": _round(magi),
+        "fpl_pct": _round(100 * magi / fpl, 1),
+        "subsidy_cliff": _round(cliff),
+    }
+    if medicaid_ratio > 0:
+        out["medicaid_line"] = _round(medicaid)
+    if medicaid_ratio < 1.0:
+        out["coverage_gap_below"] = _round(fpl)  # no Medicaid, and no credit below 100% FPL
+    if medicaid_ratio > 0 and magi - THRESHOLD_SLACK <= medicaid:
+        out["covered_by_medicaid"] = True
+    elif medicaid_ratio < 1.0 and magi + THRESHOLD_SLACK < fpl:
+        out["in_coverage_gap"] = True
+    if magi - THRESHOLD_SLACK <= cliff:
+        out["headroom_to_subsidy_cliff"] = _round(max(0.0, cliff - magi))
+        out["premium_jump_at_cliff"] = _round(cost(cliff + THRESHOLD_SLACK) - cost(cliff - THRESHOLD_SLACK))
+    else:
+        out["above_subsidy_cliff_by"] = _round(magi - cliff)
+        out["premium_saved_below_cliff"] = _round(cost(magi - THRESHOLD_SLACK) - cost(cliff - THRESHOLD_SLACK))
+    return out
+
+
+def _health_care(plan):
+    """Lifetime health-care costs (today's $) and how they grow."""
+    N = plan.N_n
+    g = plan.gamma_n[:N]
+    out = {
+        "medicare_premiums_total": _round(float(np.sum(plan.medicare_n / g))),
+        "aca_net_premiums_total": _round(float(np.sum(plan.aca_costs_n / g))),
+        "other_medical_expenses_total": _round(float(np.sum(plan.other_medical_n[:N] / g))),
+        "hsa_withdrawals_total": _round(float(np.sum(plan.w_ijn[:, 3, :N] / g))),
+        "medical_inflation_excess_pct": _round(float(plan.medical_excess) * 100, 4),
+        "note": "Premiums and other medical expenses grow with inflation compounded with "
+        "medical_inflation_excess_pct; IRMAA thresholds and the poverty line follow inflation alone, "
+        "so a positive excess raises premiums in today's dollars year after year. Other medical "
+        "expenses sit inside net spending; they only cap tax-free HSA withdrawals.",
+    }
+    if np.any(plan.medicare_n > 0):
+        base = tx.mediCosts(
+            plan.yobs, plan.horizons, np.zeros(N), np.zeros(2), g, N,
+            include_part_d=getattr(plan, "_include_medicare_part_d", True),
+            part_d_base_annual_per_person=getattr(plan, "_medicare_part_d_base_annual_per_person", 0.0),
+            medical_n=plan._medical_n(g),
+            mobs=plan.mobs,
+            tobs=plan.tobs,
+        )
+        surcharge = np.maximum(plan.medicare_n - base, 0) / g
+        out["irmaa_surcharges_total"] = _round(float(np.sum(surcharge)))
+        out["irmaa_years"] = [int(plan.year_n[n]) for n in range(N) if surcharge[n] > 1.0]
+    return out
 
 
 def _this_year(plan, dd, cols):
@@ -422,6 +586,9 @@ def _this_year(plan, dd, cols):
     bracket = _year0_bracket(plan)
     if bracket:
         out["tax_bracket"] = bracket
+
+    if _has_state_tax(plan) and np.any(plan.st_theta_tn[:, 0] > 0):
+        out["state_tax"] = _year0_state_tax(plan)
 
     thresholds = _year0_thresholds(plan)
     if thresholds:
@@ -713,6 +880,50 @@ def _bracket_analysis(plan):
         "(today's $). filled_to_boundary years are where the optimizer deliberately fills "
         "the bracket — typically with Roth conversions — and stops at the edge.",
     }
+
+
+def _state_bracket_analysis(plan):
+    """Per-year state income tax and state bracket fill, or None without a state income tax."""
+    if not _has_state_tax(plan):
+        return None
+    gamma = plan.gamma_n
+    states = plan._states_n()
+    rows = []
+    for n in range(plan.N_n):
+        bracket = _state_bracket(plan, n)
+        if not bracket:
+            continue
+        rows.append(
+            {
+                "year": int(plan.year_n[n]),
+                "state": states[n],
+                "state_tax_today": _round(float(plan.st_T_n[n]) / gamma[n]),
+                "top_bracket_rate_pct": bracket["top_bracket_rate_pct"],
+                "headroom_in_bracket_today": bracket["headroom"],
+                "filled_to_boundary": bracket["filled_to_boundary"],
+            }
+        )
+    out = {
+        "state": plan.state,
+        "total_state_tax_today": _round(float(np.sum(plan.st_T_n / gamma[: plan.N_n]))),
+        "by_year": rows,
+        "note": "Top state income-tax bracket reached each year, the state tax paid and the room "
+        "left in that bracket (today's $). Years without a state income tax are omitted. "
+        "State taxable income is not federal taxable income: it "
+        "starts from gross income, includes capital gains, and takes the state's own standard "
+        "deduction and exemptions (Social Security, pensions, retirement income, where the state "
+        "allows them). Headroom is absent in the open-ended top bracket. In a year filled to the "
+        "boundary, the next dollar of income, such as a Roth conversion where the state taxes it, is "
+        "taxed at a higher state rate.",
+    }
+    if plan.state_moves:
+        year, new_state = plan.state_moves[0]
+        out["move"] = {"year": int(year), "state": new_state}
+        out["note"] += (
+            f" The household moves to {new_state or 'no state'} in {year}; the state of residence on "
+            "December 31 taxes the whole year, so that year is taxed by the new state."
+        )
+    return out
 
 
 def _depletion(plan):

@@ -86,9 +86,9 @@ def test_irmaa_values_2026_cms():
     assert tx.irmaaBrackets[0][2] == 137_000
     assert tx.irmaaBrackets[0][5] == 500_000
     monthly_totals = tx.partB_irmaa_costs / 12
-    assert monthly_totals[0] == pytest.approx(202.90)
-    assert monthly_totals[1] == pytest.approx(284.10)
-    assert monthly_totals[2] == pytest.approx(405.80)
+    np.testing.assert_allclose(monthly_totals, [202.90, 284.10, 405.80, 527.50, 649.20, 689.90])
+    # Part D IRMAA, CMS 2026 fact sheet and SSA POMS HI 01101.020 (#214).
+    np.testing.assert_allclose(tx.partD_irmaa_costs / 12, [0.0, 14.50, 37.50, 60.40, 83.30, 91.00])
 
 
 def test_mediCosts_part_d_irmaa_increases_cost():
@@ -207,3 +207,252 @@ def test_medicare_n_carries_the_total_in_both_modes():
     assert np.all(p.m_n == 0), "loop mode should leave the LP variable m_n at zero"
     p.solve("maxSpending", options={"withMedicare": "optimize", "bequest": 0})
     assert np.all(p.M_n == 0), "optimize mode should leave the loop array M_n at zero"
+
+
+@pytest.mark.toml
+def test_part_d_options_passed_to_solve_take_effect():
+    """includeMedicarePartD and medicarePartDBasePremium given to solve() apply to that solve and the next (#156)."""
+    import owlplanner as owl
+
+    plan = owl.readConfig("examples/Case_john+sally.toml", verbose=False)
+    plan.mylog.setVerbose(False)
+    base = {**plan.solverOptions, "solver": "HiGHS", "medicarePartDBasePremium": 40}
+
+    plan.solve("maxSpending", base)
+    with_d = float(plan.M_n.sum())
+    assert plan._include_medicare_part_d is True
+
+    plan.solve("maxSpending", {**base, "includeMedicarePartD": False})
+    without_d = float(plan.M_n.sum())
+    assert plan._include_medicare_part_d is False
+    assert without_d < with_d
+    assert plan.solverOptions["includeMedicarePartD"] is False  # kept for saving with the case
+
+    plan.solve("maxSpending", {**plan.solverOptions})  # re-solve with the stored options
+    assert plan._include_medicare_part_d is False
+    assert float(plan.M_n.sum()) == pytest.approx(without_d)
+
+
+def test_mediVals_plan_ending_before_medicare():
+    """A plan can end before anyone reaches 65; Medicare then never starts within it."""
+    thisyear = date.today().year
+    yobs = np.array([thisyear - 50])  # 65 in 15 years
+    Nn = 10
+    nm, Lbar, Cbar = tx.mediVals(yobs, np.array([Nn]), np.ones(Nn + 1), Nn, 6)
+    assert nm == Nn
+    assert Lbar.shape == (0, 5)
+    assert Cbar.shape == (0, 6)
+
+
+def test_plan_ending_before_medicare_solves():
+    """A plan that ends before anyone reaches 65 solves, with no Medicare premiums."""
+    from pathlib import Path
+
+    from owlplanner.config import readConfig
+    from owlplanner.config.plan_bridge import clone
+
+    case = Path(__file__).resolve().parents[2] / "examples" / "Case_joe.toml"
+    plan = readConfig(str(case), verbose=False)
+    age = date.today().year - int(plan.yobs[0])
+    short = clone(plan, expectancy=[age + 3], verbose=False)  # ends well before 65
+    short.solve(short.objective, dict(short.solverOptions, solver="HiGHS"))
+    assert short.caseStatus == "solved"
+    assert float(np.sum(short.medicare_n)) == 0.0
+
+
+@pytest.mark.parametrize("thisyear", [2026, 2027, 2028, 2030])
+def test_irmaa_top_tier_frozen_before_2028(thisyear):
+    """The top tier stays at $500k/$750k through 2027 and follows inflation from 2028 (#191)."""
+    gamma_n = 1.03 ** np.arange(8)
+    for status in (0, 1):
+        top = tx.irmaaBrackets[status][-1]
+        for n in range(8):
+            L = tx.irmaaThresholds(status, gamma_n, n, thisyear)
+            assert np.allclose(L[:-1], gamma_n[n] * tx.irmaaBrackets[status][1:-1])
+            if thisyear + n <= 2027:
+                assert L[-1] == top
+            else:
+                assert np.isclose(L[-1], top * 1.03 ** (thisyear + n - max(thisyear, 2027)))
+
+
+def test_mediCosts_top_tier_frozen_in_2027():
+    """MAGI just above $500k pays the top tier in 2027 even though lower thresholds grew."""
+    thisyear = date.today().year
+    if thisyear > 2027:
+        pytest.skip("Freeze only applies to bill years before 2028.")
+    Nn = 2028 - thisyear + 1
+    yobs = np.array([thisyear - 70])
+    horizons = np.array([Nn])
+    gamma_n = 1.05 ** np.arange(Nn + 1)
+    n = 2027 - thisyear
+    prevmagi = np.full(2, 501_000.0)
+    magi = np.full(Nn, 501_000.0)
+    costs = tx.mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, include_part_d=False)
+    top = gamma_n[n] * tx.partB_irmaa_costs[-1]
+    assert costs[n] == pytest.approx(top)
+
+
+# ---------------------------------------------------------------------------
+# First Medicare year by months of coverage (issue #208)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "mob, tob, first, second",
+    [
+        (12, 15, 1, 12),  # December 15: December only
+        (12, 1, 2, 12),  # December 1: from November 1
+        (6, 15, 7, 12),  # June 15: June to December
+        (2, 1, 12, 12),  # February 1: from January 1
+    ],
+)
+def test_medicareMonths_first_year(mob, tob, first, second):
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 65], [5], 3, [mob], [tob], thisyear)
+    assert list(months[0]) == [first, second, second]
+
+
+def test_medicareMonths_january_first_starts_the_december_before():
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 64], [5], 3, [1], [1], thisyear)
+    assert list(months[0]) == [1, 12, 12]
+    assert list(tx.medicareStartYear([thisyear - 64], [1], [1])) == [thisyear]
+
+
+def test_medicareMonths_yearly_model_and_horizon():
+    """Without birth months, coverage is the whole year of the 65th birthday; none past the horizon."""
+    thisyear = date.today().year
+    months = tx.medicareMonths([thisyear - 64, thisyear - 70], [3, 2], 4, thisyear=thisyear)
+    assert list(months[0]) == [0, 12, 12, 0]
+    assert list(months[1]) == [12, 12, 0, 0]
+
+
+def test_mediCosts_prorates_the_first_year():
+    """Born December 15: one month of premium and IRMAA in the year of the 65th birthday."""
+    thisyear = date.today().year
+    Nn = 3
+    magi = np.full(Nn, 1e6)  # top IRMAA tier
+    prevmagi = np.full(2, 1e6)
+    full = tx.mediCosts([thisyear - 66], [Nn], magi, prevmagi, np.ones(Nn + 1), Nn)
+    first = tx.mediCosts([thisyear - 65], [Nn], magi, prevmagi, np.ones(Nn + 1), Nn, mobs=[12], tobs=[15])
+    assert np.isclose(first[0], full[0] / 12)
+    assert np.isclose(first[1], full[1])
+
+
+def test_mediVals_prorates_the_first_year():
+    """Couple: one spouse born December 1 turns 65 this year, the other is already on Medicare."""
+    thisyear = date.today().year
+    Nn = 3
+    nm, _, Cbar = tx.mediVals([thisyear - 70, thisyear - 65], [Nn, Nn], np.ones(Nn + 1), Nn, 6,
+                              mobs=[5, 12], tobs=[10, 1])
+    assert nm == 0
+    np.testing.assert_allclose(Cbar[0], (1 + 2 / 12) * Cbar[1] / 2)
+    # January 1 birthday: Medicare starts in December of the year before.
+    nm, _, Cbar = tx.mediVals([thisyear - 64], [Nn], np.ones(Nn + 1), Nn, 6, mobs=[1], tobs=[1])
+    assert nm == 0
+    np.testing.assert_allclose(Cbar[0], Cbar[1] / 12)
+
+
+# ---------------------------------------------------------------------------
+# Filing status of the lookback return after a death (#213)
+# ---------------------------------------------------------------------------
+
+
+def test_irmaa_status_follows_the_lookback_return():
+    """20 CFR 418.1115(c), 418.1135(a): the table of the return 2 years back. First death at the end
+    of year 2: years 3 and 4 look back to joint returns; the single table starts in year 5."""
+    assert [tx.irmaaStatus([3, 6], n) for n in range(7)] == [1, 1, 1, 1, 1, 0, 0]
+    assert [tx.irmaaStatus([6, 3], n) for n in range(7)] == [1, 1, 1, 1, 1, 0, 0]
+    assert [tx.irmaaStatus([6], n) for n in range(3)] == [0, 0, 0]
+
+
+def test_survivor_keeps_the_joint_table_for_two_years():
+    """#213 repro: couple's MAGI $190k (single tier 3, below the $218k joint edge), then $120k alone."""
+    this_year = date.today().year
+    yobs, horizons = np.array([this_year - 70] * 2), np.array([3, 6])
+    magi = np.array([190_000.0] * 3 + [120_000.0] * 3)
+    costs = tx.mediCosts(yobs, horizons, magi, np.array([190_000.0] * 2), np.ones(6), 6)
+    # Annual fees: one survivor, no surcharge (12 x $202.90 = $2,434.80).
+    np.testing.assert_allclose(costs[3:5], tx.partB_irmaa_fees[0])
+    # Year 5 looks back to year 3, the survivor's own $120k on the single table: tier 1.
+    assert costs[5] == pytest.approx(tx.partB_irmaa_fees[0] + tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1])
+    _, L, _ = tx.mediVals(yobs, horizons, np.ones(6), 6, 6)
+    np.testing.assert_allclose(L[:5, 0], tx.irmaaBrackets[1][1])
+    assert L[5, 0] == pytest.approx(tx.irmaaBrackets[0][1])
+
+
+# ---------------------------------------------------------------------------
+# The top IRMAA tier includes its edge (#216)
+# ---------------------------------------------------------------------------
+
+
+def test_irmaa_tier_top_includes_its_edge():
+    """42 U.S.C. 1395r(i)(3)(C)(i)(III), 20 CFR 418.1115(b)(3): "less than $500,000" for tier 4,
+    "at least $500,000" for the top; every lower tier excludes its edge."""
+    edges = tx.irmaaBrackets[0][1:]  # 109k, 137k, 171k, 205k, 500k
+    assert tx.irmaaTier(109_000, edges) == 0
+    assert tx.irmaaTier(109_001, edges) == 1
+    assert tx.irmaaTier(499_999, edges) == 4
+    assert tx.irmaaTier(500_000, edges) == 5
+    # Slack reads a MAGI parked on an edge on that edge's side: below the lower ones, at the top one.
+    assert tx.irmaaTier(109_000.5, edges, slack=1.0) == 0
+    assert tx.irmaaTier(500_000 - 1e-6, edges, slack=1.0) == 5
+    assert tx.irmaaTier(499_998, edges, slack=1.0) == 4  # the optimizer's bracket 4 stops $2 short
+
+
+@pytest.mark.parametrize("status, edge", [(0, 500_000.0), (1, 750_000.0)])
+def test_mediCosts_at_the_top_edge(status, edge):
+    """#216 repro: Part B at exactly $500,000 ($750,000 joint) is the top tier, $689.90 (CMS 2026)."""
+    this_year = date.today().year
+    n_i = status + 1
+
+    def part_b(m):
+        return tx.mediCosts(np.array([this_year - 70] * n_i), np.array([3] * n_i), np.full(3, m), np.zeros(2),
+                            np.ones(3), 3, include_part_d=False)[2] / n_i / 12
+    assert part_b(edge - 1) == pytest.approx(649.20)
+    assert part_b(edge) == pytest.approx(689.90)
+    assert part_b(edge + 1) == pytest.approx(689.90)
+
+
+def test_mediCosts_pinned_years_use_the_top_edge():
+    """Years 0 and 1 read previousMAGIs: exactly $500,000 is the top tier there too."""
+    this_year = date.today().year
+    c = tx.mediCosts(np.array([this_year - 70]), np.array([3]), np.zeros(3), np.array([500_000.0, 499_999.0]),
+                     np.ones(3), 3, include_part_d=False)
+    assert c[0] / 12 == pytest.approx(689.90)
+    assert c[1] / 12 == pytest.approx(649.20)
+
+
+# ---------------------------------------------------------------------------
+# A previous MAGI above the year's income ceiling (#215)
+# ---------------------------------------------------------------------------
+
+
+def test_previous_magi_above_the_income_ceiling_is_feasible():
+    """Single, 70, $10k/month pension, no savings, $520k MAGI last year (a one-time gain): the pinned
+    year's MAGI exceeds the year's income ceiling. Optimize mode was infeasible; it now matches loop."""
+    import io
+    import warnings
+
+    from owlplanner import Plan
+
+    this_year = date.today().year
+    results = {}
+    for mode in ("loop", "optimize"):
+        p = Plan(["A"], [f"{this_year - 70}-06-15"], [73], "prevmagi", verbose=False, logstreams=[io.StringIO()])
+        p.setSpendingProfile("flat")
+        p.setAccountBalances(taxable=[0], taxDeferred=[0], taxFree=[0], startDate="01-01")
+        p.setPension([10_000], [65], [False])
+        p.setAllocationRatios("individual", generic=[[[0, 0, 0, 100], [0, 0, 0, 100]]])
+        p.setRates("user", values=[6, 4, 4, 2.5])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": mode, "previousMAGIs": [100, 520]})
+        assert p.caseStatus == "solved", mode
+        results[mode] = (float(p.g_n[0]), p.medicare_n[:3].copy())
+        medical_1 = float(p._medical_n(p.gamma_n)[1])
+    assert results["optimize"][0] == pytest.approx(results["loop"][0], rel=1e-6)
+    np.testing.assert_allclose(results["optimize"][1], results["loop"][1], rtol=1e-6)
+    # Year 1 reads the $520k lookback: the top tier, a year of medical inflation on.
+    top = tx.partB_irmaa_costs[5] + tx.partD_irmaa_costs[5]
+    assert results["loop"][1][1] == pytest.approx(top * medical_1)

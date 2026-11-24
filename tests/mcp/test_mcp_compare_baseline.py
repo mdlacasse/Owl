@@ -222,3 +222,8 @@ def test_compare_to_baseline_from_file():
     assert data["baseline"]["roth_conversions_today"] == 0
     assert data["optimized"]["spending_basis"] >= data["baseline"]["spending_basis"] - 1.0
     assert "seed_used" in data
+    # Each plan reports how its self-consistent loop ended, and the engine is recorded.
+    for side in ("optimized", "baseline"):
+        assert data["convergence"][side]["convergence"]
+        assert isinstance(data["convergence"][side]["fixed_point_residual_today_dollars"], dict)
+    assert data["engine"]["version"]

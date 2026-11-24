@@ -47,7 +47,9 @@ def test_owl_intake_prompt_content():
         assert item in text
     # Unit conventions that commonly trip up LLM callers.
     assert "$/month" in text
-    assert "net of the retirement contributions" in text
+    # The wage convention (#221): wages as in AGI, after-tax contributions paid for by a big-ticket item.
+    assert "Wages are the wages in AGI" in text
+    assert "NEGATIVE big_ticket_items" in text
 
 
 def test_intake_checklist_resource():

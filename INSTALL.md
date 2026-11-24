@@ -17,7 +17,7 @@ This document is aimed at software developers desiring to install the Owl source
 and run it locally on their computer.
 
 For end-users, we suggest accessing Owl from the
-[Streamlit Community Cloud](http://owlplanner.streamlit.app)
+[Streamlit Community Cloud](https://owlplanner.streamlit.app)
 or, if one prefers to have everything on their own computer,
 to install and run a Docker image as described in these [instructions](docker/README.md).
 
@@ -78,13 +78,13 @@ uv sync
 
 ### Alternative: install with pip or conda
 
-Use this path if you prefer to manage your own Python environment.
+Use this path if you prefer to manage your own Python environment. Owl requires Python 3.11 or later.
 
 #### Creating a virtual environment
 
 **Anaconda** ([download](https://repo.anaconda.com/archive/)):
 ```shell
-conda create --name owlenv
+conda create --name owlenv python=3.12
 conda activate owlenv
 ```
 
@@ -115,13 +115,13 @@ pip install -e ".[notebooks]"
 ```
 
 #### Run Owl
+The `owlplanner.sh` and `owlplanner.cmd` scripts launch Owl through `uv`, which would build its own
+environment instead of using yours. From the activated environment, start Streamlit directly:
 ```shell
-# macOS or Linux
-./owlplanner.sh
-
-# Windows
-./owlplanner.cmd
+streamlit run ui/main.py
 ```
+The scripts add `--browser.gatherUsageStats=false --browser.serverAddress=localhost --server.fileWatcherType=auto`,
+which can be appended to the same command.
 
 ---
 
@@ -130,16 +130,16 @@ pip install -e ".[notebooks]"
 Clone the repository and install in editable mode so changes to the source are
 reflected immediately without reinstalling.
 
-**With uv:**
+**With uv** (`uv sync` installs Owl in editable mode, with the `dev` tools):
 ```shell
 uv sync
-uv pip install -e ".[notebooks]"   # optional: add Jupyter
+uv sync --extra notebooks          # optional: add Jupyter
 ```
+Add `--extra notebooks` to later `uv sync` commands too, as a plain `uv sync` removes what the lockfile
+does not list.
 
 **With pip:**
 ```shell
-pip install build
-python -m build
 pip install -e .
 pip install -e ".[notebooks]"      # optional: add Jupyter
 ```
@@ -153,10 +153,13 @@ Assuming N processors as NPROC
 Run checks before all commits:
 ```shell
 flake8 ui src tests
-uv run pytest -n $NPROC
+make tests
 ```
+`make tests` runs the whole suite twice, with MOSEK and then with HiGHS. `make tests-deep` adds
+the slow quality checks left out of the default run, worth running when changing an algorithm.
+A plain `uv run pytest -n $NPROC` runs HiGHS only, as an unset `OWL_TEST_SOLVER` pins it.
 
-On macOS / Linux, to test against specific solvers:
+On macOS / Linux, to test against one solver:
 ```shell
 OWL_TEST_SOLVER="HiGHS" uv run pytest -n $NPROC
 OWL_TEST_SOLVER="MOSEK" uv run pytest -n $NPROC
@@ -169,11 +172,14 @@ $env:OWL_TEST_SOLVER="MOSEK" ; uv run pytest -n $NPROC
 ```
 
 Bump the version in `pyproject.toml` (`[project].version`, the single source of
-truth), then sync the mirrored copy in `src/owlplanner/version.py` and the lockfile:
+truth), then sync the mirrored copy in `src/owlplanner/version.py`, upgrade every dependency
+in `uv.lock`, and regenerate `requirements.txt`:
 ```shell
 make update
 ```
+`make outdated` lists what the upgrade would change without changing anything, and
+`make sync-version` syncs `version.py` alone.
 
-Then build and publish the package to PyPI by running `docker/buildPackage.sh`
-(or `buildPackage.cmd` on Windows). It removes old `dist/` artifacts and runs
+Then build and publish the package to PyPI by running `./buildPackage.sh` from the `docker/`
+directory (or `buildPackage.cmd` on Windows), as the script starts with `cd ..`. It removes old `dist/` artifacts and runs
 `uv build` followed by `uv publish`, picking up the PyPI token from `~/.pypirc`.

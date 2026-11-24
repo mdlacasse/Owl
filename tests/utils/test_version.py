@@ -30,9 +30,32 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def test_version_matches_pyproject():
-    pyproject = tomllib.loads((_REPO_ROOT / "pyproject.toml").read_text())
+    pyproject = tomllib.loads((_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     expected = pyproject["project"]["version"]
     assert __version__ == expected, (
         f"version mismatch: pyproject.toml has {expected!r} but owlplanner.__version__ "
         f"is {__version__!r}. Run `make sync-version` to regenerate src/owlplanner/version.py."
     )
+
+
+def test_engine_provenance_names_version_and_commit():
+    from owlplanner.version import engine_provenance
+
+    prov = engine_provenance()
+    assert prov["version"] == __version__
+    assert prov["commit"] is None or isinstance(prov["commit"], str)
+
+
+def test_engine_commit_is_none_outside_a_checkout(tmp_path):
+    # A copy of the module outside any repository must not borrow a commit from elsewhere.
+    import importlib.util
+    import shutil
+
+    from owlplanner import version
+
+    copy = tmp_path / "version.py"
+    shutil.copy(version.__file__, copy)
+    spec = importlib.util.spec_from_file_location("version_copy", copy)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.engine_commit() is None

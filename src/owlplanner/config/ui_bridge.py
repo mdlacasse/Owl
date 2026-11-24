@@ -35,7 +35,7 @@ from owlplanner.config.defaults import (
 from owlplanner.config.schema import KNOWN_SECTIONS
 from owlplanner.socialsecurity import validate_survivor_claim_age
 from owlplanner.rates import FROM, get_fixed_rate_values
-from owlplanner.utils import derive_swap_roth_converters, parse_swap_roth_converters
+from owlplanner.utils import derive_swap_roth_converters, normalize_mode_options, parse_swap_roth_converters
 from owlplanner.rate_models.constants import (
     CONSTRAIN_MEAN_METHODS,
     FIXED_TYPE_UI,
@@ -56,31 +56,31 @@ ACC_CONF = ACCOUNT_TYPES
 # session keys and the translation logic below:
 #   withMedicare       -> computeMedicare / optimizeMedicare
 #   withACA / LTCG/NIIT -> optimizeACA / optimizeLTCG / optimizeNIIT (strings loop|optimize)
-#   withDecomposition  -> useDecomposition (+ guards)
 #   withSSTaxability   -> ssTaxabilityMode / ssTaxabilityValue
 #   withSSAges         -> ssAgesMode
 #   previousMAGIs      -> MAGI0 / MAGI1
 #   minTaxableBalance  -> minTaxableBalance0 / minTaxableBalance1
 #   swapRothConverters -> swapRothConvertersEnabled / swapRothConvertersFirst / swapRothConvertersYear
 #   stopRothConversions -> stopRothConversionsEnabled / stopRothConversions (absent = no end)
+#   includeMedicarePartD -> includeMedicarePartD (always written; absent in the UI = True)
+#   breakpointMethod     -> localSearch (True for "local-search")
+#   mipStrategy        -> mipStrategy ("branch-and-bound" | "local-search"; written only when not default)
+# ui/sskeys.getSolveParameters() must translate each of these the same way ui_to_config() does.
 SOLVER_UI_PASSTHROUGH_KEYS = [
     "absTol",
     "bequest",
-    "bigMaca",
-    "bigMamo",
-    "bigMltcg",
-    "bigMniit",
-    "bigMss",
-    "bendersMaxIter",
     "epsilon",
     "gap",
     "maxIter",
     "maxRothConversion",
     "maxTime",
+    "mipMaxNodes",
+    "mipScaleOrder",
     "netSpending",
     "noLateSurplus",
     "noRothConversions",
     "oppCostX",
+    "partialBequestWeight",
     "relTol",
     "solver",
     "spendingSlack",
@@ -88,6 +88,7 @@ SOLVER_UI_PASSTHROUGH_KEYS = [
     "timePreference",
     "units",
     "verbose",
+    "withSeniorBonus",
 ]
 
 
@@ -167,7 +168,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     rs = known.get("rates_selection", {})
     aa = known.get("asset_allocation", {})
     op = known.get("optimization_parameters", {})
-    so = known.get("solver_options", {})
+    so = normalize_mode_options(dict(known.get("solver_options", {})))
     res = known.get("results", {})
 
     names = bi.get("names", [])
@@ -184,6 +185,10 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
         start_date_str = str(date.today())
     dic["startDate"] = _start_date_to_ui(start_date_str)
     dic["state"] = bi.get("state", "")
+    moves = bi.get("moves") or []
+    dic["stateMoveEnabled"] = bool(moves)
+    dic["stateMoveYear"] = int(moves[0]["year"]) if moves else date.today().year + 5
+    dic["stateMoveState"] = moves[0].get("state", "") if moves else ""
 
     dic["interpMethod"] = aa.get("interpolation_method", "s-curve")
     _ic = aa.get("interpolation_center")
@@ -206,7 +211,9 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["liquidationTx"] = float(rs.get("liquidation_tax_rate", DEFAULT_LIQUIDATION_TAX_RATE))
     dic["liquidationCG"] = float(rs.get("liquidation_capgains_rate", DEFAULT_LIQUIDATION_CAPGAINS_RATE))
     dic["yOBBBA"] = int(rs.get("obbba_expiration_year", DEFAULT_OBBBA_YEAR))
-    dic["surplusFraction"] = float(sa.get("spousal_surplus_deposit_fraction", 0.5))
+    eta = sa.get("spousal_surplus_deposit_fraction", 0.5)
+    dic["surplusFractionOptimize"] = isinstance(eta, str) and eta.strip().lower() == "optimize"
+    dic["surplusFraction"] = 0.5 if dic["surplusFractionOptimize"] else float(eta)
     dic["plots"] = res.get("default_plots", "nominal")
     dic["worksheetShowAges"] = bool(res.get("worksheet_show_ages", False))
     dic["worksheetHideZeroColumns"] = bool(res.get("worksheet_hide_zero_columns", False))
@@ -333,7 +340,7 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
             dic[key] = so[key]
 
     with_med = so.get("withMedicare", "loop")
-    dic["computeMedicare"] = with_med not in ("none", "None")
+    dic["computeMedicare"] = with_med != "none"
     dic["optimizeMedicare"] = with_med == "optimize"
     dic["includeMedicarePartD"] = so.get("includeMedicarePartD", True)
     dic["medicarePartDBasePremium"] = so.get("medicarePartDBasePremium")
@@ -341,10 +348,12 @@ def config_to_ui(diconf: dict, *, mylog=None) -> dict:  # noqa: C901
     dic["slcspAnnual"] = float(aca.get("slcsp_annual", 0))
     dic["acaStartYear"] = int(aca.get("aca_start_year", 0) or 0)
     dic["otherMedical"] = float(known.get("optimization_parameters", {}).get("other_medical_expenses", 0.0))
+    dic["medicalExcess"] = float(known.get("optimization_parameters", {}).get("medical_inflation_excess", 0.0))
     dic["optimizeACA"] = so.get("withACA", "loop") == "optimize"
     dic["optimizeLTCG"] = so.get("withLTCG", "loop") == "optimize"
     dic["optimizeNIIT"] = so.get("withNIIT", "loop") == "optimize"
-    dic["useDecomposition"] = so.get("withDecomposition", "none")
+    dic["localSearch"] = so.get("breakpointMethod", "loop") == "local-search"
+    dic["mipStrategy"] = so.get("mipStrategy", "branch-and-bound")
 
     # An absent stop year means "no end". The UI carries that as an explicit toggle rather
     # than a magic year, so a stop year can never be left behind by a horizon change.
@@ -511,6 +520,7 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
             "smile_increase": _get_ui(uidic, "smileIncrease", 12, int),
             "smile_delay": _get_ui(uidic, "smileDelay", 0, int),
             "other_medical_expenses": _get_ui(uidic, "otherMedical", 0.0, float),
+            "medical_inflation_excess": _get_ui(uidic, "medicalExcess", 0.0, float),
         },
         "solver_options": {},
         "results": {
@@ -532,7 +542,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
 
     if ni == 2:
         diconf["savings_assets"]["beneficiary_fractions"] = [_get_ui(uidic, f"benf{j}", 1, float) for j in range(4)]
-        diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(uidic, "surplusFraction", 0.5, float)
+        if _get_ui(uidic, "surplusFractionOptimize", False, bool):
+            diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = "optimize"
+        else:
+            diconf["savings_assets"]["spousal_surplus_deposit_fraction"] = _get_ui(uidic, "surplusFraction", 0.5, float)
 
     # Fixed income
     for i in range(ni):
@@ -640,15 +653,10 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
     optimize_niit = bool(uidic.get("optimizeNIIT"))
     diconf["solver_options"]["withLTCG"] = "optimize" if optimize_ltcg else "loop"
     diconf["solver_options"]["withNIIT"] = "optimize" if optimize_niit else "loop"
-
-    optimize_aca = uidic.get("optimizeACA", False)
-    use_decomp = uidic.get("useDecomposition", "none")
-    # Coerce legacy boolean (old TOML/session): True → "sequential", False → "none".
-    if isinstance(use_decomp, bool):
-        use_decomp = "sequential" if use_decomp else "none"
-    if use_decomp != "none" and not (optimize_med or optimize_aca or optimize_ltcg or optimize_niit):
-        use_decomp = "none"
-    diconf["solver_options"]["withDecomposition"] = use_decomp
+    if uidic.get("localSearch"):
+        diconf["solver_options"]["breakpointMethod"] = "local-search"
+    elif uidic.get("mipStrategy", "branch-and-bound") == "local-search":
+        diconf["solver_options"]["mipStrategy"] = "local-search"
 
     if uidic.get("stopRothConversionsEnabled", False):
         diconf["solver_options"]["stopRothConversions"] = _get_ui(
@@ -686,6 +694,14 @@ def ui_to_config(uidic: dict, *, mylog=None) -> dict:
         diconf["solver_options"]["withSSAges"] = "optimize"
     else:
         diconf["solver_options"]["withSSAges"] = ss_ages_mode
+
+    if uidic.get("stateMoveEnabled"):
+        diconf["basic_info"]["moves"] = [
+            {
+                "year": _get_ui(uidic, "stateMoveYear", date.today().year + 5, int),
+                "state": uidic.get("stateMoveState") or "",
+            }
+        ]
 
     return diconf
 

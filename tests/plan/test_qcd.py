@@ -81,6 +81,11 @@ class TestQCDEligibility:
         late.qcd_in[0, 1] = 10_000
         late.validateQCD()  # eligible the following year
 
+    def test_published_limits(self):
+        # IRS Notice 2024-80 (2025) and Notice 2025-67 (2026).
+        assert tx.qcdLimit[2025] == 108_000
+        assert tx.qcdLimit[2026] == 111_000
+
     def test_annual_cap_is_enforced_for_published_years(self):
         p = makePlan()
         cap = tx.qcdLimitForYear(thisyear)

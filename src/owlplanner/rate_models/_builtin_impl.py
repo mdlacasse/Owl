@@ -222,6 +222,79 @@ def generate_historical_average_series(
     return rate_series, dist.geo_means, dist.stdev, dist.corr
 
 
+@functools.lru_cache(maxsize=None)
+def _historical_window(frm: int, to: int) -> np.ndarray:
+    """Return the (T, 4) historical returns in decimal for the inclusive year range."""
+    ifrm = frm - FROM
+    ito = to - FROM
+    return np.column_stack(
+        [
+            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
+        ]
+    )
+
+
+# The two fits below are cached because every draw from a window refits the same data,
+# and the inflation transform is a numerical minimisation that costs far more than the
+# draw itself: a Monte Carlo run generates one series per scenario.
+@functools.lru_cache(maxsize=None)
+def _histogaussian_fit(frm: int, to: int):
+    """
+    Fit a multivariate normal to the historical window, with the inflation PWL transform.
+
+    Returns (arith_means, covar, (k, slope_lo, slope_hi), orig_means, orig_stdev, orig_corr),
+    the last three being the untransformed statistics reported as metadata.
+    """
+    data = _historical_window(frm, to)
+
+    # Metadata from original data for UI display
+    orig_means = data.mean(axis=0)
+    orig_stdev = np.std(data, axis=0, ddof=1)
+    orig_corr = np.corrcoef(data.T)
+
+    # PWL transform on inflation (dim 3) to correct right-skew before fitting
+    k, slope_lo, slope_hi = fit_inflation_transform(data[:, 3])
+    data_t = data.copy()
+    data_t[:, 3] = pwl_transform(data[:, 3], k, slope_lo, slope_hi)
+
+    arith_means = data_t.mean(axis=0)
+    covar = np.cov(data_t.T)
+    return arith_means, covar, (k, slope_lo, slope_hi), orig_means, orig_stdev, orig_corr
+
+
+@functools.lru_cache(maxsize=None)
+def _histolognormal_fit(frm: int, to: int):
+    """
+    Fit a multivariate normal to the historical log-returns, with the inflation PWL transform.
+
+    Returns (mu_z, Sigma_z, (k, slope_lo, slope_hi), means, stdev, corr), the last three
+    being arithmetic statistics derived from the untransformed log-returns for metadata.
+    """
+    lr = np.log(1.0 + _historical_window(frm, to))  # log-returns, shape (T, 4)
+
+    # PWL transform on inflation LOG-RETURNS (dim 3) to correct skew before Gaussian fit.
+    # Applied in log-space: no log(1 + .) domain constraint needed.
+    k, slope_lo, slope_hi = fit_inflation_transform(lr[:, 3])
+    lr_t = lr.copy()
+    lr_t[:, 3] = pwl_transform(lr[:, 3], k, slope_lo, slope_hi)
+
+    mu_z = lr_t.mean(axis=0)  # log-space mean (transformed inflation)
+    Sigma_z = np.cov(lr_t.T)  # log-space covariance (transformed inflation)
+
+    # Metadata derived from original (untransformed) log-returns for UI display
+    lr_orig_cov = np.cov(lr.T)
+    sigma_z_orig = np.sqrt(np.diag(lr_orig_cov))
+    mu_z_orig = lr.mean(axis=0)
+    sigma_z_orig_diag = np.diag(lr_orig_cov)
+    means = np.exp(mu_z_orig + 0.5 * sigma_z_orig_diag) - 1.0
+    stdev = (means + 1.0) * np.sqrt(np.exp(sigma_z_orig_diag) - 1.0)
+    corr = lr_orig_cov / np.outer(sigma_z_orig, sigma_z_orig)
+    return mu_z, Sigma_z, (k, slope_lo, slope_hi), means, stdev, corr
+
+
 def generate_histogaussian_series(
     N: int,
     frm: int,
@@ -250,31 +323,9 @@ def generate_histogaussian_series(
     if frm >= to:
         raise ValueError("Unacceptable range.")
 
-    ifrm = frm - FROM
-    ito = to - FROM
-    data = np.column_stack(
-        [
-            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-        ]
-    )
-
-    # Metadata from original data for UI display
-    orig_means = data.mean(axis=0)
-    orig_stdev = np.std(data, axis=0, ddof=1)
-    orig_corr = np.corrcoef(data.T)
-
-    # PWL transform on inflation (dim 3) to correct right-skew before fitting
-    k, slope_lo, slope_hi = fit_inflation_transform(data[:, 3])
+    arith_means, covar, (k, slope_lo, slope_hi), orig_means, orig_stdev, orig_corr = _histogaussian_fit(frm, to)
     if mylog:
         mylog.vprint(f"histogaussian inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
-    data_t = data.copy()
-    data_t[:, 3] = pwl_transform(data[:, 3], k, slope_lo, slope_hi)
-
-    arith_means = data_t.mean(axis=0)
-    covar = np.cov(data_t.T)
     rate_series = _sampling.multivariate_normal(rng, arith_means, covar, size=N)
 
     # Invert inflation transform on generated samples
@@ -362,7 +413,6 @@ def generate_histolognormal_series(
         and the model will produce invalid results. This is extremely rare in
         real historical data.
     """
-    # Re-load raw historical data to compute log-returns
     if not (FROM <= frm <= TO):
         raise ValueError(f"Lower range 'frm={frm}' out of bounds.")
     if not (FROM <= to <= TO):
@@ -370,29 +420,9 @@ def generate_histolognormal_series(
     if frm >= to:
         raise ValueError("Unacceptable range.")
 
-    ifrm = frm - FROM
-    ito = to - FROM
-    data = np.column_stack(
-        [
-            SP500.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            BondsBaa.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            TNotes.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-            Inflation.iloc[ifrm : ito + 1].to_numpy() / 100.0,
-        ]
-    )
-
-    lr = np.log(1.0 + data)  # log-returns, shape (T, 4)
-
-    # PWL transform on inflation LOG-RETURNS (dim 3) to correct skew before Gaussian fit.
-    # Applied in log-space: no log(1 + .) domain constraint needed.
-    k, slope_lo, slope_hi = fit_inflation_transform(lr[:, 3])
+    mu_z, Sigma_z, (k, slope_lo, slope_hi), means, stdev, corr = _histolognormal_fit(frm, to)
     if mylog:
         mylog.vprint(f"histolognormal inflation PWL: k={k:.4f}, slope_lo={slope_lo:.4f}, slope_hi={slope_hi:.4f}")
-    lr_t = lr.copy()
-    lr_t[:, 3] = pwl_transform(lr[:, 3], k, slope_lo, slope_hi)
-
-    mu_z = lr_t.mean(axis=0)  # log-space mean (transformed inflation)
-    Sigma_z = np.cov(lr_t.T)  # log-space covariance (transformed inflation)
 
     Z = _sampling.multivariate_normal(rng, mu_z, Sigma_z, size=N)
 
@@ -401,15 +431,6 @@ def generate_histolognormal_series(
 
     rate_series = np.exp(Z) - 1.0
     rate_series[:, 3] = np.maximum(rate_series[:, 3], INFLATION_FLOOR)
-
-    # Metadata derived from original (untransformed) log-returns for UI display
-    lr_orig_cov = np.cov(lr.T)
-    sigma_z_orig = np.sqrt(np.diag(lr_orig_cov))
-    mu_z_orig = lr.mean(axis=0)
-    sigma_z_orig_diag = np.diag(lr_orig_cov)
-    means = np.exp(mu_z_orig + 0.5 * sigma_z_orig_diag) - 1.0
-    stdev = (means + 1.0) * np.sqrt(np.exp(sigma_z_orig_diag) - 1.0)
-    corr = lr_orig_cov / np.outer(sigma_z_orig, sigma_z_orig)
 
     return rate_series, means, stdev, corr
 

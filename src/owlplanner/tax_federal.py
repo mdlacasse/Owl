@@ -27,6 +27,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
 from datetime import date
 
+from owlplanner import utils as u
+
 from owlplanner.data.irs_590b import JOINT_LIFE_TABLE, UNIFORM_LIFETIME_DIVISOR_BY_AGE
 from owlplanner.data.aca_age_rating import couple_to_individual_fraction
 
@@ -57,6 +59,9 @@ irmaaBrackets = np.array(
     ]
 )
 
+# BBA 2018 froze the top IRMAA tier at $500k/$750k in nominal dollars; CPI indexing starts in 2028.
+IRMAA_TOP_TIER_INDEXED_FROM = 2028
+
 # These are current for 2026 (2025TY). Source: CMS 2026 Part B premiums and IRMAA.
 # Index [0] stores the standard Medicare Part B basic premium (monthly $202.90 for 2026).
 # Following values are incremental IRMAA Part B monthly fees; cumulative = total/month.
@@ -64,10 +69,11 @@ irmaaBrackets = np.array(
 partB_irmaa_fees = 12 * np.array([202.90, 81.20, 121.70, 121.70, 121.70, 40.70])
 partB_irmaa_costs = np.cumsum(partB_irmaa_fees)
 
-# Part D IRMAA: same 6 brackets as Part B. Source: CMS 2026 Part D IRMAA.
-# Monthly surcharges per bracket (cumulative): $0, $14.50, $36.30, $58.10, $79.90, $91.00.
+# Part D IRMAA: same 6 brackets as Part B. Source: CMS 2026 Part D IRMAA (fact sheet, Nov 14, 2025;
+# also SSA POMS HI 01101.020), from 42 U.S.C. 1395w-113(a)(7)(B) on the $38.99 base premium.
+# Monthly surcharges per bracket (cumulative): $0, $14.50, $37.50, $60.40, $83.30, $91.00 (#214).
 # Stored as incremental monthly fees (bracket 0 = 0; brackets 1–5 = surcharge increments).
-partD_irmaa_monthly = np.array([0.0, 14.50, 21.80, 21.80, 21.80, 11.10])
+partD_irmaa_monthly = np.array([0.0, 14.50, 23.00, 22.90, 22.90, 7.70])
 partD_irmaa_fees = 12 * partD_irmaa_monthly
 partD_irmaa_costs = np.cumsum(partD_irmaa_fees)
 
@@ -148,7 +154,8 @@ HSA_CATCHUP_55 = 1_000
 
 # Annual per-person exclusion limit for Qualified Charitable Distributions
 # (IRC 408(d)(8)), inflation-indexed since SECURE 2.0.
-qcdLimit = {2025: 108_000, 2026: 115_000}
+# 2025: Notice 2024-80; 2026: Notice 2025-67.
+qcdLimit = {2025: 108_000, 2026: 111_000}
 
 # IRS sets the limit above one year at a time, but plans run decades, so beyond the
 # table it is carried forward at this fixed rate: the geometric mean of CPI over
@@ -170,9 +177,9 @@ QCD_MIN_AGE = 70.5
 # ACA Premium Tax Credit constants (updated annually by HHS and IRS).
 ###############################################################################
 
-# Federal Poverty Level base amounts (48 contiguous states + DC).
+# HHS poverty guidelines (48 contiguous states + DC), keyed by the year they were published.
 # Indexed by household size: [single (1 person), couple (2 persons)].
-# Per-year: 2025 HHS, 2026 HHS. For 2027+ we use 2026 until next update.
+# Coverage in year Y uses the guideline of year Y-1: see _aca_fpl.
 _ACA_FPL = {
     2025: np.array([15_650.0, 21_150.0]),
     2026: np.array([15_960.0, 21_640.0]),
@@ -191,15 +198,42 @@ _ACA_CONTRIB_CAP_2025 = 0.085  # ARP/IRA cap above 400% FPL
 # If an extension is enacted, update to IRA-style rules (0% below 150%, 8.5% cap).
 _ACA_BREAKPOINTS_2026 = np.array([1.33, 1.50, 2.00, 2.50, 3.00, 4.00])
 _ACA_CONTRIB_PCT_2026 = np.array([0.021, 0.0419, 0.066, 0.0844, 0.0996, 0.0996])
+# Initial percentage of each band that starts at a breakpoint (133-150%, ..., 300-400%). The table
+# jumps at 133%: below it 2.10%, from it 3.14% rising to 4.19% at 150%. The other bands start where
+# the previous one ends.
+_ACA_CONTRIB_INITIAL_2026 = np.array([0.0314, 0.0419, 0.066, 0.0844, 0.0996])
 # No cap above 400%: full SLCSP (no PTC)
 
+# 2027 taxable year: IRS Rev. Proc. 2026-26, sec. 3.01. Same breakpoints as 2026.
+_ACA_CONTRIB_PCT_2027 = np.array([0.0215, 0.043, 0.0678, 0.0866, 0.1022, 0.1022])
+_ACA_CONTRIB_INITIAL_2027 = np.array([0.0323, 0.043, 0.0678, 0.0866, 0.1022])
+
+# Applicable percentage tables of the 2026+ rules, keyed by taxable year: (breakpoints, percentage
+# at the top of each band with the below-133% rate first, initial percentage of each band).
+# A year past the last table uses the last one: see _aca_table.
+_ACA_TABLES = {
+    2026: (_ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026, _ACA_CONTRIB_INITIAL_2026),
+    2027: (_ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2027, _ACA_CONTRIB_INITIAL_2027),
+}
+
+# Up to the state's Medicaid limit the household is covered by Medicaid, at no premium: 138% FPL in
+# expansion states (the default here), 100% in Wisconsin, none in the other states without the
+# expansion (tax_state.medicaid_limit, issue #202). The premium tax credit starts at 100% FPL
+# (IRC 36B(c)(1)(A)), so in those states income below 100% gets neither: the coverage gap.
+_ACA_MEDICAID_RATIO = 1.38
+
 # ACA LP bracket configuration (2026+ rules; used only in withACA="optimize" mode).
-N_ACA_R = 7  # number of ACA brackets: 6 intervals up to 400% FPL + 1 bracket above 400%
-# LP bracket thresholds as multiples of FPL (6 thresholds → 7 brackets, constant structure).
-_ACA_LP_BREAKPOINTS = _ACA_BREAKPOINTS_2026  # [1.33, 1.50, 2.00, 2.50, 3.00, 4.00]
-# Contribution rates per LP bracket (constant-within-bracket approximation of piecewise function).
-# Brackets 0-5: 2026 rates. Bracket 6 (>400% FPL): cost = full SLCSP (handled via za*slcsp in plan.py).
-_ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # r=6 not used in proportional sum
+N_ACA_R = 8  # number of ACA brackets: 7 intervals up to 400% FPL + 1 bracket above 400%
+# LP bracket thresholds as multiples of FPL (7 thresholds → 8 brackets, constant structure), set by
+# the year's Medicaid limit: see _aca_lp_breakpoints. Bracket 0 (below the first threshold):
+# Medicaid at no premium, or the coverage gap at the full SLCSP. Brackets 1-6: the sliding scale,
+# priced by tangent lines (see acaVals); bracket 1 (100-133%, the flat lowest percentage) has zero
+# width where Medicaid reaches past 133%. Bracket 7 (400% and up): full SLCSP (za * slcsp in plan.py).
+_ACA_LP_UPPER = np.array([1.50, 2.00, 2.50, 3.00, 4.00])
+# Tangent lines per bracket under the sliding-scale cost pct(MAGI) * MAGI, which is convex within a
+# bracket. Their maximum follows the cost from below, exactly at the tangent points; with four
+# evenly spaced points the shortfall is a few dollars at most.
+_ACA_LP_TANGENTS = 4
 
 ###############################################################################
 # Data that is unlikely to change.
@@ -209,6 +243,20 @@ _ACA_LP_CONTRIB = np.append(_ACA_CONTRIB_PCT_2026, 0.0)  # r=6 not used in propo
 niitThreshold = np.array([200_000, 250_000])
 niitRate = 0.038
 
+# Employee payroll tax (FICA). IRS Pub. 15 (2026), "What's New": social security tax 6.2% of
+# wages up to the $184,500 wage base, Medicare tax 1.45% of all wages. Instructions for Form
+# 8959: Additional Medicare Tax 0.9% of the combined Medicare wages above $200,000 (single,
+# qualifying surviving spouse) or $250,000 (MFJ), thresholds not indexed for inflation.
+# The wage base follows the national average wage index (20 CFR 404.1048). Each year's
+# nominal base, published by SSA in October for the next year (2027: notice of 10/26/2026,
+# 91 FR 67380); after the last year it is held at that level in real terms, like the
+# earnings test's exempt amounts (u.nominal_by_year).
+payrollSSRate = 0.062
+payrollMedicareRate = 0.0145
+payrollWageBase = {2026: 184_500.0, 2027: 192_300.0}
+payrollAddlRate = 0.009
+payrollAddlThreshold = np.array([200_000, 250_000])
+
 # Thresholds for 65+ bonus of $6k per individual for circumventing tax
 # on social security for low-income households. This expires in 2029.
 # These numbers are hard-coded below as the tax code will likely change
@@ -216,6 +264,8 @@ niitRate = 0.038
 # Bonus decreases by $6 per $100 of MAGI above threshold; fully phased out
 # at threshold + $100,000 (i.e., $175k single / $250k MFJ).
 bonusThreshold = np.array([75_000, 150_000])
+SENIOR_BONUS = 6000.0  # per individual aged 65 or older, not indexed
+SENIOR_BONUS_PHASEOUT_RATE = 0.06  # $6 per $100 of MAGI above the threshold
 
 # IRS Social Security taxability thresholds (frozen since 1983/1994 — not inflation-indexed).
 # Provisional income formula: PI = MAGI - 0.5*SS. Below lo: 0% taxable; lo-hi: 50% ramp;
@@ -271,10 +321,7 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     if ssec_tax_fraction is not None:
         return np.full(N_n, ssec_tax_fraction)
 
-    # Filing status per year: for couples, switch from MFJ (1) to Single (0) at n_d.
-    status_n = np.full(N_n, N_i - 1)
-    if N_i == 2 and n_d is not None and n_d < N_n:
-        status_n[n_d:] = 0
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     lo_n = ssTaxabilityLo[status_n]
     hi_n = ssTaxabilityHi[status_n]
@@ -300,7 +347,103 @@ def compute_social_security_taxability(N_i, MAGI_n, ss_n, ssec_tax_fraction=None
     return new_Psi_n
 
 
-def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0):
+def irmaaStatus(horizons, n):
+    """
+    Filing status (0 single, 1 married filing jointly) of the IRMAA table for premium year n.
+
+    SSA uses the MAGI of the tax year 2 years before the premium year (20 CFR 418.1135(a)), and the
+    table of the filing status on that return: the joint ranges apply to individuals "who are married
+    and filed a joint tax return for the tax year we use" (418.1115(c)). A couple files jointly while
+    both are alive, and in the year of the first death (IRC 6013(a)(2)), the last year of the
+    shorter horizon. So the survivor's first two years alone still use the joint table, and the
+    single table starts in the third (#213); a qualifying widow(er) uses the single table
+    (418.1115(b)). The two years before the plan count as joint for a couple, as its previous MAGIs
+    are the couple's. Not modeled: a survivor's request to use a more recent year (418.1205(a)).
+    """
+    return 1 if len(horizons) == 2 and n - 2 < min(horizons) else 0
+
+
+def irmaaTier(magi, thresholds, slack=0.0):
+    """
+    IRMAA tier (0 to len(thresholds)) of a MAGI against the tier edges `thresholds`.
+
+    Every tier but the top excludes its upper edge, and the top includes it: "More than $160,000
+    but less than $500,000" and "At least $500,000" (42 U.S.C. 1395r(i)(3)(C)(i)(III); 20 CFR
+    418.1115(b)-(c): "Greater than or equal to $500,000", $750,000 joint), so MAGI of exactly
+    $500,000 is the top tier (#216). `slack` reads a MAGI parked on an edge on its own side of it:
+    it is taken off for the lower edges and added for the top one, so it must stay below the
+    optimizer's BRACKET_MARGIN.
+    """
+    tier = int(np.sum(magi - slack > np.asarray(thresholds[:-1])))
+    if tier == len(thresholds) - 1 and magi + slack >= thresholds[-1]:
+        tier += 1
+    return tier
+
+
+def irmaaThresholds(status, gamma_n, n, thisyear):
+    """
+    Return the nominal IRMAA thresholds (tiers 1-5) for plan year n.
+
+    Lower tiers follow gamma_n. The top tier stays at its nominal value through the
+    bill year before IRMAA_TOP_TIER_INDEXED_FROM and follows inflation from then on.
+    """
+    scale = np.full(len(irmaaBrackets[status]) - 1, gamma_n[n])
+    nfrozen = IRMAA_TOP_TIER_INDEXED_FROM - 1 - thisyear
+    if nfrozen >= 0:
+        scale[-1] = gamma_n[n] / gamma_n[nfrozen] if n > nfrozen else 1.0
+    return scale * irmaaBrackets[status][1:]
+
+
+def medicareMonths(yobs, horizons, N_n, mobs=None, tobs=None, thisyear=None, ages=None):
+    """
+    Months of Medicare coverage for each individual in each plan year, shape (N_i, N_n).
+
+    Coverage starts in the month of the 65th birthday, or in the month before when the birthday
+    falls on the 1st: "For an individual whose 65th birthday is on the first day of the month,
+    Part A coverage begins on the first day of the month preceding their birth month" (CMS,
+    Original Medicare (Part A and B) Eligibility and Enrollment). A January 1 birthday therefore
+    starts coverage in December of the year before. Premiums are monthly, and a month with Medicare
+    is not an ACA coverage month (IRC 36B(c)(2)(B), 5000A(f)(1)(A)(i)), so this count drives both
+    the first Medicare year and the last ACA year (issues #199, #208).
+
+    Without birth months (mobs, tobs None), coverage starts in January of the year of the 65th
+    birthday: the yearly model. Years from horizons[i] on, the individual is gone and has 0 months.
+    ages, when given, replaces 65 with each individual's enrollment age, for someone who delays
+    Medicare; coverage then starts in the month of that birthday.
+    """
+    if thisyear is None:
+        thisyear = date.today().year
+    yobs = np.asarray(yobs, dtype=int)
+    Ni = len(yobs)
+    mobs = np.ones(Ni, dtype=int) if mobs is None else np.asarray(mobs, dtype=int)
+    tobs = np.full(Ni, 2, dtype=int) if tobs is None else np.asarray(tobs, dtype=int)
+    ages = np.full(Ni, 65, dtype=int) if ages is None else np.asarray(ages, dtype=int)
+    months = np.zeros((Ni, N_n), dtype=int)
+    for i in range(Ni):
+        start_year, start_month = yobs[i] + ages[i], mobs[i]
+        if tobs[i] == 1:
+            start_month -= 1
+            if start_month == 0:
+                start_year, start_month = start_year - 1, 12
+        for n in range(min(N_n, max(0, horizons[i]))):
+            year = thisyear + n
+            if year > start_year:
+                months[i, n] = 12
+            elif year == start_year:
+                months[i, n] = 13 - start_month
+    return months
+
+
+def medicareStartYear(yobs, mobs=None, tobs=None):
+    """Calendar year of each individual's first Medicare month (see medicareMonths)."""
+    yobs = np.asarray(yobs, dtype=int)
+    if mobs is None or tobs is None:
+        return yobs + 65
+    return yobs + 65 - ((np.asarray(mobs) == 1) & (np.asarray(tobs) == 1)).astype(int)
+
+
+def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_base_annual_per_person=0.0,
+             medical_n=None, mobs=None, tobs=None):
     """
     Return tuple (nm, L, C) of year index when Medicare starts and vectors L, and C
     defining end points of constant piecewise linear functions representing IRMAA fees.
@@ -309,17 +452,26 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
 
     Part B and Part D use the same MAGI brackets (two-year lookback). Part D base
     is added per eligible person; Part D IRMAA uses CMS 2026 amounts.
+
+    Bracket thresholds follow gamma_n (they are indexed to CPI), except the top tier,
+    which is frozen in nominal dollars before 2028 (see irmaaThresholds). Premiums follow medical_n,
+    which defaults to gamma_n; pass a faster series when medical prices outgrow inflation.
+    Each individual pays for the months of coverage in the year (medicareMonths, from birth months
+    mobs and days tobs), so the first year is prorated.
     """
+    if medical_n is None:
+        medical_n = gamma_n
     thisyear = date.today().year
     assert Nq == len(partB_irmaa_costs), f"Inconsistent value of Nq: {Nq}."
     assert Nq == len(irmaaBrackets[0]), "Inconsistent IRMAA brackets array."
-    Ni = len(yobs)
     # Combined per-person cumulative costs: Part B + Part D IRMAA when enabled
     costs_per_person = partB_irmaa_costs + (partD_irmaa_costs if include_part_d else 0.0)
-    # What index year will Medicare start? 65 - age for each individual.
-    nm = yobs + 65 - thisyear
+    # What index year will Medicare start? The year of the first month of coverage.
+    nm = medicareStartYear(yobs, mobs, tobs) - thisyear
     nm = np.maximum(0, nm)
-    nmstart = np.min(nm)
+    months_in = medicareMonths(yobs, horizons, Nn, mobs, tobs, thisyear)
+    # A plan can end before anyone reaches 65: then Medicare never starts within it.
+    nmstart = min(int(np.min(nm)), Nn)
     # Has it already started?
     Nmed = Nn - nmstart
 
@@ -328,27 +480,21 @@ def mediVals(yobs, horizons, gamma_n, Nn, Nq, *, include_part_d=True, part_d_bas
 
     # Year starts at offset nmstart in the plan. L and C arrays are shorter.
     for nn in range(Nmed):
-        imed = 0
         n = nmstart + nn
-        if thisyear + n - yobs[0] >= 65 and n < horizons[0]:
-            imed += 1
-        if Ni == 2 and thisyear + n - yobs[1] >= 65 and n < horizons[1]:
-            imed += 1
+        # Individuals paying premiums this year, each for the fraction of the year covered.
+        imed = np.sum(months_in[:, n]) / 12
         if imed:
-            if Ni == 1 or not (n < horizons[0] and n < horizons[1]):
-                status = 0  # single or one spouse deceased
-            else:
-                status = 1  # married filing jointly
-            Lbar[nn] = gamma_n[n] * irmaaBrackets[status][1:]
-            Cbar[nn] = imed * gamma_n[n] * costs_per_person
+            # The filing status of the lookback return, two years back (#213).
+            Lbar[nn] = irmaaThresholds(irmaaStatus(horizons, n), gamma_n, n, thisyear)
+            Cbar[nn] = imed * medical_n[n] * costs_per_person
             if include_part_d and part_d_base_annual_per_person != 0:
-                Cbar[nn] += imed * gamma_n[n] * part_d_base_annual_per_person
+                Cbar[nn] += imed * medical_n[n] * part_d_base_annual_per_person
         else:
             # Nobody is on Medicare this year (e.g. a drawn longevity horizon lands
             # before age 65, or there is a gap between one spouse dying before 65
             # and the other reaching Medicare).  Use single-filer brackets with
             # zero cost so the LP constraints remain valid but impose no charge.
-            Lbar[nn] = gamma_n[n] * irmaaBrackets[0][1:]
+            Lbar[nn] = irmaaThresholds(0, gamma_n, n, thisyear)
             # Cbar[nn] stays at zero (already initialized)
 
     return nmstart, Lbar, Cbar
@@ -387,12 +533,11 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     Capital gains "stack on top" of ordinary income, so the portion of gains that
     pushes total income above each threshold is taxed at the corresponding rate.
     """
-    status = Ni - 1
+    status_n = filingStatusIndex_n(Ni, nd, Nn)
     cgTax_n = np.zeros(Nn)
 
     for n in range(Nn):
-        if status and n == nd:
-            status -= 1
+        status = status_n[n]
 
         # Calculate ordinary income (taxable income minus capital gains).
         ordIncome = txIncome_n[n] - ltcg_n[n]
@@ -430,70 +575,165 @@ def capitalGainTax(Ni, txIncome_n, ltcg_n, gamma_n, nd, Nn):
     return cgTax_n
 
 
-def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0):
+def mediCosts(yobs, horizons, magi, prevmagi, gamma_n, Nn, *, include_part_d=True, part_d_base_annual_per_person=0.0,
+              medical_n=None, mobs=None, tobs=None, slack=0.0):
     """
     Compute Medicare costs directly (Part B + Part D when include_part_d is True).
 
     Uses the same MAGI brackets and two-year lookback for both Part B and Part D.
     Part D IRMAA amounts follow CMS 2026. Part D base is optional (configurable).
+    Thresholds follow irmaaThresholds and premiums follow medical_n (default gamma_n), as in mediVals.
+    Each individual pays for the months of coverage in the year (medicareMonths), as in mediVals.
+    The tier of each MAGI follows irmaaTier, with `slack` dollars toward the side of each edge it is
+    parked on (the top tier includes its edge).
     """
+    if medical_n is None:
+        medical_n = gamma_n
     thisyear = date.today().year
     Ni = len(yobs)
     fees_b = partB_irmaa_fees
     fees_d = partD_irmaa_fees if include_part_d else np.zeros_like(partB_irmaa_fees)
     costs = np.zeros(Nn)
+    months_in = medicareMonths(yobs, horizons, Nn, mobs, tobs, thisyear)
     for n in range(Nn):
-        status = 0 if Ni == 1 else 1 if n < horizons[0] and n < horizons[1] else 0
+        # The filing status of the lookback return, two years back (#213).
+        thresholds = irmaaThresholds(irmaaStatus(horizons, n), gamma_n, n, thisyear)
         for i in range(Ni):
-            if thisyear + n - yobs[i] >= 65 and n < horizons[i]:
+            if months_in[i, n]:
+                frac = months_in[i, n] / 12
                 # Part B basic premium
-                costs[n] += gamma_n[n] * fees_b[0]
+                costs[n] += frac * medical_n[n] * fees_b[0]
                 if include_part_d and part_d_base_annual_per_person != 0:
-                    costs[n] += gamma_n[n] * part_d_base_annual_per_person
+                    costs[n] += frac * medical_n[n] * part_d_base_annual_per_person
                 if n < 2:
                     mymagi = prevmagi[n]
                 else:
                     mymagi = magi[n - 2]
-                for q in range(1, 6):
-                    if mymagi > gamma_n[n] * irmaaBrackets[status][q]:
-                        costs[n] += gamma_n[n] * (fees_b[q] + fees_d[q])
+                tier = irmaaTier(mymagi, thresholds, slack)
+                costs[n] += frac * medical_n[n] * (np.sum(fees_b[1:tier + 1]) + np.sum(fees_d[1:tier + 1]))
 
     return costs
 
 
-def _aca_contrib_pct(ratio, breakpoints, contrib_pct):
-    """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range."""
+def _aca_table(calendar_year):
+    """Applicable percentage table (breakpoints, pct, initial pct) for coverage in calendar_year.
+
+    The table is published for each taxable year (IRC 36B(b)(3)(A)); a year past the last one
+    published uses the last one, and a year before the first uses the first.
+    """
+    years = [y for y in _ACA_TABLES if y <= calendar_year]
+    return _ACA_TABLES[max(years) if years else min(_ACA_TABLES)]
+
+
+def _aca_fpl(calendar_year, size, gamma_n, thisyear):
+    """
+    Poverty line ($) for ACA coverage in calendar_year, for a tax household of size 1 or 2.
+
+    The line is "the most recently published poverty line as of the 1st day of the regular
+    enrollment period" (IRC 36B(d)(3)(B); 26 CFR 1.36B-1(h)). Open enrollment for year Y starts in
+    November of Y-1, so coverage in Y uses the guideline published in Y-1 (#200). A published
+    guideline is used as is. A year past the last one published grows it by inflation from its own
+    year, gamma_n from plan year latest - thisyear to z - thisyear, and a year before the first
+    deflates the first likewise. Before the plan, inflation is taken at the plan's first-year rate.
+    """
+    z = calendar_year - 1
+    if z in _ACA_FPL:
+        return float(_ACA_FPL[z][size - 1])
+
+    rate = gamma_n[1] / gamma_n[0] if len(gamma_n) > 1 else 1.0
+
+    def growth(k):
+        if k < 0:
+            return gamma_n[0] * rate**k
+        if k >= len(gamma_n):
+            return gamma_n[-1] * rate ** (k - len(gamma_n) + 1)
+        return gamma_n[k]
+
+    base = max(_ACA_FPL) if z > max(_ACA_FPL) else min(_ACA_FPL)
+    return float(_ACA_FPL[base][size - 1] * growth(z - thisyear) / growth(base - thisyear))
+
+
+def _aca_contrib_pct(ratio, breakpoints, contrib_pct, initial_pct=None):
+    """Interpolate contribution percentage from FPL ratio. Caller handles ratio below/above range.
+
+    The band from breakpoints[k] to breakpoints[k+1] runs from initial_pct[k] to contrib_pct[k+1].
+    Without initial_pct each band starts where the previous one ends (initial_pct[k] = contrib_pct[k]).
+    """
     idx = int(np.searchsorted(breakpoints, ratio, side="right")) - 1
     idx = max(0, min(idx, len(breakpoints) - 2))
     lo, hi = breakpoints[idx], breakpoints[idx + 1]
     t = (ratio - lo) / (hi - lo)
-    return contrib_pct[idx] + t * (contrib_pct[idx + 1] - contrib_pct[idx])
+    start = contrib_pct[idx] if initial_pct is None else initial_pct[idx]
+    return start + t * (contrib_pct[idx + 1] - start)
 
 
-def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0):
+def _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear):
+    """
+    The ACA household and coverage families of each plan year, by the month.
+
+    Returns (family_n, parts_n). family_n[n] is the family size for the poverty line: the tax
+    household, 2 while both spouses are alive and 1 after the first death, whoever is enrolled
+    (IRC 36B(d)(1); 26 CFR 1.36B-1(d)(2): "including both spouses in the case of a joint return",
+    issue #199). parts_n[n] lists (months, scale): the months of the year with one coverage family,
+    the members enrolled that month (26 CFR 1.36B-3(b)(2)), and the share of the household
+    benchmark that covers them, since the benchmark follows the coverage family month by month
+    (1.36B-3(f)(1), Example 7). An individual is enrolled in the months before Medicare
+    (medicareMonths), which come first in the year; a lone enrollee of a couple is covered by
+    couple_to_individual_fraction of the couple's benchmark.
+    """
+    Ni = len(yobs)
+    med = medicareMonths(yobs, horizons, N_n, mobs, tobs, thisyear)
+    family_n = np.zeros(N_n, dtype=int)
+    parts_n = []
+    for n in range(N_n):
+        alive = [i for i in range(Ni) if n < horizons[i]]
+        family_n[n] = len(alive)
+        aca = {i: 12 - int(med[i, n]) for i in alive if med[i, n] < 12}
+        parts = []
+        if len(aca) == 2:
+            both = min(aca.values())
+            parts.append((both, 1.0))
+            j = max(aca, key=aca.get)
+            if aca[j] > both:
+                parts.append((aca[j] - both, couple_to_individual_fraction(thisyear + n - yobs[j])))
+        elif len(aca) == 1:
+            ((j, months),) = aca.items()
+            parts.append((months, couple_to_individual_fraction(thisyear + n - yobs[j]) if Ni == 2 else 1.0))
+        parts_n.append(parts)
+    return family_n, parts_n
+
+
+def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, n_aca_start=0, medical_n=None,
+             mobs=None, tobs=None, medicaid_n=None, gap="approx", slack=0.0):
     """
     Compute net ACA marketplace premium costs (after Premium Tax Credit) for each year.
 
     The Premium Tax Credit (PTC) = max(0, SLCSP - cap_pct * MAGI), where cap_pct
     is a piecewise-linear function of MAGI/FPL. Net cost = min(SLCSP, cap_pct * MAGI).
-    Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%);
-    2026+ uses Rev. Proc. 2025-25 (no subsidy above 400%).
+    Rules are year-aware: 2025 uses Rev. Proc. 2024-35 (8.5% cap above 400%); 2026 on has no
+    subsidy above 400% and uses the year's applicable percentage table (Rev. Proc. 2025-25 for 2026,
+    2026-26 for 2027, the last one after that; see _aca_table). Income of exactly 400% FPL still
+    qualifies: IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent" (#201). The poverty
+    line is the guideline published the year before (_aca_fpl, #200).
 
-    Eligibility: individual i is ACA-eligible in year n when:
-      - thisyear + n - yobs[i] < 65 (not yet on Medicare), AND
-      - n < horizons[i] (within planning horizon).
-
-    For a couple where both are pre-65, household size = 2 (joint marketplace plan).
-    When only one is pre-65, household size = 1 (individual plan for the remaining person).
-    In that transition, slcsp_annual is scaled by the CMS age rating fraction
-    (f_younger / (f_older + f_younger)) so that the couple's combined SLCSP is
-    automatically prorated to the remaining partner's individual plan.
+    Coverage is by the month (IRC 36B(b)): an individual is enrolled in the months of year n before
+    Medicare starts (medicareMonths, from birth months mobs and days tobs) while within the planning
+    horizon. Each coverage month costs the lesser of that month's benchmark and 1/12 of the
+    expected contribution. The poverty line is that of the tax household, 2 for a couple while both
+    are alive, even when one spouse is on Medicare (#199). When only one partner is enrolled, the
+    benchmark is the couple's scaled by the CMS age rating fraction
+    (f_younger / (f_older + f_younger)), the remaining partner's individual plan (see _aca_coverage).
 
     Note: ACA uses current-year MAGI (no 2-year lag like Medicare IRMAA).
 
-    Below 138% FPL the individual qualifies for Medicaid rather than marketplace
-    subsidies. This function returns the full SLCSP in that edge case and emits
-    no warning; callers should check for Medicaid eligibility if desired.
+    Up to and including the year's Medicaid limit the household is covered by Medicaid, at no
+    premium: medicaid_n[n] x FPL, 138% in expansion states (the default), 100% in Wisconsin and none
+    in the other states without the expansion (tax_state.medicaid_limit, #202). Where the limit is
+    below 100% FPL, income below 100% gets neither Medicaid nor the credit (IRC 36B(c)(1)(A)) and
+    pays the full benchmark: that is gap="exact", which optimize mode prices with its own bracket.
+    The self-consistent loop uses gap="approx", charging the lowest applicable percentage there as
+    from 100%: the exact cost jumps to the full benchmark below 100%, and the loop would oscillate
+    across that jump. The approximation understates the cost of such years; plan.py warns about them.
 
     Parameters
     ----------
@@ -515,6 +755,18 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     n_aca_start : int, optional
         Plan year index when ACA coverage begins (default 0 = plan start).
         Years before this index are set to zero regardless of eligibility.
+    medical_n : array, optional
+        Growth factors for the SLCSP premium, length >= N_n. Defaults to gamma_n; pass a
+        faster series when medical prices outgrow inflation. The poverty line follows gamma_n.
+    medicaid_n : array, optional
+        Medicaid limit of each plan year, as a multiple of FPL (tax_state.medicaid_limit of the
+        state of residence). Defaults to 1.38 every year.
+    gap : str, optional
+        Pricing of the coverage gap below 100% FPL: "approx" (default, the loop's) or "exact".
+    slack : float, optional
+        Dollars by which a MAGI parked on an edge is read on its own side of it, as in irmaaTier:
+        below the Medicaid limit and the 400% cliff, which both include their edge, and at or above
+        100% FPL, where the credit starts. The cost itself is that of MAGI.
 
     Returns
     -------
@@ -524,43 +776,34 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
     """
     if slcsp_annual <= 0:
         return np.zeros(N_n)
+    if medical_n is None:
+        medical_n = gamma_n
 
     if thisyear is None:
         thisyear = date.today().year
-    Ni = len(yobs)
     costs = np.zeros(N_n)
-    fpl_max_year = max(_ACA_FPL.keys())  # Use for calendar years beyond latest
+
+    family_n, parts_n = _aca_coverage(yobs, horizons, N_n, mobs, tobs, thisyear)
 
     for n in range(max(0, n_aca_start), N_n):
-        # Determine ACA-eligible individuals for this year.
-        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
-        nelig = len(eligible)
-        if nelig == 0:
-            continue
+        if not parts_n[n]:
+            continue  # nobody enrolled this year
 
         calendar_year = thisyear + n
-        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl_base = _ACA_FPL[fpl_year]
-
-        hh_size = min(nelig, 2)
-        fpl = fpl_base[hh_size - 1] * gamma_n[n]
-        # For a couple plan transitioning to individual (one partner now on Medicare),
-        # scale SLCSP down using CMS age rating: fraction = f_younger / (f_older + f_younger).
-        if Ni == 2 and hh_size == 1:
-            age_remaining = thisyear + n - yobs[eligible[0]]
-            slcsp_scale = couple_to_individual_fraction(age_remaining)
-        else:
-            slcsp_scale = 1.0
-        slcsp = slcsp_annual * slcsp_scale * gamma_n[n]
+        fpl = _aca_fpl(calendar_year, family_n[n], gamma_n, thisyear)
+        slcsp = slcsp_annual * medical_n[n]
         magi = magi_n[n]
 
-        # Below 138% FPL: Medicaid territory; return full premium (no PTC).
-        if magi < 1.38 * fpl:
-            costs[n] = slcsp
+        # Up to the Medicaid limit (138% FPL in expansion states: 133% plus the 5% income disregard),
+        # no premium.
+        medicaid = _ACA_MEDICAID_RATIO if medicaid_n is None else medicaid_n[n]
+        if medicaid > 0 and magi - slack <= medicaid * fpl:
             continue
 
         ratio = magi / fpl
-        if calendar_year < 2026:
+        if magi + slack < fpl and gap == "exact":
+            cap_pct = np.inf  # coverage gap: no Medicaid, no credit
+        elif calendar_year < 2026:
             # 2025 rules: Rev. Proc. 2024-35, 8.5% cap above 400%
             if ratio < _ACA_BREAKPOINTS_2025[0]:
                 cap_pct = 0.0
@@ -569,32 +812,149 @@ def acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual, N_n, thisyear=None, 
             else:
                 cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2025, _ACA_CONTRIB_PCT_2025)
         else:
-            # 2026+ rules: Rev. Proc. 2025-25, no PTC above 400%
-            if ratio >= _ACA_BREAKPOINTS_2026[-1]:
-                costs[n] = slcsp
-                continue
-            if ratio < _ACA_BREAKPOINTS_2026[0]:
-                cap_pct = _ACA_CONTRIB_PCT_2026[0]
+            # 2026+ rules: the year's table, no PTC above 400% (exactly 400% still qualifies)
+            breakpoints, pct, initial = _aca_table(calendar_year)
+            if magi - slack > breakpoints[-1] * fpl:
+                cap_pct = np.inf
+            elif ratio < breakpoints[0]:
+                cap_pct = pct[0]
             else:
-                cap_pct = _aca_contrib_pct(ratio, _ACA_BREAKPOINTS_2026, _ACA_CONTRIB_PCT_2026)
+                cap_pct = _aca_contrib_pct(ratio, breakpoints, pct, initial)
 
-        costs[n] = min(slcsp, cap_pct * magi)
+        # Each coverage month pays the lesser of its benchmark and 1/12 of the contribution.
+        contribution = np.inf if np.isinf(cap_pct) else max(0.0, cap_pct * magi)
+        costs[n] = sum(months / 12 * min(scale * slcsp, contribution) for months, scale in parts_n[n])
 
     return costs
 
 
-def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
-    """
-    Return (n_aca, Lbar_aca_nr, cap_pct_aca_r, slcsp_aca_n) for the ACA LP/MIP formulation.
+def _aca_lp_breakpoints(medicaid=_ACA_MEDICAID_RATIO):
+    """LP bracket thresholds, as multiples of FPL, for a year whose Medicaid limit is medicaid.
 
-    Uses 2026+ ACA rules (N_ACA_R = 7 brackets). Bracket thresholds are FPL-based and
-    inflation-adjusted via gamma_n. Household size (1 or 2) determines which FPL base to use.
-    FPL base is year-aware (2025 vs 2026 from _ACA_FPL); contribution rates use 2026 table only.
+    The first threshold is the Medicaid limit, or 100% FPL where Medicaid stops below it (coverage
+    gap underneath); the second is 133%, where the lowest applicable percentage ends, unless the
+    first is already past it (expansion states: a zero-width bracket 1).
+    """
+    first = max(1.0, medicaid)
+    return np.concatenate(([first, max(_ACA_BREAKPOINTS_2026[0], first)], _ACA_LP_UPPER))
+
+
+_ACA_LP_BREAKPOINTS = _aca_lp_breakpoints()  # expansion states
+
+
+def _aca_lp_from_above(medicaid=_ACA_MEDICAID_RATIO):
+    """Which LP thresholds belong to the bracket above them, for a year whose Medicaid limit is medicaid.
+
+    Most edges belong to the bracket below: Medicaid covers income up to its limit, the credit income
+    that "does not exceed 400 percent", and the other sliding-scale edges are continuous. Two belong
+    to the bracket above: 100% FPL where a coverage gap ends, since the credit starts at income that
+    "equals or exceeds 100 percent" (IRC 36B(c)(1)(A)), and 133%, where the table's "at least 133%"
+    percentage jumps above the lowest one (#202). plan.py moves those upper bounds below the edge.
+    """
+    first = max(1.0, medicaid)
+    mask = np.zeros(len(_ACA_LP_UPPER) + 2, dtype=bool)
+    mask[0] = medicaid < 1.0
+    mask[1] = first < _ACA_BREAKPOINTS_2026[0]
+    return mask
+
+
+def _aca_pct(ratio, table):
+    """Applicable percentage at ratio x FPL on the 2026+ table, the lowest one below its first band."""
+    breakpoints, pct, initial = table
+    if ratio < breakpoints[0]:
+        return pct[0]
+    return _aca_contrib_pct(ratio, breakpoints, pct, initial)
+
+
+def _aca_lp_band(r, table=None, medicaid=_ACA_MEDICAID_RATIO):
+    """(lower, upper, pct at lower, pct at upper) of LP bracket r (1..6), as multiples of FPL.
+
+    table is the year's applicable percentage table (_aca_table); defaults to the 2026 one.
+    medicaid is the year's Medicaid limit (_aca_lp_breakpoints).
+    """
+    table = _ACA_TABLES[2026] if table is None else table
+    breakpoints = _aca_lp_breakpoints(medicaid)
+    lo, hi = breakpoints[r - 1], breakpoints[r]
+    p_lo = _aca_pct(lo, table)
+    p_hi = _aca_pct(hi - 1e-12, table) if hi > lo else p_lo
+    return lo, hi, p_lo, p_hi
+
+
+def _aca_band_cost_coefs(r, fpl, table=None, medicaid=_ACA_MEDICAID_RATIO):
+    """Coefficients (a, b) of the bracket's cost a*M + b*M**2 in MAGI dollars M.
+
+    The applicable percentage rises linearly across the bracket, p = p_lo + s*(M/fpl - lo), so the
+    expected contribution p*M is quadratic in M and convex (b >= 0).
+    """
+    lo, hi, p_lo, p_hi = _aca_lp_band(r, table, medicaid)
+    s = (p_hi - p_lo) / (hi - lo) if hi > lo else 0.0
+    return p_lo - s * lo, s / fpl
+
+
+def _aca_tangents(fpl, table=None, medicaid=_ACA_MEDICAID_RATIO):
+    """Tangent lines (slope, intercept) under each bracket's cost, shape (N_ACA_R, K, 2), in dollars.
+
+    Bracket 0 (Medicaid or the coverage gap) and bracket 7 (full SLCSP) have no proportional cost
+    and stay zero; acaVals prices the coverage gap.
+    """
+    tan = np.zeros((N_ACA_R, _ACA_LP_TANGENTS, 2))
+    for r in range(1, N_ACA_R - 1):
+        lo, hi, _, _ = _aca_lp_band(r, table, medicaid)
+        a, b = _aca_band_cost_coefs(r, fpl, table, medicaid)
+        for k, x in enumerate(np.linspace(lo, hi, _ACA_LP_TANGENTS)):
+            m = x * fpl
+            tan[r, k] = (a + 2 * b * m, -b * m * m)
+    return tan
+
+
+def _aca_capped_limits(fpl, slcsp, table=None, medicaid=_ACA_MEDICAID_RATIO):
+    """LP bracket thresholds ($), clipped at the MAGI where the expected contribution reaches the SLCSP.
+
+    The net premium is min(SLCSP, contribution). The contribution only rises with MAGI, so from the
+    first MAGI where it reaches the SLCSP every higher income pays the full premium: the cost of the
+    last bracket. Clipping the thresholds there moves those incomes into the last bracket, and the
+    brackets above the crossing get zero width (issue #161). The crossing is found on the sliding
+    scale, where the cost is quadratic in MAGI within a bracket.
+    """
+    limits = _aca_lp_breakpoints(medicaid) * fpl
+    if slcsp <= 0:
+        return np.zeros_like(limits)  # no premium: every income in the last bracket, at no cost
+    for r in range(1, N_ACA_R - 1):
+        lo, hi, _, p_hi = _aca_lp_band(r, table, medicaid)
+        if hi <= lo or slcsp > p_hi * hi * fpl:
+            continue  # empty, or the whole bracket costs less than the SLCSP
+        a, b = _aca_band_cost_coefs(r, fpl, table, medicaid)
+        if b > 0:
+            m_star = (-a + np.sqrt(a * a + 4 * b * slcsp)) / (2 * b)
+        else:
+            m_star = slcsp / a
+        return np.minimum(limits, max(lo * fpl, m_star))
+    return limits
+
+
+def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0, medical_n=None, mobs=None, tobs=None,
+            medicaid_n=None):
+    """
+    Return (n_aca, Lbar_aca_nr, tangents_aca_nrk, slcsp_aca_n) for the ACA LP/MIP formulation.
+
+    Uses 2026+ ACA rules (N_ACA_R = 8 brackets). Bracket thresholds are multiples of the poverty
+    line of the tax household (1 or 2), the guideline published the year before (_aca_fpl, #200).
+    Each year uses its applicable percentage table (_aca_table, #201). Income of exactly 400% FPL
+    stays in bracket 5, whose upper bound is inclusive. Coverage months and benchmarks follow
+    _aca_coverage, as in acaCosts.
 
     Limitations:
-      - No year-awareness for contribution rates: always 2026 rules. Plans starting in 2025
-        use 2026 rates; SC-loop mode (acaCosts) is year-aware.
-      - MAGI below 138% FPL: LP uses bracket 0 at 2.1% instead of full SLCSP (Medicaid).
+      - A plan starting in 2025 is priced on the 2026 rules; SC-loop mode (acaCosts) applies the
+        2025 rules to that year.
+      - Below the year's first threshold: bracket 0, Medicaid at no premium up to the Medicaid limit
+        (medicaid_n, 1.38 by default), or, where that limit is below 100% FPL, the coverage gap at
+        the full SLCSP (acaCosts with gap="exact"). Its tangents carry that cost (slope 0).
+      - Within brackets 1-5 the cost follows the sliding scale through tangent lines, slightly from
+        below between tangent points.
+      - A year with two coverage families (one partner moving to Medicare during the year) is
+        priced on their months-weighted benchmark: min(sum of benchmarks, months/12 * contribution)
+        rather than acaCosts's sum of the families' lesser amounts. That keeps one premium cap per
+        year and charges slightly more, only for MAGI between the two caps.
 
     Parameters
     ----------
@@ -611,64 +971,86 @@ def acaVals(yobs, horizons, gamma_n, slcsp_annual, Nn, n_aca_start=0):
     n_aca_start : int, optional
         Plan-year index at which ACA coverage begins. Years before this index are zeroed
         (e.g. still on employer coverage). Default 0 = coverage from plan start.
+    medical_n : array, optional
+        Growth factors for the SLCSP premium, length >= Nn. Defaults to gamma_n.
+    medicaid_n : array, optional
+        Medicaid limit of each plan year, as a multiple of FPL. Defaults to 1.38 every year.
 
     Returns
     -------
     n_aca : int
         Number of ACA-eligible plan years (0 = no ACA in LP).
     Lbar_aca_nr : ndarray, shape (n_aca, N_ACA_R-1)
-        Inflation-adjusted FPL bracket thresholds per year ($).
-    cap_pct_aca_r : ndarray, shape (N_ACA_R,)
-        Contribution rates per bracket (constant across years).
+        Inflation-adjusted FPL bracket thresholds per year ($), clipped at the MAGI where the
+        contribution reaches the SLCSP (see _aca_capped_limits).
+    tangents_aca_nrk : ndarray, shape (n_aca, N_ACA_R, _ACA_LP_TANGENTS, 2)
+        Per year and bracket, the (slope, intercept) of tangent lines under the bracket's cost in
+        dollars of MAGI; the cost charged is the largest of them.
     slcsp_aca_n : ndarray, shape (n_aca,)
         Inflation-adjusted SLCSP premium cap per year ($). Zero for nn < n_aca_start.
     """
-    empty = (0, np.zeros((0, N_ACA_R - 1)), _ACA_LP_CONTRIB.copy(), np.zeros(0))
+    empty = (0, np.zeros((0, N_ACA_R - 1)), np.zeros((0, N_ACA_R, _ACA_LP_TANGENTS, 2)), np.zeros(0))
     if slcsp_annual <= 0:
         return empty
+    if medical_n is None:
+        medical_n = gamma_n
 
     thisyear = date.today().year
-    Ni = len(yobs)
-    fpl_max_year = max(_ACA_FPL.keys())
 
-    # n_aca = first year when no individual is ACA-eligible (age < 65 and within horizon).
-    n_aca_i = [min(max(0, yobs[i] + 65 - thisyear), horizons[i]) for i in range(Ni)]
-    n_aca = min(max(n_aca_i), Nn)
+    # n_aca = the year after the last one with anybody enrolled.
+    family_n, parts_n = _aca_coverage(yobs, horizons, Nn, mobs, tobs, thisyear)
+    covered = [n for n in range(Nn) if parts_n[n]]
+    n_aca = covered[-1] + 1 if covered else 0
 
     if n_aca == 0:
         return empty
 
     Lbar = np.zeros((n_aca, N_ACA_R - 1))
+    tangents = np.zeros((n_aca, N_ACA_R, _ACA_LP_TANGENTS, 2))
     slcsp_aca_n = np.zeros(n_aca)
 
     for nn in range(n_aca):
         if nn < n_aca_start:
             continue  # Before ACA coverage starts; arrays stay zero (LP pins maca=0 via zero slcsp cap)
         n = nn  # ACA uses current year (no 2-year lag like Medicare)
-        eligible = [i for i in range(Ni) if thisyear + n - yobs[i] < 65 and n < horizons[i]]
-        hh_size = min(len(eligible), 2)
-        if hh_size == 0:
-            continue  # No ACA-eligible individuals this year; thresholds stay zero
+        if not parts_n[n]:
+            continue  # Nobody enrolled this year; thresholds stay zero
 
         calendar_year = thisyear + n
-        fpl_year = calendar_year if calendar_year in _ACA_FPL else fpl_max_year
-        fpl = _ACA_FPL[fpl_year][hh_size - 1] * gamma_n[n]
+        fpl = _aca_fpl(calendar_year, family_n[n], gamma_n, thisyear)
+        table = _aca_table(calendar_year)
 
-        Lbar[nn] = _ACA_LP_BREAKPOINTS * fpl
-        # Scale SLCSP for couple-to-individual transition (same logic as acaCosts).
-        if Ni == 2 and hh_size == 1:
-            age_remaining = thisyear + n - yobs[eligible[0]]
-            slcsp_scale = couple_to_individual_fraction(age_remaining)
-        else:
-            slcsp_scale = 1.0
-        slcsp_aca_n[nn] = slcsp_annual * slcsp_scale * gamma_n[n]
+        # The year's benchmark is the sum over its coverage months, and the contribution is owed
+        # for the fraction of the year with anybody enrolled.
+        frac = sum(months for months, _ in parts_n[n]) / 12
+        slcsp_aca_n[nn] = slcsp_annual * medical_n[n] * sum(months * scale for months, scale in parts_n[n]) / 12
+        medicaid = _ACA_MEDICAID_RATIO if medicaid_n is None else medicaid_n[n]
+        Lbar[nn] = _aca_capped_limits(fpl, slcsp_aca_n[nn] / frac, table, medicaid)
+        tangents[nn] = frac * _aca_tangents(fpl, table, medicaid)
+        if medicaid < 1.0:
+            tangents[nn, 0, :, 1] = slcsp_aca_n[nn]  # coverage gap below 100% FPL: the full SLCSP
 
-    return n_aca, Lbar, _ACA_LP_CONTRIB.copy(), slcsp_aca_n
+    return n_aca, Lbar, tangents, slcsp_aca_n
+
+
+def taxBirthYears(yobs, mobs, tobs):
+    """
+    Birth years as the federal age-65 tests count them, for taxParams and seniorBonusSchedule.
+
+    The additional standard deduction (IRC 63(f)) and the OBBBA senior deduction
+    (IRC 151(d)(5)(C)(ii), Pub. L. 119-21 sec. 70103) require having attained age 65 before the
+    close of the taxable year, and the IRS treats a person as reaching an age on the day before the
+    birthday: "A person is considered to reach age 65 on the day before the person's 65th birthday"
+    (2025 Instructions for Form 1040). A January 1 birthday therefore counts in the year before,
+    which is why the 2025 instructions read "born before January 2, 1961".
+    """
+    yobs = np.asarray(yobs)
+    return yobs - ((np.asarray(mobs) == 1) & (np.asarray(tobs) == 1)).astype(yobs.dtype)
 
 
 def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
     """
-    Input is year of birth, index of shortest-lived individual,
+    Input is year of birth (as returned by taxBirthYears), index of shortest-lived individual,
     lifespan of shortest-lived individual, total number of years
     in the plan, and the year that preTCJA rates might come back.
 
@@ -714,7 +1096,8 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
             if thisyear + n - yobs[i] >= 65:
                 sigmaBar[n] += extra65Deduction[filingStatus] * gamma_n[n]
                 if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
-                    sigmaBar[n] += max(0, 6000 - 0.06 * max(0, MAGI_n[n] - bonusThreshold[filingStatus]))
+                    excess = max(0, MAGI_n[n] - bonusThreshold[filingStatus])
+                    sigmaBar[n] += max(0, SENIOR_BONUS - SENIOR_BONUS_PHASEOUT_RATE * excess)
 
         # Fill in future tax rates for year n.
         if thisyear + n < yOBBBA:
@@ -729,6 +1112,31 @@ def taxParams(yobs, i_d, n_d, N_n, gamma_n, MAGI_n, yOBBBA=_YEAR_FAR_FUTURE):
     return sigmaBar, theta, Delta
 
 
+def seniorBonusSchedule(yobs, i_d, n_d, N_n):
+    """
+    The OBBBA 65+ bonus deduction by plan year, as taxParams applies it.
+
+    Returns (count_n, threshold_n): the number of individuals who receive the bonus in year n
+    (0 outside the bonus years, or when nobody is 65 or older), and the MAGI threshold of that
+    year's filing status, above which each individual's bonus shrinks by
+    SENIOR_BONUS_PHASEOUT_RATE per dollar, down to zero.
+    Birth years yobs are as returned by taxBirthYears.
+    """
+    count_n = np.zeros(N_n, dtype=int)
+    threshold_n = np.zeros(N_n)
+    filingStatus = len(yobs) - 1
+    souls = list(range(len(yobs)))
+    thisyear = date.today().year
+    for n in range(N_n):
+        if n == n_d:
+            souls.remove(i_d)
+            filingStatus -= 1
+        threshold_n[n] = bonusThreshold[filingStatus]
+        if thisyear + n <= OBBBA_BONUS_EXPIRATION_YEAR:
+            count_n[n] = sum(1 for i in souls if thisyear + n - yobs[i] >= 65)
+    return count_n, threshold_n
+
+
 def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     """
     Return dictionary containing future tax brackets
@@ -737,8 +1145,7 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     if not (0 < N_i <= 2):
         raise ValueError(f"Cannot process {N_i} individuals.")
 
-    n_d = min(n_d, N_n)
-    status = N_i - 1
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     # Number of years left in OBBBA from this year.
     thisyear = date.today().year
@@ -751,12 +1158,23 @@ def taxBrackets(N_i, n_d, N_n, yOBBBA=_YEAR_FAR_FUTURE):
     for t in range(len(taxBracketNames) - 1):
         array = np.zeros(N_n)
         for n in range(N_n):
-            stat = status if n < n_d else 0
+            stat = status_n[n]
             array[n] = taxBrackets_OBBBA[stat][t] if n < ytc else taxBrackets_preTCJA[stat][t]
 
         data[taxBracketNames[t]] = array
 
     return data
+
+
+def filingStatusIndex_n(N_i, n_d, N_n):
+    """
+    Filing status of each plan year as an index into the [single, MFJ] tables: a couple
+    files jointly through the year of the first death (n < n_d) and single after; a single
+    person files single throughout. n_d of None or past the plan means no death in it.
+    """
+    if n_d is None:
+        n_d = N_n
+    return np.where(np.arange(N_n) < n_d, N_i - 1, 0)
 
 
 def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
@@ -765,17 +1183,39 @@ def computeNIIT(N_i, MAGI_n, I_n, Q_n, n_d, N_n):
     I_n already includes rent and trust income from the 'net inv' column of the HFP.
     """
     J_n = np.zeros(N_n)
-    status = N_i - 1
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
 
     for n in range(N_n):
-        if status and n == n_d:
-            status -= 1
-
-        Gmax = niitThreshold[status]
+        Gmax = niitThreshold[status_n[n]]
         if MAGI_n[n] > Gmax:
             J_n[n] = niitRate * min(MAGI_n[n] - Gmax, I_n[n] + Q_n[n])
 
     return J_n
+
+
+def payrollTax(N_i, earnings_in, gamma_n, n_d, N_n, year0=None):
+    """
+    Compute the employee's payroll tax on earnings (nominal), one total per year.
+
+    Social security tax is per person, on earnings up to the wage base: the published
+    nominal base in a year that has one, the last one held flat in real terms after it
+    (``year0`` is the first plan year, default this year). Medicare tax is on all
+    earnings. The Additional Medicare Tax is on the household's combined earnings above
+    the threshold, joint through the year of the first death and single after
+    (filingStatusIndex_n). Self-employment tax is not modeled: all earnings are taken as wages.
+    The tax is not deductible, so it enters no income-tax computation.
+    """
+    earnings_in = np.maximum(np.asarray(earnings_in, dtype=float)[:, :N_n], 0.0)
+    if year0 is None:
+        year0 = date.today().year
+    base_n = u.nominal_by_year(payrollWageBase, year0, gamma_n, N_n)
+    payroll_n = np.sum(payrollSSRate * np.minimum(earnings_in, base_n) + payrollMedicareRate * earnings_in, axis=0)
+    status_n = filingStatusIndex_n(N_i, n_d, N_n)
+
+    for n in range(N_n):
+        payroll_n[n] += payrollAddlRate * max(0.0, np.sum(earnings_in[:, n]) - payrollAddlThreshold[status_n[n]])
+
+    return payroll_n
 
 
 def rho_in(yobs, longevity, N_n):

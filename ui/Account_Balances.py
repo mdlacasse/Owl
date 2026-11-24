@@ -45,12 +45,20 @@ else:
         for key in accounts:
             nkey = key + str(0)
             kz.initCaseKey(nkey, 0)
-            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
+            ret = kz.getNum(f"{iname}'s {accounts[key]} accounts (\\$k)", nkey, help=hdetails[key] + kz.help1000)
 
         today = date.today()
         thisyear = today.year
         kz.initCaseKey("startDate", today)
-        helpmsg = "Date at which savings balances are known. Values will be back projected to Jan 1st."
+        helpmsg = (
+            "Date at which savings balances are known. Values are back-projected to January 1 for "
+            "growth only, and the first year is a full calendar year, so flows already made this year "
+            "are counted again. Use January 1 balances when you have them; otherwise enter only the "
+            "contributions, QCDs and big-ticket items still to come this year in the Wages and "
+            "Contributions table, keeping wages at their full-year amount. To offset the spending "
+            "already done, add to the taxable balance the spending and taxes paid since January 1 "
+            "minus the wages, benefits and pensions received since then. See Documentation."
+        )
         ret = st.date_input(
             "Account balance date",
             min_value=date(thisyear, 1, 1),
@@ -68,12 +76,12 @@ else:
             for key in accounts:
                 nkey = key + str(1)
                 kz.initCaseKey(nkey, 0)
-                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts ($k)", nkey, help=hdetails[key] + kz.help1000)
+                ret = kz.getNum(f"{iname1}'s {accounts[key]} accounts (\\$k)", nkey, help=hdetails[key] + kz.help1000)
 
     st.divider()
     st.markdown("#### :orange[Taxable Account Cost Basis] *(optional)*")
     basis_help = (
-        "Current cost basis of the taxable account for this person ($k). "
+        "Current cost basis of the taxable account for this person (\\$k). "
         "When provided, capital gains on withdrawals are computed from the actual "
         "unrealized-gain fraction (average-cost method) rather than only this year's "
         "price appreciation. Leave at 0 if unknown — the legacy approximation will be used."
@@ -83,13 +91,13 @@ else:
         iname = kz.getCaseKey("iname0")
         nkey = "txblBasis0"
         kz.initCaseKey(nkey, 0.0)
-        kz.getNum(f"{iname}'s taxable cost basis ($k)", nkey, help=basis_help)
+        kz.getNum(f"{iname}'s taxable cost basis (\\$k)", nkey, help=basis_help)
     with col2:
         if kz.getCaseKey("status") == "married":
             iname1 = kz.getCaseKey("iname1")
             nkey = "txblBasis1"
             kz.initCaseKey(nkey, 0.0)
-            kz.getNum(f"{iname1}'s taxable cost basis ($k)", nkey, help=basis_help)
+            kz.getNum(f"{iname1}'s taxable cost basis (\\$k)", nkey, help=basis_help)
 
     inames = [kz.getCaseKey("iname0")]
     if kz.getCaseKey("status") == "married":
@@ -149,7 +157,7 @@ else:
 
             st.markdown("#####")
             st.markdown("#### :orange[Cash Flow Surplus Deposit Fraction]")
-            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="top")
+            col1, col2, col3 = st.columns(3, gap="large", vertical_alignment="bottom")
             with col1:
                 kz.initCaseKey("surplusFraction", 0.5)
                 helpmsg = (
@@ -163,6 +171,17 @@ else:
                     help=helpmsg,
                     max_value=1.0,
                     step=0.05,
+                    disabled=bool(kz.getCaseKey("surplusFractionOptimize")),
+                )
+            with col2:
+                kz.initCaseKey("surplusFractionOptimize", False)
+                ret = kz.getToggle(
+                    "Let the optimizer split each surplus",
+                    "surplusFractionOptimize",
+                    help="While both spouses live, the optimizer chooses each year how much of a surplus goes to "
+                    "each spouse's taxable account, and the fraction is ignored. Do not use it when "
+                    "beneficiary fractions are not all 1: the optimizer would then also decide how much "
+                    "reaches the heirs of the first spouse to pass.",
                 )
 
     # Show progress bar at bottom (only when case is defined)

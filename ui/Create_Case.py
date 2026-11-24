@@ -20,6 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from datetime import date
 from io import StringIO
 import streamlit as st
 
@@ -36,12 +37,26 @@ def _state_choices():
     return [""] + _ts.valid_states()
 
 
+def _lastPlanYear():
+    """Last year of the plan, as Plan computes it: the latest birth year plus longevity."""
+    n = 2 if kz.getCaseKey("status") == "married" else 1
+    # A spouse's date of birth and longevity are set only once the spouse is named.
+    known = [i for i in range(n) if kz.getCaseKey(f"dob{i}") and kz.getCaseKey(f"life{i}") is not None]
+    return max((int(str(kz.getCaseKey(f"dob{i}"))[:4]) + int(kz.getCaseKey(f"life{i}")) for i in known), default=0)
+
+
 def _loadHFPExample(file):
     if file:
         hfp_name = tomlex.getHFPName(file)
         mybytesio = tomlex.loadWagesExample(file)
         if mybytesio is not None:
             owb.readHFP(mybytesio, file=hfp_name)
+
+
+def _deleteCase():
+    kz.deleteCurrentCase()
+    # Close the popover so a second click cannot delete the next case.
+    st.session_state["delete_case_popover"] = False
 
 
 def _render_case_loader():
@@ -148,6 +163,42 @@ else:
     )
     with col3:
         kz.getSelectbox("State of residence (for state taxes)", _state_choices(), "state", help=_state_help)
+        thisyear = date.today().year
+        kz.initCaseKey("stateMoveEnabled", False)
+        kz.initCaseKey("stateMoveYear", thisyear + 5)
+        kz.initCaseKey("stateMoveState", "")
+        _move_help = (
+            "Model one change of state during the plan. "
+            "The state of residence on December 31 taxes the whole year, "
+            "so the year of the move is taxed by the new state."
+        )
+        kz.getToggle("Move to another state during the plan", "stateMoveEnabled", help=_move_help)
+        if kz.getCaseKey("stateMoveEnabled"):
+            # setStateTax refuses a move outside the plan, whose last year follows the longevities.
+            lastyear = max(_lastPlanYear(), thisyear + 1)
+            moveyear = min(max(int(kz.getCaseKey("stateMoveYear")), thisyear + 1), lastyear)
+            if moveyear != kz.getCaseKey("stateMoveYear"):
+                kz.setCaseKey("stateMoveYear", moveyear)
+                kz.storeGlobalKey(kz.genCaseKey("stateMoveYear"), moveyear)
+            mcol1, mcol2 = st.columns(2, gap="small", vertical_alignment="top")
+            with mcol1:
+                kz.getIntNum(
+                    "Year of the move",
+                    "stateMoveYear",
+                    min_value=thisyear + 1,
+                    max_value=lastyear,
+                    help=f"First calendar year taxed by the new state, from {thisyear + 1} to {lastyear}, "
+                    "the last year of the plan.",
+                )
+            with mcol2:
+                kz.getSelectbox(
+                    "New state",
+                    _state_choices(),
+                    "stateMoveState",
+                    help="State of residence from that year on. Leave blank to stop modeling state taxes.",
+                )
+            if kz.getCaseKey("stateMoveState") == kz.getCaseKey("state"):
+                st.warning("The new state is the starting state: the move will be ignored.", icon=":material/warning:")
 
     kz.initCaseKey("description", "")
     helpmsg = "Provide a short distinguishing description for the case."
@@ -272,6 +323,9 @@ Once changes are complete, click the `Create case` button.""")
                     args=[tomlexcase],
                 )
         st.divider()
+    elif kz.caseHasPlan():
+        # The uploader above is gone once a workbook is read.
+        kz.hfp_loaded_caption()
 
     col1, col2, col3 = st.columns(3, gap="small", vertical_alignment="top")
     with col1:
@@ -286,11 +340,9 @@ Then, click on the `Create case` button once all parameters on this page are set
 
     with col3:
         helpmsg = "`Delete case` removes all parameters associated with the case."
-        with st.popover("Delete case :material/delete:", help=helpmsg):
+        with st.popover("Delete case :material/delete:", help=helpmsg, key="delete_case_popover", on_change="rerun"):
             st.warning("This cannot be undone.", icon=":material/warning:")
-            if st.button("Confirm delete", type="primary"):
-                kz.deleteCurrentCase()
-                st.rerun()
+            st.button("Confirm delete", type="primary", on_click=_deleteCase)
 
 # Show progress bar at bottom (only when a case is selected)
 if ret is not None:

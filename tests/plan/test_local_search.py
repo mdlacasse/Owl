@@ -1,0 +1,328 @@
+"""
+Local search (mipStrategy="local-search"): fix-and-optimize over the threshold binaries.
+
+The guarantees under test: the result is never worse than the self-consistent loop's plan, the
+full MILP is never solved, a search that cannot start keeps the loop's plan and says so, and the
+Summary always reports how the thresholds were treated.
+
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+"""
+
+import copy
+import io
+import pathlib
+import time
+
+import numpy as np
+import pytest
+
+import owlplanner as owl
+from owlplanner import localsearch, tax_federal
+from owlplanner.config import config_to_ui, ui_to_config, load_toml
+
+_EXAMPLES = pathlib.Path(__file__).resolve().parents[2] / "examples"
+
+
+def _load(case="Case_jack+jill.toml"):
+    return owl.readConfig(str(_EXAMPLES / case), verbose=False, logstreams=[io.StringIO()])
+
+
+def _value(p):
+    return p.g_n[0] if p.objective == "maxSpending" else p.bequest
+
+
+def _loop_options(p):
+    """The case's own options with every threshold family in loop mode (the search's floor)."""
+    opts = dict(p.solverOptions)
+    for k in ("withSSTaxability", "withLTCG", "withNIIT", "withACA", "withMedicare"):
+        if opts.get(k) == "optimize":
+            opts[k] = "loop"
+    return opts
+
+
+@pytest.fixture(scope="module")
+def jack_jill_pair():
+    """The same case solved by the loop and by local search."""
+    loop = _load()
+    loop.solve(loop.objective, options=_loop_options(loop))
+    ls = _load()
+    # A 30 s budget: what these tests check (never worse than the loop, no full MILP, the Summary label,
+    # the restored LTCG binaries) holds whatever the search reaches, and HiGHS otherwise spends the
+    # whole 300 s default here.
+    ls.solve(ls.objective, options={**ls.solverOptions, "breakpointMethod": "local-search", "localSearchTime": 30})
+    return loop, ls
+
+
+@pytest.mark.toml
+def test_never_worse_than_the_loop(jack_jill_pair):
+    loop, ls = jack_jill_pair
+    assert loop.caseStatus == "solved" and ls.caseStatus == "solved"
+    assert _value(ls) >= _value(loop) - 1.0
+    assert ls.breakpointMethodUsed.startswith("local search")
+    assert ls.localSearchLog, "the search kept no log"
+
+
+@pytest.mark.toml
+def test_never_solves_the_full_milp(jack_jill_pair):
+    """Every step is a restricted problem: something is pinned, or it is an LP or a repair."""
+    _, ls = jack_jill_pair
+    for it in ls.localSearchLog:
+        for step in it["steps"]:
+            assert step["step"].startswith(("start:", "round")), step["step"]
+
+
+@pytest.mark.toml
+def test_no_starting_plan_keeps_the_loop(monkeypatch):
+    def no_start(self, options, steps):
+        raise localsearch.NoIncumbent()
+
+    monkeypatch.setattr(localsearch.LocalSearch, "_incumbent", no_start)
+    loop = _load()
+    loop.solve(loop.objective, options=_loop_options(loop))
+    p = _load()
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert _value(p) == pytest.approx(_value(loop), rel=1e-9)
+    assert p.breakpointMethodUsed == "local search -> loop"
+    # The case keeps the strategy it asked for, for saving and for the UI.
+    assert p.solverOptions["breakpointMethod"] == "local-search"
+
+
+@pytest.mark.toml
+def test_time_budget_is_respected():
+    """With no budget the search stops after its starting plan, still never below the loop."""
+    loop = _load()
+    loop.solve(loop.objective, options=_loop_options(loop))
+    p = _load()
+    t = time.time()
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search", "localSearchTime": 0})
+    assert time.time() - t < 120
+    assert p.caseStatus == "solved"
+    assert _value(p) >= _value(loop) - 1.0
+    for it in p.localSearchLog:
+        assert all(s["step"].startswith("start:") for s in it["steps"])
+
+
+def test_preset_sets_the_families_and_the_strategy():
+    p = _load()
+    opts = {"breakpointMethod": "local-search", "withMedicare": "loop"}
+    p._applyBreakpointOptions(opts)
+    for k in ("withSSTaxability", "withLTCG", "withNIIT", "withMedicare"):
+        assert opts[k] == "optimize", k
+    assert opts["mipStrategy"] == "local-search"
+    assert "withACA" not in opts  # no benchmark premium in this case
+
+    off = {"breakpointMethod": "branch-and-bound", "withMedicare": "None"}
+    p._applyBreakpointOptions(off)
+    assert off["withMedicare"] == "None" and off["mipStrategy"] == "branch-and-bound"
+
+    unchanged = {"breakpointMethod": "loop"}
+    p._applyBreakpointOptions(unchanged)
+    assert unchanged == {"breakpointMethod": "loop"}
+
+
+@pytest.mark.parametrize("opts", [{"breakpointMethod": "exact"}, {"mipStrategy": "exact"}])
+def test_invalid_values_are_rejected(opts):
+    with pytest.raises(ValueError):
+        _load()._applyBreakpointOptions(dict(opts))
+
+
+def test_ordering_goes_to_branch_and_bound():
+    p = _load()
+    opts = {"withNIIT": "optimize", "mipStrategy": "local-search", "withdrawalOrder": "taxable_first"}
+    assert not p._useLocalSearch(opts)
+    assert opts["mipStrategy"] == "branch-and-bound"
+
+
+def test_threshold_method_label():
+    p = _load()
+    assert p._breakpointMethodLabel({}) == "loop"
+    assert p._breakpointMethodLabel({"withNIIT": "optimize"}) == "branch-and-bound (NIIT)"
+    both = {"withSSTaxability": "optimize", "withLTCG": "optimize", "mipStrategy": "local-search"}
+    assert p._breakpointMethodLabel(both) == "local search (SS, LTCG)"
+    assert p._breakpointMethodLabel(both, fallback=True) == "local search -> loop"
+    # ACA only counts when a benchmark premium is set.
+    assert p._breakpointMethodLabel({"withACA": "optimize"}) == "loop"
+
+
+@pytest.mark.toml
+def test_summary_always_reports_the_threshold_method(jack_jill_pair):
+    loop, ls = jack_jill_pair
+    assert loop.summaryDic()["Breakpoint method"] == "loop"
+    assert ls.summaryDic()["Breakpoint method"].startswith("local search (")
+
+
+@pytest.mark.toml
+def test_ui_round_trip():
+    diconf, _, _ = load_toml(str(_EXAMPLES / "Case_jack+jill.toml"))
+    diconf["solver_options"]["breakpointMethod"] = "local-search"
+    ui = config_to_ui(diconf)
+    assert ui["localSearch"] is True
+    assert ui_to_config(ui)["solver_options"]["breakpointMethod"] == "local-search"
+
+    diconf["solver_options"].pop("breakpointMethod")
+    diconf["solver_options"]["mipStrategy"] = "local-search"
+    ui = config_to_ui(diconf)
+    assert ui["localSearch"] is False and ui["mipStrategy"] == "local-search"
+    assert ui_to_config(ui)["solver_options"]["mipStrategy"] == "local-search"
+
+    diconf["solver_options"].pop("mipStrategy")
+    out = ui_to_config(config_to_ui(diconf))["solver_options"]
+    assert "mipStrategy" not in out and "breakpointMethod" not in out
+
+
+def test_restricted_solves_use_a_tight_gap(monkeypatch):
+    """A loose solve gap (0.3%, as applied when Medicare is MILP) must not reach the restricted
+    solves: it stopped them before the 0.1% partial-bequest weight counted, and money the household
+    did not need was spent to no purpose."""
+    from datetime import date
+
+    from owlplanner import plan as P
+
+    gaps = []
+    orig = P.Plan._run_mip
+
+    def spy(self, A, B, c_obj, options, *args, **kwargs):
+        gaps.append(float(options.get("gap", -1)))
+        return orig(self, A, B, c_obj, options, *args, **kwargs)
+
+    monkeypatch.setattr(P.Plan, "_run_mip", spy)
+    thisyear = date.today().year
+    p = owl.Plan(["Jack", "Jill"], [f"{thisyear - 66}-01-15", f"{thisyear - 63}-01-16"], [72, 72], "gap",
+                 verbose=False, logstreams=[io.StringIO()])
+    p.setSpendingProfile("flat", 60)
+    p.setAccountBalances(taxable=[1500, 1000], taxDeferred=[3000, 2000], taxFree=[50, 50], startDate="1-1")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]], [[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setSocialSecurity([2000, 1500], [67, 67])
+    p.setRates("historical", 2000)
+    p.solve("maxSpending", {"breakpointMethod": "local-search", "gap": 0.003, "maxIter": 3})
+    assert p.caseStatus == "solved"
+    assert gaps, "local search made no restricted solve"
+    assert max(gaps) <= 1e-4, max(gaps)
+
+
+def _residual(p):
+    return sum(v["abs_sum"] for v in p.fixedPointResidual.values())
+
+
+@pytest.mark.toml
+def test_tie_keeps_the_consistent_plan():
+    """cameron's loop ends on a 2-cycle whose plan charges ~$30k of taxable Social Security its
+    income does not imply. The search ties its objective with a consistent plan; the tie must not
+    hand back the inconsistent one."""
+    loop = _load("Case_cameron.toml")
+    loop.solve(loop.objective, options=_loop_options(loop))
+    ls = _load("Case_cameron.toml")
+    ls.solve(ls.objective, options={**ls.solverOptions, "breakpointMethod": "local-search"})
+    assert _residual(loop) > 1000.0, _residual(loop)
+    assert _value(ls) >= _value(loop) - 1.0
+    assert _residual(ls) < 10.0, _residual(ls)
+    assert "->" not in ls.breakpointMethodUsed, ls.breakpointMethodUsed
+
+
+@pytest.mark.toml
+def test_repeated_problem_is_not_searched_again():
+    """The loop stops when two iterations agree, so its last one rebuilds the problem it just
+    solved: the search returns that iteration's plan without running a single restricted solve."""
+    p = _load("Case_cameron.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    log = p.localSearchLog
+    assert len(log) >= 2 and log[0]["steps"], log
+    assert log[-1]["steps"] == [], log[-1]
+
+
+def _settled(steps):
+    """The iteration started from its predecessor's binaries and no step improved on that start."""
+    if not steps or steps[0]["step"] != "start: previous binaries (LP)":
+        return False
+    start = steps[0]["objective"]
+    return not any(s["ok"] and s["objective"] < start - localsearch._IMPROVE * abs(start) for s in steps[1:])
+
+
+@pytest.mark.toml
+def test_settled_binaries_skip_the_capped_steps():
+    """joe's loop keeps moving its fed-back parameters after the binaries have stopped (#252). An
+    iteration after one that started from the previous binaries and moved none of them skips (b),
+    (b') and (a'), which found nothing on the same binaries; every other iteration runs them."""
+    p = _load("Case_joe.toml")
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search", "localSearchStepNodes": 100})
+    assert p.caseStatus == "solved"
+    settled, skipped = False, 0
+    for it in p.localSearchLog:
+        if not it["steps"]:  # a repeated problem: reused, and the state carries over
+            continue
+        capped = [s for s in it["steps"] if any(k in s["step"] for k in (" (b):", " (b'):", " (a'):"))]
+        assert bool(capped) != settled, [s["step"] for s in it["steps"]]
+        skipped += settled
+        settled = _settled(it["steps"])
+    assert skipped >= 1, "no iteration skipped the capped steps"
+
+
+def _john_sally_without_payroll_tax(monkeypatch):
+    """john+sally as #197 found it. The payroll tax on John's 2026 wages (#227) costs this plan the
+    room the moves below need: with it, the full search, the search without (b'), the search with
+    the full link rows and the search with neither all give 14,013.49, so nothing would be tested."""
+    monkeypatch.setattr(tax_federal, "payrollTax", lambda N_i, earnings_in, gamma_n, n_d, N_n: np.zeros(N_n))
+    return _load("Case_john+sally.toml")
+
+
+@pytest.mark.toml
+@pytest.mark.deep
+def test_moves_that_cross_an_ltcg_threshold_with_ss_taxability(monkeypatch):
+    """#197: the better plan moves ordinary income across T15 in the same years as it changes SS
+    taxability. Step (b) pins the LTCG binaries, but the search relaxes the half of their link
+    rows that held income above a threshold, and (b') frees them with the SS ball once the rounds
+    stall, so it reaches the branch-and-bound plan (bequest 31,778). With the full link rows it
+    stops at 30,823, and with neither the relaxation nor (b') at 20,004."""
+    p = _john_sally_without_payroll_tax(monkeypatch)
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    assert p.bequest > 31_500.0, p.bequest
+
+
+@pytest.mark.toml
+@pytest.mark.deep
+def test_b_prime_crosses_an_ltcg_threshold_on_the_full_link_rows(monkeypatch):
+    """(b') on its own: with the link rows left whole, freeing LTCG with the SS ball still takes
+    john+sally from 20,004 (without (b')) to 30,823. On this case the relaxation alone reaches the
+    branch-and-bound plan, so the test above does not show (b') is needed; this one does."""
+    p = _john_sally_without_payroll_tax(monkeypatch)
+    monkeypatch.setattr(localsearch.LocalSearch, "_relax_links", lambda self: copy.deepcopy(self.plan.A))
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    assert p.bequest > 30_000.0, p.bequest
+
+
+def test_returned_ltcg_binaries_satisfy_the_full_rows(jack_jill_pair):
+    """The search solves with the LTCG links relaxed, but the repair, polish and dual solves pin
+    its binaries on the full rows: a binary at 0 with income below its threshold is set back to 1,
+    and one with income above it is left alone."""
+    _, p = jack_jill_pair
+    search = localsearch.LocalSearch(p, p.w_ijn, p.x_in)
+    links = [k for k, tag in enumerate(p.A.tags) if tag is not None and tag[0] in localsearch._RELAXED_LINKS]
+    assert links, "jack+jill carries the LTCG binaries"
+    zl = set(int(c) for c in search._cols("zl"))
+    gn = set(int(c) for c in search._cols("gn"))
+
+    def lhs(x, k):
+        return sum(v * x[i] for i, v in zip(p.A.Aind[k], p.A.Aval[k]))
+
+    # Income nil and every binary at 0: each link's lower half is violated, and restored.
+    x = np.zeros(p.nvars)
+    y = search._restore_links(x)
+    assert all(lhs(y, k) >= p.A.lb[k] - 1e-6 and lhs(y, k) <= p.A.ub[k] + 1e-6 for k in links)
+    assert all(y[c] == 1.0 for c in zl)
+    # Income far above every threshold with the binaries at 0: nothing to restore.
+    x = np.zeros(p.nvars)
+    for c in gn:
+        x[c] = 1e7
+    y = search._restore_links(x)
+    assert all(y[c] == 0.0 for c in zl)
+    assert (y == x).all()

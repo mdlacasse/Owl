@@ -27,8 +27,6 @@ FAST_OPTS = [
     "rates_selection.method=conservative",
     "--set",
     "solver_options.withMedicare=None",
-    "--set",
-    "solver_options.withDecomposition=none",
 ]
 
 
@@ -248,6 +246,19 @@ def test_run_json_with_set_override():
     assert data["time_horizon_years"] == 24
 
 
+@pytest.mark.toml
+@pytest.mark.parametrize("real, suffix", [(False, "_results.xlsx"), (True, "_results_real.xlsx")])
+def test_run_saves_workbook(tmp_path, real, suffix):
+    """Issue #190: the CLI passes a path, and real-dollar output added "_real" to it as a string."""
+    case = tmp_path / "Case_bill.toml"
+    case.write_text(open(BILL_TOML, encoding="utf-8").read(), encoding="utf-8")
+    r = _invoke("run", str(case), "--set", f"results.worksheet_real_dollars={str(real).lower()}", *FAST_OPTS)
+    assert r.exit_code == 0
+    saved = tmp_path / ("Case_bill" + suffix)
+    assert saved.is_file()
+    assert f"Results saved to: {saved}" in r.output
+
+
 # ---------------------------------------------------------------------------
 # owlcli compare
 # ---------------------------------------------------------------------------
@@ -399,7 +410,6 @@ def test_mcp_list_rate_models_invalid_category():
 MCP_FAST_OVERRIDES = [
     "rates_selection.method=conservative",
     "solver_options.withMedicare=None",
-    "solver_options.withDecomposition=none",
 ]
 
 
@@ -434,3 +444,24 @@ def test_mcp_compare_cases_delta():
     assert "variant" in data
     assert "delta" in data
     assert "spending_basis" in data["base"]
+    # Each side reports how its self-consistent loop ended, and the engine is recorded.
+    for side in ("base", "variant"):
+        assert data["convergence"][side]["convergence"]
+        assert isinstance(data["convergence"][side]["fixed_point_residual_today_dollars"], dict)
+    assert data["engine"]["version"]
+
+
+def test_explain_reports_health_care():
+    r = _invoke("explain", JACK_TOML, "--set", "optimization_parameters.medical_inflation_excess=1.5")
+    hc = json.loads(r.output)["health_care"]
+    assert hc["medical_inflation_excess_pct"] == 1.5
+    assert hc["medicare"]["modeled"] is True
+    assert {s["name"] for s in hc["medicare"]["start_years"]} == {"Jack", "Jill"}
+    assert hc["medicare"]["include_part_d"] is True
+
+
+def test_explain_reports_aca_settings():
+    r = _invoke("explain", "examples/Case_morgan.toml")
+    aca = json.loads(r.output)["health_care"]["aca"]
+    assert aca["slcsp_annual"] == 14_000
+    assert aca["mode"] in ("loop", "optimize")

@@ -4,12 +4,19 @@ Martin-D. Lacasse (mdlacasse)
 
 - Contributors (alphabetical order):
  Robert E. Anderson (@NH-RedAnt) for bug fixes and suggestions,
+ @bkbaugh for catching the nominal freeze of the top IRMAA tier,
+ Dmitry Fink (@finik) for letting medical prices grow faster than inflation, making the HiGHS fallback and the self-consistent loop more robust, and telling infeasible plans from solver errors,
  Clark Jefcoat (@hubcity) for fruitful interactions,
  @kg333 for fixing an error in Docker's instructions,
- John Leonard (@jleonard99) for great suggestions, website, improved logger,
- stochastic rate generation, reproducibility, testing, and more to come...
- Benjamin Quinn (@blquinn) for improvements and bug fixes,
+ @khoguer10 for reporting bug in logic for saving HFP file,
+ John Leonard (@jleonard99) for great suggestions, website, improved logger, stochastic rate generation, reproducibility, testing, and more to come,
+ Ben Mabey (@bmabey) for greatly enhancing computational performance and devising benchmarks,
+ Florin Mateoc (@fmateoc) for auditing the code, identifying critical bugs, and providing fixes, and for the Social Security earnings test, the payroll tax, state-tax rules, and a change of state during the plan,
  @pcm2a for suggesting improved Roth conversion scheme,
+ Marco Pignone (@rationalpiper) for an in-depth audit of the application of US tax law (ACA, IRMAA, Social Security, Roth, RMD, and state rules) and insightful contributions,
+ Don Poll for suggesting QCD and pointing to a blind spot about inheritance state tax,
+ Benjamin Quinn (@blquinn) for improvements and bug fixes,
+ @SamMadDev for finding bugs in Roth and Part D and proposing fixes,
  Dale Seng (@sengsational) for great insights, testing, bug fixes, and suggestions,
  Eric Stratten (@mechovision) for expanded IRS joint table,
  Josh Williams (@noimjosh) for Docker image code,

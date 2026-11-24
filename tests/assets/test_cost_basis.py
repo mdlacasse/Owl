@@ -119,10 +119,13 @@ class TestCostBasisEdgeCases:
         taxable_k = 500
         p_full = _make_plan("full_basis", taxable_k=taxable_k, tax_deferred_k=200, tax_free_k=0)
         p_full.setCostBasis([taxable_k])  # basis == balance → gain_fraction = 0
-        p_full.solve("maxSpending")
+        # residualTol off: the claim is about what a zero gain fraction means, so both plans must
+        # stop at the same point of the loop; with the residual gate neither settles and they land
+        # on different fixed points (SS residuals of $30,860 and $16,882 under MOSEK).
+        p_full.solve("maxSpending", {"residualTol": float("inf")})
 
         p_no_basis = _make_plan("full_basis_ref", taxable_k=taxable_k, tax_deferred_k=200, tax_free_k=0)
-        p_no_basis.solve("maxSpending")
+        p_no_basis.solve("maxSpending", {"residualTol": float("inf")})
 
         assert p_full.caseStatus == "solved"
         # With gain_fraction=0, capital gains from withdrawals collapse to nearly zero;
@@ -169,13 +172,51 @@ class TestCostBasisMixedCouple:
         assert np.any(p.Q_n > 0)
 
 
+class TestCostBasisAtDeath:
+    """The taxable account a survivor inherits takes its value at the death as basis (IRC 1014, #238)."""
+
+    @staticmethod
+    def _couple(taxable_k, basis_k):
+        thisyear = date.today().year
+        p = owl.Plan(["A", "B"], [f"{thisyear - 64}-06-15", f"{thisyear - 62}-03-10"], [68, 75], "basis_at_death")
+        p.setSpendingProfile("flat", 60)
+        p.setAccountBalances(taxable=taxable_k, taxDeferred=[0, 0], taxFree=[0, 0], startDate="1-1")
+        p.setCostBasis(basis_k)
+        p.setAllocationRatios("individual", generic=[[[60, 0, 0, 40], [60, 0, 0, 40]]] * 2)
+        p.setRates("user", values=[6, 4, 4, 2.5])
+        p.setSocialSecurity([2000, 1800], [67, 67])
+        p.solve("maxSpending", {"bequest": 0})
+        assert p.caseStatus == "solved"
+        return p
+
+    def test_inherited_account_is_not_taxed_again(self):
+        """A's $1.5M at $1M basis passes to B: B's gain fraction falls to about 0 at the death.
+
+        Without the step-up, B's whole inheritance counted as gain: the gain fraction was 1 from
+        the death on.
+        """
+        p = self._couple([1500, 30], [1000, 25])
+        s, nd = p.i_s, p.n_d
+        assert p.b_ijn[s, 0, nd] > 500_000  # the inheritance arrived
+        assert p.gain_fraction_in[s, nd] < 0.05
+
+    def test_an_empty_survivor_account_is_tracked_from_zero(self):
+        """B starts with no taxable account and no basis: tracked from $0, not the legacy approximation."""
+        p = self._couple([1500, 0], [1000, 0])
+        s, nd = p.i_s, p.n_d
+        assert not np.any(np.isnan(p.gain_fraction_in[s, :]))
+        assert p.gain_fraction_in[s, nd] < 0.05
+
+
 class TestCostBasisConvergence:
     """SC loop must converge within a reasonable number of iterations with basis tracking."""
 
     def test_sc_loop_converges(self):
+        # residualTol off: this asserts the loop terminates sensibly with basis tracking, not that
+        # the fed-back quantities settle. Under MOSEK they do not here, which the residual reports.
         p = _make_plan("convergence", taxable_k=1500, tax_deferred_k=500, tax_free_k=200)
         p.setCostBasis([300])  # 80% gain fraction
-        p.solve("maxSpending", {"withMedicare": "IRMAA"})
+        p.solve("maxSpending", {"withMedicare": "loop", "residualTol": float("inf")})
         assert p.caseStatus == "solved"
         assert p.convergenceType in ("monotonic", "oscillatory", "stagnation"), (
             f"Unexpected convergence type: {p.convergenceType}"
@@ -192,6 +233,56 @@ class TestCostBasisValidation:
         assert owl.Plan._gain_fraction_from_basis(-100, 500) == 1.0
         assert owl.Plan._gain_fraction_from_basis(900, 500) == 0.0
         assert owl.Plan._gain_fraction_from_basis(200, 1000) == 0.8
+
+
+class TestCostBasisReinvestedIncome:
+    """Taxed, reinvested dividends and interest add to basis; the gain sits in the equity share."""
+
+    def _solved(self, alloc):
+        thisyear = date.today().year
+        p = owl.Plan(["Bo"], [f"{thisyear - 60}-06-15"], [90], "reinvested", verbose=False)
+        p.setSpendingProfile("flat")
+        p.setAccountBalances(taxable=[1000], taxDeferred=[1000], taxFree=[0], startDate="01-01")
+        p.setCostBasis([500])
+        p.setAllocationRatios("individual", generic=[[alloc, alloc]])
+        p.setRates("user", values=[7, 4, 3, 2.5])
+        p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85})
+        assert p.caseStatus == "solved"
+        return p
+
+    @pytest.mark.parametrize("alloc", [[100, 0, 0, 0], [60, 40, 0, 0]])
+    def test_basis_includes_taxed_income(self, alloc):
+        """Recompute the basis by hand from the plan's own flows and compare the gain fractions."""
+        p = self._solved(alloc)
+        p._update_gain_fraction()
+        b, w, d, k = p.b_ijn[0, 0, :], p.w_ijn[0, 0, :], p.d_in[0, :], p.kappa_ijn[0, 0, :]
+        a0 = p.alpha_ijkn[0, 0, 0, :]
+        fak = np.sum(np.maximum(0, p.tau_kn[1:, :]) * p.alpha_ijkn[0, 0, 1:, : p.N_n], axis=0)
+        basis = 500e3
+        for n in range(p.N_n):
+            whole = min(1.0, max(0.0, 1 - basis / max(1.0, b[n])))
+            # Realized gain per dollar withdrawn is the whole-account gain fraction.
+            assert a0[n] * p.gain_fraction_in[0, n] == pytest.approx(min(a0[n], whole), abs=1e-9)
+            taxed = (p.mu * a0[n] + fak[n]) * (b[n] - w[n] + d[n] + 0.5 * k[n])
+            basis = (basis * (1 - w[n] / b[n]) if b[n] > 0 else 0) + k[n] + d[n] + max(0.0, taxed)
+
+    def test_gain_fraction_grows_slower_than_without_dividends(self):
+        """All equity, drawn down: dividends taxed every year keep the gain fraction lower."""
+        p = self._solved([100, 0, 0, 0])
+        p._update_gain_fraction()
+        b, w, d, k = p.b_ijn[0, 0, :], p.w_ijn[0, 0, :], p.d_in[0, :], p.kappa_ijn[0, 0, :]
+        basis_no_div = 500e3
+        n_last = int(np.max(np.nonzero(b[: p.N_n] > 1000)))
+        for n in range(n_last):
+            basis_no_div = basis_no_div * (1 - w[n] / b[n]) + k[n] + d[n]
+        gf_no_div = 1 - basis_no_div / b[n_last]
+        assert p.gain_fraction_in[0, n_last] < gf_no_div - 0.05
+
+    def test_equity_gain_fraction(self):
+        assert owl.Plan._equity_gain_fraction(500, 1000, 1.0) == pytest.approx(0.5)
+        assert owl.Plan._equity_gain_fraction(500, 1000, 0.6) == pytest.approx(0.5 / 0.6)
+        assert owl.Plan._equity_gain_fraction(100, 1000, 0.5) == 1.0  # capped
+        assert owl.Plan._equity_gain_fraction(100, 1000, 0.0) == 0.0  # no equity, no gain realized
 
 
 class TestCostBasisConfig:

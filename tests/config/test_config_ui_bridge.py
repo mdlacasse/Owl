@@ -38,6 +38,32 @@ def test_sanitize_config_start_roth_past_year():
     assert "reset to" in log.getvalue()
 
 
+def test_sanitize_config_holds_years_past_the_ui_limit():
+    """A year past what Run Options accepts is held at that limit, still past any plan."""
+    from datetime import date
+
+    lastyear = date.today().year + 120
+    diconf = {
+        "aca_settings": {"slcsp_annual": 20, "aca_start_year": 20300},
+        "solver_options": {
+            "startRothConversions": 20300,
+            "stopRothConversions": 2100,
+            "swapRothConverters": -20300,
+        },
+    }
+    log = StringIO()
+    sanitize_config(diconf, mylog=Logger(verbose=True, logstreams=[log, log]))
+
+    assert diconf["aca_settings"]["aca_start_year"] == lastyear
+    so = diconf["solver_options"]
+    assert (so["startRothConversions"], so["stopRothConversions"], so["swapRothConverters"]) == (
+        lastyear,
+        2100,
+        -lastyear,
+    )
+    assert f"held at {lastyear}" in log.getvalue()
+
+
 def test_sanitize_config_default_translated_to_trailing_30():
     """sanitize_config translates deprecated method=default to trailing-30 (backward compat)."""
     diconf = {"rates_selection": {"method": "default"}}
@@ -49,7 +75,7 @@ def test_load_toml_start_roth_past_year_reset():
     """startRothConversions in the past is reset when config file is read (via sanitize_config)."""
     from datetime import date
 
-    toml_content = open("examples/Case_joe.toml").read()
+    toml_content = open("examples/Case_joe.toml", encoding="utf-8").read()
     toml_content = toml_content.replace(
         "startRothConversions = 2026",
         "startRothConversions = 2019",  # Past year
@@ -83,7 +109,7 @@ def test_ui_to_config_linear_omits_interpolation_center_width():
 
 def test_config_to_ui_roundtrip():
     """config -> ui -> config preserves structure."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
 
     assert uidic["name"] == "joe"
@@ -99,7 +125,7 @@ def test_config_to_ui_roundtrip():
 
 def test_ui_to_config_to_plan():
     """ui dict -> config -> plan produces valid plan."""
-    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml").read()))
+    diconf, _, _ = load_toml(StringIO(open("examples/Case_joe.toml", encoding="utf-8").read()))
     uidic = config_to_ui(diconf)
     back = ui_to_config(uidic)
     plan = config_to_plan(back, verbose=False, loadHFP=False)
@@ -364,13 +390,8 @@ def test_solver_options_passthrough_roundtrip():
         "gap": 1e-3,
         "verbose": True,
         "epsilon": 0.01,
-        "bendersMaxIter": 40,
         "swapRothConverters": 1,
         "units": "k",
-        "bigMaca": 1e8,
-        "bigMss": 9e7,
-        "bigMltcg": 5e6,
-        "bigMniit": 4e6,
         "withLTCG": "optimize",
         "withNIIT": "loop",
     }
@@ -551,40 +572,64 @@ def test_other_medical_expenses_default_zero():
     assert out["optimization_parameters"].get("other_medical_expenses", 0.0) == 0.0
 
 
+def _plan_known_options():
+    """The knownOptions list from Plan.solve, read from source.
+
+    It is a local variable, so it cannot be imported. Parsing it is still better than copying it
+    here: a copied list drifts silently, and every option removed from the engine on this branch
+    was left advertised somewhere until something went looking for it.
+    """
+    import ast
+    import pathlib
+
+    import owlplanner
+
+    src = pathlib.Path(owlplanner.__file__).with_name("plan.py").read_text(encoding="utf-8")
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "knownOptions":
+            return {e.value for e in node.value.elts if isinstance(e, ast.Constant)}
+    raise AssertionError("knownOptions not found in plan.py")
+
+
 def test_solver_ui_passthrough_keys_match_plan_known_options():
-    """SOLVER_UI_PASSTHROUGH_KEYS must each appear in Plan.solve knownOptions (no typos / drift)."""
+    """Every key the UI passes through verbatim must be one solve() accepts."""
     from owlplanner.config.ui_bridge import SOLVER_UI_PASSTHROUGH_KEYS
 
-    # Subset of src/owlplanner/plan.py solve() knownOptions for passthrough scalars.
-    # swapRothConverters is intentionally excluded: it is derived from
-    # swapRothConvertersEnabled/First/Year (see config_to_ui / ui_to_config).
-    plan_known = {
-        "absTol",
-        "bequest",
-        "bigMaca",
-        "bigMamo",
-        "bigMltcg",
-        "bigMniit",
-        "bigMss",
-        "bendersMaxIter",
-        "epsilon",
-        "gap",
-        "maxIter",
-        "maxRothConversion",
-        "maxTime",
-        "netSpending",
-        "noLateSurplus",
-        "noRothConversions",
-        "oppCostX",
-        "relTol",
-        "solver",
-        "spendingSlack",
-        "startRothConversions",
-        "timePreference",
-        "units",
-        "verbose",
-    }
-    assert set(SOLVER_UI_PASSTHROUGH_KEYS) == plan_known
+    unknown = set(SOLVER_UI_PASSTHROUGH_KEYS) - _plan_known_options()
+    assert not unknown, f"UI passes options solve() does not accept: {sorted(unknown)}"
+
+
+def test_ui_translated_solver_options_are_accepted_by_solve():
+    """The options sskeys builds by translation must also be ones solve() accepts.
+
+    These never appear in SOLVER_UI_PASSTHROUGH_KEYS because the UI stores them under different
+    session keys (optimizeLTCG -> withLTCG, and so on), so the passthrough check above cannot see
+    them. Without this, removing an option from the engine leaves the UI emitting a name that is
+    silently ignored at solve time.
+    """
+    import pathlib
+    import re
+
+    import ui.sskeys as sskeys  # noqa: F401  (import guards the path used below)
+
+    src = pathlib.Path(sskeys.__file__).read_text(encoding="utf-8")
+    emitted = set(re.findall(r'options\["([A-Za-z]+)"\]', src))
+    assert emitted, "no translated solver options found — the regex or sskeys.py changed shape"
+    unknown = emitted - _plan_known_options()
+    assert not unknown, f"UI emits options solve() does not accept: {sorted(unknown)}"
+
+
+def test_partial_bequest_weight_survives_ui_roundtrip():
+    """A case-file partialBequestWeight must reach the UI and come back: dropped, a case loaded
+    and solved in the UI silently used the default weight instead of the case's own."""
+    import pathlib
+
+    case = pathlib.Path(__file__).resolve().parents[2] / "examples" / "Case_avery+quinn.toml"
+    diconf, _, _ = load_toml(str(case))
+    assert diconf["solver_options"]["partialBequestWeight"] == 0.005
+    uidic = config_to_ui(diconf)
+    assert uidic["partialBequestWeight"] == 0.005
+    assert ui_to_config(uidic)["solver_options"]["partialBequestWeight"] == 0.005
 
 
 @pytest.mark.parametrize("method", CONSTRAIN_MEAN_METHODS)
@@ -701,6 +746,52 @@ def test_state_toml_save_load_roundtrip():
     save_toml(diconf, sio2)
     back2, _, _ = load_toml(StringIO(sio2.getvalue()))
     assert back2["basic_info"].get("state", "") == ""
+
+
+def test_state_move_roundtrips_through_ui_and_toml():
+    """basic_info.moves round-trips through the UI keys and a TOML save/load; none means no key."""
+    diconf = _minimal_config_for_rates()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": 2031, "state": "FL"}]
+
+    uidic = config_to_ui(diconf)
+    assert uidic["stateMoveEnabled"] is True
+    assert uidic["stateMoveYear"] == 2031
+    assert uidic["stateMoveState"] == "FL"
+    assert ui_to_config(uidic)["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+    uidic["stateMoveEnabled"] = False
+    assert "moves" not in ui_to_config(uidic)["basic_info"]
+
+    sio = StringIO()
+    save_toml(diconf, sio)
+    back, _, _ = load_toml(StringIO(sio.getvalue()))
+    assert back["basic_info"]["moves"] == [{"year": 2031, "state": "FL"}]
+
+
+def test_state_move_reaches_the_plan_and_back():
+    """config_to_plan sets the move, plan_to_config writes it, apply_config_to_plan clears it."""
+    from datetime import date
+
+    year = date.today().year + 3
+    diconf = _minimal_married_config()
+    diconf["basic_info"]["state"] = "NY"
+    diconf["basic_info"]["moves"] = [{"year": year, "state": "FL"}]
+    diconf["rates_selection"]["values"] = [6.0, 4.0, 3.3, 2.8]
+    plan = config_to_plan(diconf, verbose=False, loadHFP=False)
+    assert plan.state_moves == [(year, "FL")]
+    assert plan._states_n()[:4] == ["NY", "NY", "NY", "FL"]
+    back = plan_to_config(plan)
+    assert back["basic_info"]["moves"] == [{"year": year, "state": "FL"}]
+
+    back["basic_info"].pop("moves")
+    apply_config_to_plan(plan, back)
+    assert plan.state_moves == []
+    assert "moves" not in plan_to_config(plan)["basic_info"]
+
+    back["basic_info"]["state"] = ""
+    apply_config_to_plan(plan, back)
+    assert plan.state == ""
 
 
 def _minimal_config_for_rates():
@@ -833,7 +924,7 @@ def _save_couple_case(tmp_path):
         output_dir=str(tmp_path),
         case_name="couple_alloc",
     )
-    with open(json.loads(res)["toml_file"]) as f:
+    with open(json.loads(res)["toml_file"], encoding="utf-8") as f:
         return f.read()
 
 

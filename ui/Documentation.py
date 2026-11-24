@@ -179,10 +179,13 @@ This Excel workbook holds year-by-year data that are not stored in the case TOML
 It must contain **one sheet per individual**, with a tab name that **exactly** matches that person in the *case*
 (e.g., *Jack* and *Jill*). Each person sheet is a **Wages and Contributions** table with the following
 headers (they must match exactly, including capitalization; column order may vary):
-`year`, `anticipated wages`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `Roth 401k ctrb`, `IRA ctrb`,
-`Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`. Only `year` **must be
-present**: enter `0` where a column does not apply, or leave the column out of the workbook entirely and it is
-read as zero for every year, with **Owl** reporting which columns were absent.
+`year`, `anticipated wages`, `months worked`, `other inc`, `net inv`, `taxable ctrb`, `401k ctrb`, `employer ctrb`,
+`Roth 401k ctrb`, `IRA ctrb`, `Roth IRA ctrb`, `HSA ctrb`, `Roth conv`, `Roth conv fixed`, `QCD`, `big-ticket items`.
+Only `year` **must be present**: enter `0` where a column does not apply, or leave the column out of the workbook
+entirely and it is read as zero for every year, with **Owl** reporting which columns were absent. Two absent
+columns are not reported: `months worked`, where zero (or an absent column) means *not given* (see below), and
+`employer ctrb`, which workbooks made before it existed leave out, their employer contributions being in
+`401k ctrb`.
 The legacy header `other inc.` is read as `other inc`.
 Numeric cells are **nominal dollars** (not thousands), independent of spending/bequest *units* in the case file.
 On load, the planner keeps rows from five calendar years before the **current** year through each person's
@@ -194,12 +197,17 @@ from a recognized one only by capitalization, spacing, or punctuation: that is r
 rather than dropped, so a misspelled column never silently becomes zeros.
 
 Two optional **worksheets** (separate tabs) extend the workbook:
-- **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`.
+- **`Debts`** — columns `active`, `name`, `type` (`loan` or `mortgage`), `year`, `term`, `amount`, `rate`,
+  and optional `property` (the home or real estate whose sale pays off the loan).
 - **`Fixed Assets`** — columns `active`, `name`, `type`, `year`, `basis`, `value`, `rate`, `yod`, `commission`
   (allowed `type` values are listed under *Financial Profile → Debts and Fixed Assets*).
 
-Unlike the person sheets, **all** of the columns above must be present when one of these two sheets
-exists; there is no optional-column behavior here.
+In both sheets, `rate` and `commission` are percent numbers: enter `4.5` for 4.5\\% and `0.5` for
+half a percent. A cell formatted as a percentage in the spreadsheet (shown as 4.50\\%) is also read
+correctly.
+
+Unlike the person sheets, **all** of the columns above except `property` must be present when one of
+these two sheets exists.
 
 A blank template is available
 [here](https://github.com/mdlacasse/Owl/blob/main/examples/HFP_template.xlsx?raw=true).
@@ -257,8 +265,9 @@ Contains one worksheet per topic, most indexed by year:
   beginning of each year, plus a final end-of-plan (bequest) row. See the **Worksheets** section
   for the full column list.
 - **Taxes** — income allocated to each federal tax bracket, NIIT, LTCG tax,
-  early-withdrawal penalty, state income tax (when applicable), the fraction of Social Security that is taxable,
-  the total tax bill, Medicare (+IRMAA) premiums, and ACA premiums when applicable.
+  early-withdrawal penalty, the payroll tax (when the plan has earnings), state income tax (when applicable),
+  the fraction of Social Security that is taxable, the total tax bill, Medicare (+IRMAA) premiums, and ACA
+  premiums when applicable.
 - **`<individual>`'s Allocations** *(one sheet per individual)* — asset allocation percentages
   (`stocks`, `C bonds`, `T notes`, `common`) for each account type over time.
 - **Rates** — year-by-year return rates used in this run (`S&P 500`, `Bonds Baa`, `T-Notes`, `Inflation`).
@@ -320,6 +329,13 @@ state you choose; see the [*Modeling Capabilities*](https://github.com/mdlacasse
 reference for the details and limitations of
 state-tax modeling.
 
+If you plan to move during retirement, turn on *Move to another state during the plan* and
+enter the year of the move and the new state. Only one move is modeled. The state where you
+live on December 31 taxes the whole year, so the year of the move is taxed by the new state
+and the years before it by the starting state. Leave the new state blank to stop modeling
+state taxes from that year. The optimizer takes the move into account: leaving a high-tax
+state for a no-income-tax state, for example, tends to push Roth conversions past the move.
+
 Birth date is required because Social Security has special rules for people born on
 the 1st or 2nd of the month; any other day of the month produces the same results.
 
@@ -365,20 +381,20 @@ or large influx of after-tax money, debts, and fixed assets.
 
 ##### Wages and Contributions
 Values in the *Wages and Contributions* tables are all in nominal values, and in \\$, not thousands (\\$k).
-The **Wages and Contributions** table contains 14 columns titled as follows:
+The **Wages and Contributions** table contains 16 columns titled as follows:
 
 In the workbook this is a single sheet per person. In the user interface it is shown as two
 tables, the five lead-in years and the plan years, so that *Roth conv fixed* can be disabled
 on the past rows where those conversions have already happened.
 
-|year|anticipated wages|other inc|net inv|taxable ctrb|401k ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
-|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
-|2021 | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | |
-|2026 | | | | | | | | | | | | | |
-|2027 | | | | | | | | | | | | | |
-| ... | | | | | | | | | | | | | |
-|20XX | | | | | | | | | | | | | |
+|year|anticipated wages|months worked|other inc|net inv|taxable ctrb|401k ctrb|employer ctrb|Roth 401k ctrb|IRA ctrb|Roth IRA ctrb|HSA ctrb|Roth conv|Roth conv fixed|QCD|big-ticket items|
+|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|--|
+|2021 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|2026 | | | | | | | | | | | | | | | |
+|2027 | | | | | | | | | | | | | | | |
+| ... | | | | | | | | | | | | | | | |
+|20XX | | | | | | | | | | | | | | | |
 
 Only the *year* column **must be present** on each person's sheet; fill any other column with 0 or
 leave it blank where it does not apply, or leave the column out altogether (see below).
@@ -390,17 +406,20 @@ to fill in the values using the user interface, but this last approach does not 
 Excel capabilities for cross-column calculations.
 
 This file goes five years back in time in order to capture previous contributions and
-conversions to Roth accounts.
-Entries in columns other than contributions or conversions to Roth accounts
-for past years are not read by **Owl**, but they are preserved when the workbook is saved:
-keep them as the record you carry forward and extrapolate next year's figures from.
+conversions to Roth accounts, and the wages of someone already collecting Social Security.
+For past years, **Owl** reads the contributions and conversions to Roth accounts and, for the
+Social Security earnings test, *anticipated wages*, *months worked*, *401k ctrb*, *employer ctrb*
+and *IRA ctrb* (see *months worked* below). The other columns of past years are not read, but
+they are preserved when the workbook is saved: keep them as the record you carry forward and
+extrapolate next year's figures from.
 Past contributions and conversions are required for implementing
 constraints restricting withdrawals from Roth accounts, thus avoiding
 penalties resulting from breaking the five-year maturation rule.
 For that purpose, a retainer on the tax-free account
-is put as the sum of all Roth conversions performed
-during the last five years plus an additional amount for potential
-compounded gains. These gains are assumed to be 10% per year for the past
+is put as the sum of the Roth conversions still within their five-year period plus an
+additional amount for potential compounded gains. The period is five taxable years starting with
+the year of the conversion, so a conversion made in 2026 can be withdrawn without the 10% from
+2031. Before 59½, only conversions past their period count toward what can be withdrawn. These gains are assumed to be 10% per year for the past
 years, and use the predicted returns for future years.
 Unlike conversions, contributions can be withdrawn, but a retainer is
 put covering the sum of all potential gains resulting from contributions
@@ -413,6 +432,12 @@ An exact calculation would require to know (and input) the annual rates of retur
 the last five years and asset allocation ratios, and the same for all future years.
 Note that in certain *cases*, constraints on Roth withdrawals can make a zero bequest impossible
 if Roth conversions took place in the five years before passing.
+Before age 59½, Roth earnings cannot come out tax- and penalty-free: a Roth distribution comes from
+contributions first, then conversions, and earnings last (IRC 408A(d)(4)(B)). **Owl** therefore
+keeps each person's Roth withdrawals before 59½ within the starting Roth balance plus the
+contributions made since and the conversions past their five-year period, rather than taxing
+early earnings. The whole starting balance counts as contributions and conversions, and the limit stops at the first passing, since a
+surviving spouse can keep the deceased's Roth as an inherited one, free of the 10% additional tax.
 
 In the table above, year 20XX illustrates the last plan year for that person (from life expectancy in the *case*).
 While loading a workbook, missing years or empty cells in the allowed window are filled with zeros; years outside
@@ -420,47 +445,139 @@ each person's plan span (plus the five-year lookback) are ignored.
 After loading, each person's table always runs through that individual's final plan year—even if you omitted
 those rows in the file.
 
-The thirteen columns are described below, in the order they appear in the table (fill a column with 0 or
+The columns are described below, in the order they appear in the table (fill a column with 0 or
 leave it blank where it does not apply), where:
 - *year* is the plan year for that row (see the five-year lookback note above).
-- *anticipated wages* is the annual employment income you anticipate, entered **net of all
-  contributions** listed in the *ctrb* columns (employer portions included in the *ctrb* columns
-  were never part of your wages and are therefore not subtracted).
-  **Owl** uses this single amount both as cash available to the plan and as taxable employment
-  income. As a known simplification, income tax on the dollars contributed to Roth and taxable
-  accounts is therefore not modeled during the working years. This column is not meant to include
-  all your ordinary income; for example, interest from your taxable investment accounts is
-  calculated automatically based on the assumptions you made for future return rates.
+- *anticipated wages* is the annual employment income you anticipate, as it enters your AGI: your
+  pay **minus your pre-tax contributions**, that is your traditional 401k/403b deferrals (*401k
+  ctrb*), deductible IRA contributions (*IRA ctrb*), and HSA contributions through payroll (*HSA
+  ctrb*). Employer contributions (*employer ctrb*) were never part of your wages and are
+  therefore not subtracted. After-tax contributions paid from your pay (*Roth 401k ctrb*,
+  *Roth IRA ctrb*, *taxable ctrb*) stay in the wages, as they are taxed, and are paid for with a
+  negative *big-ticket items* entry of the same amount (see below). **Owl** uses this single
+  amount both as cash available to the plan and as taxable employment income. With only pre-tax
+  contributions, there is nothing to offset. This column is not meant to include all your
+  ordinary income; for example, interest from your taxable investment accounts is calculated
+  automatically based on the assumptions you made for future return rates.
+- **Owl** always applies the Social Security earnings test: the benefits a claim before full
+  retirement age would lose to it are withheld in the earning years, and the withheld months come
+  back at full retirement age through the adjustment of the reduction factor. The test counts
+  wages before pre-tax deferrals (W-2 box 5), so **Owl** adds back that year's *401k ctrb* and
+  *IRA ctrb*, which *anticipated wages* are net of. The *401k ctrb* always counts, even in a year
+  whose pay all went to it and *anticipated wages* are 0. The *IRA ctrb* counts only in a year
+  with pay (*anticipated wages* or *401k ctrb*): without it, the contribution is taken as a spousal
+  IRA, funded from the other spouse's pay. Pay that all went to a deductible IRA is therefore not
+  counted. Employer contributions (*employer ctrb*) were never wages and are left out; entered in
+  *401k ctrb* instead, they make the earnings slightly high. HSA contributions are left out, as a
+  payroll HSA is not in box 5. Self-employment earnings count only when entered in *anticipated
+  wages*: the test does not read *other inc*.
+- **Owl** also charges the employee's payroll tax on the same earnings, as a cash outflow of the
+  year: 6.2% of each person's earnings up to the Social Security wage base (\\$184,500 in 2026 and
+  \\$192,300 in 2027, held at that level in real terms after), 1.45% Medicare tax on all of them, and the 0.9%
+  Additional Medicare Tax on the household's combined earnings above \\$250,000 (\\$200,000 after
+  the first death). It is not deductible, so it changes no income tax, and it is reported as
+  *Total payroll tax paid* in the Summary, as a *payroll tax* column of the Cash Flow and Taxes
+  worksheets, and as its own line in the taxes graph.
+  Self-employment tax is not modeled: self-employment earnings entered in *anticipated wages* pay
+  only the employee's share.
+- *months worked* is how many months of that year the person works (a whole number from 0 to 12),
+  counted from January: `6` means working January through June and then stopping. Earnings are
+  taken as spread evenly over those months. It only matters to someone who collects Social Security
+  before full retirement age while still earning, and mostly in the year work stops:
+  - The first year in which the person is entitled to benefits and has a month without work is
+    their *grace year*, usually the year they retire and claim. In that year, benefits for the
+    months after work stops are paid in full, whatever the year's total earnings. A worked month
+    whose earnings are at or below 1/12 of the annual exempt amount is also paid in full. Only the
+    other worked months can have benefits withheld. There is only one grace year: a year with
+    entitlement and no earnings uses it up.
+  - For a person who claimed before the plan starts, the test also reads the five past years of
+    the table. Their wages decide whether the grace year has already been used, which months
+    before the plan were withheld, and with them how many months come back at full retirement
+    age, and whether the check for December of the year before the plan, paid in January, was
+    withheld. Past years are taken as Social Security applied the test to them, and their amounts
+    in each year's own dollars. Past years left blank count as years without earnings: the grace
+    year is then taken as used in the year of the claim, and nothing as withheld before the plan.
+    An overpayment Social Security has yet to recover is not modeled; enter it as a negative
+    *big-ticket items* amount in the year it is withheld.
+  - In the year full retirement age is reached, only earnings in the months before the month it
+    is reached count, taken as the share of the months worked that fall before that month.
+
+  Where it is 0 or blank, or the column is absent, **Owl** uses 12 in a year with earnings. That is,
+  work through December, so in the year you retire and claim no month is free of the test. Enter the
+  month work stops in that year to have the remaining months paid.
 - *other inc* is other **ordinary** income that is not wages, pension, or Social Security—e.g.
   part-time or consulting income, alimony, or rental flows you treat as ordinary. It is included in
-  cash flow and ordinary-income tax logic like wages.
+  cash flow and ordinary-income tax logic like wages. A **negative** amount is an above-the-line
+  deduction paid from your cash. It lowers taxable income and the MAGI that sets Medicare premiums
+  and ACA subsidies, and it is taken out of the year's cash flow. It is the way to enter a deductible contribution that
+  has no wages to be netted from:
+  - an HSA contribution from savings, entered together with the same amount in *HSA ctrb*
+    (in the year Medicare starts, only the share **Owl** keeps; see *HSA ctrb*);
+  - a deductible IRA contribution for a spouse without wages (a spousal IRA), entered together with
+    the same amount in *IRA ctrb*.
+
+  A pre-tax contribution made through payroll is subtracted from *anticipated wages* instead, and an
+  expense that is not deductible goes in *big-ticket items* as a negative amount. A deduction larger
+  than the year's income is lost: taxable income stops at zero. The Social Security earnings test
+  does not read this column: enter net self-employment earnings in *anticipated wages* instead for
+  them to count.
 - *net inv* is net investment income such as rent or trust distributions that the model counts as
   ordinary income for cash flow and taxable income, and that also enter the Net Investment Income Tax
   (NIIT, 3.8% surtax) when applicable. Use `0` if you do not model that income separately.
-- *taxable ctrb*, *401k ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* are contributions to
-  your savings accounts (marked *ctrb*). We use "401k" as a term that includes contributions to 403b
-  as well as any other tax-deferred account, with the exception of IRA accounts, which are treated
-  separately to facilitate data entry. Contributions to your 401k/403b **must** also include your
-  employer's contributions, if any. As these data can be entered in Excel, you can use the native
+- *taxable ctrb*, *401k ctrb*, *employer ctrb*, *Roth 401k ctrb*, *IRA ctrb*, and *Roth IRA ctrb* are
+  contributions to your savings accounts (marked *ctrb*). We use "401k" as a term that includes
+  contributions to 403b as well as any other tax-deferred account, with the exception of IRA accounts,
+  which are treated separately to facilitate data entry. *401k ctrb* is your own pre-tax deferrals.
+  Your employer's contributions to your 401k/403b, match or profit sharing, go in *employer ctrb*:
+  they are deposited in the same tax-deferred account, but they are not wages, so they are neither
+  subtracted from *anticipated wages* nor counted as earnings for the payroll tax and the earnings
+  test. Employer contributions designated as Roth have no column of their own, although a
+  workaround using the existing columns is possible. As these data can be entered in Excel, you can use the native
   calculator to enter a percentage of the anticipated wages as an easier way to enter the data.
   Contributions are deposited into their respective accounts but are **not** subtracted from the
-  annual cash flow: **Owl** assumes you already netted them out of *anticipated wages* as described
-  above. Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
-  supported: amounts entered in *401k ctrb* or *IRA ctrb* are treated as pre-tax, and no cost basis
-  is tracked (every dollar later withdrawn or converted is fully taxable).
-- *HSA ctrb* is HSA contributions in nominal dollars. Like the other *ctrb* columns, subtract them
-  from *anticipated wages*; being pre-tax, they are thereby excluded from both cash flow and
-  taxable income. Values are
-  automatically zeroed at Medicare enrollment (~age 65); entries past age 65 are ignored.
+  annual cash flow: a pre-tax contribution was already netted out of *anticipated wages*, and an
+  after-tax one paid from your pay is paid for by a negative *big-ticket items* entry, as
+  described above. A contribution that does not come from your pay (from savings, or a gift) is
+  paid for the same way, with a negative *big-ticket items* entry. A deductible one with no wages to
+  net it from (an HSA contribution from savings, or a spousal IRA for a spouse without wages) goes
+  in *other inc* instead, as a negative amount, which both deducts it and pays for it (see *other
+  inc* and *HSA ctrb*). Note that after-tax (non-deductible) contributions to tax-deferred accounts are not
+  supported: amounts entered in *401k ctrb*, *employer ctrb*, or *IRA ctrb* are treated as pre-tax, and no cost basis
+  is tracked (every dollar later withdrawn or converted is fully taxable). A nondeductible IRA contribution entered
+  in *IRA ctrb* would therefore be taxed twice, and also counted twice as earnings for the payroll tax and the
+  earnings test, since it is still in *anticipated wages*. A backdoor Roth, a nondeductible IRA contribution
+  converted right away, is entered as a *Roth IRA ctrb* paid from your pay like any after-tax contribution; this
+  holds when you have no other pre-tax IRA balance, which the pro-rata rule would partly tax on conversion.
+- *HSA ctrb* is HSA contributions in nominal dollars. Made through payroll, they are pre-tax:
+  subtract them from *anticipated wages*, which excludes them from both cash flow and taxable
+  income. Enter the full annual amount you plan to contribute: **Owl** applies the
+  Medicare cutoff itself. If you have no wages to net the contribution from (for instance, a
+  retiree or early retiree contributing from savings), enter it in *HSA ctrb* and the same amount
+  as a negative *other inc*: the column alone deposits it without deducting it or paying for it.
+  In the year Medicare starts, enter in *other inc* only the share **Owl** keeps (below), since
+  only that much is contributed and deducted. The HSA limit is counted by the month, and no contribution is allowed
+  for a month with Medicare (IRC 223(b)(2) and (b)(7)). Medicare starts in the month of the
+  65th birthday, or in the month before when the birthday falls on the 1st. In the year it
+  starts, **Owl** keeps the share of your entry for the months before Medicare and drops the rest:
+  5/12 of it for a June 15 birthday, 11/12 for a December 15 birthday, and none for a January 15
+  or February 1 birthday. A January 1 birthday starts Medicare in December of the year before, so
+  that earlier year keeps 11/12. Entries for later years are ignored. Your entries are kept as
+  typed in the workbook; the scaling applies only to the plan.
 - *Roth conv* is a Roth conversion amount in nominal dollars. On the five lead-in rows it records a
   conversion you have already performed, which the five-year maturation rule needs. On a plan year it
   is a conversion you are proposing: a figure you have already committed to, or one computed with
   another tool. Amounts are never negative.
 - *Roth conv fixed* decides whether that proposal binds. Left unticked -- the default -- the amount
   beside it is documentation only, and **Owl** optimizes that year's conversion as usual, subject to
-  the other Roth conversion settings on the **Run Options** page. Ticked, the conversion is held at
-  exactly the amount in *Roth conv*, bypassing the maximum annual conversion cap and the start and
-  stop years. An amount of `0` on a ticked year therefore means *no conversion that year*. Because
+  the other Roth conversion settings on the **Run Options** page. Ticked, the amount in *Roth conv*
+  binds, bypassing the maximum annual conversion cap and the start and stop years. An amount of `0`
+  on a ticked year therefore means *no conversion that year*. A positive amount commits the Roth to gaining that much: any Roth withdrawal the same year has to be converted
+  on top of it, so the plan cannot convert the amount and take it straight back out, which would only
+  be a tax-deferred withdrawal under another name. A ticked year therefore allows no net Roth
+  spending; for a conversion already made by a household that lives on its Roth, the solver option
+  `netRothPins = false` holds the conversion alone instead. From age 59½ a conversion paired with a
+  Roth withdrawal is shown as the tax-deferred withdrawal it amounts to; before 59½ the conversion
+  shown can exceed the amount by what is withdrawn from the Roth that year. Because
   the flag is separate from the amount, un-ticking a year leaves its figure in place for later --
   handy for comparing an optimized run against "what if I skip this year?". The flag has no effect on
   the five lead-in rows, where past conversions always count.
@@ -474,7 +591,7 @@ leave it blank where it does not apply), where:
   tax-deferred account and never reaches your budget, so unlike a withdrawal it does not fund spending.
   Two rules are checked and a violation is reported as an error rather than quietly adjusted: you must
   have reached age 70½ (not the same as the age your RMDs begin), and the amount is capped per person
-  per year (\\$115,000 in 2026, indexed for inflation; later years are projected at 3%, since the IRS
+  per year (\\$111,000 in 2026, indexed for inflation; later years are projected at 3%, since the IRS
   sets the figure only a year at a time). Note that a QCD must be paid from an IRA and not directly
   from a 401k or 403b, while **Owl** keeps all of these in a single tax-deferred account and cannot
   tell them apart. This is a step to take rather than an obstacle: roll the employer plan over to an
@@ -485,14 +602,18 @@ leave it blank where it does not apply), where:
   Therefore, the **sign (+/-) of entries in this column is important**: positive numbers are considered
   in the cash flow for that year and the surplus, if any, is deposited in the taxable savings accounts;
   negative numbers will potentially generate additional withdrawals and distributions from retirement
-  accounts.
+  accounts. A negative entry also pays for an after-tax contribution made from your pay (*Roth 401k
+  ctrb*, *Roth IRA ctrb*, *taxable ctrb*), which stays in *anticipated wages* and is taxed: for
+  \\$20,000 into a Roth 401k from \\$100,000 of pay, enter \\$100,000 of wages, \\$20,000 in *Roth 401k
+  ctrb*, and -\\$20,000 in *big-ticket items*.
 
-*big-ticket items* is the only column that can contain negative numbers; every other amount must be
-positive. *Roth conv fixed* holds a checkbox rather than an amount.
+*big-ticket items* and *other inc* are the only columns that can contain negative numbers; every other
+amount must be zero or positive. *Roth conv fixed* holds a checkbox rather than an amount.
 
 Only the *year* column is required. If your household has no use for a column, you can leave it out of
 the workbook entirely and it is read as zero for every year; **Owl** reports which columns were absent
-when it loads the file. An absent *Roth conv fixed* column simply means no year is held fixed, so
+when it loads the file. The exception is *months worked*, which then means 12 in a year with
+earnings and is not reported. An absent *Roth conv fixed* column simply means no year is held fixed, so
 every conversion is optimized. A header that differs from a recognized one only by capitalization,
 spacing, or punctuation is reported as a typo instead of being dropped.
 
@@ -538,7 +659,14 @@ The *Debts* table is used to track mortgage and loan payments which are not incl
 in the net spending amount.
 *Debts* remaining at the end of the *case* will be taken out of the savings accounts.
 A bequest of zero will therefore leave sufficient money from the savings accounts
-to pay the remaining debts. Mortgage interest is not deducted for income tax purposes,
+to pay the remaining debts.
+A loan can be tied to the home or real estate it finances by choosing that property
+in the *property* column: the loan is then paid off in the year the property is sold,
+out of the sale proceeds, and nothing is paid after. The dropdown lists the *residence*
+and *real estate* items of the *Fixed Assets* table; leave the cell empty for a loan
+that runs to its term. The property must be active whenever the loan is. If a linked
+property is renamed or deleted, the loan keeps the old name and a warning names it
+until another property is chosen. Mortgage interest is not deducted for income tax purposes,
 as **Owl** assumes taking the standard tax deduction. Be mindful that selling a house near
 the end of the plan while leaving a zero bequest may lead to infeasible solutions.
 
@@ -546,9 +674,9 @@ The *Household Financial Profile* workbook can optionally contain a *Debts* shee
 a *Fixed Assets* sheet to store these data.
 The *Debts* worksheet looks like the following:
 
-|active|name|type|year|term|amount|rate|
-|--|--|--|--|--|--|--|
-| | | | | | | |
+|active|name|type|year|term|amount|rate|property|
+|--|--|--|--|--|--|--|--|
+| | | | | | | | |
 
 where:
 - *active* is a Boolean value (`TRUE` or `FALSE`) that allows you to turn debts on or off in the
@@ -566,6 +694,9 @@ where:
 - *rate* is the **annual interest rate** (percentage) for the debt. This rate is used to calculate
   the fixed annual payment amount based on standard amortization formulas. The payment amount remains
   constant throughout the loan term.
+- *property* is optional: the *name* of the *residence* or *real estate* item in the *Fixed Assets*
+  sheet whose sale pays off the loan (see above). Leave it blank for a loan that runs to its term.
+  A workbook without this column still loads, with every cell read as blank.
 
 **Debt Payment Calculation:**
 - Debt payments are calculated using standard amortization formulas based on the principal amount,
@@ -597,9 +728,11 @@ where:
 - *type* is one of *residence*, *real estate*, *collectibles*, *precious metals*, *stocks*, and *fixed annuity*.
   The asset type determines the tax treatment upon disposition (see *Tax Treatment at Disposition* below).
 - *year* is the **reference year** (this year or after). If the year is in the past, it will be
-  automatically reset to the current year when reading from the HFP file. Assets acquired in
-  the future have a future reference year. The asset is considered assessed (current) or acquired (future)
-  at the beginning of the year.
+  automatically reset to the current year when reading from the HFP file. The rule is simply that
+  **an asset appears in the first year it is present in January**: one you already own carries the
+  current year, and one you buy during 2026 is entered as 2027, because it was not there in
+  January 2026. *value* is stated in reference-year dollars, so for a future purchase it is the
+  price you expect to pay, carried to that January.
 - *basis* is the **cost basis** of the asset — the actual purchase price or adjusted tax basis in nominal dollars
   (what you paid, not inflation-adjusted to the reference year). For future acquisitions, enter the expected
   purchase price in the nominal dollars of the acquisition year. The basis is used to calculate capital gains
@@ -633,8 +766,12 @@ where:
   is applied to the future value of the asset at disposition to calculate the net proceeds after commission.
 
 **Asset Lifecycle:**
-- Assets are **acquired at the beginning** of the year specified in the *year* column.
-- Assets are **disposed at the beginning** of the year specified in *yod* (if within the plan duration).
+- An asset is listed from the first year it is **present in January** — the *year* column.
+- An asset is **sold during** the year in *yod* (if within the plan duration). It was present that
+  January, so it is still listed in that year. The proceeds are part of that year's cash flow:
+  they are taxed that year and can pay for that year's spending and a loan linked to the property.
+  Any surplus is deposited in the taxable account that year and first appears in the next
+  January's balance, as balances are shown at the beginning of each year.
 - The asset value grows from the acquisition year to the disposition year using the specified growth rate.
 - If *yod* is beyond the plan duration, the asset is **liquidated at the end of the last year** of the plan
   and added to the bequest value (no taxes, as assets pass to heirs with step-up in basis).
@@ -645,8 +782,10 @@ When an asset is disposed of during the plan, its proceeds (the future value net
 into tax-free, ordinary-income, and capital-gains portions according to the asset *type*:
 - *fixed annuity* — any gain over basis is taxed as **ordinary income**; the basis itself is returned tax-free.
 - *residence* — treated as a primary residence: a capital-gains **exclusion of \\$250,000 (single) or
-  \\$500,000 (married)** is applied to the gain. Only the gain above the exclusion is taxed as capital gains,
-  while the basis plus the excluded portion of the gain is tax-free. If the sale is at a loss, the proceeds
+  \\$500,000 (married)** is applied to the gain. A surviving spouse keeps the \\$500,000 exclusion for a
+  sale within 2 years of the death and gets \\$250,000 after that (IRC 121(b)(4)); with **Owl**'s dates,
+  that is a sale in the year after the death or the next one. Only the gain above the exclusion is taxed
+  as capital gains, while the basis plus the excluded portion of the gain is tax-free. If the sale is at a loss, the proceeds
   are entirely tax-free.
 - *real estate*, *collectibles*, *precious metals*, and *stocks* — the gain over basis is taxed as **capital
   gains** and the basis is returned tax-free. If the sale is at a loss, the proceeds are entirely tax-free.
@@ -684,7 +823,8 @@ is treated and where Owl's model diverges from the actual law:
 | Income tax brackets & standard deduction | Inflation-adjusted | Chained CPI-U (≈ CPI-U − 0.2–0.3%/yr) | Small |
 | LTCG & capital gains thresholds | Inflation-adjusted | Chained CPI-U | Small |
 | Medicare IRMAA thresholds | Inflation-adjusted | CPI-U | Negligible |
-| ACA Federal Poverty Level thresholds | Inflation-adjusted | HHS annual update ≈ CPI-U | Negligible |
+| ACA Federal Poverty Level thresholds | Published guideline of the year before; inflation-adjusted past the last one | HHS annual update ≈ CPI-U | Negligible |
+| Medicare premiums, ACA benchmark premium, other medical expenses | Inflation-adjusted, plus the optional *Medical prices above inflation* excess | Medical care CPI, premium growth | Medical prices have historically outpaced CPI; set the excess to model it |
 | SS taxability thresholds (\\$25k/\\$32k, \\$34k/\\$44k) | **Fixed** (not inflation-adjusted) | Fixed by law since 1984 | None — correctly modeled |
 
 The most significant real-world deviation is for the Federal Employee Retirement System (FERS)
@@ -731,13 +871,24 @@ according to the age (year and month) when benefits are claimed. Total amount re
 during the first year of benefits (if in the future) is adjusted for situations
 when benefits do not cover the full year.
 This is important for bridging the transition to retirement.
+The earliest claiming age is the first month one is 62 throughout: 62 years for those born on the
+1st or 2nd of a month, who are 62 for all of their birth month, and 62 years 1 month for everyone
+else. Social Security counts a person as reaching an age on the day before the birthday, so someone
+born on the 1st reaches every age in the month before their birth month. **Owl** counts their
+reductions and delayed credits on that age: delayed credits stop when they reach 70, one month
+before their conventional 70, and a survivor benefit claimed before the survivor FRA is reduced
+for one month less.
 Spousal benefits are calculated under the assumption that those benefits
 are claimed at the latest date at which both spouses have claimed benefits.
+A spouse who delays their own benefit past FRA does not add the delayed credits on top of the
+spousal benefit: Social Security computes the combined payment without them and takes them out of
+the spousal part (POMS RS 00615.694), so delaying raises the total only once the spouse's own
+benefit exceeds half of the other spouse's PIA.
 Complex cases involving divorce or deceased spouses are not considered.
 
 **Survivor benefits.** After the first passing, the surviving spouse is entitled to two
-separate benefits: their own, and a survivor benefit worth the larger of the deceased
-spouse's benefit and 82.5% of their PIA. Social Security pays whichever is larger in a
+separate benefits: their own, and a survivor benefit based on the deceased spouse's PIA,
+plus any delayed retirement credits. Social Security pays whichever is larger in a
 given year, never both, and the spousal add-on ends. Because the two have independent
 start dates, a survivor who has not claimed yet keeps their own benefit and can still let
 it grow to age 70.
@@ -747,7 +898,15 @@ retirement credits accrue after death, though the benefit is still inflation-ind
 claiming date changes is the *fraction* of that amount paid, and it is measured against the
 **survivor's own age** when they file. Filing between age 60 and the survivor FRA reduces the
 benefit permanently, linearly from 71.5% at 60 to 100% at that FRA; waiting past it earns nothing
-extra, unlike a retirement benefit.
+extra, unlike a retirement benefit. A survivor born on the 1st of a month reaches both ages a month
+early: 60 at 59 years 11 months, and the survivor FRA a month before their birthday, so *FRA* files
+then, and the age fields span 59 years 11 months to that month.
+
+If the deceased spouse had claimed before their own FRA, the survivor benefit is then capped at
+the larger of the deceased's reduced benefit and 82.5% of their PIA (Social Security Act
+202(e)(2)(D)). The cap applies after the survivor's age reduction, so it is not reduced itself:
+with a PIA of \\$3,000 claimed at 62, a survivor filing at 62 gets the lesser of 79.6% of \\$3,000
+and the 82.5% cap, \\$2,389 a month, and waiting until the survivor FRA raises that only to \\$2,475.
 
 Note that the *survivor* FRA is a different SSA schedule from the *retirement* FRA that governs
 the claiming ages entered above, and can fall up to four months earlier. Both are derived from the
@@ -767,24 +926,38 @@ or past the survivor's FRA, the plan log says which date was used instead.
 By default, **Owl** uses the claiming ages you enter and does not change them.
 However, on the **Run Options** page, under *Social Security Claiming Ages*, the
 *Optimize SS claiming age for...* selector lets you choose which
-individuals should have their SS claiming month optimized (any month between age 62 and 70,
-i.e., 97 monthly choices).
+individuals should have their SS claiming month optimized (any month from the earliest claiming
+age to 70, i.e., 96 monthly choices, or 97 for those born on the 1st or 2nd of a month, but never a month already past: the earliest choice is the age reached
+this month, as benefits for earlier months cannot be collected retroactively).
 For a single individual the choices are `none` and the individual's name.
-For couples the choices are `none`, each spouse's name, and `both` —
-which is particularly useful when one spouse has already started collecting and only
-the other's age should be optimized.
-The optimizer will choose the claiming month that maximizes the plan objective (spending or bequest),
-taking into account the interaction with taxes, Medicare, and Roth conversion strategy.
+For couples the choices are `none`, each spouse's name, and `both`.
+Selecting one spouse's name is particularly useful when the other has already started collecting.
+**Owl** solves the plan once for each open claiming month, with the same options as any other solve,
+and keeps the month that gives the best objective (spending or bequest). Every candidate accounts for
+taxes, Medicare, and the Roth conversion strategy, and the result is never worse than any age
+you could enter by hand. Each candidate is a full solve, so a search takes up to 96 or 97 of them
+(fewer the closer to 70), run in parallel.
+
+**Optimizing one spouse versus both:** with `both`, **Owl** searches one spouse's age with the other's
+held, then the other's, and repeats until neither age changes, which usually takes one or two rounds.
+Each candidate includes every benefit the household receives — both own benefits, the spousal
+add-on, and the survivor benefit the longer-lived spouse inherits.
 After solving, the optimal claiming ages are written back to this page for reference,
 and the corresponding input fields are shown as read-only while that individual is being optimized.
+Historical, Monte Carlo, spending-optimization, and regret runs do not search claiming ages again:
+they hold the ages the plan has. Choosing a claiming age in each scenario would choose it knowing
+that scenario's returns and lifespans; the age is chosen once, under the life expectancies entered.
 
-**Already-claiming individuals:** if an individual's current age equals or exceeds the age entered
-in the *claiming at age...* fields, **Owl** always treats that person's claiming age as fixed —
-regardless of the optimize setting. For a couple where one spouse is already receiving benefits,
-enter that spouse's *actual* claiming age here so the solver can recognize them as already claimed;
-their age fields remain editable as reference values while the other spouse's name is the one selected.
-Choosing `both` makes both individuals' age fields read-only, whether or not either has already claimed.
-Selecting `none` always uses the entered ages as-is for all individuals.
+**Already-claiming individuals:** an individual whose claiming age entered in the
+*claiming at age...* fields is already past is taken to be collecting benefits, and a claim cannot
+be redone: such an individual is not offered in the *Optimize SS claiming age for...* selector,
+and neither is `both`. If an earlier selection names them (for instance after a solve wrote back an
+age that has since gone by), the selection is reset to `none`. If that individual is not actually
+collecting yet, enter a claiming age from this month on and they become available again.
+For a couple where one spouse is already receiving benefits, enter that spouse's *actual* claiming
+age and select the other spouse's name; `both` is for couples where neither has claimed.
+Individuals who are not selected keep the age entered, and `none` uses the entered ages as-is
+for everyone.
 A great website for guidance on when to start taking Social Security is
 [opensocialsecurity.com](https://opensocialsecurity.com).
 And obviously there are
@@ -826,7 +999,8 @@ The table on this page accepts one row per SPIA. The columns are:
   begins at year 0 of the plan. For a future purchase, the premium is deducted from the
   tax-deferred balance in that year.
 - **Premium (\\$k)** — lump-sum cost in thousands of nominal dollars. Ignored for past purchases.
-- **Monthly (\\$)** — monthly benefit in nominal dollars at the time of purchase.
+- **Monthly (\\$)** — monthly benefit in dollars: in today's dollars when *CPI-linked* is checked,
+  as the payment then grows with inflation from today, and otherwise the fixed nominal payment.
 - **CPI-linked** — check if payments are inflation-adjusted (rare); leave unchecked for the
   more common fixed nominal payment.
 - **Survivor (%)** — for couples, the fraction of the benefit that continues to the surviving
@@ -848,13 +1022,38 @@ Four types of savings accounts are considered and are tracked separately for spo
 - Tax-free savings accounts (e.g., Roth 401k, Roth IRA),
 - Health Savings Accounts (HSA) — triple tax-advantaged: contributions are pre-tax, growth is tax-free, and qualified medical withdrawals (including Medicare Parts B/D and Medigap premiums) are tax-free.
 
-Account values are assumed to be known at the beginning of the current year,
-which is not always possible. For that purpose,
-the `Account balance date` has the effect of back-projecting the amounts entered
-to the beginning of the year using the return rates and allocations
-assumed for the first year. If withdrawals contributing to the
-net spending were already performed for the current year,
-true account balances should be corrected to reflect values as of Jan 1st.
+Each plan year runs from January 1, so the first year is a full calendar year. Balances are
+entered as of the `Account balance date` (today by default), and **Owl** back-projects them to
+January 1 by removing the growth since then, using the return rates and allocations assumed for
+the first year. It does not add back the money that has already moved through the accounts this
+year. With a date after January 1, the first year therefore counts again what already happened:
+spending paid so far, net of the income received so far, is charged again, which is cautious for
+a retiree drawing down savings, and contributions already made are added again, which is generous
+for someone still saving. For the same balance entered on October 1 rather than January 1, one
+retiree example comes out about 2% lower.
+
+To keep this small:
+- If you have balances as of January 1 (from a year-end statement, for example), enter those and
+  set the date to January 1. The first year is then exact.
+- Otherwise, in the first-year row of the *Wages and Contributions* table, enter only the
+  contributions, QCDs and big-ticket items still to come this year. Those already made have
+  already moved the balance you entered, and they are amounts you know, so there is no reason to
+  spread them over the year.
+- Keep wages, like Social Security and pensions, at their full-year amounts: the income received
+  so far is what offsets the spending already paid.
+- Spending is the one flow that cannot be split this way: it is an annual target, so the part of
+  it already spent this year, net of that income, is counted again.
+- To offset that, add it back to your balances, most naturally to the taxable account: the
+  spending and taxes paid since January 1, minus the wages, Social Security and pensions received
+  since January 1. Because those incomes stay at their full-year amounts, the year-to-date income
+  is counted again too, so the amount to add is the net, not the spending alone. For a retiree
+  drawing down savings it is positive; for someone still working and saving it is usually
+  negative, and adding the gross spending would overstate the balance by the income received so
+  far.
+
+Graphs and worksheets show the whole first year, as for every other year. The *Summary* shows the
+`Net spending remaining in year`: the first year's net spending times the fraction of the year
+still ahead, which is what is left to spend from the start date.
 
 For married couples, the *Advanced options* expander holds a
 *Survivor's Spousal Beneficiary Fractions* section, where the spousal `Beneficiary fractions`
@@ -867,20 +1066,33 @@ the full inherited HSA balance as ordinary income.
 When the `Beneficiary fractions` are not all 1, it is recommended to deposit all
 surplus moneys in the taxable account of the first individual to pass. Otherwise,
 the optimizer will find unexpected solutions that can generate surpluses in order
-to maximize the final bequest. Finally, when fractions between accounts are not all equal,
-it can take longer to solve (minutes) as these *cases* trigger the use
-of binary variables which involves more complex algorithms.
+to maximize the final bequest.
 In some situations, unconventional transfers from tax-deferred savings accounts to taxable
 savings accounts, through surpluses and deposits, can be part of the optimal solution.
 
 A surplus is deposited into the same taxable account a withdrawal may have been taken from
-in that year. Where that happens, worksheets and graphs report the withdrawal and the surplus
-net of one another, since the money never left the account. Years in which the sale realizes
-taxable capital gains are reported in full, so that a withdrawal always accounts for the
-capital gains tax shown beside it.
+in that year. Where the sale realizes no capital gain, worksheets and graphs report the
+withdrawal and the surplus net of one another, since the money never left the account.
+A sale at a gain is reported in full, as is the deposit that buys back: the gain counts in
+the year's income, taxed or not, and the purchase resets the account's cost basis.
 
-Setting a surplus fraction that deposits some or all surpluses in the survivor's account
-can also sometimes lead to slow convergence. This is especially noticeable when solving with
+The surplus fraction can also be left to the optimizer, which then chooses each year, while both
+spouses live, how much of a surplus goes to each spouse's taxable account. The fraction entered is
+then ignored. This can help when the two accounts differ, for instance when one spouse's account
+carries more unrealized gains than the other's.
+**Do not let the optimizer split surpluses when the beneficiary fractions are not all 1.**
+What passes to other heirs at the first death, the partial bequest, counts in the objective at
+only 1% of a dollar of spending or of final bequest by default (`partialBequestWeight`), enough
+to break ties and no more. The natural
+consequence of maximizing spending or the final bequest is then to keep money out of the first
+estate: given the choice, the optimizer deposits surpluses in the survivor's account, where they
+still serve the objective, rather than in the account of the spouse who passes first, where part of
+them would leave with the partial bequest. The other heirs receive as little as the plan allows.
+Keep a fixed fraction there, with all surplus deposited in the account of the first spouse to pass,
+as recommended above, unless that outcome is what you intend.
+
+Setting a surplus fraction that deposits some or all surpluses in the survivor's account,
+or letting the optimizer split them, can also sometimes lead to slow convergence. This is especially noticeable when solving with
 varying rates and not so common when using constant rates.
 When using varying rates, it is recommended to set surpluses to be
 deposited in the taxable account of first spouse to pass unless exploring specific scenarios.
@@ -889,13 +1101,15 @@ deposited in the taxable account of first spouse to pass unless exploring specif
 
 The optional **cost basis** fields improve capital gains accuracy for the taxable account.
 By default (when left at 0), Owl approximates capital gains on withdrawals using only the
-current year's price appreciation — which significantly underestimates gains for accounts
+previous year's price appreciation of the equity share — which significantly underestimates gains for accounts
 with substantial embedded appreciation. When you supply a basis, Owl instead uses the
 **average-cost method**: each dollar withdrawn from the taxable account is treated as
 realizing a gain equal to the *unrealized-gain fraction* of the account,
 where gain fraction = (current balance − cost basis) / current balance.
 The gain fraction evolves each year as the SC loop tracks how basis changes
 (withdrawals reduce it proportionally; new contributions restore it at full value).
+At the first death of a couple, the taxable account the survivor inherits takes its value at the
+death as basis (IRC 1014), so the gain it carried is never taxed.
 
 The cost basis to enter is the total **adjusted cost basis** of the taxable account as
 reported by your brokerage — the sum of what you paid for all lots currently held,
@@ -903,9 +1117,10 @@ adjusted for reinvested dividends and return-of-capital distributions.
 All amounts are in \\$k.
 Leave the field at **0** if your basis is unknown — Owl treats zero (or blank) as *no basis
 supplied* and uses the legacy approximation. Enter a **positive** value to enable average-cost
-tracking. (In TOML or the Python API, an all-zero list or `setCostBasis([0])` follows the same
-rules: all zeros in a case file means legacy mode; `setCostBasis([0])` in code explicitly models
-100% embedded gain.)
+tracking. (In TOML or the Python API the same rule applies to each person: a zero entry, in the
+case file or in `setCostBasis()`, means the legacy approximation for that person.) A person whose
+taxable account starts empty is tracked from \\$0 instead, so that what the account later receives,
+purchases or an inherited account, carries its basis.
 A higher gain fraction means more capital gains tax per dollar withdrawn from the taxable account,
 increasing total tax drag and reducing the maximum achievable spending or bequest.
 """)
@@ -966,7 +1181,9 @@ Owl tracks four asset classes:
 - **S&P 500** — U.S. large-cap equities; rates include dividends. When not using historical
   data, this label can represent any mix of equities (domestic, international, emerging, etc.).
 - **Bonds Baa** — Investment-grade corporate debt with moderate default risk.
-- **10-y Treasury Notes** — Medium-term U.S. government debt; interest is state/local tax-exempt.
+- **10-y Treasury Notes** — Medium-term U.S. government debt. Their interest is exempt from state
+  and local tax under the law, but **Owl** does not model that exemption: it is taxed like other
+  investment income.
 - **Cash Assets/Inflation** — TIPS-like securities assumed to track inflation, holding constant
   real value.
 
@@ -1265,7 +1482,7 @@ An option to set the dividend rate for your stock portfolio is available under
 *Advanced options*. This [reference](https://us500.com/tools/data/sp500-dividend-yield)
 provides historical S&P 500 dividend yields over different periods.
 
-Four tax-related settings are also accessible:
+Two tax-related settings are also accessible:
 - **Heirs marginal tax rate** — the marginal rate your beneficiaries would pay on
   inherited tax-deferred and HSA balances. Used to compute the after-tax value of a bequest.
 - **OBBBA expiration year** — the projected year when the One Big Beautiful Bill Act
@@ -1349,8 +1566,8 @@ are looking at.
 
 **Desired annual net spending** on this page is the *first-year* amount, and so are the figures
 on the **Spending vs Bequest** and **Spending Optimization** pages. The **Case Results** summary
-reports both, as *Net yearly spending basis* and *Net spending for year …*, and the **Regret
-Curve** is measured in basis dollars. On a *flat* profile the two coincide, and the distinction
+reports both, as *Net yearly spending basis* and *Net spending for year …*. The experimental
+**Conversion Regret** curve is measured in first-year dollars as well. On a *flat* profile the two coincide, and the distinction
 disappears.
 
 ##### Safety Net
@@ -1391,12 +1608,13 @@ This page configures Roth conversions, health insurance costs, and solver option
 The **objective**, **safety net**, and **spending profile** are set on the **Goals** page.
 
 The maximum amount for Roth conversions and which spouse can execute them is configurable.
+The maximum applies to each spouse's conversions in a year, not to the couple's combined amount.
 Roth conversions are optimized for reducing taxes and maximizing the selected objective function.
 A year from which Roth conversions can begin to be considered can also be selected:
 no Roth conversions will be allowed before the year specified.
 
-A **Year to stop considering Roth conversions** can also be selected: no Roth conversions will be
-allowed from that year onward. It is the mirror of the start year, and the two together bound
+Turning on **Stop Roth conversions mid-plan** reveals a **Year to stop considering Roth conversions**:
+no Roth conversions will be allowed from that year onward. It is the mirror of the start year, and the two together bound
 conversions to a window -- useful for saying "convert until Medicare starts, then stop" without
 touching individual years.
 
@@ -1416,7 +1634,7 @@ choosing an exclusion disables the swap toggle, and turning the swap on disables
 
 The **Health Insurance** section groups three related subsections:
 
-**Qualified Medical Expenses** holds the *Other medical expenses (\\$k/year)* field, which sets
+**Qualified Medical Expenses** holds two fields. The *Other medical expenses (\\$k/year)* field sets
 annual non-Medicare qualified medical expenses (dental, vision, co-pays, deductibles, etc.)
 in today's dollars. Like most fields in the interface, it is **in thousands**.
 IRS rules allow HSA withdrawals only up to total qualified medical expenses (QMEs).
@@ -1427,6 +1645,18 @@ Note: these expenses are treated as part of general living costs in the cash flo
 appear separately in the *Healthcare* slice of the spending pie chart, which covers insurance
 premiums only.
 
+The *Medical prices above inflation (%/year)* field sets how much faster than inflation medical
+prices grow each year (e.g. 1.5), from 0 to 10. Medicare Part B and Part D premiums (base premiums and IRMAA
+surcharges), the ACA benchmark premium, and the other medical expenses above then grow each year by
+inflation compounded with this excess. Tax brackets, IRMAA thresholds, and the Federal Poverty Level
+that sets ACA subsidies keep following inflation alone, as the law indexes them.
+Leave it at 0 to keep medical prices in step with inflation.
+Past values can be compared on FRED by plotting the
+[medical care CPI](https://fred.stlouisfed.org/series/CPIMEDSL) against the
+[all-items CPI](https://fred.stlouisfed.org/series/CPIAUCSL) as percent change from a year ago.
+A *smile* spending profile, whose late-life increase already stands in for rising medical costs,
+may then count part of that growth twice.
+
 **ACA Marketplace (Pre-65)** allows entering the annual benchmark Silver plan premium in the
 *Benchmark Silver plan premium (SLCSP) (\\$k/year)* field, in thousands, for years before Medicare.
 Set to 0 to omit ACA costs.
@@ -1435,12 +1665,33 @@ When the older spouse transitions to Medicare, the tool automatically scales the
 remaining spouse's individual plan using the CMS age rating curve (45 CFR 147.102), so no manual
 adjustment is needed. The scaling factor is approximately 37–48% of the couple's combined premium,
 depending on the age gap between spouses.
+Coverage is counted by the month: marketplace coverage ends when Medicare starts, in the month of the
+65th birthday (the month before for a birthday on the 1st), so the year of that birthday is charged
+for the months before it. The subsidy uses the poverty line of the tax household, which for a married
+couple is 2 while both spouses are alive, even when one of them is already on Medicare.
+That poverty line is the HHS guideline in effect when open enrollment begins, in November of the year
+before, so coverage in 2027 is measured against the guideline published in 2026 (IRC 36B(d)(3)(B);
+26 CFR 1.36B-1(h)). Years past the last published guideline grow it by inflation from its own year.
+The share of income expected toward the benchmark follows the IRS applicable percentage table of each
+year: Rev. Proc. 2025-25 for 2026 and Rev. Proc. 2026-26 for 2027, with the latest table carried
+forward. Above 400% of the poverty line there is no subsidy; income of exactly 400% still qualifies.
+Below the subsidy, Medicaid follows the state of residence of each year. In the states that expanded
+Medicaid, adults are covered up to 138% of the poverty line, at no premium. Wisconsin covers adults
+up to 100%. The other states without the expansion (AL, FL, GA, KS, MS, SC, TN, TX, WY, as of October
+2026) cover almost no adults without children, and the subsidy starts at 100%, so income below 100%
+gets neither: this *coverage gap* owes the full benchmark premium. With *Solve ACA brackets with
+MILP*, the optimizer prices the gap exactly and usually keeps income at 100% or above. The default
+loop charges the lowest subsidized share instead, as from 100%, because the cost jumps to the full
+premium below 100% and the loop could oscillate across that jump; it warns when a plan year ends in
+the gap, understating that year's premium. Medicaid's work requirements starting in 2027 are not
+modeled: they count all income, so they only matter below about \\$7,000 a year.
 The **ACA start year** field specifies the calendar year when ACA coverage begins (e.g. the year of
 retirement). Years before that are treated as employer-covered and incur no ACA cost. Leave at 0 for
 ACA to apply from the first year of the plan.
 *Solve ACA brackets with MILP (expert)* in *Advanced options*
 co-optimizes ACA bracket selection within the LP, enabling the optimizer to shift MAGI across ACA brackets
-for improved plan objectives (can be slower; applies 2026 rules only); it only applies when SLCSP > 0.
+for improved plan objectives (can be slower; applies the rules of 2026 on, so a 2025 plan year is priced
+on them too); it only applies when SLCSP > 0.
 
 **Medicare** has a toggle *Medicare and IRMAA calculations* (Part B and Part D).
 When turned off, Medicare premiums are ignored (set to zero); this is the fastest option but least accurate.
@@ -1449,13 +1700,16 @@ finds the best strategy, then Medicare premiums are calculated from that strateg
 and the problem is re-solved with those premiums as fixed costs until they stabilize.
 This provides good accuracy with reasonable computation time.
 
-For an exact answer at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
+To let the optimizer place income at a bracket edge, enable *Solve Medicare brackets with MILP (expert)* in the *Advanced options* expander.
 That option integrates Medicare premiums directly into the optimization as decision variables,
 so the optimizer simultaneously finds the best strategy and premium bracket.
-It can be significantly slower (sometimes many minutes) due to additional binary variables.
-Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios.
+It is significantly slower than the loop — seconds to many minutes, depending on the case — because
+of the additional binary variables, and it wants MOSEK.
+Use it for single-case analysis; do not use it for Monte Carlo or multiple scenarios, where a
+solve that takes minutes instead of a fraction of a second is multiplied by every draw.
 
-Medicare premiums start automatically in the year each individual reaches age 65.
+Medicare premiums start automatically in the month each individual reaches age 65 (the month before
+for a birthday on the 1st), so the first year is charged only for the months covered.
 While the *Medicare and IRMAA calculations* toggle is on and anyone in the case is age 64 or older,
 inputs appear for `MAGI for [year] ($k)`
 for the prior 1 or 2 years (nominal thousands). These values are needed for
@@ -1467,7 +1721,7 @@ use it to add a monthly base (e.g. national average ~\\$39–47).
 A **self-consistent loop** is an iterative method used for values that depend on the
 solution itself and are therefore difficult to integrate directly into the linear program.
 These include: the net investment income tax (NIIT, a 3.8% surtax on investment income
-above $200k/$250k single/MFJ); the long-term capital gains rate (0%, 15%, or 20%,
+above \\$200k/\\$250k single/MFJ); the long-term capital gains rate (0%, 15%, or 20%,
 determined by ordinary taxable income); the phase-out of the additional standard
 deduction for seniors; the taxable fraction of Social Security benefits — which depends
 on *provisional income* (PI), defined as adjusted gross income plus half of SS benefits
@@ -1476,6 +1730,21 @@ up to 50% between those thresholds and \\$34k (single) / \\$44k (MFJ), and up to
 above the upper threshold — Medicare/IRMAA when Medicare is enabled, and ACA marketplace
 premiums when ACA is enabled. The loop solves, recalculates these values from the solution,
 re-solves, and repeats until convergence.
+
+Convergence means two things, not one. The objective has to stop moving, and so do the quantities
+the loop feeds back: a plan whose own income implies different Medicare premiums or a different
+taxable fraction of Social Security has not reached a fixed point, however steady the objective
+looks. Every solved plan reports the distance still remaining, per tax family and in today's
+dollars, and the `residualTol` option sets how much is tolerated -- \\$50 a year by default,
+measured per year so the bar means the same on a short plan as on a long one. A few dollars a year
+is ordinary rounding; hundreds means the plan is still moving and its tax figures should not be
+read too precisely.
+
+One caveat worth knowing. Within each pass the fed-back values are constants, so the optimizer
+cannot weigh income against them — it cannot see that a little less income would drop an IRMAA
+bracket. The loop can therefore settle on an answer that is entirely self-consistent and still not
+the best one. The *MILP (expert)* options below remove that limitation for the families they
+cover, at a cost in time.
 The loop always runs. It cannot be switched off, because two of the quantities it settles
 have no place inside the optimization at all: the phase-out of the senior deduction, which
 depends on the MAGI the solution produces, and the cost basis of the taxable account, which
@@ -1484,10 +1753,22 @@ should a case prove slow to settle; it is reachable from the TOML file and the P
 (`maxIter`) but is not exposed in the interface.
 
 The *Advanced options* expander contains:
+- *Solve tax breakpoints by local search (expert)* – carries every tax breakpoint (Social Security
+  taxability, Medicare, ACA when SLCSP > 0, capital gains, NIIT, and the phase-out of the senior
+  bonus deduction) as binary variables and solves them
+  by local search instead of branch-and-bound: small restricted problems around the iteration's plan.
+  It usually finds a somewhat better plan than the iteration, in seconds to a few minutes, and never
+  a worse one; it is not a proven optimum. When on, the individual MILP settings below do not apply,
+  and a fixed Social Security taxable fraction is replaced by the IRS formula (the log says so):
+  local search keeps the problem well behaved without it.
+- *MILP strategy (expert)* – how the breakpoints turned to MILP below are solved: *branch-and-bound*,
+  the solver's complete search, which stops at the solver gap or time limit and can take many minutes
+  per solve, or *local-search*. Available once at least one threshold is set to MILP.
+  The Summary's *Breakpoint method* row records which treatment produced each plan.
 - *Solve Medicare brackets with MILP (expert)* – chooses the IRMAA bracket inside the
   optimization rather than by iteration; enabled only when Medicare and IRMAA calculations are on.
 - *Solve ACA brackets with MILP (expert)* – chooses the ACA bracket inside the optimization, letting
-  it shift MAGI across brackets deliberately (slower; applies 2026 rules only);
+  it shift MAGI across brackets deliberately (slower; applies the rules of 2026 on);
   enabled only when SLCSP > 0.
 
 These two optimize modes operate on nearly disjoint time ranges — ACA covers pre-65 years,
@@ -1499,34 +1780,41 @@ solve the Medicare brackets that way for high-income retirees where IRMAA surcha
 enable both when retiring in the early 60s with high income, so the LP can trade off ACA costs
 against future IRMAA simultaneously.
 - *Solve LTCG brackets with MILP (expert)* – replaces the iteration for LTCG ordinary income
-  stacking with an exact MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
+  stacking with a MILP formulation. Binary variables select the 0%/15%/20% bracket each year,
   so the optimizer simultaneously finds the best withdrawal strategy and bracket assignment.
   Can be slower due to additional binary variables; most useful for high-income plans where LTCG bracket
-  placement significantly affects the objective.
+  placement significantly affects the objective, and for a large taxable account whose gains sit near the
+  top of the 0% bracket while Roth conversions compete for the same room. When the iteration leaves the
+  tax on gains unsettled, the log says so and suggests this option.
 - *Solve NIIT threshold with MILP (expert)* – decides inside the optimization whether income crosses the NIIT threshold.
-  Binary variables determine whether MAGI exceeds the NIIT threshold (\\$200k single / \\$250k MFJ) each year.
-  Only has an effect when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
+  A binary variable per year selects which term of the minimum bounds the tax: investment income, or MAGI
+  above the threshold (\\$200k single / \\$250k MFJ).
+  Most effective when the capital-gains brackets are solved the same way, since MAGI depends on ordinary income stacking.
 - *Disallow cash-flow surpluses in the last 2 years*
 - *Social Security taxability method* (loop, value, or optimize) and, when `value`, fixed SS tax fraction $\\Psi$.
-- *MIP decomposition* (expert): when any of the MILP bracket options above is active, an alternative solve strategy can be selected. The default, *none*, hands the whole MIP to the solver at once. *Sequential* (relax-and-fix) fixes bracket binary variables one family at a time from an LP relaxation — fast but not globally optimal. *Benders* uses classical Benders decomposition to certify global optimality within the MIP gap via accumulated dual cuts — slower per iteration but convergence is typically reached in 1–3 iterations.
 - *Linear programming solver* selection (default, HiGHS, or MOSEK if available), plus optional extra solver options.
 
 **Social Security Taxability** controls how the taxable fraction of Social Security benefits is determined.
 Choose *loop* to compute it dynamically via the self-consistent loop (recommended).
 Choose *value* to pin it to a fixed fraction $\\Psi \\in [0, 0.85]$: use 0.0 for low provisional income,
 0.5 for mid-range, or 0.85 for high provisional income. Choose *optimize* (expert) to solve taxable SS
-exactly within the LP using binary variables; this can be slower and require additional configuration
-like increasing the `gap` to ~2% using the *Extra solver options* (i.e. `{"gap":2e-2}`).
+within the optimization using binary variables. This is slower than the loop but no longer needs the
+`gap` to be loosened by hand: on the shipped *jack+jill* case it takes about 20 seconds with MOSEK
+at default settings, against about 1 second for the loop, and finds a spending basis 1.4% higher.
+Prefer MOSEK for it — the same case took over two minutes with HiGHS and returned a worse answer.
 
 Different mixed-integer linear programming solvers can be selected.
 Choose `default` to auto-select MOSEK when available, otherwise HiGHS.
 The *Extra solver options (expert)* field accepts a JSON dictionary (e.g. `{"key": "value"}`)
 that is merged into the solver options; leave empty unless experimenting.
 This option is mostly for developer use and verification purposes.
-Both solvers (HiGHS and MOSEK) provide very similar results.
-In most cases, `MOSEK` will provide the best performance.
-Selecting `HiGHS` will provide comparable results in a little more time.
-Both solvers support all decomposition modes (sequential and Benders).
+Both solvers (HiGHS and MOSEK) provide very similar results with every tax mode in *loop* mode,
+which is the default and a pure linear program; `MOSEK` is somewhat faster.
+The two are **not** comparable once any bracket option is set to *optimize*, which turns the
+problem into a mixed-integer program. Measured over historical windows of a shipped case, `HiGHS`
+took 49 to 238 times longer than `MOSEK` and did not close the gap in any of them, returning
+answers up to \\$7,505 below the proven optimum after hours of work.
+Use `MOSEK` for the *optimize* modes.
 """)
 
 # --- Results tab ---
@@ -1565,22 +1853,23 @@ Graphs are organized into four tabs:
 **Spending** — income and cash-flow perspective:
 - *Lifetime Cash Flow* — pair of pie charts (in today's \\$): left shows where money comes from
   (portfolio, Social Security, pension, wages, SPIA, fixed assets, big-ticket items, other);
-  right shows where it goes (living expenses, federal taxes, state taxes when configured,
-  healthcare, debt, big-ticket items, charitable giving, estimated heir taxes, bequest).
-  *Taxes* is federal only (ordinary income, LTCG/dividends, NIIT); *State taxes* appears as a
-  separate slice when a state of residence is configured.
+  right shows where it goes (living expenses, federal taxes, payroll tax when the plan has earnings,
+  state taxes when configured, healthcare, debt, big-ticket items, charitable giving, estimated heir
+  taxes, bequest).
+  *Taxes* is federal income tax only (ordinary income, LTCG/dividends, NIIT); *Payroll tax* appears as a
+  separate slice in a plan with earnings, and *State taxes* when a state of residence is configured.
   *Healthcare* covers insurance premiums only (Medicare Part B/D + IRMAA surcharges, ACA marketplace premiums);
   non-Medicare qualified medical expenses (QMEs) are embedded in the *living expenses* slice.
 - *Annual Cash Flow Mix* — year-by-year normalized stacked-area charts showing how the composition
   of income sources and outflows evolves over the plan horizon. Colors match the pie charts,
-  including a separate *State taxes* band when configured.
+  including separate *Payroll tax* and *State taxes* bands when present.
   Bequest is excluded as it is a lump-sum event rather than an annual flow.
 - *Net Available Spending* — year-by-year spending trajectory.
 - *Income, Big-Ticket Items, and Debts* — stacked breakdown of income sources (wages, Social Security, pension, withdrawals, etc.), big-ticket item cash flows, and debt payments.
 
 **Taxes** — tax and health insurance costs:
 - *Taxable Ordinary Income* — ordinary income, LTCG, and bracket allocation.
-- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it.
+- *Income Taxes, and Medicare (+IRMAA)* — federal (and state, when configured) tax bill, Medicare Part B/D premiums, and IRMAA surcharges. The heading becomes *Income Taxes, Medicare (+IRMAA), and ACA* when an ACA premium is configured, and the chart then includes it; it starts with *Income and Payroll Taxes* when the plan has earnings, and the chart then shows the payroll tax as its own line.
 - *HSA Activity* *(when HSA is present)* — annual HSA balance, contributions, and withdrawals by individual.
 - *Charitable Giving (QCD)* *(when the household gives this way)* — annual qualified charitable distributions by
   individual, split into the part that satisfies that year's required minimum distribution and the part beyond it,
@@ -1650,7 +1939,7 @@ beginning of each year, plus a final end-of-plan (bequest) row:
 **Income & Taxes** — income summary and tax detail:
 - *Income* — net spending, taxable ordinary income, taxable capital gains and dividends, total tax bills and Medicare.
 - *Taxes* — income allocated to each federal tax bracket, NIIT, LTCG tax, early-withdrawal penalty,
-  state income tax (when applicable), the fraction of Social Security that is taxable, the total tax
+  `payroll tax` (when the plan has earnings), state income tax (when applicable), the fraction of Social Security that is taxable, the total tax
   bill, `Medicare+IRMAA`, and `ACA premiums` when applicable.
 
 **Allocations & Rates** — asset mix and return rates:
@@ -1711,7 +2000,8 @@ the **Create Case** or **Financial Profile** page.
 # --- Stress Tests tab ---
 with tab_sim:
     st.markdown("""
-There are five pages for stress-testing your plan under different market scenarios.
+There are four pages for stress-testing your plan under different market scenarios. A fifth,
+**Conversion Regret**, is experimental and not yet in the menu; it is described at the end of this tab.
 
 ##### How much computing a run costs
 Every page in this section works the same way: it solves your plan many times over, once per
@@ -2098,8 +2388,11 @@ A bequest level the plan cannot reach is marked *unreachable* and drawn as a dot
 so a curve that stops short is not mistaken for the trade-off simply ending.
 """)
 
-    with st.expander(":orange[**Conversion Regret**]", expanded=expand_all, type="compact"):
+    with st.expander(":orange[**Conversion Regret** — *experimental*]", expanded=expand_all, type="compact"):
         st.markdown("""
+*This page is experimental and is not yet in the **Stress Tests** menu. The description below is
+provided for reference while it is being developed.*
+
 A Roth conversion has to be decided now, without knowing what markets will do. This page asks
 what that commitment costs:
 
@@ -2256,7 +2549,7 @@ Under Docker, set the `STREAMLIT_THEME_BASE` environment variable instead — th
 Desktop GUI, in `docker-compose.yml`, or on the command line:
 
 ```
-docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker.static
+docker run -p 8501:8501 -e STREAMLIT_THEME_BASE=light --rm owlplanner/owldocker:latest
 ```
 
 Streamlit's [theming documentation](https://docs.streamlit.io/develop/concepts/configuration/theming)
@@ -2310,8 +2603,9 @@ Medicare costs after the optimization step, and then iterate to convergence.
 In this case, the suggested Roth conversions can sometimes lead to
 smaller net spending or bequest than when no Roth conversions are made.
 This is due to higher Medicare costs triggered by the increased MAGI
-resulting from Roth conversions
-which are factored in during the optimization step.
+resulting from Roth conversions,
+which the optimization step does not see: within each pass of the loop, Medicare costs are
+fixed amounts, so the optimizer cannot weigh a conversion against the bracket it triggers.
 
 Whenever possible, one should **always** run comparisons between *cases*
 with and without Roth conversions. These comparisons will help quantify

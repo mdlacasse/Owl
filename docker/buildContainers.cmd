@@ -5,9 +5,6 @@ for /f "tokens=2 delims==" %%V in ('findstr __version__ ..\src\owlplanner\versio
 set VERSION=%VERSION: =%
 set VERSION=%VERSION:"=%
 
-docker build --provenance=true --sbom=true --no-cache -f Dockerfile.edge -t owlplanner/owldocker:edge .
-docker push owlplanner/owldocker:edge
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=true --sbom=true --no-cache -f Dockerfile.edge -t owlplanner/owldocker:edge --push .
 
-docker build --provenance=true --sbom=true --no-cache -f Dockerfile.versioned -t owlplanner/owldocker:%VERSION% -t owlplanner/owldocker:latest .
-docker push owlplanner/owldocker:%VERSION%
-docker push owlplanner/owldocker:latest
+docker buildx build --platform linux/amd64,linux/arm64 --provenance=true --sbom=true --no-cache -f Dockerfile.versioned -t owlplanner/owldocker:%VERSION% -t owlplanner/owldocker:latest --push .

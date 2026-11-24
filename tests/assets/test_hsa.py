@@ -7,7 +7,11 @@ tax-free growth, tax-free qualified medical withdrawals).
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+from datetime import date
+
 import numpy as np
+import pandas as pd
+import pytest
 
 from owlplanner import Plan
 
@@ -73,8 +77,9 @@ def test_hsa_increases_spending():
 
 
 def test_hsa_contribution_no_explicit_deduction():
-    """HSA contributions get no explicit deduction: wages are entered net of
-    all contributions, so taxable income must not drop when only kappa changes."""
+    """HSA contributions get no explicit deduction: wages are entered net of the
+    pre-tax contributions, payroll HSA included, so taxable income must not drop when
+    only kappa changes."""
     # Younger person so contributions actually occur before Medicare age.
     young = {"inames": ["TestUser"], "dobs": ["1980-01-15"], "expectancy": [88]}
     hsa_ctrb = 4.3  # $4,300/yr HSA contributions
@@ -127,6 +132,71 @@ def test_hsa_contribution_stops_at_medicare():
         )
     if n_stop > 0:
         assert np.all(p.kappa_ijn[0, 3, :n_stop] == 4300), "HSA contributions before Medicare enrollment should be set"
+
+
+# Year the person turns 65 (offset 0) or the year before (offset -1), and the share of the
+# HSA contribution allowed in that year (IRC 223(b)(2), (b)(7)). Medicare starts in the
+# birthday month, or the month before for a birthday on the 1st.
+@pytest.mark.parametrize(
+    "dob, offset, frac",
+    [
+        ("1970-06-15", 0, 5 / 12),  # Medicare from June: January to May
+        ("1970-12-15", 0, 11 / 12),
+        ("1970-12-01", 0, 10 / 12),  # Medicare from November
+        ("1970-02-01", 0, 0.0),  # Medicare from January
+        ("1970-01-15", 0, 0.0),
+        ("1970-01-01", -1, 11 / 12),  # Medicare from December of the year before
+    ],
+)
+def test_hsa_medicare_year_is_prorated(dob, offset, frac):
+    """The year Medicare starts keeps the contribution for the months before it."""
+    p = _make_plan(dobs=[dob], expectancy=[90])
+    n = 1970 + 65 + offset - date.today().year
+    assert p.n_hsa_i[0] == n
+    assert p.hsaFrac_in[0, n - 1] == pytest.approx(1.0)
+    assert p.hsaFrac_in[0, n] == pytest.approx(frac)
+    assert np.all(p.hsaFrac_in[0, n + 1:] == 0.0)
+
+
+def test_hsa_delayed_medicare_is_prorated():
+    """A later enrollment age moves the prorated year with it."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.setAccountBalances(taxable=[200], taxDeferred=[500], taxFree=[100])
+    p.setHSA([30], medicare_ages=[67])
+    n = 1970 + 67 - date.today().year
+    assert p.n_hsa_i[0] == n
+    assert p.hsaFrac_in[0, n] == pytest.approx(5 / 12)
+
+
+def test_hsa_contributions_prorated_from_hfp():
+    """setContributions() scales the HFP entry in the Medicare year and zeros it after."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.zeroWagesAndContributions()
+    p.timeLists["TestUser"]["HSA ctrb"] = 4_400.0
+    p.setContributions()
+    n = p.n_hsa_i[0]
+    assert np.all(p.kappa_ijn[0, 3, :n] == pytest.approx(4_400))
+    assert p.kappa_ijn[0, 3, n] == pytest.approx(4_400 * 5 / 12)
+    assert np.all(p.kappa_ijn[0, 3, n + 1 : p.horizons[0]] == 0.0)
+    # The user's entry is kept as input.
+    assert np.all(p.timeLists["TestUser"]["HSA ctrb"] == 4_400.0)
+
+
+def test_hsa_prorated_year_does_not_flag_stale(tmp_path):
+    """saveHFP() keeps the user's time lists when only the HSA scaling differs."""
+    p = _make_plan(dobs=["1970-06-15"], expectancy=[90])
+    p.zeroWagesAndContributions()
+    df = p.timeLists["TestUser"]
+    df["HSA ctrb"] = 4_400.0
+    df.loc[df["year"] == date.today().year, "IRA ctrb"] = 7_000
+    p.setContributions()
+    fname = str(tmp_path / "HFP_hsa.xlsx")
+    p.saveHFP(fname, overwrite=True)
+    read_df = pd.read_excel(fname, sheet_name="TestUser")
+    year65 = date.today().year + p.n_hsa_i[0]
+    # Column split preserved, so the time lists were not rebuilt from the arrays.
+    assert read_df.loc[read_df["year"] == date.today().year, "IRA ctrb"].iloc[0] == pytest.approx(7_000)
+    assert read_df.loc[read_df["year"] == year65, "HSA ctrb"].iloc[0] == pytest.approx(4_400)
 
 
 def test_hsa_bequest():
@@ -325,3 +395,70 @@ def test_hsa_cap_pre_medicare_with_expenses():
             hsa_n = float(np.sum(p.w_ijn[:, 3, n]))
             cap_n = float(p.other_medical_n[n])  # M_n = 0 pre-Medicare
             assert hsa_n <= cap_n + 1.0, f"Year {n}: HSA ${hsa_n:.0f} exceeds pre-Medicare cap ${cap_n:.0f}"
+
+
+def _retiree(rows, state=None, options=None, aca=None, taxable=0, deferred=30):
+    """A 60-year-old in 2026 living on savings: a fixed $30,000 Roth conversion is the year's income.
+
+    The conversion is one already made, by a household that lives on its Roth, so its pin holds the
+    conversion alone (netRothPins=False): read as a net transfer, it would leave the Roth no spending
+    that year, and the plan nothing to live on once the conversion empties the tax-deferred account.
+    """
+    import io
+    p = Plan(["A"], ["1966-07-01"], [62], "HSA retiree", verbose=False, logstreams=[io.StringIO()])
+    p.setSpendingProfile("flat")
+    p.setAccountBalances(taxable=[taxable], taxDeferred=[deferred], taxFree=[300], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[100, 0, 0, 0], [100, 0, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.setDividendRate(0)
+    if state:
+        p.setStateTax(state)
+    if aca:
+        p.setACA(aca)
+    base = {"year": int(p.year_n[0])}
+    if deferred:
+        base.update({"Roth conv": deferred * 1000, "Roth conv fixed": True})
+    p.readHFP({"A": pd.DataFrame([{**base, **rows}])})
+    p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "netRothPins": False, **(options or {})})
+    assert p.caseStatus == "solved", p.caseStatus
+    return p
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_negative_other_inc_deducts_an_hsa_contribution_without_wages(options):
+    """#225: with no wages to net it from, an HSA contribution entered with the same amount as a
+    negative "other inc" is deducted from AGI (IRC 223(a), 62(a)(19)) and paid from cash."""
+    base = _retiree({}, options=options)
+    hsa = _retiree({"HSA ctrb": 5400, "other inc": -5400}, options=options)
+    assert hsa.MAGI_n[0] == pytest.approx(base.MAGI_n[0] - 5400, abs=1)
+    assert hsa.T_n[0] < base.T_n[0]
+    assert hsa.b_ijn[0, 3, 1] > 5400  # deposited, with a year's growth
+    # Paid from cash: everything that came in went out, the contribution included.
+    for p in (base, hsa):
+        cash_in = p.w_ijn[0, :, 0].sum() + p.omega_in[0, 0] + p.other_inc_in[0, 0]
+        cash_out = p.g_n[0] + p.s_n[0] + p.T_n[0] + p.U_n[0] + p.J_n[0] + p.st_T_n[0]
+        assert cash_in == pytest.approx(cash_out, abs=1)
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_a_deduction_below_the_state_base_is_lost_not_infeasible(options):
+    """PA leaves the conversion out of state income, so an $8,000 deduction brings the state base to
+    -$8,000 while the federal one stays at $22,000. The state base stops at zero."""
+    p = _retiree({"HSA ctrb": 8000, "other inc": -8000}, state="PA", options=options)
+    assert p.MAGI_n[0] == pytest.approx(22_000, abs=1)
+    assert p.st_T_n[0] == pytest.approx(0, abs=1)
+
+
+@pytest.mark.parametrize("options", [{}, {"breakpointMethod": "branch-and-bound"}], ids=["loop", "optimize"])
+def test_a_deduction_larger_than_all_income(options):
+    """No income at all: the deduction is lost federally and in the state, and an ACA MAGI below zero
+    stays in the bottom bracket."""
+    p = _retiree({"HSA ctrb": 8000, "other inc": -8000}, state="CA", options=options, aca=9,
+                 taxable=200, deferred=0)
+    assert p.T_n[0] == pytest.approx(0, abs=1)
+    assert p.st_T_n[0] == pytest.approx(0, abs=1)
+    # AGI can fall below zero where taxable income cannot: the reported MAGI is the year's income less
+    # the deduction, and in optimize mode it is the MAGI the ACA rows priced.
+    assert p.MAGI_n[0] == pytest.approx(p.Q_n[0] - 8000, abs=1)
+    if "haca" in p.vm:
+        assert p.MAGI_aca_n[0] == pytest.approx(p.haca_qn[0].sum(), abs=1)

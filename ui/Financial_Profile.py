@@ -24,7 +24,8 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-from owlplanner.hfp_io import getTableTypes
+from owlplanner.debts import PROPERTY_TYPES
+from owlplanner.hfp_io import getTableTypes, quietTimeHorizonItems
 
 import sskeys as kz
 import owlbridge as owb
@@ -37,55 +38,87 @@ import case_progress as cp
 timetableHelp = {
     "year": "Calendar year of this row",
     "anticipated wages": (
-        "Employment income you anticipate this year (nominal $), entered net of every "
-        "contribution column to the right. Employer contributions were never part of your "
-        "wages, so do not subtract those."
+        "Employment income you anticipate this year as it enters your AGI (nominal \\$): pay "
+        "minus pre-tax 401k, deductible IRA and payroll HSA contributions. After-tax ones (Roth, "
+        "taxable) stay in, paid for by a negative big-ticket item. Employer contributions were "
+        "never part of your wages, so do not subtract those."
+    ),
+    "months worked": (
+        "Months of work at the start of this year (0-12). Earnings are taken as spread "
+        "evenly over those months; it decides the grace-year monthly test and the share of "
+        "FRA-year earnings that counts. 0 (or no column) means not given: 12 in a year with earnings."
     ),
     "other inc": (
-        "Other ordinary income that is not wages, pension, or Social Security (nominal $) — "
-        "e.g. consulting income, alimony, or rents you treat as ordinary."
+        "Other ordinary income that is not wages, pension, or Social Security (nominal \\$) — "
+        "e.g. consulting income, alimony, or rents you treat as ordinary. A negative amount is a "
+        "deduction paid from cash, such as an HSA contribution made without wages. Not seen by "
+        "the Social Security earnings test: enter self-employment earnings as wages for it to count."
     ),
     "net inv": (
-        "Net investment income such as rent or trust distributions (nominal $). Taxed as "
+        "Net investment income such as rent or trust distributions (nominal \\$). Taxed as "
         "ordinary income and also counted toward the Net Investment Income Tax."
     ),
-    "taxable ctrb": "Contributions to your taxable savings account (nominal $)",
-    "401k ctrb": (
-        "Contributions to 401k, 403b, and any other tax-deferred account other than an IRA "
-        "(nominal $). Include your employer's contributions."
+    "taxable ctrb": (
+        "Contributions to your taxable savings account (nominal \\$). Paid from pay, they stay in "
+        "your wages: enter the same amount as a negative big-ticket item."
     ),
-    "Roth 401k ctrb": "Contributions to your Roth 401k or Roth 403b account (nominal $)",
-    "IRA ctrb": "Contributions to your traditional IRA (nominal $), treated as pre-tax",
-    "Roth IRA ctrb": "Contributions to your Roth IRA (nominal $)",
+    "401k ctrb": (
+        "Your own contributions to 401k, 403b, and any other tax-deferred account other than an "
+        "IRA (nominal \\$), netted out of your wages. Your employer's go in employer ctrb."
+    ),
+    "employer ctrb": (
+        "Your employer's contributions to your 401k or 403b, match or profit sharing (nominal "
+        "\\$). Never part of your wages: not netted out of them, and not payroll-taxed."
+    ),
+    "Roth 401k ctrb": (
+        "Contributions to your Roth 401k or Roth 403b account (nominal \\$). They are taxed, so "
+        "they stay in your wages: enter the same amount as a negative big-ticket item."
+    ),
+    "IRA ctrb": (
+        "Deductible contributions to your traditional IRA (nominal \\$), treated as pre-tax: net them "
+        "out of your wages. Nondeductible ones are not supported; enter a backdoor Roth in Roth IRA ctrb."
+    ),
+    "Roth IRA ctrb": (
+        "Contributions to your Roth IRA (nominal \\$). Paid from pay, they stay in your wages: "
+        "enter the same amount as a negative big-ticket item."
+    ),
     "HSA ctrb": (
-        "Contributions to your health savings account (nominal $). Zeroed automatically at "
-        "Medicare enrollment (~age 65)."
+        "Contributions to your health savings account (nominal \\$), netted out of your wages. "
+        "Without wages, also enter the same amount as a negative other inc. Stopped automatically "
+        "at Medicare enrollment (~age 65)."
     ),
     "Roth conv": (
-        "Roth conversion amount for this year (nominal $), never negative. Documentation only "
+        "Roth conversion amount for this year (nominal \\$), never negative. Documentation only "
         "unless the year is ticked in the next column."
     ),
     "Roth conv fixed": (
-        "Hold this year's conversion at exactly the amount beside it, bypassing the annual cap "
+        "Hold this year's conversion at the amount beside it, bypassing the annual cap "
         "and the start and stop years. An amount of 0 then means no conversion that year. "
+        "A positive amount is what the Roth gains: a Roth withdrawal that year is converted on top of it. "
         "Unticked, Owl optimizes the year."
     ),
     "QCD": (
-        "Qualified Charitable Distribution (nominal $): money sent from your tax-deferred "
+        "Qualified Charitable Distribution (nominal \\$): money sent from your tax-deferred "
         "account straight to a charity. Never enters taxable income and counts toward your RMD, "
         "but does not fund spending. Requires age 70½ and is capped per person per year."
     ),
     "big-ticket items": (
-        "A major one-time amount (nominal $): the sign matters. Positive is money received, "
-        "such as an inheritance or the sale of a house; negative is a major expense."
+        "A major one-time amount (nominal \\$): the sign matters. Positive is money received, "
+        "such as an inheritance or the sale of a house; negative is a major expense, or pays for "
+        "an after-tax contribution (Roth, taxable) made from your pay."
     ),
 }
 
-# The five lead-in rows record what already happened, so two columns mean something else there.
+# The five lead-in rows record what already happened, so three columns mean something else there.
 timetableHelpPast = dict(timetableHelp)
 timetableHelpPast["Roth conv"] = (
-    "A Roth conversion you already performed that year (nominal $). This is what the IRS "
-    "five-year maturation rule needs, and is the only column read from this table."
+    "A Roth conversion you already performed that year (nominal \\$). This is what the IRS "
+    "five-year maturation rule needs."
+)
+timetableHelpPast["anticipated wages"] = (
+    "The wages you earned that year (nominal \\$), net of pre-tax contributions. Read only for someone "
+    "who claimed Social Security before this year and before full retirement age: the earnings test "
+    "uses them to tell which months were withheld and whether the grace year was used."
 )
 timetableHelpPast["Roth conv fixed"] = (
     "Not applicable to past years: a conversion already performed always counts"
@@ -95,8 +128,8 @@ timetableHelpPast["Roth conv fixed"] = (
 def timetableColumnConfig(df, helpdic):
     """Column configuration for a Wages and Contributions editor, with bubble help."""
     # Keyed by name, not position: the column list is free to grow.
-    # "big-ticket items" can be an expense; every other amount is >= 0.
-    negativeOK = ("big-ticket items",)
+    # "big-ticket items" can be an expense and "other inc" a deduction; every other amount is >= 0.
+    negativeOK = ("big-ticket items", "other inc")
     formatdic = {"year": st.column_config.NumberColumn(None, help=helpdic.get("year"), format="%d", disabled=True)}
     for col in df.columns:
         if col == "year":
@@ -104,12 +137,64 @@ def timetableColumnConfig(df, helpdic):
         if col in owb.booleanTimeHorizonItems():
             formatdic[col] = st.column_config.CheckboxColumn(None, help=helpdic.get(col), default=False)
             continue
+        if col == "months worked":
+            formatdic[col] = st.column_config.NumberColumn(
+                None, help=helpdic.get(col), min_value=0, max_value=12, format="%d"
+            )
+            continue
         minValue = None if col in negativeOK else 0.0
         formatdic[col] = st.column_config.NumberColumn(
             None, help=helpdic.get(col), min_value=minValue, format="accounting"
         )
 
     return formatdic
+
+
+def houseEditorBase(listKey, tableType, widgetKey, config):
+    """
+    Return the table to give the Debts or Fixed Assets editor at widgetKey.
+
+    Streamlit resets a dynamic data_editor whenever its data or column config change, and a reset
+    drops the rows still being typed in the browser: a row with an empty required cell is not sent
+    to Python until it is complete (#194). The editor is therefore fed the same table across reruns,
+    while its edits go to the case. The table is rebuilt from the case only where the editor starts
+    afresh anyway: it was not shown on the last run, its column config changed, or the case table
+    was replaced elsewhere (e.g. by loading a workbook).
+    """
+    stored = kz.getCaseKey(listKey)
+    signature = str(config)
+    held = st.session_state.get(widgetKey + "_base")
+    if (
+        widgetKey not in st.session_state
+        or held is None
+        or held["stored"] is not stored
+        or held["signature"] != signature
+    ):
+        held = {
+            "stored": stored,
+            "signature": signature,
+            "base": owb.conditionDebtsAndFixedAssetsDF(stored, tableType),
+        }
+        st.session_state[widgetKey + "_base"] = held
+
+    return held["base"]
+
+
+def storeHouseEdits(listKey, tableType, widgetKey, edited):
+    """Store the table returned by a house editor in the case if it changed. Return True if it did."""
+    edited = owb.conditionDebtsAndFixedAssetsDF(edited, tableType)
+    if edited.equals(owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey(listKey), tableType)):
+        return False
+
+    kz.setCaseKey(listKey, edited)
+    # The editor keeps its table: the case now holds what it shows.
+    st.session_state[widgetKey + "_base"]["stored"] = edited
+    if kz.getCaseKey("stHFP") is not None:
+        fname = kz.getCaseKey("hfpFileName") or ""
+        if fname and not fname.endswith(" *"):
+            kz.storeCaseKey("hfpFileName", fname + " *")
+
+    return True
 
 
 def loadWCExample(file):
@@ -170,13 +255,7 @@ that has not yet been uploaded.""")
                 # Change key to reset uploader.
                 kz.storeCaseKey("_xlsx", kz.getCaseKey("_xlsx") + 1)
                 st.rerun()
-        stHFP_val = kz.getCaseKey("stHFP")
-        if stHFP_val is not None:
-            hfp_name = kz.getCaseKey("hfpFileName") or ""
-            if hfp_name.endswith(" *"):
-                st.caption(f":white_check_mark: *{hfp_name[:-2]}*\\* loaded — values modified.")
-            else:
-                st.caption(f":white_check_mark: *{hfp_name}* loaded.")
+        kz.hfp_loaded_caption()
     with col2:
         tomlexcase = kz.getCaseKey("tomlexcase")
         mytype = "primary" if kz.getCaseKey("stHFP") is None else "secondary"
@@ -191,7 +270,13 @@ that has not yet been uploaded.""")
     # to the Logs page. The columns are already in the table by now, so point at
     # saving the workbook rather than asking for them to be added by hand.
     absentCols = kz.getCaseKey("hfpAbsentCols") or {}
-    reported = {iname: cols for iname, cols in absentCols.items() if cols}
+    # In these columns zero changes nothing a workbook without them meant
+    # (see hfp_io._quietTimeHorizonItems), so their absence is not reported.
+    quietCols = quietTimeHorizonItems()
+    reported = {
+        iname: [c for c in cols if c not in quietCols] for iname, cols in absentCols.items()
+    }
+    reported = {iname: cols for iname, cols in reported.items() if cols}
     if reported:
         lines = "\n".join(f"- **{iname}**: {', '.join(cols)}" for iname, cols in reported.items())
         st.warning(
@@ -205,11 +290,13 @@ that has not yet been uploaded.""")
     st.divider()
     st.markdown("### :material/work_history: :orange[Wages and Contributions]")
     st.markdown("""Wages and contributions for each individual, in two tables.
-Enter *anticipated wages* net of all contribution columns (see the Documentation page for details).
-The first table holds the five years before this one. Only its Roth entries are read, to comply with the IRS
-five-year maturation rule, but every column is yours to keep: the figures stay in your workbook as the history
-you carry forward and extrapolate from. Because those conversions have already happened, *Roth conv fixed*
-does not apply there and is shown disabled.
+Enter *anticipated wages* as they enter your AGI, net of pre-tax contributions; pay for after-tax ones (Roth,
+taxable) with a negative *big-ticket items* entry (see the Documentation page for details).
+The first table holds the five years before this one. Its Roth entries are read, to comply with the IRS
+five-year maturation rule. Its wages, months worked and pre-tax contributions are read for someone who claimed
+Social Security before this year and before full retirement age, for the earnings test. Every other column is
+yours to keep: the figures stay in your workbook as the history you carry forward and extrapolate from.
+Because those conversions have already happened, *Roth conv fixed* does not apply there and is shown disabled.
 The second table starts at the current year and covers the rest of the plan.""")
 
     with st.expander("*Expand Wages and Contributions timetables*"):
@@ -284,6 +371,15 @@ The second table starts at the current year and covers the rest of the plan.""")
         # Get existing debts or create empty DataFrame
         debtdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListDebts"), "Debts")
 
+        # Properties a loan can be paid off with: the residences and real estate in Fixed Assets.
+        assetdf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
+        propertyNames = sorted(
+            {str(n) for n, t in zip(assetdf["name"], assetdf["type"], strict=True) if t in PROPERTY_TYPES and n}
+        )
+        # A link to a name no longer among them (renamed or deleted) stays a choice, so that the
+        # editor shows it rather than clearing it, and the warning below names it.
+        staleNames = sorted({prop for prop in debtdf["property"] if prop and prop not in propertyNames})
+
         thisyear = date.today().year
         debtconf = {
             "active": st.column_config.CheckboxColumn(
@@ -320,7 +416,7 @@ The second table starts at the current year and covers the rest of the plan.""")
             ),
             "amount": st.column_config.NumberColumn(
                 "amount",
-                help="Enter original loan amount ($)",
+                help="Enter original loan amount (\\$)",
                 format="dollar",
                 required=True,
                 min_value=0,
@@ -333,24 +429,40 @@ The second table starts at the current year and covers the rest of the plan.""")
                 min_value=0.0,
                 step=0.01,
             ),
+            "property": st.column_config.SelectboxColumn(
+                "property",
+                help="Home or real estate (from Fixed Assets) whose sale pays off this loan: the balance "
+                "is paid in the year it is sold, nothing after. Leave empty (Delete key) for a loan that "
+                "runs to term.",
+                options=propertyNames + staleNames,
+                required=False,
+            ),
         }
 
+        # The editor shows an empty cell for no property (None); the table stores "".
+        debtkey = kz.genCaseKey("debts")
+        debtview = houseEditorBase("houseListDebts", "Debts", debtkey, debtconf).copy()
+        debtview["property"] = [prop or None for prop in debtview["property"]]
         edited_debtdf = st.data_editor(
-            debtdf, column_config=debtconf, num_rows="dynamic", hide_index=True, key=kz.genCaseKey("debts")
+            debtview, column_config=debtconf, num_rows="dynamic", hide_index=True, key=debtkey
         )
-        debtsCaption = """Amounts are in nominal $. Additional items can be directly entered
+        debtsCaption = """Amounts are in nominal \\$. Additional items can be directly entered
 in the table by clicking :material/add: on the last row.
 Items can be deleted by selecting rows in the left margin and pressing the *Delete* key."""
         st.caption(debtsCaption)
+        unknown = [
+            f"*{name}* ({prop})"
+            for name, prop in zip(debtdf["name"], debtdf["property"], strict=True)
+            if prop in staleNames
+        ]
+        if unknown:
+            st.warning(
+                "Loans paid off by the sale of a property that is not a residence or real estate in "
+                f"*Fixed Assets*: {', '.join(unknown)}. Choose one of those, or leave the cell empty."
+            )
 
         # Store edited debts if changed
-        if not debtdf.equals(edited_debtdf):
-            edited_debtdf = owb.conditionDebtsAndFixedAssetsDF(edited_debtdf, "Debts")
-            kz.setCaseKey("houseListDebts", edited_debtdf)
-            if kz.getCaseKey("stHFP") is not None:
-                fname = kz.getCaseKey("hfpFileName") or ""
-                if fname and not fname.endswith(" *"):
-                    kz.storeCaseKey("hfpFileName", fname + " *")
+        if storeHouseEdits("houseListDebts", "Debts", debtkey, edited_debtdf):
             st.rerun()
 
         st.divider()
@@ -358,9 +470,6 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
 
         # Get fixed asset types from owlbridge to ensure consistency with validation logic
         fixedTypes = getTableTypes("Fixed Assets")
-
-        # Get existing fixed assets or create empty DataFrame
-        fixeddf = owb.conditionDebtsAndFixedAssetsDF(kz.getCaseKey("houseListFixedAssets"), "Fixed Assets")
 
         fixedconf = {
             "active": st.column_config.CheckboxColumn(
@@ -397,7 +506,7 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
             "value": st.column_config.NumberColumn(
                 "value",
-                help="Enter value at reference year ($)",
+                help="Enter value at reference year (\\$)",
                 min_value=0,
                 required=True,
                 format="dollar",
@@ -435,10 +544,12 @@ Items can be deleted by selecting rows in the left margin and pressing the *Dele
             ),
         }
 
+        fixedkey = kz.genCaseKey("fixed_assets")
+        fixeddf = houseEditorBase("houseListFixedAssets", "Fixed Assets", fixedkey, fixedconf)
         edited_fixeddf = st.data_editor(
-            fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=kz.genCaseKey("fixed_assets")
+            fixeddf, column_config=fixedconf, hide_index=True, num_rows="dynamic", key=fixedkey
         )
-        fixedCaption = """Value is in reference-year $ (at the start of the reference year). \
+        fixedCaption = """Value is in reference-year \\$ (at the start of the reference year). \
 Basis is the actual cost basis in nominal dollars (what you paid, not inflation-adjusted).
 Additional items can be directly entered in the table by clicking :material/add:
 on the last row. Items can be deleted by selecting rows in the left margin and
@@ -446,13 +557,7 @@ pressing the *Delete* key."""
         st.caption(fixedCaption)
 
         # Store edited fixed assets if changed
-        if not fixeddf.equals(edited_fixeddf):
-            edited_fixeddf = owb.conditionDebtsAndFixedAssetsDF(edited_fixeddf, "Fixed Assets")
-            kz.setCaseKey("houseListFixedAssets", edited_fixeddf)
-            if kz.getCaseKey("stHFP") is not None:
-                fname = kz.getCaseKey("hfpFileName") or ""
-                if fname and not fname.endswith(" *"):
-                    kz.storeCaseKey("hfpFileName", fname + " *")
+        if storeHouseEdits("houseListFixedAssets", "Fixed Assets", fixedkey, edited_fixeddf):
             st.rerun()
 
     st.divider()

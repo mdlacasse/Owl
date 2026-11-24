@@ -1,0 +1,93 @@
+case_name = "avery+quinn"
+description = "Avery and Quinn are a married couple in Illinois, well into retirement. Avery turns 73 in 2026, the first year of required minimum distributions; Quinn, three years older, has taken them since 2022. Almost all of their savings sits in tax-deferred accounts, $3.8M in Avery's name and $1.85M in Quinn's, with $100k each in taxable accounts and no Roth. Both already collect Social Security, and Avery bought a single-premium immediate annuity in 2023 that pays $3,700 a month for life and continues in full to Quinn. They own their house and a beach house. They expect to carry a $400,000, 15-year mortgage from 2028, and the house is sold eight years before the end of the plan, the year Avery's horizon ends. The beach house is kept to the end. Illinois exempts retirement income, so withdrawals, conversions and Social Security carry no state tax.\n\nThey give through Qualified Charitable Distributions: Avery $40,000 a year for ten years (2026-2035), Quinn $15,000 a year for life. Both are past 70 1/2 from the start, so the QCDs count toward the RMDs from the first year, including Avery's first one, and Quinn's keep going after Avery's death.\n\nWhat sets the case apart is the estate plan. Avery's accounts all go to the children at Avery's death; none goes to Quinn (beneficiary fractions of 0). The plan maximizes the final bequest at a fixed net spending, so the money that leaves at the first death is worth nothing to the objective except through the small weight given to the partial bequest (partialBequestWeight). The partial bequest is therefore floating: plans with nearly the same final bequest can leave the children very different amounts at the first death.\n\nThe case also covers an RMD that starts in the first plan year, QCDs that stop mid-plan and continue past the first death, an annuity bought before the plan with a full survivor benefit, a debt and two fixed assets, one sold mid-plan, and Social Security taxability in loop mode through the survivor years, where Quinn's benefit is large next to Quinn's other income and well under 85% of it is taxable.\n"
+
+[basic_info]
+status = "married"
+names = [ "Avery", "Quinn",]
+date_of_birth = [ "1953-01-15", "1950-01-15",]
+life_expectancy = [ 92, 102,]
+sexes = [ "M", "F",]
+start_date = "2026-10-01"
+state = "IL"
+
+[savings_assets]
+taxable_savings_balances = [ 100.0, 100.0,]
+tax_deferred_savings_balances = [ 3800.0, 1850.0,]
+tax_free_savings_balances = [ 0.0, 0.0,]
+hsa_savings_balances = [ 0.0, 0.0,]
+taxable_cost_basis = [ 100.0, 100.0,]
+beneficiary_fractions = [ 0.0, 0.0, 0.0, 1.0,]
+spousal_surplus_deposit_fraction = 0.0
+
+[household_financial_profile]
+HFP_file_name = "HFP_avery+quinn.xlsx"
+
+[fixed_income]
+pension_monthly_amounts = [ 0, 0,]
+pension_ages = [ 65.0, 65.0,]
+pension_indexed = [ false, false,]
+pension_survivor_fraction = [ 0.0, 0.0,]
+social_security_pia_amounts = [ 3450, 3850,]
+social_security_ages = [ 67.833333, 70.0,]
+spia_individuals = [ 0,]
+spia_buy_years = [ 2023,]
+spia_premiums = [ 474000.0,]
+spia_monthly_incomes = [ 3700.0,]
+spia_indexed = [ false,]
+spia_survivor_fractions = [ 1.0,]
+
+[rates_selection]
+heirs_rate_on_tax_deferred_estate = 24.0
+liquidation_tax_rate = 24.0
+liquidation_capgains_rate = 15.0
+dividend_rate = 1.7
+obbba_expiration_year = 2032
+method = "user"
+values = [ 7.5, 3.3, 3.1, 2.8,]
+from = 1928
+to = 2025
+reverse_sequence = false
+roll_sequence = 0
+
+[asset_allocation]
+interpolation_method = "s-curve"
+type = "individual"
+interpolation_center = 8.0
+interpolation_width = 6.0
+generic = [ [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],], [ [ 60.0, 20.0, 20.0, 0.0,], [ 70.0, 20.0, 10.0, 0.0,],],]
+
+[optimization_parameters]
+spending_profile = "smile"
+surviving_spouse_spending_percent = 60
+objective = "maxBequest"
+smile_dip = 15
+smile_increase = 12
+smile_delay = 0
+
+[solver_options]
+gap = 0.003
+partialBequestWeight = 0.005
+maxRothConversion = 100.0
+netSpending = 180.0
+noLateSurplus = false
+noRothConversions = "none"
+solver = "default"
+spendingSlack = 0
+startRothConversions = 2026
+timePreference = 0.0
+useRothConvOverrides = false
+withMedicare = "loop"
+withACA = "loop"
+withLTCG = "loop"
+withNIIT = "loop"
+withSSTaxability = "loop"
+withSSAges = "fixed"
+swapRothConverters = 0
+minTaxableBalance = [ 25.0, 25.0,]
+previousMAGIs = [ 240.0, 280.0,]
+
+[results]
+default_plots = "today"
+worksheet_show_ages = false
+worksheet_hide_zero_columns = true
+worksheet_real_dollars = false

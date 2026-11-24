@@ -18,16 +18,18 @@ land on a different fixed point per solver (MOSEK's pinned-at-zero 1966 solve is
 Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
+from itertools import pairwise
 import numpy as np
 import pytest
 
-from owlplanner import run_conversion_regret_sweep, summarize_conversion_regret
+from owlplanner import lift_regret_baselines, run_conversion_regret_sweep, summarize_conversion_regret
 from owlplanner.stresstests import (
     REGRET_MAX_GAP,
     _regret_objective_value,
     _build_regret_grid,
     _downgrade_milp_tax_modes,
     _select_regret_years,
+    _summarize_node_limit_hits,
 )
 from owlplanner.config import readConfig
 
@@ -84,6 +86,90 @@ def test_summarize_conversion_regret_pure():
     # Never-convert regret: [1500, 0]
     assert s["never_convert_regret"]["mean"] == 750.0
     assert s["never_convert_regret"]["max"] == 1500.0
+    # A result that predates the node-limit counts summarizes them as absent, not as zero.
+    assert s["node_limit_hits"] is None
+
+
+def _short_baseline_result():
+    """Scenario 0's baseline is $1,500 short of its own pin at 50k; scenario 1's never-convert
+    solve beats its baseline by $200; scenario 2's baseline failed."""
+    return {
+        "grid": [0.0, 50_000.0, 100_000.0],
+        "start_years": np.array([1990, 1991, 1992]),
+        "v_star": np.array([100_000.0, 80_000.0, np.nan]),
+        "x_star": np.array([0.0, 30_000.0, np.nan]),
+        "v_at": np.array(
+            [
+                [99_000.0, 101_500.0, 98_000.0],
+                [80_000.0, 79_000.0, np.nan],
+                [np.nan, np.nan, np.nan],
+            ]
+        ),
+        "v_at_osc": np.array([[0.0, 12.0, 0.0], [0.0, 0.0, np.nan], [np.nan, np.nan, np.nan]]),
+        "v_star_osc": np.array([5.0, 7.0, 0.0]),
+        "v_noconv": np.array([97_000.0, 80_200.0, np.nan]),
+        "person": 0,
+    }
+
+
+def test_lift_raises_a_short_baseline_to_its_best_pinned_plan():
+    """A pinned plan is feasible for the unconstrained problem, so no baseline may end below one."""
+    r = _short_baseline_result()
+    lifted = lift_regret_baselines(r)
+
+    np.testing.assert_array_equal(lifted["v_star"][:2], [101_500.0, 80_200.0])
+    np.testing.assert_array_equal(lifted["v_star_lift"][:2], [1_500.0, 200.0])
+    # The lift raises the VALUE only. x_star stays the baseline solve's own conversion: the
+    # winning plan's is a grid point, not a location any solve chose. The grid point is
+    # recorded separately (0 for the never-convert winner, which converts nothing).
+    np.testing.assert_array_equal(lifted["x_star"][:2], [0.0, 30_000.0])
+    np.testing.assert_array_equal(lifted["x_star_lift"][:2], [50_000.0, 0.0])
+    np.testing.assert_array_equal(lifted["v_star_osc"][:2], [12.0, 0.0])  # the winning solve's bar
+    # The solves' own values are kept, and a failed baseline stays failed.
+    np.testing.assert_array_equal(lifted["v_star_solved"][:2], [100_000.0, 80_000.0])
+    np.testing.assert_array_equal(lifted["x_star_solved"][:2], [0.0, 30_000.0])
+    assert np.isnan(lifted["v_star"][2]) and lifted["v_star_lift"][2] == 0.0
+    # Nothing was lifted in the failed scenario, so no grid point is on record for it either.
+    assert np.isnan(lifted["x_star_lift"][2])
+    # Regret is non-negative everywhere it is defined.
+    R = lifted["v_star"][:, None] - lifted["v_at"]
+    assert np.nanmin(R) >= 0.0
+    # The input is not modified.
+    assert r["v_star"][0] == 100_000.0 and "v_star_lift" not in r
+
+
+def test_lift_is_idempotent_and_leaves_ties_alone():
+    once = lift_regret_baselines(_short_baseline_result())
+    twice = lift_regret_baselines(once)
+    for key in ("v_star", "x_star", "v_star_lift", "x_star_lift", "v_star_solved", "x_star_solved"):
+        np.testing.assert_array_equal(twice[key], once[key])
+    # A pinned value equal to the baseline is no improvement.
+    r = _short_baseline_result()
+    r["v_at"][0, 1] = 100_000.0
+    r["v_noconv"][1] = 80_000.0
+    tie = lift_regret_baselines(r)
+    np.testing.assert_array_equal(tie["v_star_lift"][:2], [0.0, 0.0])
+    np.testing.assert_array_equal(tie["x_star"][:2], [0.0, 30_000.0])
+
+
+def test_summary_of_a_short_baseline_has_no_negative_regret():
+    """A sweep saved before lifting is lifted when summarized; the lift still counts as error."""
+    s = summarize_conversion_regret(_short_baseline_result(), asymmetry_deltas=(50_000,))
+    for g in s["regret_by_grid"]:
+        if g["mean"] is not None:
+            assert g["mean"] >= 0.0 and g["median"] >= 0.0
+    assert s["never_convert_regret"]["mean"] >= 0.0
+    assert s["baseline_lift"] == {"n_lifted": 2, "max": 1_500.0}
+    # |worst lift| / sqrt(n) with n = 2 scenarios: the floor keeps the error the lift removed.
+    assert s["resolution_floor"] >= 1_500.0 / np.sqrt(2) - 0.01
+
+
+def test_summarize_node_limit_hits():
+    hits = np.array([[0, 20, 3, 40], [2, 21, 0, 0], [1, 22, 5, 45]])
+    assert _summarize_node_limit_hits(hits) == {
+        "main": {"at_limit": 3, "runs": 63, "n_windows_at_limit": 2},
+        "local_search_steps": {"at_limit": 8, "runs": 85},
+    }
 
 
 def test_rejects_bad_arguments(dana):
@@ -103,6 +189,13 @@ def test_rejects_bad_arguments(dana):
 # now detects the cycle and terminates as "oscillatory". The manuscript's never-convert regret
 # is computed as v_star - v_noconv, and v_noconv is unchanged, so that headline figure moves
 # from 25_764.84 to 19_475.35. The paper's ordering still holds, but the magnitude does not.
+# Refreshed again 2026-09-21 after the state bracket audit moved CA's brackets from 2023 to
+# 2025 values (Dana is in CA). These pins no longer reproduce the paper's published numbers;
+# the paper's sweeps must be rerun under the corrected tax data.
+# Refreshed again 2026-09-28 when the state base stopped also deducting the federal standard
+# deduction, which raised Dana's CA tax. maxSpending v_star 58_248.07 -> 57_848.20 (-0.7%) and
+# x_star 67_974.79 -> 59_924.62; maxBequest v_star 431_374.54 -> 389_539.57 (-9.7%), v_noconv
+# 396_444.36 -> 362_189.09, so never-convert regret goes from 34_930.18 to 27_350.48.
 @pytest.mark.toml
 def test_dana_1966_maxspending_reference(dana):
     """Pin the paper's 1966 maxSpending numbers (Cost-of-Committing sweep, 2026-07-16)."""
@@ -112,11 +205,14 @@ def test_dana_1966_maxspending_reference(dana):
         dana, "maxSpending", opts, [0, 60_000, 120_000], 1966, 1966, include_never_convert=False
     )
     assert res["start_years"].tolist() == [1966]
-    assert _rel(res["v_star"][0], 58_208.39) < RTOL
-    assert _rel(res["x_star"][0], 65_491.59) < RTOL
-    assert _rel(res["v_at"][0, 0], 58_194.28) < RTOL
-    assert _rel(res["v_at"][0, 1], 58_207.44) < RTOL
-    assert _rel(res["v_at"][0, 2], 58_018.64) < RTOL
+    # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each; Dana is over 65) were
+    # modeled: v_star and the first two pinned solves rose by exactly the $306/yr credit; x_star
+    # did not move.
+    assert _rel(res["v_star"][0], 58_154.20) < RTOL
+    assert _rel(res["x_star"][0], 59_924.62) < RTOL
+    assert _rel(res["v_at"][0, 0], 58_140.84) < RTOL
+    assert _rel(res["v_at"][0, 1], 58_154.15) < RTOL
+    assert _rel(res["v_at"][0, 2], 57_802.33) < RTOL
     # Pinned solves can beat the SC-loop baseline only within the noise floor.
     regret = res["v_star"][0] - res["v_at"][0, :]
     assert (regret > -NOISE).all()
@@ -130,14 +226,21 @@ def test_dana_1966_maxbequest_reference(dana):
     opts.pop("bequest", None)
     opts["netSpending"] = 58.0  # $k; the scenario-minimum spending used in the paper
     res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0, 63_636], 1966, 1966)
-    assert _rel(res["v_star"][0], 415_402.15) < RTOL
-    assert _rel(res["x_star"][0], 65_496.69) < RTOL
-    assert _rel(res["v_at"][0, 0], 414_463.13) < RTOL
-    assert _rel(res["v_at"][0, 1], 415_478.78) < RTOL
-    assert _rel(res["v_noconv"][0], 395_926.80) < RTOL
+    # Re-pinned when the default epsilon became 5e-7. These moved +3.1%, and not because the
+    # penalty cost anything: at 1e-8 HiGHS settled on a fixed point 3% below MOSEK's on this
+    # window, and the stronger tie-break brings it up to 431,374.54 against MOSEK's 431,377 --
+    # agreement to 0.0006% where there had been a 3% solver split.
+    # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each) were modeled: every
+    # bequest rose by about $10.9k per credit (389_539.57 -> 411_381.28 for v_star) and x_star did
+    # not move (59_920.91 -> 59_928.39), as a fixed yearly credit compounding into the estate would do.
+    assert _rel(res["v_star"][0], 411_381.28) < RTOL
+    assert _rel(res["x_star"][0], 59_928.39) < RTOL
+    assert _rel(res["v_at"][0, 0], 410_423.07) < RTOL
+    assert _rel(res["v_at"][0, 1], 411_176.90) < RTOL
+    assert _rel(res["v_noconv"][0], 381_832.42) < RTOL
     # Orderings that carry the paper's story:
     # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
-    # The last link now leans on NOISE: a pinned solve comes back $77 above the SC-loop
+    # The last link leans on NOISE: a pinned solve can come back above the SC-loop
     # baseline, which is a reminder that v_star is a baseline solve and not a proven bound.
     assert res["v_noconv"][0] < res["v_at"][0, 0] < res["v_at"][0, 1] <= res["v_star"][0] + NOISE
 
@@ -188,7 +291,7 @@ class TestGridAndScenarioSelection:
         # The padding keeps the over-conversion probes on-grid; without it they would be
         # dropped and the over/under means would be taken over different subsets.
         assert grid[-1] == pytest.approx(135_000.0)
-        assert all(b > a for a, b in zip(grid, grid[1:]))
+        assert all(b > a for a, b in pairwise(grid))
 
     def test_grid_survives_a_case_that_never_converts(self):
         """All-zero optima must still give a usable grid rather than a degenerate one."""
@@ -202,7 +305,7 @@ class TestGridAndScenarioSelection:
         assert picked == sorted(picked) and seed == 7
         # A stride would leave a constant gap. Adjacent windows overlap heavily, so a
         # stride lands on a correlated run and biases the valley (measured at -$16k).
-        gaps = {b - a for a, b in zip(picked, picked[1:])}
+        gaps = {b - a for a, b in pairwise(picked)}
         assert len(gaps) > 1
 
     def test_subsampling_is_reproducible_from_the_seed(self):
@@ -239,9 +342,10 @@ class TestNeverConvertIsNested:
         assert ok.any()
         # Tolerance is relative to the objective. Under maxSpending the outcome is the
         # first-year basis, on which the self-consistent tax loop leaves noise of order
-        # 1e-4 to 1e-3; the defect this guards against was 60% of the objective, so a 1e-3
-        # bound separates the two by nearly three orders of magnitude.
-        floor = -1e-3 * np.abs(res["v_star"][ok])
+        # 1e-4 to 1e-3; the defect this guards against was 60% of the objective, so this
+        # bound still separates the two by more than two orders of magnitude. Raised from
+        # 1e-3 when this case stopped using Benders: one window then measured -1.004e-3.
+        floor = -2e-3 * np.abs(res["v_star"][ok])
         never = res["v_star"][ok] - res["v_noconv"][ok]
         assert np.all(never >= floor), f"never-convert regret went materially negative: {never}"
         pinned = res["v_star"][ok, None] - res["v_at"][ok, :]
@@ -302,6 +406,24 @@ class TestMilpDowngrade:
         """withSSAges picks a claiming age; it has no loop equivalent to fall back on."""
         out, changed = _downgrade_milp_tax_modes({"withSSAges": "optimize"})
         assert changed == [] and out["withSSAges"] == "optimize"
+
+
+def test_claiming_ages_are_held_by_the_sweep(dana, monkeypatch):
+    """Only the conversion varies: no solve of the sweep searches claiming ages.
+
+    A sweep solve that searched them would raise here and count as a failed scenario (NaN).
+    """
+    from owlplanner.plan import Plan
+
+    def no_search(self, *args, **kwargs):
+        raise AssertionError("claiming ages searched inside the regret sweep")
+
+    monkeypatch.setattr(Plan, "_ssAgeSearch", no_search)
+    opts = {"solver": "HiGHS", "netSpending": 58.0, "withSSAges": "optimize"}
+    res = run_conversion_regret_sweep(dana, "maxBequest", opts, [0.0], 1966, 1966)
+    assert np.all(np.isfinite(res["v_star"]))
+    assert np.all(np.isfinite(res["v_at"]))
+    assert opts["withSSAges"] == "optimize", "must not mutate the caller's options"
 
 
 class TestSummaryRobustnessLayer:
@@ -453,7 +575,8 @@ def test_auto_grid_end_to_end(dana):
 
     assert len(res["grid"]) == 5
     assert res["grid"][0] == 0.0
-    assert res["grid"][-1] == pytest.approx(float(np.nanmax(res["x_star"])) + 45_000.0, abs=1.0)
+    # The grid is sized from the baseline solves, before any is lifted to a pinned plan.
+    assert res["grid"][-1] == pytest.approx(float(np.nanmax(res["x_star_solved"])) + 45_000.0, abs=1.0)
     assert res["v_at"].shape == (2, 5)
     assert res["milp_downgraded"] == []
 
@@ -463,3 +586,20 @@ def test_auto_grid_end_to_end(dana):
     for g in s["regret_by_grid"]:
         if g["mean"] is not None:
             assert g["mean"] >= -s["resolution_floor"] - 1.0
+
+
+@pytest.mark.toml
+def test_node_limit_hits_cover_both_phases(dana):
+    """Every solve of a window is counted: the baseline's and each pinned solve's."""
+    opts = dict(dana.solverOptions)
+    opts.update(mipStrategy="local-search", withMedicare="optimize")  # fast, and mixed-integer
+    one = run_conversion_regret_sweep(dana, "maxSpending", opts, [0], 1966, 1966, include_never_convert=False)
+    two = run_conversion_regret_sweep(dana, "maxSpending", opts, [0, 60_000], 1966, 1966,
+                                      include_never_convert=False)
+    assert one["node_limit_hits"].shape == (1, 4)
+    steps_one, steps_two = one["node_limit_hits"][0, 3], two["node_limit_hits"][0, 3]
+    # The seeding loop solves only LPs; the steps are mixed-integer, and one more pinned solve adds some.
+    assert one["node_limit_hits"][0, 1] == 0 and 0 < steps_one < steps_two
+    s = summarize_conversion_regret(two)["node_limit_hits"]
+    assert s["local_search_steps"]["runs"] == steps_two
+    assert s["main"] == {"at_limit": 0, "runs": 0, "n_windows_at_limit": 0}

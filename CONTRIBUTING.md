@@ -1,3 +1,9 @@
+<!--
+Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
+SPDX-License-Identifier: CC-BY-NC-SA-4.0
+This documentation is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0; see LICENSE-docs in the repository root.
+-->
+
 # Contributing to Owl
 
 Thank you for your interest in contributing to Owl. This document covers the
@@ -10,16 +16,17 @@ For installation instructions see [INSTALL.md](INSTALL.md).
 
 ## Development setup
 
-Create a virtual environment with all runtime and development dependencies
-(pytest, pytest-xdist, flake8) in one step:
+Create a virtual environment with all runtime and development dependencies in one
+step. The `dev` dependency group (flake8, pytest, pytest-benchmark, pytest-xdist,
+scikit-learn, watchdog) is installed by default:
 
 ```shell
-uv sync --extra dev
+uv sync
 ```
 
 To also work with the Jupyter notebooks in `notebooks/`:
 ```shell
-uv sync --extra dev --extra notebooks
+uv sync --extra notebooks
 ```
 
 `uv sync` creates `.venv/` in the project root if it does not already exist.
@@ -43,8 +50,22 @@ uv run pytest tests/test_plan_edge_cases.py::test_foo
 # Run only TOML case tests
 uv run pytest -m toml
 
-# Run with coverage report
-uv run pytest -v --cov=owlplanner
+# Run with coverage report (pytest-cov is not in the dev group)
+uv run --with pytest-cov pytest -v --cov=owlplanner
+
+# Run the slow solution-quality checks, left out of the default run
+uv run pytest -n 2 -m deep
+```
+
+`pytest.ini` sets `addopts = -m "not deep"`, so a plain run (and CI) skips the
+`deep` checks. Run them when changing an algorithm or a feature they cover.
+
+Maintainers run the suite with the Makefile, which uses the uv environment and both
+solver engines in turn (MOSEK, then HiGHS, each with `-n 2`):
+
+```shell
+make tests        # default suite
+make tests-deep   # deep checks only
 ```
 
 Use a small, explicit worker count rather than `-n auto`. The suite is
@@ -72,6 +93,33 @@ $env:OWL_TEST_SOLVER="MOSEK" ; uv run pytest -n 2
 ```
 
 MOSEK requires a separate licence. HiGHS is free and is the default.
+
+---
+
+## Benchmarks
+
+`benchmarks/` holds timing benchmarks for the LP build and solve path, driven by
+[pytest-benchmark](https://pytest-benchmark.readthedocs.io/). They are not collected by
+`uv run pytest` (which is limited to `tests/`), so the regular run and CI are unaffected.
+
+```shell
+# Run the benchmarks (timings only, on an otherwise idle machine)
+uv run pytest benchmarks --benchmark-only
+
+# Save a baseline, then compare a later run against it and fail on a regression
+uv run pytest benchmarks --benchmark-only --benchmark-save=baseline
+uv run pytest benchmarks --benchmark-only --benchmark-compare=0001_baseline --benchmark-compare-fail=median:10%
+```
+
+Saved runs land in `.benchmarks/` (ignored by git). Compare medians rather than means:
+the solver is deterministic, so the spread is noise from the machine, not from Owl.
+
+Benchmark results are local for now. Absolute timings are only comparable between runs
+on the same machine, so compare a change against a baseline you saved yourself, and never
+against numbers from another computer. CI does not run or check the benchmarks. Making
+them part of CI is open future work; the usual options are to benchmark the base branch
+and the PR in the same CI job, to use an instruction-counting service such as
+[CodSpeed](https://codspeed.io), or to keep history on a dedicated benchmark machine.
 
 ---
 
@@ -137,7 +185,8 @@ It lints with flake8 and runs the full pytest suite across Python 3.11, 3.12, 3.
 
 1. Fork the repository and create a branch from `dev` (not `main`).
 2. Make your changes, add or update tests as appropriate.
-3. Run the full test suite and linter locally before pushing.
+3. Run the test suite and linter locally before pushing, and the `deep` checks if
+   you changed an algorithm or a feature they cover.
 4. Open a PR against the `dev` branch with a clear description of what changed
    and why.
 
@@ -164,5 +213,5 @@ version-bump and pre-release checks. Two helper scripts in `docker/` (with
 `.sh` and `.cmd` variants for Unix and Windows) automate the rest:
 
 - `buildPackage` — builds and publishes the package to PyPI.
-- `buildContainers` — builds and pushes the `edge` and versioned Docker images
-  to Docker Hub.
+- `buildContainers` — builds and pushes the `edge`, versioned, and `latest` Docker
+  images to Docker Hub.

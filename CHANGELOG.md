@@ -1,3 +1,1796 @@
+### Version 2026.11.22
+
+#### Maintenance: Dependencies update
+
+Update dependencies due to vulnerabilities.
+
+### Version 2026.11.19
+
+#### Changed: a pinned Roth conversion can no longer be withdrawn the same year
+
+A year ticked in *Roth conv fixed* held the conversion at its amount, but nothing stopped the plan
+from withdrawing that amount from the Roth in the same year. Converting \$c and withdrawing \$c is a
+tax-deferred withdrawal of \$c under another name, so the Roth never gained the committed amount
+and the pin could cost nothing: on a 65-year-old with a large Roth, a \$20,000 pin left the objective
+unchanged because the plan withdrew \$22,204 from the Roth that year. A positive amount now binds the
+net transfer into the Roth, the conversion less the same-year Roth withdrawal. The plan may still
+draw on the Roth that year, but must convert that much on top of the amount, so a ticked year allows
+no net Roth spending. From age 59½ the engine's existing post-processing shows such a pair as a
+tax-deferred withdrawal, so the reported conversion is the amount; before 59½ it can be larger. A
+ticked 0 is unchanged: no conversion, and the Roth stays spendable that year.
+
+For a conversion already made by a household that lives on its Roth, the old reading is the right
+one, and the new one can make the plan infeasible when the pin uses up the tax-deferred account. The
+new solver option `netRothPins = false` restores it.
+
+#### Maintenance: Update dependencies
+
+### Version 2026.11.07
+
+#### Fixed: the health-cost fields on Run Options step by one and show two decimals
+
+The benchmark Silver premium (SLCSP) and other medical expenses, both in \$k a year, and the
+Part D base premium, in \$ a month, took the number field's defaults of one decimal and a step
+of 10. A premium of \$20,840 a year, typed as 20.84, showed as 20.8, and one click on + added
+\$10,000 a year. The three fields now show two decimals and step by 1. The unused
+`getFloatInput` helper in `ui/Fixed_Income.py` is gone. Thanks to Florin Mateoc (@fmateoc) for
+the issue and the fix (#247).
+
+#### Fixed: Create Case confirms a workbook read
+
+Once a Household Financial Profile workbook was read from Create Case, the uploader disappeared
+and nothing on the page said the read had worked. Create Case now shows the line Financial
+Profile shows: the file's name, and whether its values have since been modified. Thanks to Florin
+Mateoc (@fmateoc) for the issue (#246).
+
+#### Fixed: a move to the starting state no longer leaves the UI solving the wrong plan
+
+`setStateTax` refused a move to the starting state. In the UI, the refusal came as *Failed to
+apply configuration*, and the case was solved anyway, on a plan that kept its previous state and
+lacked the Financial Profile tables, and Reports showed those results as the case's. Such a move
+changes nothing, so `setStateTax` now ignores it with a warning in the log, and a case file that
+carries one loads. On Create Case, *Year of the move* now stays within the plan, the other move
+`setStateTax` refuses. Thanks to Florin Mateoc (@fmateoc) for the issue (#245).
+
+#### Fixed: a mistyped Roth conversion year no longer goes unnoticed
+
+The years to start and stop Roth conversions and to switch converters had no upper bound, so a
+typo such as 20300 for 2030 was stored as typed, and the plan converted nothing with the case
+still solved. A year past the plan remains a legitimate way to say "never", one that survives a
+change of longevity, so these fields, and the ACA start year, now accept any year up to 120
+years ahead, past any plan, which refuses an extra digit. A case file with a later year has it
+held at that limit, which keeps its meaning. When the conversion years leave no year open for
+conversions, a start past the plan or a stop at or before the start, the plan is solved as given
+and the log says so. Thanks to Florin Mateoc (@fmateoc) for the issue (#250).
+
+#### Fixed: a case file with Windows line endings uploads whole
+
+Uploaded case files were read with the `toml` package's string parser, which, on text with CRLF
+line endings, drops a triple-quoted string and every key after it, with no error. Create Case
+then failed with *Failed to parse case file: 'basic_info'*. A Git-for-Windows checkout writes the
+examples with CRLF, and 14 of the 19 hold such a string, their description. Case files and the
+state tax data are now read with Python's `tomllib`, which handles either line ending; writing
+still uses `toml`. Thanks to Florin Mateoc (@fmateoc) for the issue (#248).
+
+#### Changed: local search no longer repeats the steps that found nothing on settled binaries
+
+With `breakpointMethod = "local-search"`, every iteration of the self-consistent loop ran the
+full search. Once an iteration started from the binaries of the one before and moved none of
+them, the next one, which differs only by the loop's fed-back parameters, ran steps (b), (b')
+and (a') again from the same binaries, and they found nothing again, (b') each time at its node
+cap. That iteration now skips them; steps (a) and (c) still run, and a move by either restores
+the full search in the iteration after it. The plans of the examples are unchanged to the cent.
+Where the parameters keep moving after the binaries have stopped, the solve is faster: on HiGHS,
+`Case_joe` takes half the CPU time and `Case_jack+jill` about a fifth less; the other examples
+converge before any step is skipped. Thanks to Florin Mateoc (@fmateoc) for the issue, the
+analysis and the fix (#252).
+
+### Version 2026.10.30
+
+#### Changed: the Docker images run natively on Apple Silicon
+
+Both Docker images now start from Debian slim instead of Alpine and are published for
+`linux/amd64` and `linux/arm64`. On Alpine, an `arm64` build had to compile matplotlib, which
+publishes no Alpine wheel for `arm64`, so building the images on an Apple Silicon Mac failed, and
+the published `amd64` images ran there only under emulation. Every dependency now installs from a
+wheel on both architectures. The versioned image grows from about 260 MB to 307 MB, and the edge
+image from 38 MB to 104 MB. Thanks to kryofin (@kryofin) for the issue and the fix (#242).
+
+### Version 2026.10.29
+
+#### Fixed: the 2026 QCD limit is \$111,000
+
+IRS Notice 2025-67 raises the per-person exclusion for qualified charitable distributions from
+\$108,000 to \$111,000 for 2026. Owl had \$115,000, so it accepted a 2026 QCD between the two and
+excluded all of it from income, and every later year, projected from that figure at 3%, was about
+3.6% too high (#240). A test now pins the published limits.
+
+#### Changed: `papers/owl.tex` agrees with the code where it did not
+
+A review against the code (#241) found equations and statements the code had moved past. The
+SS-taxability big-M rows, the IRMAA MAGI expansion, the provisional income, and the state pension
+exemption are corrected. So are the HSA withdrawal cap and Medigap, the earnings test (the
+`employer ctrb` column, the years before the plan, exempt amounts and wage base through 2027), the
+spousal reduction beyond 36 months, the year the filing status changes, and the ACA bracket count.
+Three equations that took a neighbor's number now carry their own. The section on the
+self-consistent loop now says it can settle on a plan that is self-consistent but not optimal.
+
+#### Removed: the unused AGI threshold on a state's Social Security exemption
+
+`ss_exemption_threshold` in `taxes_state.toml` was read but never used by the model. Kansas and
+Missouri, the only states that carried a value, exempt Social Security in full from tax year 2024.
+The field is gone from the data, and `st_taxParams` returns one value fewer. Results do not change.
+
+### Version 2026.10.28
+
+#### Fixed: the DCC-GARCH fit follows Engle (2002)
+
+The `garch_dcc` rate model standardized each residual with a variance that already included it,
+updated the correlation one year late in its likelihood, and skipped the last residual when
+starting the simulation. It also targeted the residuals' raw second moments instead of their
+correlation matrix. All four now follow Engle (2002). Seeded `garch_dcc` sequences change.
+
+#### Changed: the documentation matches the code
+
+`papers/owl.tex` is revised throughout to match the code: the variable counts, big-M bounds, ACA
+brackets, constraints, rate models and stochastic spending. It gains a chapter on the
+spending-bequest trade-off. The documentation now says that `maxRothConversion` caps each spouse
+separately.
+
+### Version 2026.10.26
+
+#### Fixed: the earnings test reads the years before the plan for someone already claiming
+
+The earnings test saw earnings from the plan's first year only. For someone who claimed before
+the plan, before full retirement age, while still working, it took the grace year as used in
+the year of the claim, credited no month withheld before the plan at full retirement age, and
+never withheld the check for December of the year before the plan (#235). The test now reads the
+five years before the plan that the Household Financial Profile already carries (*anticipated
+wages*, *months worked* and the pre-tax contributions), and applies the test from entitlement on.
+For a \$2,000 PIA claimed in July 2025 at 62 and one month, with \$5,000 earned every month of
+2025: working January-June 2026 for \$80,000, 2026 is the grace year and pays \$7,041.67 instead
+of \$1,408.33; with no work in 2026, the six months withheld in 2025 raise the benefit from full
+retirement age by \$600 a year. Past years left blank change nothing. The exempt amounts for
+2021-2023 are added. Alex+jamie, whose profile gives Jamie's wages for 2024 and 2025 while she
+collects, now withholds those years too: 48 months come back at full retirement age instead of
+24. The MCP's wages, months worked and contributions accept years up to five before the plan.
+An overpayment still to be recovered is not modeled.
+
+#### New: the MCP results name the families that did not settle
+
+`run_case`, `run_from_params` and the comparisons report, beside the fixed-point residual,
+`unsettled`: the families the loop left above its tolerance, Social Security taxability and the
+tax on capital gains, each with the option whose exact model settles it. The log's warnings went
+to the server's error stream, which an AI client does not read.
+
+#### New: the optimizer can split each surplus between the spouses
+
+While both spouses live, a surplus is deposited in their taxable accounts by a fixed fraction, half
+each by default. The fraction can now be set to `"optimize"` (*Let the optimizer split each
+surplus* in the interface), and the optimizer then chooses the split each year (#236). It can help
+when the two accounts differ: for a Pennsylvania couple whose larger account is mostly gain, the
+free split spends at least as much as any fixed fraction. Most example cases are unchanged, to
+within 0.004%. Jack+jill spends 0.5% more but stops at the loop's iteration cap instead of
+settling, as a fixed fraction that deposits with the survivor sometimes does. It is not meant for
+beneficiary fractions below 1: what other heirs receive at the first death counts for only 1% in
+the objective, so the optimizer deposits every surplus with the survivor and leaves them nothing.
+In jordan+taylor and avery+quinn the partial bequest falls from \$2.47M and \$3.40M to \$0. The
+log warns when the two are combined, and the fixed fraction stays the default.
+
+#### Changed: options that do not apply are disabled, not hidden
+
+On *Run Options*, the claiming ages to optimize are now chosen with one box per person. Someone
+whose entered claiming age is already past keeps a box, disabled, instead of disappearing from the
+list. On *Account Balances*, the surplus deposit fraction is disabled while the optimizer splits
+the surplus.
+
+#### New: the loop says when the tax on capital gains did not settle
+
+Under the default loop, the room in the 0% and 15% capital-gains brackets is the threshold less the
+previous iterate's ordinary income. A plan that moves Roth conversions into a year is charged gain
+tax against room it no longer leaves, and the loop can cycle between plans whose gain tax is too low
+in one year and too high in another. On a couple with \$1.5M taxable and \$900k tax-deferred, the
+loop's plan was charged \$0 in a year whose income implies \$2,407, and \$2,292 in a year whose gains
+all sit in the 0% bracket; `withLTCG = "optimize"` settles exactly and spends \$92 a year more
+(#239). When the loop leaves the gain tax unsettled (the plan's own income implies more than the
+loop's tolerance, \$50 a year by default, of different gain tax over the horizon), the log now says
+so and points to `withLTCG = "optimize"`, as it does for Social Security. None of the example cases
+is affected: their gain tax is within \$5 over the plan.
+
+#### Fixed: the taxable account a survivor inherits takes its value at the death as basis
+
+With a cost basis set, the survivor's basis gained nothing for the taxable account inherited at
+the first death, so every dollar of it counted as unrealized gain and was taxed again when sold.
+Under IRC 1014 the inherited account takes its value at the death as basis. It now does: the
+amount moved to the survivor is added to their basis at the death (#238). For a couple with
+\$1.5M at \$1M basis in the first to die's taxable account, the survivor's gain fraction falls
+from 1 to about 0 at the death, and first-year spending rises \$2,052 in Florida and \$3,201 in
+Pennsylvania. A person whose taxable account starts empty is now tracked from a \$0 basis rather
+than with the legacy approximation, so the inherited basis has somewhere to go. Pennsylvania does
+not step up a surviving joint tenant's share; that difference is not modeled.
+
+#### Fixed: the reported taxable flows no longer hide a sale at a gain
+
+When a surplus is deposited into the taxable account it was just sold from, **Owl** reported the
+withdrawal and the deposit net of that round trip in every year whose gains reached no taxed
+federal bracket. But the sale realizes its gain whatever the federal bracket: the gain is in the
+year's capital gains, in MAGI and in the state base, and the rebuy resets the basis that later
+years' gains are computed from. The fixed spousal split of a surplus can force such a sale, and
+it can be gain harvesting. The display then could not explain the plan beside it: in
+jack+jill, the displayed flows missed \$17,047 of a year's gains, and in the case of #234 (a
+Pennsylvania couple) they missed \$25,022 of gains that the state taxed. Only the part of a
+round trip that realizes no gain is now netted. Local search, which starts from the loop's
+withdrawals, now starts from the solved ones rather than the netted ones. Taxes, spending and
+balances are unchanged.
+
+#### Fixed: keeping the previous binaries no longer takes a plan outside the requested gap
+
+Under the branch-and-bound breakpoint method, the self-consistent loop keeps the previous
+iteration's binaries when the plan they give is within the loop's tolerance of the new one, and
+restates the solver's gap against the kept plan. That gap could exceed the one requested: at
+`gap = 1e-5`, a plan was accepted at 1.833e-5 (#233). The previous binaries are now kept only if
+the restated gap stays within the requested one, or if the solve itself stopped above it (a node
+or time limit). Under MOSEK at the default gap of 3e-3, the cases that settle by keeping binaries
+(joe, jack+jill, avery+quinn) refuse no tie and are unchanged.
+
+#### Fixed: a worker's earnings charged against a spouse past full retirement age use the adjusted benefit
+
+When a worker still under full retirement age has excess earnings and their spouse, collecting a
+spousal add-on on the worker's record, has passed it, the excess is charged against that add-on.
+From the spouse's FRA month the add-on is the one raised by the adjustment of the reduction
+factor, but **Owl** charged the unadjusted one and then scaled what was left, so dollars were
+neither paid nor withheld: in the case of #232, paid plus withheld fell short of the benefits due
+by \$810.11 (worker earning \$60,000) and \$1,381.31 (\$70,000) in a year. The excess is now
+charged a second time on the adjusted benefits, after the crediting months have been counted from
+the months before FRA, which the second charge leaves unchanged.
+
+#### Fixed: the earnings test's exempt amounts and the payroll wage base are read in the plan's dollars
+
+The exempt amounts are published in each year's nominal dollars, but the earnings test compared
+them with earnings in the plan's first-year dollars, and for a year after the table used the last
+year's nominal amount as if it were in those dollars. That held only for a plan starting in 2026.
+A plan starting in 2027 used 2026's \$24,480 for 2027, and withheld \$540 too much on \$40,000 of
+wages ((40,000 − 24,480)/2 against (40,000 − 25,560)/2). Each published amount is now deflated by
+its year's inflation factor, and held flat in real terms after the last one. The 2027 amounts
+(\$25,560 and \$67,920, SSA notice of Oct. 26, 2026, 91 FR 67380) are added: a plan starting in
+2026 now withholds the same for 2027 as one starting in 2027. The Social Security wage base of the
+payroll tax, a single value held at its 2026 level in today's dollars, is now keyed by year the
+same way, with 2027's \$192,300 from the same notice: at 2.5% inflation, wages above the base in
+2027 pay \$197.63 more than under 2026's base grown with inflation. A plan starting after the last
+published year takes that year's amounts as its own dollars, an understatement, and warns.
+
+#### Fixed: pay that all goes to a 401k is still payroll-taxed earnings
+
+*Anticipated wages* are net of pre-tax contributions, and the earnings that the payroll tax and
+the SSA earnings test read added the year's 401k and IRA contributions back only in a year with
+wages. Pay deferred in full into a 401k, as part-time pay can be at the catch-up limits, carried
+neither tax nor test, and one dollar of wages switched both on for the whole deferral: \$1,798 of
+payroll tax on \$23,500 deferred. A 401k elective deferral is wages for both (26 U.S.C.
+3121(v)(1)(A)), so it now counts with or without other wages. An IRA contribution still counts
+only in a year with pay, the 401k's included: without pay it is taken as a spousal IRA, funded
+by the other spouse. The *401k ctrb* column is kept apart from *IRA ctrb* for this, and a
+workbook saved from a plan now writes both columns instead of their sum under *401k ctrb*. In
+the assistant's tools, a traditional IRA contribution is the new account `"ira"`;
+`"tax_deferred"` is the employee's deferral to an employer plan (401k/403b). An account the
+tools do not recognize is now refused rather than taken as tax-deferred, where a mistyped Roth or
+HSA contribution would have counted as payroll-taxed earnings.
+
+#### New: an *employer ctrb* column for the employer's 401k contributions
+
+The employer's match or profit-sharing contribution had to be entered in *401k ctrb*, beside the
+employee's own deferral, and was therefore counted as earnings, raising the payroll tax by 7.65%
+of it (\$382.50 on a \$5,000 match) and the earnings it tests. It was never wages (26 U.S.C.
+3121(a)(5)(A)). The new HFP column *employer ctrb*, and the assistant's account `"employer"`, put
+it in the same tax-deferred account but leave it out of the earnings. A workbook without the
+column reads it as zero, which keeps its previous meaning, so its absence is not reported; move
+the employer's share out of *401k ctrb* to have it left out. The template carries the column.
+
+#### Fixed: a regret sweep's baseline that one of its own restricted solves beat is re-solved
+
+Every pinned solve in a conversion-regret sweep is a restriction of the unconstrained baseline, so
+its plan is feasible for the baseline too and `v(x) <= v*` is an identity. A restricted solve
+worth MORE is therefore proof that the baseline fell short, and on the local-search path it is the
+only proof available: `solverGap` is -1 there, so no certificate accompanies the solve. The sweep
+previously answered that proof by relabelling `v*` to the winning value, which leaves the
+shortfall in place. The winning plan is now fed back into the baseline's local search as a seed
+(`Plan._localSearchSeedPlan`, honoured by `LocalSearch(seeds=...)`), which lands in the winner's
+basin and usually beats it; the loop repeats until nothing wins, and `repair_rounds` caps it.
+`v*` strictly increases each round, so it terminates. The grid's own winner counts as evidence,
+and so do fresh solves at `x* +/-` each of `repair_probes`, defaulting to the three offsets the
+published asymmetry statistics are read at: a baseline can be beaten off the grid while no grid
+point beats it, which the grid alone cannot see. On the reference \$4.75M profile, window 1934 has
+no grid evidence at all (its best grid point falls \$732 short of the baseline) and yet its probe
+at `x* - \$30,000` beats the baseline by \$1,639; it is now repaired by \$5,031. The largest
+repair measured is \$100,377, on the reference-savings higher-benefit rung's 1995 window, which is
+\$3,612 beyond what relabelling reported. The probes also return EXACT leg values at `x* +/-
+delta`, free of the interpolation a grid estimator needs and of the right-edge truncation that
+makes it drop scenarios. Pass `repair_baselines=False` to reproduce a sweep made before this
+existed; the no-seed path through `LocalSearch` is unchanged.
+
+#### Changed: lifting a short baseline raises its value, and no longer moves its optimum
+
+`lift_regret_baselines` raised `v*` to the best plan a scenario's own sweep found and also
+rewrote `x*` to that plan's first-year conversion. But that conversion is a grid point: it is
+wherever the grid happened to be ruled, not a location any solve chose. Reporting it as the
+optimum asserted a conversion with no plan behind it, displaced `x*` in 84 of 360 swept windows
+across five configurations, and in five windows of the reference \$4.75M profile turned "convert
+nothing" into \$136,364 to \$238,636. It also left the reported optimum at no tax threshold,
+where a solved optimum is almost always exactly on one, so those scenarios had to be excluded
+from any statement about which threshold a conversion fills. The lift now raises the value only.
+`x*` keeps the baseline solve's own conversion, and `v*` consequently exceeds the value attained
+at the reported `x*` -- the honest reading, that the solve is known to have fallen short by at
+least this much and the true optimum's location is not known. The winning grid point is recorded
+in the new `x_star_lift`, NaN where nothing was lifted. `v_star_lift > 0` is now the test for
+"this scenario was lifted"; comparing `x_star` against `x_star_solved` no longer detects one.
+Repair runs first, so the lift is the floor under anything it cannot recover, and `R >= 0`
+remains an identity either way.
+
+#### Fixed: branch-and-bound loops that never settled, although their parameters had
+
+Branch-and-bound returns any plan within its gap of the optimum, 0.3% when Medicare is solved as
+MILP. When the self-consistent loop changed the problem by a few dollars, MOSEK returned a
+different plan along a direction where the objective is nearly flat (Case_jack+jill: \$3k to
+\$120k of taxable withdrawals moving among 2036-2038 every iteration), and the loop's test, a
+change in objective 60 times finer than the gap, could not be met: jack+jill, avery+quinn and joe
+ran to the 30-iteration limit. The fed-back gain fraction was not the cause; it settles in three
+iterations once the plan stops moving. Each branch-and-bound solve now re-solves the LP with the
+previous iteration's binaries and keeps them when they tie the new plan, within the loop's
+relative tolerance: the noise goes, and nothing worse than the new plan is kept. Convergence is
+judged on what is fed back: the gain fraction joins the residual, an exact NIIT leaves it (it is
+not fed back), and a change in objective below the solve's own gap no longer holds the loop. On
+the 18 examples measured under MOSEK, jack+jill settles in 4 iterations (from 30) and 15 s (from
+105 s) with no residual, joe in 4 (from 30), avery+quinn in 7 (from 30) and 45 s (from 189 s) at
+the same value, alex+jamie gains \$66 in 2 iterations, and the other 14 are unchanged; total
+time 677 s -> 415 s. Under HiGHS these cases already settled in 3 to 5 iterations and stay within
+a few dollars. Local search is not affected.
+
+#### Changed: the Summary has the same rows for every plan, so variants compare row for row
+
+The side-by-side comparison keeps only the rows all its cases share, and several Summary rows were
+reported only when nonzero: *Total fixed income* and each of its lines (Social Security, pension,
+SPIA, wages, other income, fixed assets), *SS withheld by the earnings test* and *ARF months*,
+*Total qualified charitable distributions* and the RMDs it satisfies, *Total state income tax
+paid*, and each person's *SS claiming age*. A row one variant lacked vanished from the comparison
+of all of them: Case_jordan+taylor-qcd, built to be compared with Case_jordan+taylor, lost its QCD
+rows, and retiring now lost *Wages*. They are now always there, at \$0 or "none" (a claiming age
+reads "none" for a person with no benefit of their own and no spousal one). Rows set by the plan's
+shape still vary: the people's names, the partial bequest when the first death falls inside the
+plan, and the final bequest on a summary shorter than the plan.
+
+#### New: the employee's payroll tax is paid on wages
+
+*Anticipated wages* count as cash, and **Owl** charged no payroll tax on them, so each working
+year brought in 7.65% more cash than it does. Every solve now charges the employee's share on the
+earnings the SSA earnings test reads (*anticipated wages* plus the year's 401k and IRA
+contributions): 6.2% social security tax on each person's earnings up to the wage base (\$184,500
+in 2026, held at that level in today's dollars), 1.45% Medicare tax on all of them, and the 0.9%
+Additional Medicare Tax on the household's combined earnings above \$250,000 through the year of
+the first death and \$200,000 after (not indexed). The tax is not deductible: it is a constant of
+the year's cash-flow balance, next to debt payments, with no variable, constraint, or binary, and
+it enters no income-tax computation, `T_n` or the effective tax rate. There is no option. It is
+reported as *Total payroll tax paid* in the Summary (\$0 for a case without earnings, so plans
+compare row for row), a *payroll tax* column of the Cash Flow and Taxes worksheets and the CSV
+export, in *Tax bills + Med.* of the Income worksheet, as `payroll_tax_today` /
+`payroll_tax_nominal` in the plan metrics that `owlcli compare` reports, and on its own, beside
+the income tax rather than inside it: a *payroll tax* line in the taxes plot (now titled *Taxes and
+Premiums*), and a *Payroll tax* slice and band in the lifetime allocation and the annual cash-flow
+mix.
+Self-employment tax is not modeled (a documented limitation). The twelve examples without wages
+are unchanged to the cent. The seven with wages pay \$3,672 to \$100,138 over their working
+years: alex+jamie, chris+pat, jack+jill, joe, jon+jane and riley+casey spend \$242 to \$5,156
+a year less (0.2% to 3.2%), and john+sally's bequest goes from \$16,803 to \$21. That last case
+had little to spare: its \$8,798 of tax, compounded to the horizon, costs \$17,300 of bequest, so
+in loop mode the bequest reaches zero at 97% of the tax, after which the loop ends on a plan that
+undercharges IRMAA by \$374 (its fixed-point residual). Local search gives \$31,778 without the
+tax and \$14,013 with it, both with no residual, so john+sally's reproducibility pin now solves it
+under local search, a `deep` test (\$14,013), instead of pinning the loop's \$21. The tax leaves john+sally no room for the moves
+of #197, so its two local-search tests now solve the case without it: one checks that the search
+reaches the branch-and-bound plan (31,778; 30,823 with the full LTCG link rows), the other that
+step (b') matters on its own (30,823 with the full rows; 20,004 without it either), which the first
+test did not show. The filing status of each year (joint through the year of the first death and
+single after) is now one function, `filingStatusIndex_n`, in place of eight copies of that rule in
+the federal brackets, the gains tax and its rows, the NIIT and its rows, the taxability of Social
+Security and its rows, and the state brackets; the payroll tax reads it too. The standard deduction
+and the senior bonus (`taxParams`, `seniorBonusSchedule`) keep their own, where the same death also
+removes the deceased from the people counted. Every pinned plan is unchanged. Thanks to Florin
+Mateoc (@fmateoc) for the issue and the PR (#227).
+
+### Version 2026.10.25
+
+#### Fixed: branch-and-bound no longer keeps a plan that charges a cost its own income does not imply
+
+Branch-and-bound stops at a relative gap, 3e-3 when Medicare is solved as MILP, and a plan inside
+that gap can charge a threshold cost its own income contradicts. In Case_robin (MOSEK) it taxed
+85% of Social Security in 2042 and 2045, years whose provisional income is below the base amount:
+\$1.6k of federal tax a year not owed, \$47,323 of SS residual over the plan. After each
+branch-and-bound solve, the years where the plan's own income implies a different cost than the
+one charged are now solved again, every family's binaries free in those years and pinned in the
+others, and the result is kept when it is better: the step local search already takes. The
+problem contains the plan it repairs, so it cannot return a worse one. Across 18 of the 19
+examples (MOSEK; riley+casey runs past 40 minutes either way), robin goes to a \$0 residual for
+\$67 a year more spending (0.15%), chris+pat, morgan and jon+jane gain \$12 to \$43 and keep
+at most \$18 of residual, 13 are unchanged, and each repair takes a tenth of a second. The two
+cases whose cost basis keeps the loop from settling (avery+quinn, jack+jill) still stop at the
+iteration limit, within \$6 of the same value. The default gap stays: at 1e-4, plans gain up to
+0.08% more where nothing is inconsistent (alex+jamie, dana), for up to 24 times the run time.
+
+#### Fixed: a mixed-integer plan can no longer pay a lower IRMAA tier than its MAGI
+
+A solver accepts a binary within its integrality tolerance of 0 or 1, about one millionth. Times
+a bracket's big-M, the year's income ceiling in the tens of millions, that let a few dollars into
+a bracket whose binary counted as off: in Case_jordan+taylor under local search, IRMAA's top tier
+held \$17 to \$287 of MAGI, so years a few dollars past a tier edge paid the tier below, and the
+plan's premiums were \$2,300 to \$3,470 a year lower than its own MAGI implies (\$63,522 of IRMAA
+residual over the plan). After every mixed-integer solve (branch-and-bound, local search, and
+the solves around them, with either solver), the binaries are now rounded and the plan re-solved
+as an LP with them pinned, which closes every such bracket exactly; the re-solve is skipped when
+the binaries are already exact. Across the 19 examples under local search, jordan+taylor's
+residual goes to \$0 for \$66 less bequest (0.004%), three others lose a few dollars of hidden
+residual, and the other 15 are unchanged, at the same run time. Under branch-and-bound,
+jordan+taylor's \$4,593 residual goes too, and both methods now give the same plan.
+
+#### New: Case_riley+casey, bridging to Medicare on the ACA in Georgia
+
+A married couple, 62 and 54, in a state without the Medicaid expansion, with most of their savings
+in high-basis taxable accounts. It gathers rules no other example reaches: the Social Security
+earnings test's grace year (Riley claims in July after six months of part-time work, so nothing is
+withheld; without *months worked*, \$9,876 would be), Roth 401(k) contributions paid from pay with
+their big-ticket offset (#221), an HSA contribution from savings deducted through a negative
+*other inc* (#225), and ACA pricing with the coverage gap and the 400% cliff (#202). It ships in
+loop mode, like the other examples, and costs about a second in the test suite. In loop mode it
+spends \$116,758 a year and pays the full benchmark in 2026-2028; local search prices the cliff
+exactly and spends 2% more for \$58k less in premiums. The docs now also say that in the year
+Medicare starts, an HSA deduction entered as a negative *other inc* covers only the months before
+it, the share of the contribution **Owl** keeps.
+
+#### Tests: slow quality checks run on demand
+
+A `deep` marker holds checks of solution quality that take minutes, left out of the default run,
+CI included (`pytest.ini`): run them with `pytest -m deep` or `make tests-deep` when changing an
+algorithm or a feature they cover. They are the riley+casey comparison of loop and local search,
+the two-spouse claiming-age search, the #197 reach of local search, and local search through the
+MCP tools. The local-search fixture of `test_local_search.py` now runs with a 30 s budget: its
+tests hold whatever the search reaches, and with HiGHS it spent the whole 300 s default.
+
+#### Fixed: falling back on an earlier iterate takes the most settled one, not the richest
+
+When an iterate of the self-consistent loop cannot be solved even with a shortened parameter
+step, the loop falls back on an earlier one. It took the one with the best objective. On a tight
+case the costs the loop feeds back (premiums, ACA costs, NIIT, the taxable part of Social Security,
+LTCG bracket room) start at nothing and catch up pass by pass, so the best objective belongs to the
+iterate least charged for what its own income brings: a case heading from \$6.6M down to a few
+thousand dollars reported \$1.1M, and a lower spending floor could report less left at the end
+than a higher one. The fallback now takes the iterate whose own income moves its parameters least,
+the latest of those tied, and every iterate's residual is kept in the trace. Thanks to Dmitry
+Fink (@finik) for the diagnosis and the fix (#186).
+
+#### Documented: the stacked capital-gains tax can exceed the worksheet's line 25 by up to \$57 a year
+
+The Qualified Dividends and Capital Gain Tax Worksheet ends with the lesser of the stacked tax
+and the regular tax on all taxable income (line 25, IRC 1(h)(1)). **Owl** keeps the stacked tax.
+They differ only for gains between the 0% breakpoint and the top of the 12% bracket, which pay
+15% there instead of 12%: at most \$28.50 (single) or \$57 (joint) a year, and \$0 in every one of
+the 18 examples. The limitation is now documented. Taking the minimum exactly would need a binary
+per year, at a solve-time cost out of proportion with the stakes. Thanks to Marco Pignone
+(@rationalpiper) for pointing it out, with the worksheet and the bound (#206).
+
+#### Fixed: an LP that HiGHS ends without a verdict is solved again before it is called a solver failure
+
+HiGHS's default LP path (presolve, then the dual simplex) can stop on an LP that has no feasible
+point with "Solve error", "Unknown" or no status at all ("Not Set"), instead of "Infeasible".
+**Owl** then reported a solver error for a plan that simply cannot be paid for. On LPs that SCIP's
+exact (rational) mode proves infeasible, HiGHS 1.15.1 and its `latest` branch gave a verdict on 2
+of 62 (https://github.com/ERGO-Code/HiGHS/issues/3418). Such an LP is now solved once more with
+the interior-point method and presolve off, which said "Infeasible" on all 62. The re-solve runs
+only for a pure LP that ends with one of those statuses and without a feasible point, so every LP
+that solves today comes out the same; MIPs, limits and interrupts are untouched. It replaces the
+fallback of #184 (reverted), whose primal-simplex step could call a feasible LP infeasible, and
+takes in #188. Thanks to Dmitry Fink (@finik) for tracking the failures down to HiGHS, with SCIP's
+exact verdicts, the upstream report and the fix (#184, #188, #226).
+
+#### Fixed: wages are entered as they enter AGI, and an after-tax contribution is paid for by a big-ticket item
+
+**Owl** asked for *anticipated wages* net of every contribution column, because contributions are
+deposited without leaving the cash flow. But the same wages are the taxable wages, and an
+after-tax contribution paid from pay (Roth 401k, Roth IRA, taxable) is still income: netting it
+out dropped it from AGI, from federal and state tax, and from the MAGI used for IRMAA, the ACA
+and Social Security taxation, by the full contribution (\$4,400 of federal tax on \$20,000 of Roth
+401k out of \$100,000 of pay). PARAMETERS.md meanwhile described a third convention. All the
+documentation now gives the one that gets both tax and cash right: *anticipated wages* are the
+wages in AGI, pay minus pre-tax 401k/403b, deductible IRA and payroll HSA contributions; each
+contribution goes in its column; and each after-tax contribution paid from pay is paid for by a
+negative *big-ticket items* entry of the same amount. With only pre-tax contributions nothing
+changes. The SSA earnings test, which counts wages before pre-tax deferrals, now adds back only
+the tax-deferred contributions. The MCP tools and the intake checklist say the same. Of the
+examples, only jon+jane had an after-tax contribution from pay, \$2,000 a year into taxable
+savings in 2026-2030: its workbook now enters \$122,000 of wages and \$-2,000 of big-ticket items
+in those years, which adds \$1,993 to the 2026 MAGI and \$440 to that year's federal tax, and
+lowers spending by \$148 a year (0.09%). Thanks to Marco Pignone (@rationalpiper) for the report
+and for the convention (#221).
+
+#### Fixed: a Roth conversion is free from the fifth year after it, and its own year cannot release earnings
+
+A conversion's 5-year period is five taxable years starting with the year of the conversion (IRC
+408A(d)(3)(F)), so a 2026 conversion can be withdrawn without the 10% from 2031. **Owl** held it
+back a year more, through 2031, so a conversion ladder reached each rung a year late and paid the
+10% on tax-deferred withdrawals in the meantime (#224). The early-withdrawal rows of #209, on the
+other hand, counted every conversion made so far as withdrawable before 59½, the year's own
+included: a plan could convert an amount and withdraw the same amount from a Roth holding only
+earnings, which the ordering rules (conversions oldest first, then earnings, 408A(d)(4)(B)) charge
+the 10%, and **Owl** charged nothing (#223). Both now follow the rules: a conversion is held through
+the year of the conversion and the four after it, and before 59½ only conversions past that period
+count toward what can be withdrawn. In the reported ladder, the 10% paid before 59½ falls by
+\$2,113 and spending rises by \$79 a year, with nothing the law charges left uncharged; in the
+reported recapture case, the \$748 of 10% that went uncharged is gone. Of the examples, jack+jill's
+bequest rises by \$57; Case_morgan used the same-year route (\$567 of 10% uncharged) and no longer
+does, at a cost of \$70 a year of spending when solved exactly (its self-consistent loop lands
+elsewhere, 1.1% higher). Thanks to Marco Pignone (@rationalpiper) for both reports, with the
+statute, the Form 5329 instructions, the repros and the fixes (#223, #224).
+
+#### Fixed: HSA contributions entered through the MCP tools stop at Medicare
+
+An HSA contribution read from the HFP stops at Medicare enrollment, the year it starts keeping
+the months before it, but one entered through the MCP tools' `contributions` was deposited every
+year it was listed, Medicare or not. The tools now apply the same cut. A workbook rebuilt from a
+plan's arrays (by `save_case`, or when saving a plan whose arrays were set directly) holds the
+amount entered rather than the share kept, so reading it back applies the cut once.
+
+#### The MCP tools take other income, so an assistant can enter an HSA deduction
+
+Every MCP tool that builds a plan from parameters (`run_from_params`, `save_case`, the
+stochastic and comparison tools) now takes `other_income`, the HFP *other inc* column: signed
+annual amounts, a negative one being an above-the-line deduction paid from cash. Without it an
+assistant could not enter the deduction for an HSA contribution made without wages (#225), nor
+any other ordinary income outside wages. The intake checklist asks about it, and `save_case`
+writes it to the HFP.
+
+#### Fixed: an HSA contribution without wages can now be deducted, by entering a negative *other inc*
+
+An HSA contribution is deducted above the line whether or not there are wages (IRC 223(a),
+62(a)(19)), and since 2026 every bronze exchange plan qualifies, so early retirees on the ACA can
+contribute from savings and lower the MAGI their credit is figured on. **Owl** only deducted a
+contribution netted out of *anticipated wages*: without wages there was nothing to net it from,
+the HFP rejected a negative amount, and the *HSA ctrb* column alone deposited the money without
+deducting it or paying for it. *other inc* now accepts a negative amount, an above-the-line
+deduction paid from cash: enter the contribution in *HSA ctrb* and the same amount as a negative
+*other inc*. A deduction larger than the year's income is lost rather than making the plan
+infeasible: taxable income stops at zero in the federal and state bases (in PA, which leaves
+conversions out of state income, an \$8,000 contribution beside a \$30,000 conversion made every
+mode infeasible), and in optimize mode an ACA or IRMAA MAGI below zero stays in the bottom
+bracket. The reported MAGI is then below zero too, the MAGI those brackets priced, while taxable
+income stays at zero. Cases with no negative entry solve exactly as before. The documentation now says which
+columns may be negative (*other inc* and *big-ticket items*) and how an HSA contribution reaches
+AGI, and no longer says that the year Medicare starts is zeroed: it keeps the months before.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with the references, and for testing
+the route (#225).
+
+#### New: the Social Security earnings test
+
+**Owl** paid Social Security in full to anyone claiming before full retirement age while still
+working. SSA withholds \$1 for every \$2 of earnings above the annual exempt amount (\$24,480 in
+2026), or \$1 for \$3 above the higher amount (\$65,160) in the months before FRA in the FRA year,
+and pays the withheld months back from FRA by adjusting the reduction factor. The test is now
+applied to the benefit streams before they reach the optimizer: the excess is charged month by
+month against everything paid on the worker's record, the spouse's benefit included, then against
+the spouse's own benefit; non-service months of the initial grace year are paid; and the reduction
+factor is recomputed at FRA on each record. For a given claiming age these are fixed numbers, so
+the model has no new variable, constraint, binary or loop quantity, and `withSSAges` sees the test
+in every candidate. The earnings it counts are the wages before pre-tax deferrals: *anticipated
+wages* plus that year's tax-deferred contributions, which those wages are entered net of (an
+employer contribution makes them slightly high; HSA contributions stay out). A new
+optional column, *months worked*, says how much of the year was worked (12 when absent): it decides
+the grace year, the year someone stops working and claims, where the months after work are paid;
+the MCP tools take it as `months_worked`.
+The Summary reports *SS withheld by the earnings test* and *ARF months* for a household with
+earnings the test can reach, the per-person worksheets a *SS withheld* column, and `owlcli explain`
+an `earnings_test` block. Survivor benefits are left out: checks from the year of the first death
+on are paid as before. A case without earnings before someone's FRA is unchanged; of the examples,
+alex+jamie (−0.24%), chris+pat (−0.19%) and jack+jill (+0.08%, the withheld months returning for
+life) change. Thanks to Florin Mateoc (@fmateoc) for raising it with the SSA sources, for the
+design, and for the implementation (#220, #222).
+
+#### Faster local search, keeping the #197 fix
+
+The fix for #197 freed the LTCG binaries in every round of the search's Social Security step,
+which made local search up to 1.7x slower (4x with MOSEK). Most of that cost came from one half
+of the LTCG link rows, "binary at 0 means ordinary income at or above the threshold": it is
+redundant for the optimum, since a binary at 0 only closes the bracket below, but once pinned it
+held income above a threshold that the better plan needed to cross. The search now relaxes that
+half in its own copy of the problem, pins the LTCG binaries in the SS step again, and frees them
+alongside the SS step once per loop iteration, only when the rounds stall. Branch-and-bound keeps
+the full rows: without them, one example ran 23x slower. Before returning, the search sets back to 1
+every binary left at 0 below its threshold, so that the repair, polish and dual solves stay
+feasible. On the 18 examples: local search takes 45% less time with MOSEK (726 s to 396 s) and 6%
+less with HiGHS (740 s to 695 s). Case_john+sally still reaches the branch-and-bound plan, and
+every other example is within 0.07% (Case_morgan −0.066% and Case_kim+sam-bequest −0.028% with
+MOSEK; Case_chris+pat +0.068% with HiGHS).
+
+#### Fixed: the Roth conversion regret sweep can no longer report a negative regret
+
+Pinning a scenario's first-year conversion restricts its unconstrained problem, so regret
+cannot be negative. But a baseline solve could stop short of a plan its own sweep found
+(local search carries no certificate, and the tax loop can settle on another fixed point),
+and every cell above that baseline then read below zero. Each scenario's baseline is now
+raised to the best plan of its sweep, pinned or never-convert, with its first-year
+conversion, so the regret is non-negative by construction. The solves' own values and
+conversions are kept as `v_star_solved` and `x_star_solved` (an automatic grid is still sized
+from them), and the amount raised as `v_star_lift`. The lift still counts as the method's
+error: the largest one enters the resolution floor, and the summary reports how many
+baselines were raised and by how much (`baseline_lift`). `summarize_conversion_regret` lifts
+sweeps saved before this change, and `lift_regret_baselines` does it for any saved result.
+Lifting removes the sign error but not the shortfall: a baseline can still sit below the true
+optimum by more than its best pinned plan reveals.
+
+#### Fixed: an unused standard deduction now lowers the tax on capital gains
+
+**Owl** stacked long-term gains and qualified dividends on top of ordinary taxable income, so when
+ordinary income was below the standard deduction, the unused part was lost and the gains were taxed
+as if it did not exist. The law taxes gains on taxable income after all deductions (Qualified
+Dividends and Capital Gain Tax Worksheet, lines 1 and 10; IRC 1(h)(1)(B)), so the unused deduction
+shields gains from the bottom up. This is the common early-retiree year spent living off a taxable
+account: the overstatement reached 15% or 20% of the unused deduction, \$2,723 for a single
+66-year-old in 2026. Both modes now widen the 0% and 15% gains brackets by the unused deduction,
+including the senior bonus when it is optimized, and the LTCG residual check follows the worksheet.
+In the test cases affected, the lifetime overstatement of \$10,000–\$26,000 falls to a few dollars,
+and spending rises by 0.2–1.4%; the example cases are unchanged to within 0.02%. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the worksheet references (#205).
+
+#### Fixed: ACA premiums in states without the Medicaid expansion
+
+**Owl** treated every state as a Medicaid expansion state, with no premium up to 138% of the poverty
+line. In the states without the expansion there is no Medicaid for most adults, and the premium tax
+credit only starts at 100% (IRC 36B(c)(1)(A)): income below 100% gets neither and owes the full
+benchmark premium. Medicaid now follows the state of residence of each year: 138% in expansion
+states, 100% in Wisconsin (which covers adults to 100% under a waiver), and none in AL, FL, GA, KS,
+MS, SC, TN, TX and WY (KFF, October 2026). With *Solve ACA brackets with MILP*, the coverage gap is
+priced exactly, and so is the applicable-percentage jump at 133%, which only expansion states never
+reach: exactly 100% gets the credit and exactly 133% the higher percentage. The self-consistent loop
+charges the lowest applicable percentage in the gap rather than the full premium, so that the cost
+has no jump to oscillate across, and warns when a year ends there. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the references and a proposed design (#202).
+
+#### Fixed: PA and MS no longer tax Roth conversions before 59½, and exempt IRA withdrawals from 59½
+
+Pennsylvania treats a trustee-to-trustee Roth conversion as nontaxable at any age and exempts IRA
+distributions from 59½ (2025 PA-40 instructions, pp. 12–13). Mississippi leaves conversions out of
+gross income (Miss. Code 27-7-15(4)(ff)) and denies its retirement exemption to early distributions
+(35 Miss. Code R. 3-02-07-104). **Owl** gated conversions behind the same age as withdrawals (60 in
+PA) and exempted MS withdrawals at any age: in the reported case, a \$20,000 conversion at 55 paid
+\$614 of PA tax. The state data's `roth_conversion_eligible` flag becomes a three-valued
+`roth_conversion` field: `"exemption"` (counts toward the retirement exemption, with its age; the
+default), `"taxed"` (MD), or `"excluded"` (PA, MS: left out of state income at any age, apart from
+the exemption). PA and MS now exempt withdrawals from 59½. The former flag is still read. Thanks to
+Marco Pignone (@rationalpiper) for reporting it, with the PA references and a fix (#203).
+
+#### Fixed: Roth earnings can no longer be withdrawn before 59½ without tax or penalty
+
+A Roth distribution comes from contributions first, then conversions, and earnings last (IRC
+408A(d)(4)(B)), and before 59½ its earnings part is taxable and carries the 10% additional tax
+(408A(d)(2)(A); Pub. 590-B). **Owl**'s five-year retainer kept only recent conversions in the
+account, so once they had matured the earnings could come out early with neither: in the reported
+case, \$51,506 converted and \$74,387 withdrawn before 59½. Each person's Roth withdrawals before
+59½ are now kept within the starting Roth balance plus the conversions and contributions made
+since, which forbids early earnings rather than taxing them. The starting balance counts entirely
+as contributions and conversions, and the limit ends at the first passing. Thanks to Marco Pignone
+(@rationalpiper) for reporting it, with the legal references and a fix (#209).
+
+#### Fixed: a previous-year MAGI above the year's income ceiling no longer makes optimize mode infeasible
+
+With *Solve Medicare brackets with MILP*, the first two plan years take their IRMAA bracket from the
+previous MAGIs entered, but the top bracket was still capped at the year's income ceiling. A
+previous MAGI above that cap, such as a one-time gain two years back with modest savings now, left
+no feasible plan, reported as a bequest or spending floor set too high, while the loop mode solved
+the same case. The known previous MAGI now fits that bracket, and both modes give the same plan.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with a fix (#215).
+
+#### Fixed: MAGI of exactly \$500,000 (\$750,000 joint) is the top IRMAA tier
+
+Every IRMAA tier excludes its upper edge except the top one: "More than \$160,000 but less than
+\$500,000" and "At least \$500,000" (42 U.S.C. 1395r(i)(3)(C)(i)(III); 20 CFR 418.1115, "greater than
+or equal to \$500,000", \$750,000 joint). **Owl** charged the tier below at exactly that MAGI, \$48.40 a
+month too little per enrollee. The top tier now includes its edge in the loop and optimize modes,
+in the first two years read from the previous MAGIs, in the check of the loop's fixed point, and in
+the assistant's IRMAA report. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the
+legal references and a fix (#216).
+
+#### Fixed: a spouse's own delayed credits come out of the spousal benefit instead of adding to it
+
+When someone receives their own retirement benefit with delayed credits and a spousal benefit,
+Social Security computes the combined payment without the credits and subtracts the own benefit
+with them to get the spousal part (POMS RS 00615.694; 42 U.S.C. 402(k)(3)(A)). **Owl** added the
+full spousal excess on top of the delayed own benefit. Example: with a \$3,000 PIA for one spouse and
+\$1,000 for the other, who files at 70, the second spouse gets \$1,500 a month, not \$1,740;
+delaying past FRA only pays once one's own benefit exceeds half the other's PIA. The claiming-age
+search no longer sees value in such a delay. Thanks to Marco Pignone (@rationalpiper) for reporting
+it, with the legal references and a fix (#211).
+
+#### Fixed: Part D IRMAA tiers 2 to 4 use the 2026 CMS amounts
+
+The 2026 Part D income-related monthly adjustments are \$14.50, \$37.50, \$60.40, \$83.30 and
+\$91.00 (CMS 2026 fact sheet, Nov 14, 2025; SSA POMS HI 01101.020). **Owl** had the first and last
+right but \$36.30, \$58.10 and \$79.90 for tiers 2 to 4, \$1.20, \$2.30 and \$3.40 a month too
+low per enrollee. Part B amounts were already correct. Examples whose income reaches those tiers pay
+slightly more for Medicare. Thanks to Marco Pignone (@rationalpiper) for reporting it (#214).
+
+#### Fixed: four cells of the joint life expectancy table follow the regulation
+
+The Joint and Last Survivor table used for RMDs when the spouse is the sole beneficiary and more
+than 10 years younger was copied from Pub. 590-B (2025), which prints four cells differently from
+the regulation, 26 CFR 1.401(a)(9)-9(d) as published in T.D. 9930: (90, 76) is 14.7, not 14.8, and
+(112, 102), (112, 103) and (112, 107) are 3.3, 3.2 and 3.0, not 3.2, 3.1 and 2.9. The regulation's
+table is symmetric in those cells and governs. Every other stored cell already matched. Only
+(90, 76) can reach a plan: a 90-year-old with a 76-year-old spouse had an RMD 0.7% too low. Thanks
+to Marco Pignone (@rationalpiper) for reporting it (#217).
+
+#### Fixed: a survivor born on the 1st claims at the survivor FRA a month earlier, and from 59 years 11 months
+
+Someone born on the 1st reaches every age in the month before their birthday (20 CFR 404.102), so a
+survivor born on the 1st reaches 60 and their survivor FRA one month before their conventional age.
+**Owl** resolved the survivor claim age on the conventional ages: *FRA* filed a month after the full
+rate was reached, losing one month of survivor benefit (\$3,000 on a \$3,000 benefit), an explicit
+age was capped a month late, and 59 years 11 months, when they reach 60, was not accepted. The
+claim age now uses those ages in the engine, the log messages, and the survivor claim-age fields,
+which span 59 years 11 months to the month the survivor FRA is reached; a stored age outside that
+window is moved into it. Everyone else is unchanged.
+
+#### Fixed: born on the 1st, delayed credits stop at age 70 and the survivor reduction counts one month less
+
+Social Security counts a person as reaching an age on the day before the birthday (20 CFR 404.102),
+so someone born on the 1st reaches every age in the month before their birth month. **Owl** already
+counted their retirement and spousal reductions on that age, but it did not stop there at 70:
+delayed credits end with the month before age 70 is attained (42 U.S.C. 402(w)(2)(A); POMS
+RS 00615.690), and a claim at a conventional 70 got a 37th credit, 2/3% of the PIA too much for life.
+Their survivor reduction, which is counted in months before the survivor FRA (20 CFR 404.410(c)(1)),
+used the conventional age instead and charged one month too many: 71.5% instead of 71.84% at a
+conventional 60. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal
+references and a fix (#212).
+
+#### Fixed: the earliest Social Security claiming age in the interface is the month the engine uses
+
+Benefits start in the first month one is 62 throughout (POMS RS 00201.001): the birth month for
+those born on the 1st or 2nd, the month after for everyone else. The engine already used those
+months, but the claiming-age fields offered one month earlier (61 years 11 months and 62 years), and
+the engine quietly raised such an age. The fields now start at 62 years and 62 years 1 month, and a
+saved age below the minimum is raised to it.
+
+#### Fixed: IRMAA in the survivor's first two years uses the joint table of the lookback return
+
+Medicare's income-related surcharge (IRMAA) is set from the MAGI of the tax year two years before
+the premium year, and from the table of the filing status on that return: the joint ranges apply to
+individuals "who are married and filed a joint tax return for the tax year we use" (20 CFR
+418.1115(c), 418.1135(a)). **Owl** picked the table from the premium year instead, so after a
+death the survivor's first two years paired the couple's joint MAGI with the single thresholds. A
+couple files jointly in the year of the first death, so both of those years look back to joint
+returns, and the single table now starts in the third year, in both Medicare modes and in the
+assistant's IRMAA report. Example: a couple with \$190,000 of MAGI, below the \$218,000 joint edge,
+pays no surcharge, but **Owl** charged the survivor single tier 3 for two years, \$4,592 a year too
+much. A survivor's request to SSA to use a more recent year after the death (20 CFR 418.1205(a)) is
+not modeled. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal references
+and a fix (#213).
+
+### Version 2026.10.21
+
+#### Fixed: a January 1 birthday gets the 65+ deductions a year earlier
+
+The additional standard deduction for age 65 (IRC 63(f)) and the OBBBA senior deduction
+(IRC 151(d)(5)(C)(ii)) require having attained age 65 before the end of the tax year, and the IRS
+treats a person as reaching an age on the day before the birthday (2025 Instructions for Form
+1040), hence "born before January 2, 1961" for 2025. **Owl** tested the birth year only, so a
+person born on January 1 got these deductions a year late: a single filer born January 1, 1962,
+had a 2026 deduction of \$16,100 instead of \$24,150. The age test now counts a January 1
+birthday in the year before. Thanks to Marco Pignone (@rationalpiper) for reporting it, with the
+legal references and a fix (#207).
+
+#### Fixed: Medicare and ACA coverage change in the month of the 65th birthday
+
+Medicare starts in the month of the 65th birthday, or in the month before for a birthday on the 1st
+(CMS), and premiums are monthly. **Owl** charged a full year of Part B, Part D, and IRMAA in the year
+of that birthday, and no ACA premium for its months before Medicare: someone born in December paid
+12 months of Medicare for one month of coverage, \$2,232 of Part B alone at the 2026 premium. The
+first Medicare year is now prorated by the months covered, and marketplace coverage runs until
+Medicare starts. The premium tax credit is computed by the month (IRC 36B(b)), and a month with
+Medicare is not a coverage month (36B(c)(2)(B)): each coverage month pays the lesser of its
+benchmark and 1/12 of the expected contribution, and the benchmark follows who is enrolled that
+month (26 CFR 1.36B-3(f), Example 7). Under `withACA = "optimize"`, the year a spouse moves to
+Medicare is priced on the months-weighted benchmark, which keeps one premium cap per year and
+charges slightly more, only for incomes between the two caps (#208).
+
+#### Fixed: the ACA poverty line is the tax household's
+
+For the premium tax credit, family size is the tax household, both spouses on a joint return
+(IRC 36B(d)(1), 26 CFR 1.36B-1(d)), whoever is enrolled. **Owl** used the 1-person poverty line once
+one spouse was on Medicare, which lowered the 400% cliff for 2027 from \$86,560 to \$63,840: at
+\$70,000 of MAGI, a 60-year-old's benchmark of \$9,572 was charged in full instead of \$6,972. The
+benchmark still covers only the spouse enrolled. Thanks to Marco Pignone (@rationalpiper) for
+reporting it, with the legal references and a fix (#199).
+
+#### Fixed: HSA contributions are prorated in the year Medicare starts
+
+The HSA limit is the sum of monthly limits, and the monthly limit is zero from the first month of
+Medicare (IRC 223(b)(2) and (b)(7)). **Owl** dropped the whole contribution in the year of the
+65th birthday. It now keeps the share for the months before Medicare, which starts in the
+birthday month, or the month before for a birthday on the 1st: 5/12 of the entry for a June 15
+birthday, and 11/12 of the year before for a January 1 birthday, which **Owl** used to keep whole.
+
+#### Fixed: the ACA poverty line is the guideline of the year before
+
+The premium tax credit measures income against "the most recently published poverty line as of the
+1st day of the regular enrollment period" (IRC 36B(d)(3)(B); 26 CFR 1.36B-1(h)). Open enrollment
+starts in November, so coverage in 2026 uses the 2025 guideline (\$21,150 for two people), not the
+2026 one (\$21,640). **Owl** used the coverage year's guideline grown by a year of inflation, which
+made the 138%, 150% and 400% lines about 2.3% too generous. Years past the last published guideline
+now grow it by inflation from its own year, which also corrects a plan starting after that year.
+Thanks to Marco Pignone (@rationalpiper) for reporting it, with the legal references (#200).
+
+#### Fixed: ACA uses the 2027 applicable percentage table, and exactly 400% of the poverty line qualifies
+
+Rev. Proc. 2026-26 publishes the 2027 table (2.15% below 133% of the poverty line, up to 10.22%).
+**Owl** applied the 2026 table to every year; the tables are now keyed by year, in both the loop and
+optimize modes, with the latest carried forward. In loop mode, income of exactly 400% of the poverty
+line paid the full benchmark; IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent",
+so it now gets the credit, as it already did in optimize mode. Thanks to Marco Pignone
+(@rationalpiper) for reporting it (#201).
+
+#### Fixed: the 82.5% survivor limit caps the benefit after the survivor's age reduction
+
+When the deceased spouse had claimed early, **Owl** took the greater of their benefit and 82.5% of
+their PIA as the survivor's base and then reduced it for the survivor's age. The law reduces the
+full PIA for the survivor's age first and only then caps it at that greater amount: the limit
+applies to the benefit "after application of subsection (q)" (Social Security Act 202(e)(2)(D);
+POMS RS 00615.320). With a PIA of \$3,000 claimed at 62 and 1 month, a survivor filing at 62 now
+gets \$2,389.29 a month instead of \$1,971.16, and the gain from waiting until the survivor FRA
+drops from \$504 to \$86 a month. Survivors filing at their survivor FRA, and deceased spouses who
+claimed at or after FRA or never claimed, are unchanged. Thanks to Marco Pignone (@rationalpiper)
+for reporting it, with the legal references and a fix (#210).
+
+#### Fixed: a surviving spouse's home sale more than 2 years after the death uses the \$250,000 exclusion
+
+**Owl** chose the primary-residence exclusion once per plan, so a couple's home sold by the survivor
+kept the \$500,000 exclusion however long after the death. The joint amount carries over only for a
+sale "not later than 2 years after the date of death" (IRC 121(b)(4)); after that the limit is
+\$250,000 (121(b)(1)). The exclusion is now chosen by the year of the sale, both for the gain and for
+the balance sheet's estimated disposition cost. With **Owl**'s dates (death on December 31, sale on
+January 1), the survivor keeps \$500,000 for a sale in the two years after the year of the death.
+A \$400,000 gain realized later now has \$150,000 taxed. Thanks to Marco Pignone (@rationalpiper)
+for reporting it, with the legal references and a fix (#218).
+
+#### Fixed: the Social Security claiming-age search is no longer slow with MOSEK
+
+The claiming-age search (*withSSAges*) solves the plan at every open claiming month on parallel
+threads. **Owl** passed each model to MOSEK with one call per row and per bound, tens of thousands
+per solve, and those calls ran no faster on several threads than on one: the search took 89 s on
+Case_jack+jill with MOSEK against 20 s with HiGHS. The model now goes in with a few bulk calls, and
+the same search takes 17 s. The model MOSEK solves is unchanged.
+
+### Version 2026.10.20
+
+#### New: the loop says when Social Security did not settle
+
+Under the default loop, the taxable share of Social Security is a constant in each LP, so a dollar
+of income in a year where benefits are being phased in (50% to 85% taxable) is charged the bracket
+rate only, while it also makes up to \$0.85 of benefits taxable. On a couple with most benefit years
+in that range, the loop stopped at its iteration cap or in a cycle, \$34k-\$49k of bequest short of
+the exact plan (#193). When the loop leaves taxable Social Security unsettled (the plan's own income
+implies more than the loop's tolerance, \$50 a year by default, of different taxable benefits over
+the horizon), the log now says so and points to `withSSTaxability = "optimize"`. A loop can also
+settle on a plan short of the exact one with a small residual, which this does not detect.
+
+#### Fixed: local search can move Social Security taxability and the LTCG regime together
+
+The LTCG regime binaries hold each year's ordinary income on one side of the 15% and 20% thresholds,
+gains or not. The local search's Social Security step kept them pinned, and no other step frees both
+families at once, so it could not move income under a threshold and the taxable share of benefits
+with it. On `Case_john+sally.toml` under `breakpointMethod = "local-search"`, the bequest was
+\$20,004 where branch-and-bound finds \$31,778: converting more early lets the couple's income drop
+under the 15% threshold later, where benefits are taxed in the phase-in rather than at 85%. The
+Social Security step now leaves the LTCG binaries free, and local search finds \$31,778, the
+branch-and-bound plan. On the 18 examples, Florin measured no example worse, gains of 0.08% or less
+on seven others, and 1.5x the total local-search time. Thanks to Florin Mateoc for finding it,
+explaining it, and proposing the fix (#197).
+
+#### Fixed: an optimized Social Security claiming age is never worse than one entered by hand
+
+The claiming age was chosen inside the solve, with a binary per claiming month. Each candidate
+month's benefits were taxed at the share settled for the current one, so the choice ignored how a
+later claim changes the tax on benefits, and it kept the earliest open month. On the case reported
+in #195, it chose 66 9/12 for \$212,035/yr where entering 68 6/12 by hand gives \$212,233/yr.
+Taxing each candidate exactly inside the solve was tried and dropped: neighbouring months differ by
+less than the solver's gap, and a single solve took minutes instead of seconds. **Owl** now solves
+the plan once for each open claiming month, with the case's own options, and keeps the best, so
+the age chosen is never worse than any age entered. With both spouses selected, each age is
+searched in turn with the other held, until neither moves. The reported case now gets 68 5/12 at
+\$212,236/yr (40 solves, 1.4 s), or 69 6/12 at \$213,350/yr with all tax thresholds solved exactly.
+The claiming-month binaries and their benefit tables are removed from the model. Thanks to
+@sengsational for following up with the hand-entered ages that showed it (#195).
+
+#### Changed: scenario runs keep the plan's claiming ages
+
+Historical-range, Monte Carlo, spending-optimization, and regret runs passed *Optimize SS claiming
+age for...* on to every scenario, which chose the age again knowing that scenario's returns and
+lifespans. A claiming age is decided once, without that knowledge: these runs now hold the ages
+the plan has, chosen by a solve under the life expectancies entered, and say so in the log. In the
+regret sweep, this leaves the first-year conversion as the only decision that varies. The MCP
+historical-range and Monte Carlo tools, which loop over scenarios themselves, hold the ages too,
+and their run-time estimate now times one solve at the ages chosen rather than the whole search.
+
+### Version 2026.10.17
+
+#### Fixed: optimized Social Security claiming ages can no longer be in the past
+
+When optimizing claiming ages, Owl let the solver pick any month from 62 to 70, including months
+already behind someone who has not yet claimed. The benefit table paid such a past age a full first
+year at its reduction factor, as if benefits had been collected retroactively, which SSA does not
+do. A 66 9/12-year-old planning to claim at 70 was told to claim at 65 11/12, the latest age whose
+first check would have arrived in January. The earliest claiming age offered is now the age reached
+in the current month. Thanks to @sengsational for reporting it (#195).
+
+#### Changed: a past claiming age can no longer be selected for optimization, instead of being skipped
+
+An entered claiming age already behind someone means that person is collecting, so Owl left them out
+of the optimization even when they were selected, without a word, and wrote back the same age. Such
+an individual is now not offered in the *Optimize SS claiming age for...* selector (nor is `both`),
+a stale selection naming them is reset to `none`, and `withSSAges` raises an error when it selects
+them through the API. If the person is not collecting yet, enter a claiming age from this month on.
+
+#### Fixed: optimizing one spouse's claiming age accounts for the spousal and survivor benefits
+
+When only one spouse's claiming age was optimized, the spousal add-on and the survivor benefit that
+depend on it were carried from the previous solve rather than seen by the optimizer. It therefore
+missed that claiming later raises the benefit a longer-lived spouse inherits, and could settle on an
+earlier age that pays the household less than the age entered. In the case reported in #195, with
+the other loops made exact, it chose 66 9/12 for \$186,526/yr where claiming at 70 gives
+\$188,445/yr. When one age of a couple is free, Owl now tabulates every benefit the household
+receives for each candidate age, so the choice is exact: here it picks 70. When both ages are
+optimized, spousal and survivor amounts are still settled by the self-consistent loop. Small
+differences between an optimized and a fixed-age solve at the same age can remain in loop mode,
+where taxable Social Security and Medicare premiums land on slightly different fixed points.
+
+#### Fixed: the spousal benefit keeps its full first plan year and no longer depends on listing order
+
+The spousal add-on starts the month after the later spouse claims. When that claim predated the
+plan, Owl still cut the first plan year as if the add-on began then: a spouse with a PIA of \$800
+married to one with \$3,000, both collecting since 2024, was credited \$9,507.50 in 2026 instead of
+\$12,255.00. Separately, an age entered below the earliest claiming age (62, or 62 1/12 for most
+birthdays) is raised to it, but the spouse listed first had their add-on timed from the other's
+age before it was raised, so it started a month early and the result changed when the couple was
+listed the other way round. The first year is now cut only when the add-on starts within the plan,
+and all ages are raised before any benefit is computed. Thanks to Florin Mateoc for reporting it
+and proposing the fix (#198).
+
+#### Fixed: rows being typed in the Debts and Fixed Assets tables no longer vanish
+
+A row added to the *Debts* or *Fixed Assets* table stays in the browser until all its required cells
+are filled, and only then reaches Owl. Each time a row was completed, Owl stored the table and fed
+the stored copy back to the editor, which Streamlit takes as a new table: it rebuilt the editor and
+dropped every row still being typed. Entering several assets before their years, then giving the
+first one a year, made the others disappear. The editors now keep the table they started with while
+their edits go to the case, so incomplete rows stay on screen until they are finished. A row with an
+empty required cell is still left out of the case and of the downloaded workbook until it is
+completed. Not specific to the latest Streamlit release. Thanks to Dale Seng for reporting it,
+with a screencast (#194).
+
+#### Fixed: the top IRMAA tier is no longer indexed before 2028
+
+Owl indexed every IRMAA threshold to inflation from the first plan year. The Bipartisan Budget Act
+of 2018 froze the top tier at \$500,000 single and \$750,000 married filing jointly, with CPI
+indexing starting only in 2028, while the lower tiers are indexed every year. Raising the top tier
+with inflation in the 2026 and 2027 bill years understated Part B and Part D premiums for households
+with MAGI near \$500k/\$750k. The top tier now stays at its nominal value through 2027 and follows
+inflation from 2028; the lower tiers are unchanged. The same thresholds are used by the
+self-consistent loop, the Medicare MILP, and the assistant's `explain` headroom. Thanks to
+@bkbaugh for reporting it, with the statute and the lines of code involved (#191).
+
+### Version 2026.10.15
+
+#### New: the assistant asks before starting a long scenario sweep
+
+A sweep's cost is the number of solves times the time each takes, and both vary widely: 1000
+Monte Carlo scenarios with Medicare solved as a MILP is a different undertaking from a few dozen
+historical years in loop mode, yet the MCP tools started either without a word. The six sweep tools
+(`run_stochastic`, `run_spending_bequest_frontier`, `run_year1_robustness`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now time one solve of the plan
+before running the scenarios and project the total, crediting the threaded sweeps with their
+measured parallel speed-up. A run projected beyond two minutes stops there and returns
+`needs_confirmation` with the estimate, the options driving the cost (MILP families, optimized
+claiming ages) and cheaper alternatives (the loop, fewer scenarios); the assistant relays them,
+asks whether to proceed, and runs it only with `confirm_long_run=true`. The intake interview now
+asks how long the user is willing to wait, and an estimate within that budget runs without asking
+again. A run beyond an hour is flagged `very_long` and its estimate, given in hours or days, is
+always put to the user, whatever budget they stated; nothing is refused once they agree. The two
+thresholds are set by the `OWL_MCP_CONFIRM_MINUTES` and `OWL_MCP_VERY_LONG_MINUTES` environment
+variables. After the first solve, the assistant quotes its time with a rough cost for each sweep
+it offers. On
+`Case_jack+jill`, the projection for `run_stochastic` was 12 s against 11.8 s measured. Runs under
+the threshold, and every solve outside the MCP tools, are unchanged.
+
+### Version 2026.10.14
+
+#### Fixed: long historical plans no longer end in a solver error with HiGHS
+
+The Roth 5-year rule keeps the last five years of conversions in the Roth account at their
+compounded value. It compounded them with every loss year counted as zero growth, while the
+account itself grew at its real returns. After a loss, a Roth holding only recent conversions was
+then asked to keep more than they were worth, and the one plan that satisfied both was no
+conversion at all, found only through two nearly equal sets of coefficients. HiGHS's simplex
+stalled on it and Owl reported "solver error"; MOSEK found the plan. Conversions are now compounded
+at the account's real returns, losses included, and only the gains of a recent contribution are
+retained, none after a loss.
+
+The failures needed loss years in the sequence: constant returns never failed at any horizon,
+balance or inflation, and a long plan failed more often only because it spans more of them. On a
+one-person case over 65 years of historical returns, 20 failing combinations of balance, horizon
+and start year now all solve, as do all 72 historical sequences of `Case_avery+quinn` with every
+family in loop mode (8 were solver errors) and the issue #139 case. The rule only relaxes: a plan
+that converts before a loss can now do better, and no plan becomes infeasible.
+
+Thanks to Dmitry Fink (@finik) for reporting the failures and for the careful work behind them: the
+HiGHS fallback that brought them to light and the exact-arithmetic and MOSEK checks of the stuck
+models (#184), the `Not Set` status found on a bootstrapped sequence (#188), and the related change
+to which earlier iterate the loop falls back on (#186), each still under review on its own.
+
+#### Fixed: a plan that ends before anyone reaches 65
+
+Such a plan stopped with "negative dimensions are not allowed": the Medicare setup took the year
+Medicare starts to lie within the plan, and when it did not, sized its tables with a negative
+number of years. Medicare now simply does not start within the plan, and it solves with no
+premiums. This comes up when a plan is cut short, for example to find the last year a plan can
+still pay for everything on a hard market sequence.
+
+#### Fixed: `owlcli run` saves the workbook when results are in today's dollars
+
+With real-dollar worksheets selected (`worksheet_real_dollars`), `owlcli run` stopped with
+"unsupported operand type(s) for +" before saving its results (#190): the name of the real-dollar
+file was built by adding "_real" to a path as if it were text. The workbook is now saved as
+`<case>_results_real.xlsx`, and the CLI reports that name. The same mistake stopped `readConfig`,
+`saveConfig`, `saveHFP` (given no extension) and `saveWorkbookCSV` when called from Python with a
+`pathlib.Path`; every file a plan reads or writes can now be named with a path or a string, and
+`saveWorkbook` returns the name of the file it saved. Thanks to Scott Snyder (@ssnyder379) for the
+report.
+
+#### Maintenance: `astral-sh/setup-uv` 10.3.0 in the test workflow
+
+The GitHub Actions test workflow installs uv with `astral-sh/setup-uv` 10.3.0 instead of 10.2.0
+(#189, from Dependabot).
+
+#### Maintenance: Updated dependencies
+
+`streamlit` 1.65.0 → 1.66.0, `anthropic` 1.13.0 → 1.14.0, `async-lru` 2.3.0 → 2.4.0, `fonttools`
+4.66.1 → 4.67.0, `jedi` 0.20.0 → 0.20.1, `jsonpointer` 3.2.0 → 3.2.1, `nbconvert` 7.17.1 → 7.17.2,
+`numpy` 2.5.3 → 2.5.4 (Python 3.12 and up), `platformdirs` 4.12.4 → 4.13.0, `pyarrow` 25.0.1 →
+26.0.0, `pydantic` 2.14.0 → 2.14.1, `pydantic-core` 2.50.0 → 2.50.1, `soupsieve` 3.0 → 3.0.3 (2.10
+also locked), `starlette` 1.7.0 → 1.8.0, `truststore` 0.10.4 → 0.10.5; `httptools` is no longer
+required.
+
+### Version 2026.10.11
+
+#### New: health care in the MCP, from setting it to explaining it
+
+The tools that take parameters (`run_from_params`, `save_case`, `compare_to_baseline`,
+`explain_results`, and the stress tools) accept `other_medical_expenses`,
+`medical_inflation_excess`, `include_medicare_part_d`, and `medicare_part_d_base_premium`, which
+before could be set only in a case file. HSA balances given without `other_medical_expenses` are
+flagged in `assumed_defaults`: the HSA can then pay only Medicare premiums and stays mostly locked.
+The intake prompt asks for out-of-pocket medical expenses when there is an HSA and about drug
+coverage at Medicare age. `explain_case` and `owlcli explain` report a `health_care` block (Medicare
+start years and Part D, ACA benchmark and start year, other medical expenses, medical inflation).
+`explain_results` gives what crossing the next IRMAA tier adds to premiums, the ACA MAGI against the
+Medicaid line and the 400% FPL subsidy cliff with the premium at stake, and a `health_care` section
+with lifetime Medicare premiums (IRMAA part and years), ACA net premiums, out-of-pocket expenses,
+and HSA withdrawals. Its caveat now names ACA premiums among the quantities held fixed.
+
+#### Fixed: `explain_results` on a plan that parks income on an IRMAA or ACA threshold
+
+With `withMedicare` or `withACA` set to `"optimize"`, the optimizer can place MAGI exactly on a
+threshold, such as the 400% FPL subsidy cliff, and the solver returns it a fraction of a cent
+above. The explanation compared it exactly and read such a plan as past the threshold. The IRMAA
+tier and the next-tier cost, and the ACA Medicaid line and cliff, now allow a dollar of slack, as
+the convergence check does: the bracket formulations start each higher bracket \$2 above its
+threshold, so no MAGI lies in between. The ACA net premium for the first year, reported before
+this release too, read a quantity that is zero in optimize mode and showed \$0; it now shows the
+premium paid in either mode.
+
+#### New: medical prices can grow faster than inflation, with `setMedicalInflation`
+
+Medical prices have long outpaced general inflation, yet every health cost in a plan followed it. The
+new optimization parameter `medical_inflation_excess` (percent a year, `0` to `10`, default `0`) and
+the method `plan.setMedicalInflation()` let them grow faster. Medicare Part B and D premiums, base and IRMAA
+surcharges alike, the ACA benchmark premium, and `other_medical_expenses` then grow each year by
+inflation compounded with the excess. Tax brackets, IRMAA thresholds, and the poverty line that sets
+ACA subsidies keep following inflation, as the law indexes them. The setting is on the Run Options
+page beside the other medical expenses, and the documentation points to FRED for past medical-care
+versus all-items CPI. At the default of `0`, plans solve exactly as before. Thanks to Dmitry Fink
+(@finik) for contributing it (#182).
+
+### Version 2026.10.10
+
+#### New: branch-and-bound nodes in the Summary, and the solver option `mipMaxNodes`
+
+The Summary has two new rows. *MIP nodes* gives the branch-and-bound nodes of the solve that produced
+the accepted plan, then those of the whole solve: every iteration of the self-consistent loop, its
+retries and repairs, and, under local search, the loop that seeds the search and every restricted
+solve. It reads n/a when the plan was solved as a pure linear program. *MIP node limit* gives the
+cap in force. With verbose output, each iteration of the loop logs its node count beside its gap.
+MOSEK counts the nodes it solved, as HiGHS does, so the two engines' counts can be compared; the
+local search's step log used to count MOSEK's branchings instead.
+
+The expert solver option `mipMaxNodes` sets the cap on every branch-and-bound solve. The engines
+cap different things: HiGHS caps nodes (default 1,000,000), MOSEK caps branchings (no cap by
+default). The local search's restricted solves keep their own cap, `localSearchStepNodes`. The
+option is not in the interface: enter it under the extra solver options, or set it in the case file.
+
+A third row, *Local search step node limit*, gives the cap on each of the local search's restricted
+solves: `localSearchStepNodes` when set, otherwise the engine's default (3,000 nodes with HiGHS,
+20,000 branchings with MOSEK). It reads n/a when the plan was not solved by local search.
+
+A fourth row, *MIP solves stopped at node limit*, counts the mixed-integer engine runs that stopped
+at the node limit, out of all of them, with the local search's restricted solves counted apart:
+their cap is small by design, so reaching it is routine there, while a main solve reaching
+`mipMaxNodes` means that solve was cut short. Each engine says when it stopped at the limit (MOSEK's
+termination code, HiGHS's model status), so the count does not depend on comparing node counts with
+a cap that MOSEK sets in branchings. Runs include HiGHS's retries of a MIP it reported infeasible.
+The row reads n/a when the plan was solved as a pure linear program; the main count reads `0 of 0`
+when the loop that seeds a local search solved only linear programs.
+
+The regret sweep carries the same counts. `run_conversion_regret_sweep` returns `node_limit_hits`,
+one row per scenario summed over all its solves, the baseline's and every pinned one's, and
+`summarize_conversion_regret` reports the sweep's totals, with the number of windows in which a
+main solve stopped at the limit. They count engine runs, not solves: a solve makes one per
+iteration of the loop, plus its repairs and local-search steps.
+
+#### Fixed: the MCP tools described big-ticket items with the wrong sign
+
+The MCP tool descriptions, the guided intake prompt, and `info/mcp.md` said big-ticket items were
+expenses entered as positive amounts. The amount goes to the plan unchanged, where a positive amount
+is money coming in, as in the Household Financial Profile, so an expense entered as told was counted
+as income. The amounts are signed: negative for an expense, positive for an inflow (Refs #180).
+
+#### Changed: dependencies updated
+
+httptools 0.9.0, narwhals 2.27.1 and pycparser 3.11. The optional `assistant` extra moves to
+anthropic 1.13.0, and the `notebooks` extra to executing 2.3.0, json5 0.17.3 and soupsieve 3.0.
+
+### Version 2026.10.9
+
+#### New: the OBBBA senior bonus can be solved with the plan (`withSeniorBonus`)
+
+The \$6,000 deduction for each individual aged 65 or older (tax years through 2028) shrinks by \$6
+per \$100 of MAGI above \$75,000 single or \$150,000 joint. Owl set it from the previous iteration's
+MAGI, so a solve could not weigh a conversion against the bonus it costs, and could settle on a
+plan that is consistent with itself yet worse: on `Case_dana` with historical returns, holding the
+first year's Roth conversion to a smaller amount left up to \$1,283 more than the optimized plan,
+in six of the start years tried. The new solver option `withSeniorBonus = "optimize"` makes the
+phase-out part of the problem, with one binary per bonus year for the point where the bonus is
+gone, three at most. The `breakpointMethod` presets set it, so the Summary's breakpoint method
+lists "senior bonus"; local search leaves those binaries free in every step. A state that follows
+the federal deduction still takes it from the previous iteration. The default stays `"loop"`.
+
+#### Changed: mixed-integer solves run in hundreds of dollars
+
+Every mixed-integer solve, with HiGHS or MOSEK, now hands the solver its amounts in hundreds of
+dollars and converts the answer back; plans and results stay in dollars. A binary choice has no
+unit, so the large coefficients that switch a dollar amount on or off shrink a hundredfold while
+every other coefficient keeps its size. In dollars, a long plan whose balances reach tens of
+millions put coefficients near a billion beside coefficients near one, and HiGHS presolve called
+feasible plans infeasible: 196 times over two sweeps of historical start years with
+`withdrawalOrder = "taxable_first"`, and none in tens, hundreds or thousands. Plans solved as pure
+linear programs are untouched. On the example cases with mixed-integer options, results agree with
+the dollar solves within 0.3%, as the self-consistent loop stops at slightly different plans.
+Larger units made exact Medicare and local search faster and `withdrawalOrder = "taxable_first"`
+slower; over the example cases, hundreds were the fastest overall, with exact Medicare 4.6 times
+and local search 1.3 times faster than in dollars, and `taxable_first` 1.6 times slower. The
+expert solver option `mipScaleOrder` sets the unit as a power of ten (default 2, hundreds); `0`
+solves in dollars, so that every number the solver sees can be checked against other
+calculations (#178).
+
+#### Maint: Updating dependencies and increment version
+
+Updates MOSEK, pyparser, pydantic, anthropic, json5, and a few others.
+
+#### New: a loan can be paid off by the sale of the property it finances
+
+A mortgage kept being paid for the rest of its term after the house it financed was sold. The
+*Debts* table now has an optional `property` column naming a residence or real estate in *Fixed
+Assets*: the loan is then paid off in the year that property is sold, out of the sale proceeds,
+and nothing is paid after. Tying the loan to the property rather than to a year keeps the two in
+step when the sale year moves, as it does with a `yod` counted back from the end of the plan.
+An empty cell keeps the loan running to its term, so existing workbooks give the same plans. A
+link that cannot be honored is an error rather than a loan quietly run to term: a property that is
+missing, named twice, inactive under an active loan, or sold before the loan starts. In the UI the
+column is a dropdown of the residences and real estate in *Fixed Assets*, and a link to a renamed
+or deleted property stays visible with a warning. The example workbooks carry the column. Thanks
+to Florin Mateoc for the original suggestion (#173).
+
+#### Fixed: `withdrawalOrder = "taxable_first"` could close a gate no plan needs
+
+The gates of the taxable-first order used one big-M for every row: the whole portfolio
+compounded at the best return any account sees, each year. With accounts invested differently
+over a long plan it reached hundreds of times the real portfolio (\$973M against \$13M in one
+case), beyond what HiGHS resolves reliably. HiGHS then called feasible plans infeasible in
+presolve, or closed the last year's gate though nothing used it, forcing the taxable account to
+end at zero. The taxable money then had no value to the objective, and the solver could spend
+it on taxes: one plan sold its whole taxable account in the first year and bought most of it
+back, paying \$500k of tax, for a bequest of \$3.5M instead of \$5.5M. Each gate row now has its
+own bound, the best growth path through the one-way order of the accounts (tax-deferred to Roth
+to taxable), 15 times tighter in that case. Over that case's first 40 Monte Carlo paths, presolve
+no longer calls any plan infeasible (24 times before) and no plan sells and buys back its
+taxable account. Long plans in strong markets still reach balances, and so bounds, of hundreds
+of millions of dollars, where HiGHS presolve can still misjudge a plan, though less often.
+Reported by @ravishahani (#178).
+
+#### Fixed: a rate below 1% in Debts or Fixed Assets read as 50 times more after a reload
+
+Reading a workbook multiplied every `rate` and `commission` between 0 and 1 by 100 in the *Debts*
+and *Fixed Assets* sheets, taking it for a fraction such as 0.045 for 4.5%. These columns hold
+percent numbers, and small ones are expected: 0.5% of real growth for a residence became 50%, a
+0.9% loan 90%. A plan saved and opened again, in the UI, the CLI or through `save_case`, changed.
+Values are now read as typed. Only a cell the spreadsheet formats as a percentage (4.50%, which
+stores 0.045) is converted. The example workbooks hold whole percents and read as before. Thanks
+to Florin Mateoc for reporting the bug and proposing the fix (#176).
+
+#### Fixed: a solver option with a value Owl does not know is refused
+
+`withMedicare`, `withACA`, `withLTCG`, `withNIIT`, `withSSTaxability` and `withdrawalOrder`
+select a mode by name, and a value Owl did not know solved as something else without a word.
+`--solver-opt withSSTaxability=0.85` arrived as the text "0.85" and ran the loop instead of
+pinning the fraction; "optimise" or "Loop" ran the loop; `withMedicare` "true" dropped Medicare
+premiums from the plan. Names are now read in any case, numeric text pins the Social Security
+fraction (in [0, 1]), `true`/`false` from older case files still read as `"loop"`/`"none"`, and
+any other value is refused with the valid choices named. Thanks to Florin Mateoc for reporting the
+bug (#174).
+
+#### Changed: the MCP tools take beneficiary fractions and report the solve time
+
+The tools that build a plan from parameters (`run_from_params`, `save_case`, `compare_to_baseline`,
+`explain_results` and the stress tests) take `beneficiary_fractions`, `spousal_deposit_fraction`
+and `partial_bequest_weight`. Without the first, a couple's partial bequest could only be modeled
+from a case file: with every fraction at 1 nothing passes to other heirs at the first death.
+Results report `solve_time_seconds` (wall clock and CPU), as the Summary's *Solve time* row does,
+and `run_historical`, `run_monte_carlo` and `explain_results` now return the `engine` entry like
+the other tools. With local search or branch-and-bound, the explanation tools' note said the
+breakpoints were downgraded "from 'optimize'"; it now says only that they were downgraded to the
+loop. The MCP documentation lists the parameters added since September (`state_move`,
+`breakpoint_method`, `qcds`, a debt's `property`), gives `residualTol`'s default as 50, and the
+modeling-capabilities table gives the current default for `partialBequestWeight`.
+
+The stress-test tools (`run_stochastic`, `run_spending_bequest_frontier`,
+`run_longevity_stochastic`, `run_historical`, `run_monte_carlo`) now solve their scenarios with
+the loop whatever `breakpoint_method` asks, and say so in `breakpoint_method_note`: local search
+takes seconds to minutes per solve, which is worth it for the one plan the user acts on, not for
+hundreds of scenarios. `run_year1_robustness` already did. The tool descriptions recommend
+`breakpoint_method = "local-search"` with `run_from_params` for that one plan.
+
+### Version 2026.10.8
+
+#### Documentation: what to add back for a start date after January 1
+
+With a start date after January 1, the first year counts again the spending already done. The
+documentation now says how to offset it: add to the balances the spending and taxes paid since
+January 1 minus the wages, benefits and pensions received since then. Wages and benefits stay at
+their full-year amounts, so the income received so far is counted again as well, and adding the
+gross spending would overstate the balance by that income. Thanks to Florin Mateoc for the
+suggestion (#167).
+
+#### Fixed: *Delete case* closes its confirmation after deleting
+
+On the *Create Case* page, the *Delete case* popover stayed open after *Confirm delete*, so a
+second click deleted the next case as well. The popover now closes once the case is deleted.
+
+#### Fixed: the UI dropped `partialBequestWeight` from a case file
+
+A case that set the solver option `partialBequestWeight` lost it when loaded in the UI: the
+UI solved it with the default weight and saved it back without the setting. The option now
+passes through like the other solver options.
+
+#### Fixed: a loop that stopped early could return its first, undercharged iterate
+
+When the loop reached its iteration limit or stalled, it returned the best iterate so far,
+including the first one unless Medicare was in loop mode. The first iterate is built from
+initial guesses: among others, ordinary income of zero, so every capital gain fits in the 0%
+bracket. Its objective therefore looks best and was chosen. With Medicare exact, one example
+returned a plan charging no capital-gains tax on \$20,000 to \$28,000 of gains a year, its spending
+0.8% too high. The first iterate is now chosen only when nothing else solved.
+
+#### Fixed: exact IRMAA and ACA could charge a bracket the MAGI does not reach
+
+With `withMedicare` or `withACA` set to `"optimize"`, including local search, a MAGI sitting
+exactly on a threshold could be charged the higher bracket: the formulation admitted the
+threshold in both. Where the money was worth almost nothing to the objective the solver had no
+reason to choose the cheaper one, and one example was charged \$622 of IRMAA its MAGI did not owe,
+another \$21,812. Each higher bracket now starts \$2 above its threshold.
+
+#### New: `Case_avery+quinn`, a partial bequest that floats
+
+A married couple whose first spouse leaves every account to the children rather than to the
+survivor, with the final bequest maximized. The money left at the first death counts toward the
+objective only through `partialBequestWeight`, so plans with nearly the same final bequest can
+leave very different amounts to the children. At the default weight, below the case's 0.3% gap,
+the optimizer could spend that money on taxes the household does not owe. The case sets the
+weight to 0.5%, just above its gap, which makes it a test of that edge. It also covers an RMD starting in the first
+plan year, QCDs that stop mid-plan, an annuity bought before the plan, and Social Security
+taxability through the survivor's years.
+
+#### Changed: the partial-bequest weight defaults to max(1%, twice the gap)
+
+The weight introduced in 2026.10.7, 0.1% of a dollar, was smaller than the 0.3% gap Owl applies
+when Medicare is solved exactly. A plan within the gap counts as optimal, so the money left to
+non-spouse heirs at the first death was invisible to the solver, which could spend it on taxes
+the household did not owe: \$586,494 in one example with Medicare exact, \$68,038 with local
+search. The default is now twice the gap, and at least 1%. In that example it removes the
+overpayment; the two examples with fractions of 28% give up no final bequest.
+
+#### Fixed: local search could return the loop's inconsistent plan on a tie
+
+Local search keeps the self-consistent loop's plan unless it finds a better one. When the loop
+ended on a cycle, the search could find a plan worth exactly as much whose income implies the
+costs it is charged, and the loop's plan was still returned. In one example, it charged \$29,703
+more taxable Social Security than its income implied, for the same spending. On a tie, the plan
+with the smaller fixed-point residual is now kept. Reported by Florin Mateoc (#171).
+
+#### Changed: local search does not repeat its last iteration
+
+The loop stops when two iterations agree, so its last iteration usually rebuilds the problem it
+has just solved, and the search repeated itself step for step: 26 of 99 seconds on one example.
+When the problem is unchanged, the previous iteration's plan is now returned directly. Results
+are unchanged. Reported by Florin Mateoc (#171).
+
+Branch-and-bound still uses the case's gap, 0.3% by default when Medicare is solved exactly, so
+there the 0.1% weight on the partial bequest introduced in 2026.10.7 may not count.
+
+### Version 2026.10.7
+
+#### Fixed: exact NIIT could charge far more than the law allows, emptying the partial bequest
+
+With `withNIIT = "optimize"`, including local search, the tax was bounded only from below and
+relied on being minimized. Where the plan's money was worth nothing to the objective, typically
+a first spouse's assets left to non-spouse heirs while only the final bequest counts, the
+optimizer could pay it out as NIIT instead. One couple's plan charged \$190,000 to \$290,000 of
+NIIT a year on under \$3,000 of investment income and left a partial bequest of \$98,000; with the
+tax capped, the same plan leaves \$2.2M for an identical final bequest. NIIT is now capped at 3.8%
+of net investment income.
+
+#### Changed: money left at the first death to non-spouse heirs counts a little
+
+When beneficiary fractions are below 1, part of the first spouse's accounts goes to other heirs.
+Neither objective counted it, so wherever the household did not need that money, any amount of it
+was equally optimal and the partial bequest was arbitrary. The objective now counts each dollar
+left to those heirs as 0.1% of a dollar of spending or final bequest. In the cases measured this
+gives up no final bequest and leaves cases with fractions of 28% unchanged; it only breaks the tie.
+The weight can be set with the solver option `partialBequestWeight`. Local search now solves its
+small restricted problems to a 0.01% gap whatever the case's gap: at the 0.3% gap applied when
+Medicare is solved exactly, they stopped before the weight counted, and one couple's plan left
+\$1.08M to the first spouse's heirs instead of \$2.20M, with a final bequest \$3,250 lower.
+
+#### Fixed: Graphs lost its images after a visit to Reports
+
+After the fix in 2026.10.6 that stopped a visit to Reports from forcing Graphs to solve the case
+again, coming back to Graphs showed no images: Reports refreshed the plan's Financial Profile
+tables, which marked the plan itself as changed, and a plan marked changed draws nothing. The plan
+now stays solved when the tables are the same; an edit still marks it changed.
+
+#### New: solve time in the Summary
+
+The Summary has a *Solve time* row: how long the last solve took on the clock, with the CPU time
+it used in parentheses. Solve times now range from under a second with the default iteration to
+minutes with branch-and-bound, so compared cases show what each one cost. The clock time depends
+on the machine and on what else it is doing; the CPU time much less so, though with MOSEK on
+several cores it can exceed the clock time.
+
+#### Fixed: Spending Optimization with lifespan sampling left out debts and fixed assets
+
+With lifespan sampling on, Spending Optimization solves a copy of the case for each sampled
+lifespan. In the app, those copies were rebuilt without the case's debts and fixed assets, so
+their payments and sale proceeds were missing from every sampled plan. The copies now carry the
+household tables as they stand, including edits made in the Financial Profile. The log also no
+longer reports the Debts and Fixed Assets tables as missing each time the app syncs the Financial
+Profile.
+
+#### Fixed: phantom ACA and IRMAA inconsistencies with the capital-gains brackets solved as MILP
+
+With `withLTCG = "optimize"` and `withNIIT = "optimize"` (including local search), the split of a
+year's capital gains across the 0%, 15% and 20% brackets was allowed to hold a dollar more than the
+gains. The solver took that dollar whenever it cost nothing, with gains in the 0% bracket, and the
+reported MAGI then read a dollar high. A plan priced at exactly 400% of the poverty line, or at an
+IRMAA tier, was reported a dollar above it, and its fixed-point residual showed thousands of
+dollars of ACA or IRMAA inconsistency the plan did not have. The split now holds exactly the
+year's gains. The exact NIIT also uses the plan's own interest and dividend income rather than the
+previous iteration's, so NIIT no longer depends on the iteration. Plans with these options can
+change slightly; in the cases checked, the ACA, IRMAA and NIIT residuals are now zero.
+
+### Version 2026.10.6
+
+#### New: local search for the tax breakpoints (expert)
+
+The tax breakpoints (Social Security taxability, Medicare, ACA, capital gains and NIIT) can now be
+solved by local search instead of branch-and-bound. Turn on *Solve tax breakpoints by local search
+(expert)* in Run Options' advanced options, or set `breakpointMethod = "local-search"` in
+`[solver_options]`. Each solve starts from the plan the usual iteration finds, then improves it
+through small restricted problems around it, never solving the full problem: it is never worse
+than that plan, usually somewhat better, and takes seconds to a few minutes; it is not a proven
+optimum. Each restricted problem is limited by solver nodes rather than seconds, so the same case
+gives the same answer on any machine. It replaces a fixed Social Security taxable fraction with
+the IRS formula, and the log says so. `mipStrategy` chooses the strategy for breakpoints set to
+MILP individually. The Summary has a new *Breakpoint method* row, so that compared cases show how
+each treated the breakpoints; the AI assistant tools take `breakpoint_method` and report the
+method used. The documentation now calls the full search branch-and-bound rather
+than exact: it stops at the solver gap, and the iteration still runs around it.
+
+#### New: one change of state during the plan
+
+A plan can now move once to another state. On the *Create Case* page, turn on *Move to another
+state during the plan* and enter the year of the move and the new state; in a case file, add
+`moves = [ { year = 2031, state = "FL" } ]` to `[basic_info]`. The state of residence on
+December 31 taxes the whole year, so the year of the move is taxed by the new state. Leaving the
+new state blank stops state taxes from that year. The optimizer plans around the move: leaving a
+high-tax state for one without an income tax tends to push Roth conversions past it, and the
+reverse brings them forward. Only one move is modeled, and local taxes are not. The AI assistant
+tools take it as `state_move`. Thanks to Florin Mateoc (@fmateoc) for proposing it (#159).
+
+#### Fixed: visiting Reports no longer makes Graphs solve the case again
+
+Opening the Reports page marked an unchanged case as modified, so going back to Graphs or
+Worksheets solved it again, which can take a minute with the slower options. A case is now
+solved again only when something in it has changed.
+
+#### Fixed: survivor benefit when a spouse dies before claiming Social Security
+
+A spouse who died before claiming left the survivor only 82.5% of their PIA. That limit applies
+only when the deceased had claimed early and taken a reduced benefit. The survivor now receives
+the full PIA, plus the delayed retirement credits earned up to death when death came after full
+retirement age: up to 132% of PIA instead of 82.5%. This matters when a spouse plans to claim
+late but dies first. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix
+(#169).
+
+#### Fixed: optimized claiming ages are taxed on their own benefits
+
+With `withSSAges = "optimize"`, the tax on Social Security, the IRMAA and ACA incomes, and the
+state Social Security exclusion were computed from the benefits of the claiming age chosen in the
+previous iteration rather than the age being considered. The result could depend on the starting
+ages and report a plan whose taxes belonged to another age. Each candidate age is now taxed on its
+own benefits, and the result matches a solve with that age fixed. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#168).
+
+#### Fixed: exact NIIT mode no longer excludes plans just above the threshold
+
+With `withNIIT = "optimize"`, a year whose income exceeded the NIIT threshold by less than its
+investment income (\$250k married, \$200k single) could not be represented, so the optimizer never
+considered plans with such a year, and a plan forced into it could be reported infeasible. Each
+year now pays 3.8% of the smaller of the excess and the investment income over every income
+range, as the statute sets it.
+
+#### Fixed: case files and state data are read and written as UTF-8 on Windows
+
+On Windows, case files were saved in the system's encoding instead of UTF-8, so a case whose
+description held characters such as em dashes might not open on another computer, and the state
+tax data was read the same way. All text files are now read and written as UTF-8 on every
+platform, as the TOML format requires, and a test keeps it that way.
+
+### Version 2026.10.5
+
+#### Fixed: ACA premiums from 138% to 150% of the poverty line
+
+For 2026, the expected contribution between 133% and 150% of the poverty line now rises from 3.14%
+to 4.19% of income, as Rev. Proc. 2025-25 sets it, instead of from 2.10%. Households in this range
+(above the 138% Medicaid limit) were charged up to about \$160 a year too little for coverage.
+Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#164).
+
+#### Fixed: ACA *optimize* mode no longer reports feasible plans as infeasible
+
+With `withACA = "optimize"`, an income below 400% of the poverty line whose expected
+contribution exceeded the benchmark (SLCSP) premium was treated as impossible instead of paying
+the full premium, so a household that could not move its income out of that range was reported
+infeasible. It now pays the full premium, as in loop mode. Thanks to Florin Mateoc (@fmateoc) for
+reporting it and supplying the fix (#161).
+
+#### Changed: ACA costs nothing up to 138% of the poverty line, and optimize mode follows the sliding scale
+
+Up to 138% of the poverty line, a household is now assumed covered by Medicaid, at no premium, in
+both ACA modes; loop mode used to charge the full benchmark premium there and optimize mode 2.10%
+of income. This is the rule in Medicaid expansion states; the others are not modeled. In
+`withACA = "optimize"`, the expected contribution now rises across each income band as the
+statute sets it, as in loop mode, instead of charging each band's top rate, so the two modes
+agree. Plans that can keep income at or below 138% now take advantage of it; the *morgan* example
+spends about \$2,100 a year more. Thanks to Florin Mateoc (@fmateoc) for reporting it (#165).
+
+#### Fixed: capital gains on taxable accounts with a known cost basis
+
+When a cost basis is entered, the dividends and interest taxed each year and left in the account
+now add to it, so they are no longer taxed a second time when sold. The account's unrealized
+gain is also placed in its stocks, since bond and cash returns are taxed as they are earned, so
+a withdrawal realizes the account's full embedded gain rather than only the stock share of it.
+The two corrections pull in opposite directions; in the examples with a cost basis, spending
+changes by less than 0.7%. Plans without a cost basis are unchanged. Thanks to Florin Mateoc
+(@fmateoc) for reporting it and supplying the fix (#166).
+
+### Version 2026.10.4
+
+#### Fixed: reported taxes and bequests in years where extra cash has no value
+
+When a plan had years whose extra cash could not raise the objective, for example a late surplus
+under *maximize spending*, or surplus deposited to a spouse whose accounts pass to other heirs
+under *maximize bequest*, taxes could be reported as if all income fell in the top bracket. The
+spending objective was right, but the reported taxes, bequests and *Taxes* sheet were not, and
+the solve could end without settling. Brackets are now filled from the bottom, and a warning
+flags any plan whose brackets still end up out of order. Thanks to Florin Mateoc (@fmateoc) for
+reporting it and supplying the fix (#162).
+
+### Version 2026.10.3
+
+#### Fixed: state amounts fixed in statute no longer grow with inflation
+
+Owl inflated every state's brackets, deduction and exemption caps each year. Each state now says
+which of these it indexes (`brackets_indexed`, `deduction_indexed`, `exemptions_indexed` in the
+state data), so amounts fixed in statute stay nominal, for example New York's brackets, deduction
+and \$20,000 pension exclusion, and New Jersey's brackets. Among the retirement exclusions, only
+Maryland's is indexed. Plans in these states now show higher state tax in later years. Thanks to
+Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#157).
+
+#### Fixed: Maryland and New Mexico retirement exemptions
+
+Maryland's pension exclusion is now \$41,200, its 2025 maximum (it was \$34,300). New Mexico's
+65+ exemption is limited to low incomes, so it is now modeled as 0 instead of \$10,000.
+
+#### Fixed: state personal exemptions and credits
+
+New Jersey's \$1,000 exemption per filer and its additional \$1,000 at age 65 are now applied, as are
+Maryland's \$3,200 exemption and \$1,000 at 65, and Ohio's \$1,900 exemption. The personal credits of
+Arkansas, California, Delaware, Iowa, Nebraska and Oregon now reduce state tax, as does
+California's \$153 senior credit at 65. These come from new optional per-filer fields in the state
+data (`personal_exemption`, `senior_exemption`, `personal_credit`, `senior_credit`), each saying
+whether it is indexed; income-based phase-outs are not modeled.
+Thanks to Florin Mateoc (@fmateoc) for pointing out the New Jersey exemption (#157).
+
+#### New: the About page shows the git commit
+
+The version on the *About Owl* page is followed by the git commit when Owl runs from a checkout.
+
+### Version 2026.10.1
+
+#### Fixed: *Download HFP workbook* saves the edits made on the page
+
+Edits to the *Financial Profile* tables, such as ticking *Roth conv fixed*, were left out of the
+downloaded workbook until the case had been run. The download now always reflects the tables as
+shown.
+
+#### Changed: *Spending vs Bequest* progress counts every scenario
+
+The progress bar advances per scenario instead of per bequest level, and the note on the largest
+reachable bequest is reworded.
+
+#### Changed: dependencies updated
+
+charset-normalizer 3.5.2 and cryptography 50.0.2. The optional `assistant` extra moves to
+anthropic 1.11.0, and the development tools to pyflakes 4.0.1.
+
+### Version 2026.9.30
+
+#### Fixed: NJ income above \$1M is taxed at the top rate
+
+In New Jersey, a Single filer, or the surviving spouse of a couple after the first death, paid no
+NJ tax on taxable income above \$1,000,000. That income is now taxed at the 10.75% top rate, so
+such plans show higher NJ tax and lower spending or bequest. No other state was affected. Thanks
+to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#149).
+
+#### Fixed: a married case can omit `pension_indexed` and `pension_ages`
+
+A couple's case without these keys in `[fixed_income]` failed every solve with an `IndexError`.
+They now default for each person (indexed, age 65), and a list of the wrong length is reported as
+a clear error. Thanks to Florin Mateoc (@fmateoc) for reporting it and supplying the fix (#155).
+
+#### Fixed: the UI's *Stop Roth conversions mid-plan* and *Include Part D premiums* take effect
+
+In the web UI, the year set to stop Roth conversions was ignored, so conversions continued past
+it, and turning Part D premiums off still charged them. Both settings now apply to the run and are
+kept in the case file saved from it. Passing `includeMedicarePartD` or `medicarePartDBasePremium`
+to `solve()` also works now; before, they were honored only on the first solve of a case loaded
+from a file. Thanks to @SamMadDev for reporting it and supplying the fix (#156).
+
+#### Changed: faster solves and Monte Carlo runs
+
+Each iteration of the self-consistent loop builds its LP faster. Stochastic runs with historical
+Gaussian or lognormal rates fit the rate distribution once per historical window instead of once
+per scenario. Thanks to Ben Mabey (@bmabey) for this work (#150, #151, #152).
+
+#### New: timing benchmarks
+
+`uv run pytest benchmarks --benchmark-only` times the LP build, single solves and a Monte Carlo
+run, and can compare against a saved baseline; see *Benchmarks* in `CONTRIBUTING.md`. Contributed
+by Ben Mabey (@bmabey) (#150).
+
+#### New: plan explanations cover state income tax
+
+In a state with an income tax, `explain_results` reports this year's state tax and the state
+bracket reached, with the room left in it (`this_year.state_tax`), and the same for every year
+of the plan (`state_tax_brackets`). Plans in states without an income tax are unchanged.
+
+#### Changed: MCP results record the engine and each plan's convergence
+
+`run_stochastic`, `run_year1_robustness`, `run_longevity_stochastic`,
+`run_spending_bequest_frontier`, `compare_cases` and `compare_to_baseline` now return the `engine`
+entry (Owl version and git commit), like the other results, and so does every response for a plan
+that did not solve. `compare_cases` and `compare_to_baseline` also report how each plan's
+self-consistent loop ended and its fixed-point residual, so a difference between two plans can be
+checked against whether both converged.
+
+#### New: the summary names the Owl version
+
+The plan summary, and the *Summary* sheet of saved workbooks, end with the Owl version and git
+commit that produced them.
+
+#### Changed: dependencies updated
+
+MOSEK 11.2.5, fonttools 4.66.1, PyJWT 2.15.1 and sse-starlette 3.5.0. The optional `assistant`
+and `notebooks` extras move to anthropic 1.9.0, ipykernel 7.4.0, platformdirs 4.12.2 and
+fqdn 1.6.0.
+
+### Version 2026.9.29
+
+#### Fixed: state tax no longer also deducts the federal standard deduction
+
+State taxable income now starts from gross ordinary income, so only the state's own deduction
+and exemptions apply. State tax was previously understated in every income-tax state; plans in
+those states now show higher state tax and lower spending or bequest. Thanks to Florin Mateoc
+(@fmateoc) for reporting it (#147), and to @SamMadDev for reporting it independently (#154).
+
+#### Changed: states that use the federal standard deduction now follow it
+
+AZ, CO, DC, IA, ID, MO, MT, ND and NM take the federal standard deduction each year, including
+the additional amount for age 65+, instead of a fixed amount. CO, ID and ND also take the OBBBA
+senior deduction. In the state data, `standard_deduction = "federal"` selects this and
+`senior_deduction` controls the senior bonus.
+
+#### Fixed: with `withSSTaxability = "optimize"`, state SS exclusion matches the federal amount
+
+States that exempt Social Security now remove exactly the taxable benefit the optimizer
+computed, rather than the previous iteration's estimate.
+
+#### New: LTCG family in `plan.fixedPointResidual`
+
+The fixed-point residual now reports the difference between the capital-gains tax charged and
+the tax the plan's own income implies, and the self-consistent loop no longer declares
+convergence while that difference exceeds `residualTol`.
+
+#### Changed: UI log lines no longer carry the `ScriptRunner.scriptThread` tag
+
+#### New: results record the engine that produced them
+
+`plan_to_dict()` and the results of `run_conversion_regret_sweep()`, `run_stochastic_spending()`
+and `run_spending_bequest_frontier()` carry an `engine` entry with the Owl version and the git
+commit (suffixed `-dirty` for uncommitted changes, `None` outside a checkout); their summaries
+carry the engine of the result they summarize. The solve log line now shows the commit as well.
+
+### Version 2026.9.27
+
+#### Removed: `withDecomposition`, which never worked
+
+The only mode it offered, `sequential`, rounded all five bracket-selector families at once from a
+single LP relaxation. That assignment is jointly infeasible even when each family is feasible
+alone, so the fixed-bracket solve failed every time and fell back to the monolithic MIP it was
+meant to avoid: 16 attempts over four historical windows, 16 failures, no successes. Measured
+across eight windows it returned the monolithic answer to the cent every time, having spent one
+discarded LP relaxation per self-consistent iteration to do so.
+
+The option is retired rather than rejected, so existing case files load with a warning. The expert
+radio is gone from *Run Options*, and the `withDecomposition` key has been dropped from the shipped
+examples.
+
+#### Changed: big-M constants are derived per year instead of tuned
+
+Every bracket-selector row is now relaxed by a bound computed from the quantity that row gates —
+the year's income ceiling, or the share of a benefit the row switches on — replacing a single flat
+constant that had been sized for constraints removed some time ago. On a shipped case over the
+historical record the exact all-four MIP went from solving a handful of windows to solving all 72,
+71 of them proven optimal, at a median of 236 s. The `bigMamo`, `bigMaca`, `bigMss`, `bigMltcg` and
+`bigMniit` options are retired: there is no longer a constant to tune.
+
+#### Changed: the default `epsilon` is 5e-7, which makes the loop converge
+
+`epsilon` puts a small penalty on Roth conversions to break ties. At its old default of `1e-8` it
+broke them only nominally, and the conversion schedule stayed free to migrate between
+near-equivalent years. Since a conversion moves provisional income directly, each move can flip a
+Social Security tier or a Medicare bracket, so the self-consistent loop ended up chasing its own
+schedule: `Case_chris+pat` converts in 5 years, but 16 different years see its schedule move
+during the search.
+
+Three shipped cases never converged at all and now do -- chris+pat, helen+ruth and
+kim+sam-spending, each of which used to exhaust its iteration budget. chris+pat's residual falls
+from 2,882 to 48 \$/yr and its iterations from 30 to 20; across the shipped cases the total drops
+from 222 iterations to 171. Nine of the seventeen are unaffected at any value.
+
+It also removes three places where HiGHS and MOSEK disagreed, which turn out to have been
+degeneracy rather than anything about the solvers: jack+jill's spending (they now agree at
+89,532), john+sally's bequest, and dana's 1966 maxBequest window, where the two had differed by
+3%.
+
+The cost is real and worth stating: about 0.1 to 0.25% of objective on the four cases that move.
+Larger values cost more than they are worth -- at `1e-3` the measured Roth conversion regret falls
+23%, the conditioning eating the very quantity being measured, and at `1e-2` conversion years are
+deleted outright. `2e-7` fixes nothing, so the useful threshold lies between that and `5e-7`.
+
+#### Fixed: a tight case is no longer reported as infeasible when a plan exists
+
+The self-consistent loop feeds costs back into the next LP, and the first update is a jump from
+no Medicare or ACA cost at all to the full amount. On a tight case that one step can put the next
+LP outside the feasible region, and the loop stopped there and said no plan satisfies the
+constraints. `Case_cameron` -- the smallest household in the examples, at \$119k -- did exactly
+that when asked for the most bequest at its own maximum spending, while the same case solved
+under `maxSpending` and returned the very plan the loop had just called impossible.
+
+A step that fails is now retried with a shorter one before the loop gives up. Cameron's frontier
+is recovered exactly: at 99% of maximum spending the bequest is \$31,748 against a straight-line
+frontier value of \$31,748, and at 100% it is \$20,000 against the \$20,000 `maxSpending`
+reports independently.
+
+Retrying only on failure is deliberate. Damping every step by a fixed weight also rescues cameron,
+but the outcome is chaotic in the weight -- 0.4 and 0.7 break a case that 0.3, 0.5, 0.6 and 0.8 all
+solve -- so a weight only changes which cases fall into the hole, and it costs every healthy case
+iterations it does not need (3 to 8, or to 17 at heavier damping) while biasing the result, since
+the cost estimate is still climbing when the loop exits.
+
+#### Changed: `residualTol` is a per-year bar, defaulting to \$50
+
+The convergence residual sums a family's disagreement over the whole horizon, so comparing it
+against a flat figure was three times stricter on a 33-year plan than on an 11-year one. It is now
+compared per year. Calibrated over the seventeen shipped cases: anything from \$25 to \$200 a year
+produces the same outcome on all of them, so the default sits in the middle of a flat region
+rather than on an edge.
+
+The previous \$100 total worked out to about \$3 a year on a typical plan, which nine of the
+seventeen could not meet; the loop kept iterating on cases that had nothing left to gain, and the
+extra work changed the answer on exactly one of them.
+
+#### New: `plan.fixedPointResidual`
+
+Every solved plan reports how far it sits from the model its own income implies, per tax family.
+The self-consistent loop exits on the objective, not on the quantities it feeds back, so a plan
+could be called converged while its own income would still move them. `residualTol` now also makes
+the loop wait for those quantities to settle before declaring convergence.
+
+#### Note: use MOSEK for the `optimize` tax modes
+
+With every tax mode in `loop` mode the problem is a linear program and both solvers are equivalent.
+Once any bracket option is set to `optimize` they are not: over five historical windows of a
+shipped case, HiGHS took 49 to 238 times longer than MOSEK and proved optimality in none of them,
+returning answers up to \$7,505 below the proven optimum.
+
+#### Changed: fixed assets are those present in January
+
+The *Fixed Assets* table lists what is owned at the beginning of each year, and the documentation
+now says so as a rule: an asset appears in the first year it is present in January. One already
+owned carries the current year; one bought during 2026 is entered as 2027; one sold during its
+`yod` was there that January, so it stays listed that year and its proceeds reach savings the
+following January. Entered that way a purchase paid for with a big-ticket item neither
+double-counts on the balance sheet in the year it is bought, nor loses a year of appreciation.
+No change in behaviour.
+
+#### Changed: *Spending vs Bequest* notes are bulleted, with wrapped lines indented under their text.
+
+#### Changed: *Stress Tests* Improve wording for reporting computing time in UI.
+
+### Version 2026.9.21
+
+#### Fixed: state retirement-income exemptions ([#145](https://github.com/mdlacasse/Owl/issues/145), [#146](https://github.com/mdlacasse/Owl/issues/146))
+
+The state retirement-income exemption is now applied per person. Each spouse is limited by
+their own age and by their own eligible income, and an unused portion cannot be claimed by
+the other spouse. Couples in states such as NY and CO were previously limited to a single
+exemption. Roth conversion income now counts toward the exemption, as do pensions, so
+conversions are no longer taxed by states that exempt them (e.g. IL, PA, NY). A new
+`roth_conversion_eligible` field in the state tax data marks where conversion income
+qualifies; it is `false` for MD, whose pension exclusion does not cover IRAs.
+The NY exclusion now starts at age 59½, and KY's \$31,110 exclusion now covers IRA
+distributions and conversions, not only pensions.
+
+#### Fixed: state income tax brackets and deductions updated to 2026
+
+The state tax table was audited against the Tax Foundation's 2026 compilation and the laws
+enacted in the 2026 sessions. Brackets or deductions were corrected in 24 states: AL, CA, GA,
+HI, ID, IL, KS, KY, LA, MA, ME, MI, MO, MS, MT, NE, NM, OK, RI, UT, VA, VT, WI, and WV. Notable
+changes include GA's 4.99% rate, UT's 4.45% rate, KS's two-rate structure, ME's new 2% surtax
+above \$1M, and CA's 1% surtax, which now starts at \$1M for couples as well. The standard
+deduction field now also includes each state's personal exemptions. Most corrections lower
+state tax by \$50 to \$1,300 a year at typical retiree incomes; results for cases in these
+states will change.
+
 ### Version 2026.9.16
 
 #### Fixed: case files from `save_case` load in the web UI ([#144](https://github.com/mdlacasse/Owl/issues/144))
@@ -348,12 +2141,12 @@ of its 27 years, still solves as a pure linear program, and still exercises the 
 a zero marginal rate creates. New York widens that: its retirement income exclusion is another
 variable free to move when there is no income to shelter.
 
-#### Maintenance: Updated dependecies (again) to silence GitHub's dependabot.
+#### Maintenance: Updated dependencies (again) to silence GitHub's dependabot.
 Upgrade to Streamlit 1.62.
 
 ### Version 2026.8.18
 
-#### Maintenance: Updated dependecies to silence GitHub's dependabot.
+#### Maintenance: Updated dependencies to silence GitHub's dependabot.
 
 #### Removed: `fixedSpending`, which could charge more than the top marginal tax rate
 Issue #140. Set below what a plan can afford, it produced ordinary tax above the top statutory

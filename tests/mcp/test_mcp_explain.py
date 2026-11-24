@@ -5,6 +5,7 @@ Copyright (C) 2024-2026 Martin-D. Lacasse and The Owl Authors
 """
 
 import asyncio
+import datetime
 import json
 
 import pytest
@@ -14,18 +15,19 @@ from owlplanner.assistant.explain_schema import SCHEMA_VERSION, PlanExplanation
 from owlplanner.assistant.tools import _build_plan_from_params, explain_results
 
 BILL_TOML = "examples/Case_bill.toml"
+THISYEAR = datetime.date.today().year
 
 
 def _run(coro):
     return asyncio.run(coro)
 
 
-def _solved_plan(**opts):
+def _solved_plan(state="CA", **opts):
     plan = _build_plan_from_params(
         names=["Pat"],
         birth_dates=["1960-07-01"],
         life_expectancy=[88],
-        state="CA",
+        state=state,
         taxable=[200_000],
         tax_deferred=[800_000],
         roth=[100_000],
@@ -242,3 +244,235 @@ def test_explain_results_downgrades_milp_tax_modes():
     # The loop-mode solve still produces the full explanation.
     assert "this_year" in data["explanation"]
     assert "bequest_floor" in data["explanation"]["shadow_prices"]
+
+
+@pytest.mark.toml
+def test_build_explanation_reports_state_tax():
+    """An income-tax state gets its tax and bracket fill, consistent with the solved plan."""
+    plan = _solved_plan()
+    ex = build_explanation(plan)
+    g = plan.gamma_n[: plan.N_n]
+
+    year0 = ex["this_year"]["state_tax"]
+    assert year0["state"] == "CA"
+    assert year0["state_tax"] == pytest.approx(plan.st_T_n[0] / g[0], abs=0.01)
+
+    st = ex["state_tax_brackets"]
+    assert st["state"] == "CA"
+    assert st["total_state_tax_today"] == pytest.approx(float((plan.st_T_n / g).sum()), rel=1e-6)
+    assert st["total_state_tax_today"] > 0
+    top_rate = 100 * float(plan.st_theta_tn.max())
+    for row in st["by_year"]:
+        assert 0 < row["top_bracket_rate_pct"] <= top_rate + 1e-9
+        assert row.get("headroom_in_bracket_today", 0) >= 0
+    # Each reported year's tax is the plan's own state tax for that year.
+    by_year = {r["year"]: r["state_tax_today"] for r in st["by_year"]}
+    for n, year in enumerate(plan.year_n):
+        if int(year) in by_year:
+            assert by_year[int(year)] == pytest.approx(plan.st_T_n[n] / g[n], abs=0.01)
+
+
+@pytest.mark.toml
+def test_build_explanation_reports_state_move():
+    """After a move from CA to FL, each reported year names its state and FL years are omitted."""
+    plan = _solved_plan()
+    move_year = int(plan.year_n[0]) + 5
+    plan.setStateTax("CA", [(move_year, "FL")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    st = build_explanation(plan)["state_tax_brackets"]
+    assert st["state"] == "CA"
+    assert st["move"] == {"year": move_year, "state": "FL"}
+    assert st["by_year"] and all(r["state"] == "CA" and r["year"] < move_year for r in st["by_year"])
+
+    # Starting with no state and moving to CA: no first-year state tax, CA years reported.
+    plan.setStateTax("", [(move_year, "CA")])
+    plan.solve("maxSpending", {"units": "1", "withDuals": True, "bequest": 400_000})
+    ex = build_explanation(plan)
+    assert "state_tax" not in ex["this_year"]
+    rows = ex["state_tax_brackets"]["by_year"]
+    assert rows and all(r["state"] == "CA" and r["year"] >= move_year for r in rows)
+
+
+@pytest.mark.toml
+def test_build_explanation_omits_state_tax_without_income_tax():
+    """A no-income-tax state gets no state sections."""
+    ex = build_explanation(_solved_plan(state="TX"))
+    assert "state_tax" not in ex["this_year"]
+    assert "state_tax_brackets" not in ex
+
+
+@pytest.mark.toml
+def test_health_care_section_totals_match_the_plan():
+    plan = _solved_plan(state="TX")
+    hc = build_explanation(plan)["health_care"]
+    g = plan.gamma_n[: plan.N_n]
+    assert hc["medicare_premiums_total"] == pytest.approx(float((plan.medicare_n / g).sum()), abs=0.01)
+    assert hc["aca_net_premiums_total"] == 0
+    assert hc["medical_inflation_excess_pct"] == 0
+    assert 0 <= hc["irmaa_surcharges_total"] <= hc["medicare_premiums_total"]
+
+
+@pytest.mark.toml
+def test_irmaa_next_tier_cost_is_one_tier_of_surcharges():
+    """Pat is on Medicare in year 2; crossing tier 0 adds one tier of Part B and D surcharges."""
+    import owlplanner.tax_federal as tx
+
+    plan = _solved_plan(state="TX")
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    if irmaa["current_tier"] == 0:
+        step = (tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1]) * plan._medical_n(plan.gamma_n)[2] / plan.gamma_n[2]
+        assert irmaa["next_tier_premium_increase_today"] == pytest.approx(step, abs=0.01)
+    assert irmaa["next_tier_premium_increase_today"] > 0
+
+
+def _aca_plan(state="NV"):
+    """NV: an expansion state without income tax (Medicaid to 138% FPL)."""
+    plan = _build_plan_from_params(
+        names=["Morgan"],
+        birth_dates=[f"{THISYEAR - 55}-03-01"],
+        life_expectancy=[88],
+        state=state,
+        taxable=[300_000],
+        tax_deferred=[600_000],
+        roth=[100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500],
+        ss_ages=[67],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+        slcsp=14_000,
+    )
+    plan.solve("maxSpending", {"units": "1", "withDuals": True})
+    return plan
+
+
+@pytest.mark.toml
+def test_aca_cliffs_use_the_aca_magi():
+    import owlplanner.tax_federal as tx
+
+    plan = _aca_plan()
+    aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
+    fpl = tx._aca_fpl(THISYEAR, 1, plan.gamma_n, THISYEAR)  # the guideline of the year before (#200)
+    assert aca["aca_magi"] == pytest.approx(float(plan.MAGI_aca_n[0]), abs=0.01)
+    assert aca["subsidy_cliff"] == pytest.approx(4 * fpl, abs=0.01)
+    assert aca["medicaid_line"] == pytest.approx(tx._ACA_MEDICAID_RATIO * fpl, abs=0.01)
+    assert ("headroom_to_subsidy_cliff" in aca) != ("above_subsidy_cliff_by" in aca)
+    assert "coverage_gap_below" not in aca
+
+
+@pytest.mark.toml
+@pytest.mark.parametrize("state, medicaid", [("TX", False), ("WI", True)])
+def test_aca_cliffs_in_states_without_the_expansion(state, medicaid):
+    """TX: no Medicaid for adults, a coverage gap below 100% FPL; WI: Medicaid to 100%, no gap (#202)."""
+    import owlplanner.tax_federal as tx
+    from owlplanner.assistant.explain import _aca_cliffs
+
+    plan = _aca_plan(state)
+    fpl = tx._aca_fpl(THISYEAR, 1, plan.gamma_n, THISYEAR)
+    edges = _aca_cliffs(plan)
+    if medicaid:
+        assert edges["medicaid_line"] == pytest.approx(fpl, abs=0.01) and "coverage_gap_below" not in edges
+    else:
+        assert "medicaid_line" not in edges and edges["coverage_gap_below"] == pytest.approx(fpl, abs=0.01)
+        plan.MAGI_aca_n[0] = 0.6 * fpl
+        assert _aca_cliffs(plan).get("in_coverage_gap") is True
+        plan.MAGI_aca_n[0] = fpl - 0.0008  # parked on the 100% edge: the credit applies
+        assert "in_coverage_gap" not in _aca_cliffs(plan)
+
+
+def test_caveat_names_aca_premiums():
+    plan = _solved_plan(state="TX")
+    assert any("ACA premiums" in c for c in build_explanation(plan)["caveats"])
+
+
+@pytest.mark.toml
+def test_aca_magi_parked_on_an_edge_reads_as_on_it():
+    """The solver returns a MAGI parked on an edge a fraction of a cent above it."""
+    from owlplanner.assistant.explain import _aca_cliffs
+
+    plan = _aca_plan()
+    edges = _aca_cliffs(plan)
+    plan.MAGI_aca_n[0] = edges["subsidy_cliff"] + 0.0008
+    on_cliff = _aca_cliffs(plan)
+    assert "above_subsidy_cliff_by" not in on_cliff
+    assert on_cliff["headroom_to_subsidy_cliff"] == 0
+    assert on_cliff["premium_jump_at_cliff"] > 0
+    plan.MAGI_aca_n[0] = edges["medicaid_line"] + 0.0008
+    assert _aca_cliffs(plan).get("covered_by_medicaid") is True
+    # Past the $2 margin is past the edge.
+    plan.MAGI_aca_n[0] = edges["subsidy_cliff"] + 2.0
+    assert _aca_cliffs(plan)["above_subsidy_cliff_by"] == pytest.approx(2.0)
+
+
+@pytest.mark.toml
+def test_irmaa_magi_parked_on_a_threshold_reads_as_below_it():
+    import owlplanner.tax_federal as tx
+
+    plan = _solved_plan(state="TX")
+    first = float(plan.gamma_n[2] * tx.irmaaBrackets[tx.irmaaStatus(plan.horizons, 2)][1])
+    plan.MAGI_n[0] = first + 0.0008
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    assert irmaa["current_tier"] == 0
+    assert irmaa["headroom_to_next_tier"] == 0
+    step = (tx.partB_irmaa_fees[1] + tx.partD_irmaa_fees[1]) * plan._medical_n(plan.gamma_n)[2] / plan.gamma_n[2]
+    assert irmaa["next_tier_premium_increase_today"] == pytest.approx(step, abs=0.01)
+
+
+@pytest.mark.toml
+def test_irmaa_uses_this_years_joint_return_after_a_death():
+    """#213: this year's MAGI sets the premium in 2 years on this year's (joint) table, even when
+    the first death comes before then."""
+    import owlplanner.tax_federal as tx
+
+    plan = _build_plan_from_params(
+        names=["Lee", "Kim"],
+        birth_dates=["1955-07-01", "1956-07-01"],
+        life_expectancy=[THISYEAR - 1955, 92],  # Lee's horizon ends after this year: n_d = 1
+        state="TX",
+        taxable=[300_000, 300_000],
+        tax_deferred=[600_000, 600_000],
+        roth=[100_000, 100_000],
+        hsa=None,
+        cost_basis=None,
+        ss_monthly_pias=[2500, 2000],
+        ss_ages=[70, 70],
+        pension_monthly_amounts=None,
+        pension_ages=None,
+        rate_method="conservative",
+    )
+    plan.solve("maxSpending", {"units": "1", "withDuals": True})
+    assert plan.n_d < 2
+    single, joint = (float(plan.gamma_n[2] * tx.irmaaBrackets[s][1]) for s in (0, 1))
+    plan.MAGI_n[0] = 0.5 * (single + joint)  # above the single edge, below the joint one
+    irmaa = build_explanation(plan)["this_year"]["threshold_proximity"]["irmaa"]
+    assert irmaa["current_tier"] == 0
+    assert irmaa["headroom_to_next_tier"] == pytest.approx(joint - plan.MAGI_n[0], abs=0.01)
+
+
+@pytest.mark.toml
+def test_aca_net_premium_reads_the_premium_of_either_mode():
+    """In optimize mode ACA_n stays zero and the premium is in aca_costs_n."""
+    plan = _aca_plan()
+    premium = float(plan.ACA_n[0])
+    assert premium > 0
+    plan._aca_lp = True
+    plan.maca_n = plan.ACA_n.copy()
+    plan.ACA_n[:] = 0
+    aca = build_explanation(plan)["this_year"]["threshold_proximity"]["aca"]
+    assert aca["net_premium_this_year"] == pytest.approx(premium, abs=0.01)
+
+
+def test_every_emitted_tag_is_registered():
+    # An unregistered family defaults to policy, so a missing entry reports a big-M link or an
+    # identity to the user as if it priced a goal. Compare against the tags plan.py emits.
+    import re
+    from pathlib import Path
+
+    from owlplanner.assistant.explain import CONSTRAINT_FAMILIES
+
+    src = (Path(__file__).parents[2] / "src/owlplanner/plan.py").read_text(encoding="utf-8")
+    emitted = set(re.findall(r'tag=\(\s*"([a-z0-9_]+)"', src))
+    assert emitted, "tag pattern no longer matches plan.py"
+    assert emitted - set(CONSTRAINT_FAMILIES) == set()

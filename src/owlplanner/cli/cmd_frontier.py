@@ -29,7 +29,11 @@ from pathlib import Path
 
 from owlplanner.config import load_toml, config_to_plan
 from owlplanner.config.schema import CLI_SOLVER_OVERRIDE_MAP, parse_solver_options
-from owlplanner.stresstests import run_spending_bequest_frontier, summarize_spending_bequest_frontier
+from owlplanner.stresstests import (
+    frontier_reach_sentence,
+    run_spending_bequest_frontier,
+    summarize_spending_bequest_frontier,
+)
 
 from .cmd_run import _parse_solver_opts, validate_toml
 from .set_override import apply_overrides
@@ -277,16 +281,6 @@ def cmd_frontier(
     lo = summary["max_feasible_bequest_today_dollars"]
     hi = summary["first_unreachable_bequest_today_dollars"]
     what = "savings" if fixed > 0 else "this plan"  # be explicit when assets sit outside
-    n_failed = summary["n_levels_failed"]
-    if lo is None and hi is not None:
-        click.echo(f"\n  No level traced is reachable: even ${hi:,.0f} of {what} is out of reach.")
-    elif lo is not None and hi is None and not n_failed:
-        click.echo(f"\n  Every level traced is reachable; the most {what} can leave is above ${lo:,.0f}.")
-    elif lo is not None and hi is None:
-        # Nothing failed above the best success, but something below it did.
-        click.echo(
-            f"\n  The most {what} can leave is above ${lo:,.0f}, "
-            f"though {n_failed} lower level(s) did not solve."
-        )
-    elif lo is not None:
-        click.echo(f"\n  The most {what} can leave is between ${lo:,.0f} and ${hi:,.0f}.")
+    reach = frontier_reach_sentence(lo, hi, summary["n_levels_failed"], what)
+    if reach:
+        click.echo(f"\n  {reach}")

@@ -563,6 +563,7 @@ def test_cash_flow_sheet_balances_to_zero(joe_plan):
         + p.fixed_assets_capital_gains_n
         + p.fixed_assets_tax_free_n
         - p.debt_payments_n  # debt pmts (negative flow)
+        - p.payroll_n  # payroll tax (negative flow)
         + np.sum(p.w_ijn, axis=(0, 1))  # all wdrwls
         - np.sum(p.d_in, axis=0)  # all deposits (negative flow)
         - p.T_n  # ord taxes (negative flow)
@@ -649,7 +650,7 @@ def _check_accounts_final_row(plan, i=0, scale=1.0):
     header, last = _accounts_final_row(plan, i)
     assert len(last) == len(header), "terminal row width does not match the header"
 
-    cell = dict(zip(header, last))
+    cell = dict(zip(header, last, strict=True))
     assert cell["year"] == plan.year_n[-1] + 1
     for name, j in _ACCOUNT_FINAL_BALANCES.items():
         assert name in header, f"{name!r} column missing from Accounts sheet"
@@ -755,3 +756,28 @@ def test_save_workbook_preserves_zero_columns_when_hide_enabled(joe_plan):
     ws = wb[joe_plan.inames[0] + "'s Accounts"]
     headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
     assert any("HSA" in str(h) for h in headers)
+
+
+def test_build_summary_dic_records_owl_version(alex_jamie_plan):
+    """The summary, and so the saved Summary sheet, names the Owl that produced it."""
+    from owlplanner.version import __version__
+
+    dic = build_summary_dic(alex_jamie_plan)
+    assert dic["Owl version"].startswith(f"{__version__} (")
+
+
+def test_build_summary_dic_records_solve_time(alex_jamie_plan):
+    """Every summary reports the last solve's wall-clock time, with its CPU time."""
+    import re
+
+    duration = r"(\d+\.\d s|\d+m \d\ds)"
+    dic = build_summary_dic(alex_jamie_plan)
+    assert re.fullmatch(rf"{duration} wall clock \(CPU {duration}\)", dic["Solve time"]), dic["Solve time"]
+    assert alex_jamie_plan.lastSolveWallTime > 0 and alex_jamie_plan.lastSolveCPUTime > 0
+
+
+def test_duration_format():
+    from owlplanner.export import _duration
+
+    assert _duration(8.24) == "8.2 s"
+    assert _duration(125.2) == "2m 05s"

@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
 import pytest
-from sys import platform
 
 import owlplanner as owl
 
@@ -107,29 +106,55 @@ def getHFP(exdir, case, check_exists=True):
 # deltas were wrong and win32 never diverged at all. With that corrected, all three
 # platforms agree to the cent under HiGHS and the per-platform tables collapse into one.
 # Platform still matters under MOSEK -- see the override block in test_reproducibility.
+# Updated after the 2026-09 state bracket audit (CA brackets moved from 2023 to 2025 values):
+# only the two CA cases moved (darwin, verified under both solvers). kim+sam-spending
+# 186_498 -> 186_583 (HiGHS), 186_403 -> 186_456 (MOSEK); kim+sam-bequest 1_972_270 ->
+# 1_976_280 under HiGHS, and MOSEK now lands on the same value.
+#
+# Re-measured on darwin under both solvers when the residual exit test was merged with that
+# bracket audit. The two changes move the same cases for unrelated reasons, so neither branch's
+# pins survived the merge and hand-reconciling them would have produced numbers right for
+# neither: jack+jill 102_515 -> 102_577 (the loop now waits for its fed-back quantities to
+# settle) and kim+sam-spending 186_583 -> 186_590 under HiGHS.
+#
+# jack+jill, joe and robin moved (-42, -469, -56) when taxable cost basis started counting taxed,
+# reinvested dividends and interest and putting the unrealized gain in the equity share.
+# kim+sam-spending returned to 186_583 under HiGHS when residualTol became a per-year bar: at
+# $50/yr it converges where it did before the exit test, while MOSEK still settles at 186_519.
+# kim+sam-bequest 1_944_071 -> 1_946_663 (both solvers 1_946_662.67) when IRMAA started using the
+# filing status of the lookback return (#213): the survivor's first two years are on the joint
+# table, which cuts its lifetime Medicare by $2,297 in today's dollars.
+# jack+jill 102_535 -> 102_621 when the SSA earnings test was applied (#220): Jill claims at 62y1m
+# in 2028, her last work year at $85k, so $14,302 (nominal) is withheld that year and its 11 months
+# come back at FRA through the adjustment of the reduction factor, which here outweighs the
+# withholding. 102_531.46 with the test run on zero earnings, under the frozen test date.
+# Re-pinned when the employee's payroll tax started being paid on wages (#227), the three cases
+# with wages (HiGHS, linux, frozen test date): jack+jill 102_621 -> 100_669 and joe 92_575 -> 91_276
+# (spending). kim+sam-* and robin have no wages and are unchanged to the cent. john+sally left this
+# table then: its $8,798 of tax costs about $17,300 of bequest compounded to the horizon, more than
+# the loop's plan had left (16_803), so past 97% of the tax its bequest sits at zero and the loop
+# ends on a plan that undercharges IRMAA by $374 (fixed-point residual), bequest $21. That value is
+# the loop's failure mode, not a plan, so john+sally is pinned under local search instead
+# (test_john_sally_under_local_search, a deep test: about 45 s).
 EXPECTED_OBJECTIVE_VALUES = {
-    "Case_john+sally": {
-        "net_spending_basis": 145_000,
-        "bequest": 84_252,
-    },
     "Case_jack+jill": {
-        "net_spending_basis": 102_515,
+        "net_spending_basis": 100_669,
         "bequest": 400_000,
     },
     "Case_joe": {
-        "net_spending_basis": 93_044,
+        "net_spending_basis": 91_276,
         "bequest": 300_000,
     },
     "Case_kim+sam-spending": {
-        "net_spending_basis": 186_498,
+        "net_spending_basis": 185_952,
         "bequest": 0,
     },
     "Case_kim+sam-bequest": {
         "net_spending_basis": 145_000,
-        "bequest": 1_972_270,
+        "bequest": 1_946_663,
     },
     "Case_robin": {
-        "net_spending_basis": 44_365,
+        "net_spending_basis": 44_013,
         "bequest": 50_000,
     },
 }
@@ -146,21 +171,26 @@ def test_reproducibility():
     Also verifies that the associated HFP (Household Financial Profile) file
     is successfully loaded for each case.
     """
-    # MOSEK converges to a slightly different SC-loop fixed point than HiGHS for Case_jack+jill
-    # after the LTCG bracket-partition and state-tax LP fixes and the HSA-deduction removal.
-    if _active_solver() == "MOSEK":
-        EXPECTED_OBJECTIVE_VALUES["Case_jack+jill"]["net_spending_basis"] = 102_556
-        # MOSEK keeps the pre-removal fixed point on this oscillatory case.
-        EXPECTED_OBJECTIVE_VALUES["Case_john+sally"]["bequest"] = 82_934
-        # Both kim+sam cases settle a little lower under MOSEK.
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-spending"]["net_spending_basis"] = 186_403
-        # kim+sam-bequest is the one case where MOSEK also differs by platform: measured on
-        # win32 2026-08-28, where it lands ~1_014 below darwin/linux. Two Windows runs gave
-        # 1_964_306 and 1_964_386, so this value carries ~4e-5 of run-to-run wobble under
-        # MOSEK -- well inside rel_tol, but it is why the pin is not exact.
-        EXPECTED_OBJECTIVE_VALUES["Case_kim+sam-bequest"]["bequest"] = (
-            1_964_306 if platform == "win32" else 1_965_320
-        )
+    # No case needs a MOSEK override any more; HiGHS and MOSEK agree within rel_tol on all of them.
+    # History of the overrides that used to live here:
+    # - john+sally: gone when the default epsilon became 5e-7 (re-measured on darwin); the two
+    #   solvers agreed at 82_934 where they used to differ by 1,318. Stronger tie-breaking leaves
+    #   fewer near-equivalent optima for a solver to choose between, so some of the
+    #   solver-to-solver spread was degeneracy rather than anything about the solvers.
+    # - jack+jill: gone once the loop waits for its quantities to settle (both 102_577).
+    # - kim+sam-bequest: gone after the CA bracket update (both 1_976_280 then). It also used to
+    #   carry a win32 split of ~1_014 below darwin, measured 2026-08-28; win32 has not been
+    #   re-measured since, so no platform override is kept for it.
+    # - kim+sam-spending (MOSEK 186_315): gone 2026-09-28 when the state base stopped also
+    #   deducting the federal standard deduction. The solvers now land at 185_390 (HiGHS) and
+    #   185_400 (MOSEK). That change re-pinned john+sally, kim+sam-* and robin (MN, CA, NY);
+    #   jack+jill and joe live in no-income-tax states and did not move.
+    # - kim+sam-* re-pinned 2026-10-03 when CA's $153 personal credit per filer, and its $153 senior
+    #   credit per filer 65+, were modeled. kim+sam-spending 185_390 -> 185_952 (HiGHS 185_948.93,
+    #   MOSEK 185_955.12): +$302/yr from the personal credit, then +$257/yr from the senior one,
+    #   which the couple (born 1964/1965) only reaches after three years. kim+sam-bequest
+    #   1_917_689 -> 1_944_071 (both solvers 1_944_071.20): the same credits compounding into the
+    #   estate (1_917_623.62 with them switched off).
 
     exdir = "./examples/"
     rel_tol = 5e-4  # Relative tolerance — widened from 1e-4 to tolerate HiGHS version
@@ -232,6 +262,25 @@ def test_reproducibility():
                 rel=rel_tol,
                 abs=rel_tol,
             ), f"{case}: Bequest mismatch."
+
+
+@pytest.mark.deep
+def test_john_sally_under_local_search():
+    """
+    john+sally's reproducibility pin, under local search. With the payroll tax (#227) the loop's
+    plan runs out of bequest and ends on an inconsistent iterate ($21, IRMAA undercharged by $374),
+    so the loop's value is not pinned. Local search reaches the branch-and-bound plan, 14,013.49,
+    with no fixed-point residual (HiGHS, linux, frozen test date).
+    """
+    p = owl.readConfig(os.path.join("./examples/", "Case_john+sally"))
+    p.solverOptions["absTol"] = 50
+    p.solverOptions["relTol"] = 2e-5
+    p.solve(p.objective, options={**p.solverOptions, "breakpointMethod": "local-search"})
+    assert p.caseStatus == "solved"
+    assert "->" not in p.breakpointMethodUsed, p.breakpointMethodUsed
+    rel_tol = 5e-4
+    assert p.basis == pytest.approx(145_000, rel=rel_tol, abs=50)
+    assert p.bequest == pytest.approx(14_013, rel=rel_tol, abs=50)
 
 
 @pytest.mark.toml

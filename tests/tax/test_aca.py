@@ -27,6 +27,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import io
+
 import numpy as np
 import pytest
 
@@ -123,8 +125,8 @@ class TestAcaCostsFunction:
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20, thisyear=2025)
         assert np.allclose(costs[0], expected_net, rtol=1e-3)
 
-    def test_medicaid_threshold_returns_full_premium(self):
-        """Below 138% FPL: return full SLCSP (Medicaid territory; no PTC)."""
+    def test_medicaid_threshold_costs_nothing(self):
+        """Below 138% FPL: Medicaid, no premium (issue #165)."""
         yobs = np.array([1985])
         horizons = np.array([20])
         # Single FPL = 15,650; 138% = 21,597; use MAGI below this
@@ -133,7 +135,7 @@ class TestAcaCostsFunction:
         magi_n = np.full(20, magi)
         gamma_n = self._gamma(20)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=20)
-        assert np.allclose(costs[0], slcsp), "Expected full premium in Medicaid territory."
+        assert costs[0] == 0.0, "Expected no premium under Medicaid."
 
     def test_couple_both_eligible(self):
         """Couple both pre-65: household size = 2, uses couple FPL."""
@@ -149,7 +151,7 @@ class TestAcaCostsFunction:
         assert np.allclose(costs[0], expected_net, rtol=1e-4)
 
     def test_couple_one_turns_65(self):
-        """Year when first individual turns 65: household size drops to 1, SLCSP scales down."""
+        """Year after the first individual turns 65: the lone enrollee's SLCSP scales down."""
         # Alex born 1960 → already 65 in 2025 (n=0) → not eligible
         # Jordan born 1970 → pre-65 throughout (age 55 at n=0)
         yobs = np.array([1960, 1970])
@@ -159,9 +161,9 @@ class TestAcaCostsFunction:
         magi_n = np.full(30, magi)
         gamma_n = self._gamma(30)
         costs = tx.acaCosts(yobs, horizons, magi_n, gamma_n, slcsp_annual=slcsp, N_n=30, thisyear=2025)
-        # n=0: Alex 65 → not eligible; Jordan pre-65 (age 55) → hh_size=1, single FPL.
-        # SLCSP scaled by CMS age rating fraction for Jordan at 55.
-        # MAGI 80k / 15,650 ≈ 511% FPL → 2025 rules: 8.5% cap above 400%
+        # n=0: Alex on Medicare all year; Jordan pre-65 (age 55) is the only enrollee.
+        # SLCSP scaled by CMS age rating fraction for Jordan at 55. The poverty line is the couple's
+        # (#199): MAGI 80k / 21,150 ≈ 378% FPL → 2025 rules: 8.5% cap from 300%.
         frac = couple_to_individual_fraction(55)
         expected = min(slcsp * frac, 0.085 * magi)
         assert np.allclose(costs[0], expected, rtol=1e-4)
@@ -215,6 +217,29 @@ class TestAcaCostsFunction:
         slcsp = 12_000.0
         costs = tx.acaCosts(yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026)
         assert np.isclose(costs[0], slcsp, rtol=1e-4), "2026 above 400%: expect full premium"
+
+    def test_2026_band_133_150_starts_at_3_14(self):
+        """2026 (Rev. Proc. 2025-25): the 133-150% band runs from 3.14% to 4.19%, not from 2.10%."""
+        yobs = np.array([1985])
+        horizons = np.array([5])
+        fpl = tx._ACA_FPL[2025][0]  # 2026 coverage uses the 2025 guideline (#200)
+        gamma_n = self._gamma(5)
+        slcsp = 12_000.0
+        for ratio in (1.40, 1.45, 1.4999):
+            magi = ratio * fpl
+            costs = tx.acaCosts(
+                yobs, horizons, np.full(5, magi), gamma_n, slcsp_annual=slcsp, N_n=5, thisyear=2026
+            )
+            pct = 0.0314 + (ratio - 1.33) / (1.50 - 1.33) * (0.0419 - 0.0314)
+            assert np.isclose(costs[0], pct * magi, rtol=1e-6), f"ratio {ratio}: {costs[0]} vs {pct * magi}"
+
+    def test_2026_bands_continuous_above_150(self):
+        """2026: the percentage is continuous at 150%, 200%, 250% and 300% FPL."""
+        bp, pct, init = tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+        for k in range(1, len(bp) - 1):
+            below = tx._aca_contrib_pct(bp[k] - 1e-9, bp, pct, init)
+            above = tx._aca_contrib_pct(bp[k], bp, pct, init)
+            assert np.isclose(below, above, atol=1e-6), f"jump at {bp[k]}: {below} vs {above}"
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +313,8 @@ class TestACAIntegration:
         n65_jordan = max(0, 1972 + 65 - thisyear)  # year Jordan turns 65 (born 1972)
         if n65_jordan < p.N_n:
             assert np.any(p.ACA_n[:n65_jordan] > 0), "Expected ACA costs while Jordan is pre-65."
-            assert np.allclose(p.ACA_n[n65_jordan:], 0.0), "Expected zero ACA costs after Jordan turns 65."
+            # Born June 15: Medicare from June, so ACA covers January to May of the year Jordan turns 65.
+            assert np.allclose(p.ACA_n[n65_jordan + 1:], 0.0), "Expected zero ACA costs after Jordan turns 65."
 
     def test_no_aca_when_not_configured(self):
         """Plan without setACA() should have all-zero ACA_n after solving."""
@@ -324,15 +350,24 @@ class TestACAOptimize:
             f"Optimize spending ({spending_opt:.0f}) should be >= loop spending ({spending_loop:.0f})"
         )
 
-    def test_maca_n_nonzero_in_eligible_years(self):
-        """In optimize mode, maca_n should be nonzero in pre-65 ACA-eligible years."""
+    def test_maca_n_matches_the_statute_in_eligible_years(self):
+        """In optimize mode, maca_n is the 2026 ACA cost of each year's own MAGI (as loop mode computes it).
+
+        This plan can hold MAGI just under 138% FPL, where Medicaid costs nothing (issue #165), so
+        zero is a legitimate cost: the check is that each year's maca_n agrees with acaCosts.
+        """
         p = _make_plan(dob1="1975-06-15", le1=88)
         p.setSocialSecurity([2000], [67])
         p.setACA(slcsp=18.0)
         p.solve("maxSpending", options={"withACA": "optimize"})
 
         assert p._aca_lp, "Expected _aca_lp flag to be True in optimize mode."
-        assert np.any(p.maca_n > 0), "Expected nonzero maca_n in ACA-eligible years."
+        # The LP holds MAGI on a bracket edge (here 138% FPL) only to within the solver's feasibility
+        # tolerance, a cent or so above it; a dollar below keeps the statute's side of it, the slack
+        # the fixed-point residual check uses.
+        expected = tx.acaCosts(p.yobs, p.horizons, p.MAGI_aca_n - 1.0, p.gamma_n, p.slcsp_annual, p.N_n,
+                               mobs=p.mobs, tobs=p.tobs)
+        np.testing.assert_allclose(p.maca_n[: p.n_aca], expected[: p.n_aca], atol=10.0)
 
     def test_aca_n_zero_in_optimize_mode(self):
         """In optimize mode, ACA_n (SC-loop result) should be all-zero."""
@@ -375,6 +410,92 @@ class TestACAOptimize:
                     f"Year {n}: MAGI={p.MAGI_aca_n[n]:.0f}>=400% FPL, expect maca≈{slcsp_n:.0f}, got {p.maca_n[n]:.0f}"
                 )
         assert hit_bracket_6, "Expected at least one ACA year with MAGI >= 400% FPL and maca > 0"
+
+    def test_capped_limits_move_full_premium_incomes_to_last_bracket(self):
+        """Thresholds are clipped where the sliding-scale contribution reaches the SLCSP."""
+        fpl = 15_960.0
+        limits = tx._ACA_LP_BREAKPOINTS * fpl
+        # 5,000 / 9.96% = 50,201 lies in the flat 300-400% bracket [47,880, 63,840].
+        capped = tx._aca_capped_limits(fpl, 5_000.0)
+        assert np.allclose(capped, np.minimum(limits, 5_000.0 / 0.0996))
+        # 2,000 crosses inside the sliding 150-200% bracket: the contribution there is exactly 2,000.
+        m = tx._aca_capped_limits(fpl, 2_000.0)[3]
+        assert 1.50 * fpl < m < 2.00 * fpl
+        pct = tx._aca_contrib_pct(
+            m / fpl, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2026, tx._ACA_CONTRIB_INITIAL_2026
+        )
+        assert pct * m == pytest.approx(2_000.0, rel=1e-9)
+        # A premium above every bracket's charge leaves the thresholds alone.
+        assert np.allclose(tx._aca_capped_limits(fpl, 20_000.0), limits)
+        # No premium (before coverage starts): every income is in the last bracket, at no cost.
+        assert np.allclose(tx._aca_capped_limits(fpl, 0.0), 0.0)
+
+    @pytest.mark.parametrize("medicaid", [1.38, 1.00, 0.0])
+    def test_tangents_follow_the_sliding_scale_from_below(self, medicaid):
+        """Optimize mode prices each bracket by tangents: never above the statute's cost, within a few dollars.
+        Where Medicaid stops at or below 100% FPL, bracket 1 (100-133%) has the lowest percentage (#202)."""
+        fpl = tx._ACA_FPL[2026][0]
+        tan = tx._aca_tangents(fpl, medicaid=medicaid)
+        for r in range(1, tx.N_ACA_R - 1):
+            lo, hi, _, _ = tx._aca_lp_band(r, medicaid=medicaid)
+            if hi <= lo:
+                continue  # bracket 1 where Medicaid reaches past 133%
+            for m in np.linspace(lo * fpl, hi * fpl * (1 - 1e-9), 401):
+                pct = tx._aca_pct(m / fpl, tx._ACA_TABLES[2026])
+                lp = max(tan[r, k, 0] * m + tan[r, k, 1] for k in range(tan.shape[1]))
+                assert lp <= pct * m + 1e-6
+                assert pct * m - lp < 10.0
+        assert not tan[0].any() and not tan[tx.N_ACA_R - 1].any()  # Medicaid and full-premium brackets
+
+    @pytest.mark.parametrize("pension", [1_650, 2_200, 3_000])
+    def test_optimize_matches_loop_on_aca(self, pension):
+        """Loop and optimize charge the same ACA (issue #165): sliding scale, and Medicaid below 138% FPL.
+
+        A $1,650/month pension drifts below 138% FPL as the taxable account runs down; there both
+        modes now charge nothing, where loop charged the full SLCSP and optimize 2.10%.
+        """
+        def solve(mode):
+            p = Plan(["Cy"], ["1976-06-15"], [85], "aca modes", verbose=False)
+            p.setSpendingProfile("flat")
+            p.setAccountBalances(taxable=[100], taxDeferred=[0], taxFree=[50], startDate="01-01")
+            p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+            p.setRates("user", values=[6, 4, 3, 2.5])
+            p.setPension([pension], [45], indexed=[True])
+            p.setACA(9.0)
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85,
+                                    "withACA": mode})
+            return p
+
+        p_loop, p_opt = solve("loop"), solve("optimize")
+        assert p_loop.caseStatus == p_opt.caseStatus == "solved"
+        np.testing.assert_allclose(p_opt.aca_costs_n, p_loop.aca_costs_n, atol=10.0)
+        assert p_opt.basis == pytest.approx(p_loop.basis, abs=5.0)
+
+    def test_income_where_contribution_exceeds_premium_is_feasible(self):
+        """Below 400% FPL with 9.96% x MAGI above the SLCSP: full premium, not infeasibility.
+
+        No tax-deferred account, so MAGI (a $55k pension plus investment income, about 370% FPL)
+        cannot be moved out of the band. The bound maca <= SLCSP used to make this infeasible.
+        """
+        def solve(mode):
+            p = Plan(["Cy"], ["1976-06-15"], [85], "aca band", verbose=False)
+            p.setSpendingProfile("flat")
+            p.setAccountBalances(taxable=[100], taxDeferred=[0], taxFree=[50], startDate="01-01")
+            p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+            p.setRates("user", values=[6, 4, 3, 2.5])
+            p.setPension([4600], [45], indexed=[True])
+            p.setACA(5.0)
+            p.solve("maxSpending", {"bequest": 0, "withMedicare": "None", "withSSTaxability": 0.85,
+                                    "withACA": mode})
+            return p
+
+        p_opt, p_loop = solve("optimize"), solve("loop")
+        assert p_opt.caseStatus == "solved"
+        for n in range(1, 4):
+            ratio = p_opt.MAGI_aca_n[n] / (tx._ACA_FPL[2026][0] * p_opt.gamma_n[n])
+            assert 3.0 < ratio < 4.0
+            assert p_opt.maca_n[n] == pytest.approx(5_000 * p_opt.gamma_n[n], rel=1e-6)
+        assert p_opt.basis == pytest.approx(p_loop.basis, rel=1e-4)
 
 
 # ---------------------------------------------------------------------------
@@ -590,3 +711,264 @@ class TestACACoupleSLCSPScaling:
         assert np.isclose(slcsp_aca_n[0], slcsp * frac, rtol=1e-4), (
             f"Expected scaled SLCSP {slcsp * frac:.2f} in acaVals at n=0, got {slcsp_aca_n[0]:.2f}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Tax household and coverage months (issues #199, #208)
+# ---------------------------------------------------------------------------
+
+
+class TestACACoverageMonths:
+    """The poverty line follows the tax household, coverage the months before Medicare."""
+
+    def test_couple_keeps_two_person_line_with_one_on_medicare(self):
+        """#199: a couple filing jointly is a family of 2, even when only one spouse is enrolled."""
+        yobs, horizons, gamma = np.array([1961, 1967]), np.array([30, 30]), np.ones(4)
+        fpl2 = tx._ACA_FPL[2026][1]  # 2027 coverage uses the 2026 guideline (#200)
+        bench = 20_000 * couple_to_individual_fraction(60)
+        for magi in (40_000, 70_000, 80_000):  # 70k and 80k are above 400% of the 1-person line
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2027)[0]
+            pct = tx._aca_contrib_pct(magi / fpl2, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2027,
+                                      tx._ACA_CONTRIB_INITIAL_2027)
+            assert np.isclose(cost, min(bench, pct * magi), rtol=1e-9)
+
+    def test_single_enrolled_until_medicare_month(self):
+        """Born June 15: Medicare from June, so the year of the 65th birthday has 5 ACA months."""
+        thisyear, slcsp, magi = 2027, 12_000.0, 200_000.0  # above 400%: full benchmark each month
+        yobs, horizons = [thisyear - 65], [10]
+        full = tx.acaCosts(yobs, horizons, np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear - 1)
+        assert np.isclose(full[0], slcsp)
+        cost = tx.acaCosts(yobs, horizons, np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear,
+                           mobs=[6], tobs=[15])
+        assert np.isclose(cost[0], 5 / 12 * slcsp)
+        assert np.allclose(cost[1:], 0.0)
+
+    def test_couple_transition_year_by_month(self):
+        """Older spouse turns 65 on June 15: couple plan January-May, younger spouse alone June-December."""
+        thisyear, slcsp = 2027, 20_000.0
+        yobs, horizons, gamma = [thisyear - 65, thisyear - 58], [30, 30], np.ones(4)
+        mobs, tobs = [6, 3], [15, 3]
+        fpl2 = tx._ACA_FPL[2026][1]
+        alone = slcsp * couple_to_individual_fraction(58)
+        for magi in (40_000.0, 60_000.0, 120_000.0):
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp, 3, thisyear=thisyear,
+                               mobs=mobs, tobs=tobs)[0]
+            r = magi / fpl2
+            contrib = np.inf if r > 4 else magi * tx._aca_contrib_pct(
+                r, tx._ACA_BREAKPOINTS_2026, tx._ACA_CONTRIB_PCT_2027, tx._ACA_CONTRIB_INITIAL_2027)
+            assert np.isclose(cost, 5 / 12 * min(slcsp, contrib) + 7 / 12 * min(alone, contrib))
+
+    def test_acavals_weights_the_transition_year(self):
+        """Optimize mode: the months-weighted benchmark, and the contribution for the months covered."""
+        from datetime import date
+
+        thisyear = date.today().year
+        slcsp = 20_000.0
+        # Single, born December 15: 11 ACA months in the year of the 65th birthday.
+        n_aca, _, tan, s_n = tx.acaVals([thisyear - 65], [10], np.ones(11), slcsp, 10, mobs=[12], tobs=[15])
+        assert n_aca == 1
+        assert np.isclose(s_n[0], 11 / 12 * slcsp)
+        fpl = tx._aca_fpl(thisyear, 1, np.ones(11), thisyear)
+        np.testing.assert_allclose(tan[0], 11 / 12 * tx._aca_tangents(fpl, tx._aca_table(thisyear)))
+        # Couple: older spouse born June 15 turns 65 this year; younger spouse is 58.
+        n_aca, _, _, s_n = tx.acaVals([thisyear - 65, thisyear - 58], [30, 30], np.ones(31), slcsp, 30,
+                                      mobs=[6, 3], tobs=[15, 3])
+        alone = slcsp * couple_to_individual_fraction(58)
+        assert np.isclose(s_n[0], (5 * slcsp + 7 * alone) / 12)
+        assert np.isclose(s_n[1], slcsp * couple_to_individual_fraction(59))  # a year older
+
+    def test_january_first_birthday_leaves_aca_in_december(self):
+        """Born January 1: Medicare from December 1 of the year before the 65th birthday."""
+        thisyear, slcsp, magi = 2027, 12_000.0, 200_000.0
+        cost = tx.acaCosts([thisyear - 64], [10], np.full(3, magi), np.ones(4), slcsp, 3, thisyear=thisyear,
+                           mobs=[1], tobs=[1])
+        assert np.isclose(cost[0], 11 / 12 * slcsp)
+        assert np.allclose(cost[1:], 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Poverty guideline year and applicable percentage table (issues #200, #201)
+# ---------------------------------------------------------------------------
+
+
+class TestACAGuidelineAndTable:
+    """Coverage in year Y uses the guideline published in Y-1 and the table of year Y."""
+
+    def test_guideline_of_the_year_before(self):
+        """IRC 36B(d)(3)(B), 26 CFR 1.36B-1(h): published guidelines are used as is."""
+        gamma = 1.03 ** np.arange(4)
+        assert tx._aca_fpl(2026, 2, gamma, 2026) == 21_150
+        assert tx._aca_fpl(2027, 2, gamma, 2026) == 21_640
+        assert tx._aca_fpl(2027, 1, gamma, 2026) == 15_960
+
+    def test_unpublished_guideline_grows_from_its_own_year(self):
+        """Past the table, inflation counts from the latest guideline's year, also for a later plan start."""
+        gamma = 1.03 ** np.arange(4)
+        assert np.isclose(tx._aca_fpl(2028, 2, gamma, 2026), 21_640 * 1.03)
+        assert np.isclose(tx._aca_fpl(2029, 2, gamma, 2026), 21_640 * 1.03**2)
+        # Plan starting in 2028 with a table ending at 2026 (#200, comment).
+        assert np.isclose(tx._aca_fpl(2028, 2, gamma, 2028), 21_640 * 1.03)
+        assert np.isclose(tx._aca_fpl(2030, 2, gamma, 2028), 21_640 * 1.03**3)
+
+    def test_2026_coverage_priced_on_the_2025_guideline(self):
+        """#200 repro: a couple under 65 in 2026, income measured against $21,150."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        for magi, expected in ((30_000, 1106), (32_000, 1361), (40_000, 2430), (60_000, 5678)):
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2026)
+            assert round(cost[0]) == expected
+
+    def test_table_by_year(self):
+        assert tx._aca_table(2026)[1] is tx._ACA_CONTRIB_PCT_2026
+        assert tx._aca_table(2027)[1] is tx._ACA_CONTRIB_PCT_2027
+        assert tx._aca_table(2035)[1] is tx._ACA_CONTRIB_PCT_2027  # last table carried forward
+        assert tx._aca_table(2025)[1] is tx._ACA_CONTRIB_PCT_2026
+
+    def test_2027_coverage_uses_rev_proc_2026_26(self):
+        """#201 (a): Rev. Proc. 2026-26 sec. 3.01, entered independently of Owl's table."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        fpl = 21_640  # 2026 guideline for 2027 coverage
+        bands = [(1.33, 1.50, .0323, .0430), (1.50, 2.00, .0430, .0678), (2.00, 2.50, .0678, .0866),
+                 (2.50, 3.00, .0866, .1022), (3.00, 4.00, .1022, .1022)]
+        for magi in (35_000, 45_000, 60_000, 80_000):
+            r = magi / fpl
+            pct = next(a + (r - lo) / (hi - lo) * (b - a) for lo, hi, a, b in bands if lo <= r <= hi)
+            cost = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, slcsp_annual=20_000, N_n=3, thisyear=2027)
+            assert np.isclose(cost[0], min(20_000, pct * magi), rtol=1e-9)
+
+    def test_exactly_400_percent_qualifies(self):
+        """#201 (b): IRC 36B(c)(1)(A) covers income that "does not exceed 400 percent"."""
+        yobs, horizons, gamma = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+        magi = 4 * 21_640
+        at = tx.acaCosts(yobs, horizons, np.full(3, magi), gamma, 20_000, 3, thisyear=2027)[0]
+        above = tx.acaCosts(yobs, horizons, np.full(3, magi + 1), gamma, 20_000, 3, thisyear=2027)[0]
+        assert np.isclose(at, 0.1022 * magi)
+        assert np.isclose(above, 20_000)
+
+    def test_acavals_uses_each_years_guideline_and_table(self):
+        """Optimize mode: year 0 on the 2025 guideline and 2026 table, year 1 on 2026 and 2027."""
+        from datetime import date
+
+        thisyear = date.today().year
+        gamma = np.ones(11)
+        _, lbar, tan, _ = tx.acaVals([thisyear - 50], [10], gamma, 1e6, 10)
+        for n in (0, 1):
+            fpl = tx._aca_fpl(thisyear + n, 1, gamma, thisyear)
+            np.testing.assert_allclose(tan[n], tx._aca_tangents(fpl, tx._aca_table(thisyear + n)))
+            np.testing.assert_allclose(lbar[n], tx._ACA_LP_BREAKPOINTS * fpl)
+        if thisyear == 2026:
+            assert np.isclose(lbar[0][-1], 4 * 15_650)
+            assert np.isclose(lbar[1][-1], 4 * 15_960)
+            assert not np.allclose(tan[0], tan[1])
+
+
+class TestCoverageGap:
+    """#202: states without the Medicaid expansion. Below 100% FPL there is no premium tax credit (IRC
+    36B(c)(1)(A)); Wisconsin covers adults to 100% under a waiver, the other nine almost none."""
+
+    YOBS, HORIZONS, GAMMA = np.array([1968, 1971]), np.array([30, 30]), np.ones(4)
+    FPL = 21_640  # 2026 guideline, 2027 coverage
+
+    def _cost(self, ratio, medicaid, gap="approx", slack=0.0):
+        return tx.acaCosts(self.YOBS, self.HORIZONS, np.full(3, ratio * self.FPL), self.GAMMA, 20_000, 3,
+                           thisyear=2027, medicaid_n=np.full(3, medicaid), gap=gap, slack=slack)[0]
+
+    def test_state_limits(self):
+        from owlplanner import tax_state
+
+        assert {s for s in tax_state.valid_states() if tax_state.medicaid_limit(s) < 1.38} == {
+            "AL", "FL", "GA", "KS", "MS", "SC", "TN", "TX", "WI", "WY"}  # KFF, October 2026
+        assert tax_state.medicaid_limit("WI") == 1.0 and tax_state.medicaid_limit("TX") == 0.0
+        assert tax_state.medicaid_limit("NV") == tax_state.medicaid_limit("") == 1.38
+
+    @pytest.mark.parametrize("medicaid, gap, expected", [
+        (1.38, "exact", [0, 0, 0, 0]),  # expansion: Medicaid to 138%
+        (0.0, "exact", [20_000, 20_000, 512, 605]),  # gap: full benchmark, then 2.15% (2027 table)
+        (0.0, "approx", [279, 419, 512, 605]),  # the loop's: 2.15% below 100% too
+        (1.0, "exact", [0, 0, 512, 605]),  # Wisconsin: Medicaid to 100%
+    ])
+    def test_issue_repro(self, medicaid, gap, expected):
+        costs = [self._cost(r, medicaid, gap) for r in (0.60, 0.90, 1.10, 1.30)]
+        np.testing.assert_allclose(costs, expected, atol=0.5)
+
+    def test_loop_approximation_has_no_jump_at_100_percent(self):
+        below, at = self._cost(1.0 - 1e-9, 0.0), self._cost(1.0, 0.0)
+        assert at - below == pytest.approx(0, abs=0.01)
+        assert self._cost(1.0 - 1e-9, 0.0, "exact") == pytest.approx(20_000)
+
+    def test_edges_read_on_their_own_side(self):
+        """The credit starts at 100% ("equals or exceeds"); 133% takes the higher percentage ("at least")."""
+        assert self._cost(1.0, 0.0, "exact") == pytest.approx(0.0215 * self.FPL)
+        assert self._cost(1.0 - 0.5 / self.FPL, 0.0, "exact", slack=1.0) < 1_000  # parked on the edge
+        assert self._cost(1.33, 0.0, "exact") == pytest.approx(0.0323 * 1.33 * self.FPL)
+        assert self._cost(1.33 - 1e-9, 0.0, "exact") == pytest.approx(0.0215 * 1.33 * self.FPL)
+
+    def test_lp_thresholds(self):
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(1.38), [1.38, 1.38, 1.5, 2, 2.5, 3, 4])
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(1.0), [1.0, 1.33, 1.5, 2, 2.5, 3, 4])
+        np.testing.assert_allclose(tx._aca_lp_breakpoints(0.0), [1.0, 1.33, 1.5, 2, 2.5, 3, 4])
+        assert list(np.flatnonzero(tx._aca_lp_from_above(1.38))) == []
+        assert list(np.flatnonzero(tx._aca_lp_from_above(1.0))) == [1]  # Medicaid includes 100%
+        assert list(np.flatnonzero(tx._aca_lp_from_above(0.0))) == [0, 1]
+
+    def test_acavals_prices_the_gap_in_bracket_0(self):
+        from datetime import date
+
+        thisyear = date.today().year
+        gamma = np.ones(11)
+        for medicaid, cost in ((0.0, True), (1.0, False), (1.38, False)):
+            _, lbar, tan, s_n = tx.acaVals([thisyear - 50], [10], gamma, 12_000, 10, medicaid_n=np.full(10, medicaid))
+            fpl = tx._aca_fpl(thisyear, 1, gamma, thisyear)
+            assert lbar[0][0] == pytest.approx(max(1.0, medicaid) * fpl)
+            np.testing.assert_allclose(tan[0, 0, :, 0], 0)
+            np.testing.assert_allclose(tan[0, 0, :, 1], s_n[0] if cost else 0)
+
+
+def _gap_plan(state, mode, taxable, deferred, roth):
+    from datetime import date
+
+    thisyear = date.today().year
+    log = io.StringIO()
+    p = Plan(["A"], [f"{thisyear - 58}-03-15"], [85], "gap", verbose=False, logstreams=[log])
+    p.setStateTax(state)
+    p.setAccountBalances(taxable=[taxable], taxDeferred=[deferred], taxFree=[roth], startDate="01-01")
+    p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
+    p.setRates("user", values=[6, 4, 4, 2.5])
+    p.setSocialSecurity([2000], [67])
+    p.setSpendingProfile("flat")
+    p.setACA(12_000, units="1")
+    p.solve("maxSpending", {"bequest": 0, "withACA": mode, "withMedicare": "None"})
+    assert p.caseStatus == "solved"
+    fpl = np.array([tx._aca_fpl(thisyear + n, 1, p.gamma_n, thisyear) for n in range(p.n_aca)])
+    return p, fpl, log.getvalue()
+
+
+class TestCoverageGapPlans:
+    """#202 in a plan: a Florida early retiree whose income can go below 100% FPL (mostly Roth)."""
+
+    def test_optimize_mode_leaves_the_gap_at_100_percent(self):
+        p, fpl, _ = _gap_plan("FL", "optimize", 300, 0, 600)
+        magi = p.MAGI_aca_n[: p.n_aca]
+        assert np.all(magi >= fpl - 1)  # the credit from 100% beats the full benchmark below it
+        assert np.any(magi < 1.01 * fpl)  # ...and income goes no higher than it needs to
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1  # the 100% edge read on its own side
+
+    def test_optimize_mode_stays_below_133_percent(self):
+        """The table's percentage jumps from 2.15% to 3.23% at 133% (2.10% to 3.14% in 2026)."""
+        p, fpl, _ = _gap_plan("FL", "optimize", 600, 300, 50)
+        magi = p.MAGI_aca_n[: p.n_aca]
+        assert np.any(np.abs(magi - 1.33 * fpl) < 10)  # the optimizer parks next to the jump...
+        assert np.all((magi < 1.33 * fpl) | (magi > 1.34 * fpl))  # ...on its cheap side
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1
+
+    def test_loop_mode_warns_about_the_gap(self):
+        p, fpl, log = _gap_plan("FL", "loop", 300, 0, 600)
+        assert np.any(p.MAGI_aca_n[: p.n_aca] < fpl)
+        assert "coverage gap" in log and "withACA='optimize'" in log
+        assert p.fixedPointResidual["ACA"]["max_abs"] < 1
+
+    @pytest.mark.parametrize("state", ["WI", "NV"])
+    def test_no_warning_where_medicaid_covers_it(self, state):
+        p, fpl, log = _gap_plan(state, "loop", 300, 0, 600)
+        assert np.any(p.MAGI_aca_n[: p.n_aca] < fpl)
+        assert np.allclose(p.aca_costs_n[: p.n_aca], 0)
+        assert "coverage gap" not in log

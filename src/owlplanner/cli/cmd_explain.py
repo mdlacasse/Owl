@@ -15,6 +15,7 @@ import datetime
 import click
 from pathlib import Path
 
+from owlplanner import tax_federal as tx
 from owlplanner.config import load_toml, config_to_plan
 
 from .cmd_run import validate_toml
@@ -42,6 +43,49 @@ def _runs(values, first_year):
     for r in runs:
         r["annual_amount"] = int(round(r["annual_amount"]))
     return runs
+
+
+def _health_care(plan) -> dict:
+    """Health-care settings: Medicare, ACA, out-of-pocket expenses, and medical inflation (today's $)."""
+    so = plan.solverOptions
+    first_year = int(plan.year_n[0])
+    medicare_mode = so.get("withMedicare", "loop")
+    medicare_on = medicare_mode not in ("none", "None", False)
+    starts = []
+    start_years = tx.medicareStartYear(plan.yobs, plan.mobs, plan.tobs)
+    for i in range(plan.N_i):
+        year = int(start_years[i])
+        last = first_year + int(plan.horizons[i]) - 1
+        starts.append({"name": plan.inames[i], "year": max(year, first_year) if year <= last else None})
+    medicare = {"modeled": bool(medicare_on), "start_years": starts}
+    if medicare_on:
+        part_d_base = so.get("medicarePartDBasePremium")
+        medicare.update(
+            {
+                "mode": medicare_mode,
+                "include_part_d": bool(so.get("includeMedicarePartD", True)),
+                "part_d_base_premium_monthly_per_person": float(part_d_base) if part_d_base else 0.0,
+            }
+        )
+
+    aca = None
+    if plan.slcsp_annual > 0:
+        aca = {
+            "slcsp_annual": int(round(plan.slcsp_annual)),
+            "start_year": int(plan.aca_start_year) if plan.aca_start_year > 0 else first_year,
+            "mode": so.get("withACA", "loop"),
+        }
+
+    return {
+        "medicare": medicare,
+        "aca": aca,
+        "other_medical_expenses_annual": int(round(plan.other_medical_k)),
+        "medical_inflation_excess_pct": round(float(plan.medical_excess) * 100, 4),
+        "note": "Amounts in today's $. Medicare premiums, the ACA benchmark premium, and other medical "
+        "expenses grow with inflation plus medical_inflation_excess_pct; tax brackets, IRMAA thresholds, "
+        "and the poverty line follow inflation alone. HSA withdrawals are tax-free up to Medicare "
+        "premiums plus other medical expenses.",
+    }
 
 
 def _plan_to_explain(plan, filename, set_overrides) -> dict:
@@ -72,11 +116,20 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
             lbl: int(sum(plan.beta_ij[i, j] for i in range(N_i))) for j, lbl in enumerate(account_labels)
         }
 
+    # The SSA earnings test is a fixed function of the claiming ages and the earnings
+    # columns, so both of its outputs are described without solving: what it would
+    # withhold here (today's $), and the ARF crediting months that replace it at FRA.
+    et = plan._earningsTestResult()
     social_security = [
         {
             "name": plan.inames[i],
             "claiming_age": round(float(plan.ssecAges[i]), 4),
             "monthly_pia": int(plan.ssecAmounts[i]),
+            "earnings_test": {
+                "ss_withheld_total_today": int(round(float(et.withheld_in[i].sum()))),
+                "arf_months": int(et.arf_months[i]),
+                "arf_months_spousal": int(et.arf_months_spousal[i]),
+            },
         }
         for i in range(N_i)
     ]
@@ -123,15 +176,17 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         for _, row in debt_df.iterrows():
             if not _active(row):
                 continue
-            debts.append(
-                {
-                    "name": str(row["name"]),
-                    "type": str(row["type"]),
-                    "balance": int(round(float(row["amount"]))),
-                    "rate_pct": round(float(row["rate"]), 4),
-                    "years_remaining": int(row["term"]),
-                }
-            )
+            debt = {
+                "name": str(row["name"]),
+                "type": str(row["type"]),
+                "balance": int(round(float(row["amount"]))),
+                "rate_pct": round(float(row["rate"]), 4),
+                "years_remaining": int(row["term"]),
+            }
+            prop = str(row.get("property", "") or "").strip()
+            if prop:
+                debt["paid_off_by_sale_of"] = prop
+            debts.append(debt)
 
     # Opening balance sheet (reference-year dollars): savings + fixed assets - debts.
     savings_total = int(sum(account_balances["total"].values())) if account_balances else 0
@@ -171,6 +226,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "case_name": plan._name,
         "filing_status": plan.filingStatus,
         "state": plan.state or None,
+        "state_moves": [{"year": int(y), "state": s} for y, s in plan.state_moves],
         "individuals": individuals,
         "time_horizon": {
             "start_year": int(plan.year_n[0]),
@@ -190,6 +246,7 @@ def _plan_to_explain(plan, filename, set_overrides) -> dict:
         "liquidation_capgains_rate": round(float(plan.liquidationCapGainsRate), 4),
         "social_security": social_security,
         "pensions": pensions,
+        "health_care": _health_care(plan),
         "solver_options": plan.solverOptions,
         "overrides_applied": list(set_overrides),
     }

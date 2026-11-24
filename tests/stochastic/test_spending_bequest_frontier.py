@@ -29,6 +29,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from itertools import pairwise
 import numpy as np
 import pytest
 
@@ -59,9 +60,9 @@ def opts(case):
 @pytest.mark.toml
 class TestDeterministic:
     """One scenario per level: the interactive path, and the fixedSpending replacement."""
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(
             case, opts, [0, 500, 1000, 2000], scenario_method="deterministic", with_duals=True
@@ -79,7 +80,7 @@ class TestDeterministic:
         """A Pareto frontier: reserving more for the estate can never buy more spending."""
         b = result["base_basis"]
         assert not np.isnan(b).any(), "every level in this grid should be reachable"
-        for lo, hi in zip(b, b[1:]):
+        for lo, hi in pairwise(b):
             assert hi <= lo + NOISE, f"spending rose from {lo:.2f} to {hi:.2f} as the floor increased"
 
     def test_shadow_price_is_slack_at_zero_and_binding_above(self, result):
@@ -108,9 +109,9 @@ class TestDeterministic:
 @pytest.mark.toml
 class TestHistorical:
     """Each level solved across the ensemble: the S(B, p) surface."""
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(
             case,
@@ -139,7 +140,7 @@ class TestHistorical:
         G = result["g_at_success"]
         for j in range(G.shape[1]):
             col = G[:, j]
-            for lo, hi in zip(col, col[1:]):
+            for lo, hi in pairwise(col):
                 assert hi <= lo + NOISE, f"spending rose from {lo:.2f} to {hi:.2f} at column {j}"
 
     def test_confidence_fan_is_ordered(self, result):
@@ -179,9 +180,9 @@ class TestPartialBequest:
     """
 
     CASE = "examples/Case_jordan+taylor.toml"  # beneficiary_fractions [0.28, 0.28, 0.28, 1.0]
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def couple():
         return readConfig(TestPartialBequest.CASE, verbose=False)
 
@@ -453,9 +454,9 @@ class TestSpendingUnits:
     Case_jack+jill by about 9% -- so a basis quoted against a netSpending goal reads as
     a plan that spends less and leaves less than it really does.
     """
+    @pytest.fixture(scope="class")
 
     @staticmethod
-    @pytest.fixture(scope="class")
     def result(case, opts):
         return run_spending_bequest_frontier(case, opts, [0, 500, 1000], scenario_method="deterministic")
 
@@ -511,8 +512,12 @@ class TestSpendingUnits:
     def test_the_exchange_rate_carries_both_units(self, result):
         s = summarize_spending_bequest_frontier(result)
         for e in s["exchange_rate"]:
+            # Both fields are stored round(..., 6), so two independently rounded numbers can
+            # differ by up to 1e-6 with nothing wrong. A relative tolerance alone is finer than
+            # that on these values -- rel=1e-4 of 0.0074 is 7.4e-7 -- so the check was passing
+            # on where the values happened to land. The absolute floor covers the rounding.
             assert e["spending_year1_per_dollar_of_bequest"] == pytest.approx(
-                e["spending_per_dollar_of_bequest"] * s["xi_0"], rel=1e-4
+                e["spending_per_dollar_of_bequest"] * s["xi_0"], rel=1e-4, abs=2e-6
             )
 
     def test_an_older_cached_result_still_summarizes(self, result):
@@ -522,3 +527,32 @@ class TestSpendingUnits:
         assert s["xi_0"] == pytest.approx(1.0)
         for row in s["frontier"]:
             assert row["spending_year1_today_dollars"] == pytest.approx(row["spending_today_dollars"], abs=0.02)
+
+
+class _RecordingProgress:
+    def __init__(self):
+        self.calls = []
+
+    def start(self):
+        pass
+
+    def show(self, n, N):
+        self.calls.append((n, N))
+
+    def finish(self):
+        pass
+
+
+@pytest.mark.toml
+def test_progress_counts_every_scenario_of_every_level(case, opts):
+    """The bar advances per scenario across all levels, not once per bequest level."""
+    bar = _RecordingProgress()
+    levels, ystart, yend = [0, 1000], 1970, 1972
+    run_spending_bequest_frontier(
+        case, opts, levels, scenario_method="historical", ystart=ystart, yend=yend, with_duals=False, progcall=bar
+    )
+    total = len(levels) * (yend - ystart + 1)
+    assert {N for _, N in bar.calls} == {total}
+    done = [n for n, _ in bar.calls]
+    assert done == sorted(done) and done[-1] == total
+    assert len(set(done)) == total  # every scenario of every level moved the bar

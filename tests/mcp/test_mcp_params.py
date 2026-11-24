@@ -308,6 +308,47 @@ def test_contributions_tax_deferred():
     assert plan.kappa_ijn[0, 1, 3] == pytest.approx(0)
 
 
+def test_contributions_ira_is_kept_apart_from_the_401k():
+    """All land in the tax-deferred account; only the employee's deferral is earnings without
+    other wages, and the employer's never is (#229). The workbook export splits them back into
+    their columns."""
+    plan = _single(
+        contributions=[
+            {"person": 0, "account": "tax_deferred", "annual_amount": 23_000, "end_year": THISYEAR + 1},
+            {"person": 0, "account": "ira", "annual_amount": 7_000, "end_year": THISYEAR + 1},
+            {"person": 0, "account": "employer", "annual_amount": 4_000, "end_year": THISYEAR + 1},
+        ]
+    )
+    assert plan.kappa_ijn[0, 1, 0] == pytest.approx(34_000)
+    assert plan.kappa401k_in[0, 0] == pytest.approx(23_000)
+    assert plan.kappaEmployer_in[0, 0] == pytest.approx(4_000)
+    assert plan._earnings_test_inputs()[0][0, 0] == pytest.approx(30_000)
+    timeLists, _ = build_hfp_dataframes(plan)
+    row = timeLists["Martin"][timeLists["Martin"]["year"] == THISYEAR]
+    assert row["401k ctrb"].iloc[0] == pytest.approx(23_000)
+    assert row["IRA ctrb"].iloc[0] == pytest.approx(7_000)
+    assert row["employer ctrb"].iloc[0] == pytest.approx(4_000)
+
+
+@pytest.mark.parametrize("account", ["Roth IRA", "traditional_ira", "401k", ""])
+def test_contributions_unknown_account_is_refused(account):
+    """No silent default: a mistyped Roth contribution would otherwise land in the tax-deferred
+    account and count as payroll-taxed earnings."""
+    with pytest.raises(ValueError, match="unknown account"):
+        _single(contributions=[{"person": 0, "account": account, "annual_amount": 7_000}])
+
+
+def test_contributions_account_is_case_and_space_insensitive():
+    plan = _single(contributions=[{"person": 0, "account": " IRA ", "annual_amount": 7_000}])
+    assert plan.kappa_ijn[0, 1, 0] == pytest.approx(7_000)
+    assert plan.kappa401k_in[0, 0] == 0.0
+
+
+def test_contributions_missing_account_is_refused():
+    with pytest.raises(ValueError, match="unknown account"):
+        _single(contributions=[{"person": 0, "annual_amount": 7_000}])
+
+
 def test_contributions_roth():
     plan = _single(contributions=[{"person": 0, "account": "roth", "annual_amount": 7000, "end_year": THISYEAR + 2}])
     assert plan.kappa_ijn[0, 2, 0] == pytest.approx(7000)
@@ -333,10 +374,11 @@ def test_contributions_per_person():
 
 def test_big_ticket_items_populate_lambda_in():
     plan = _single(
-        big_ticket_items=[{"person": 0, "annual_amount": 15_000, "start_year": THISYEAR, "end_year": THISYEAR + 3}]
+        big_ticket_items=[{"person": 0, "annual_amount": -15_000, "start_year": THISYEAR, "end_year": THISYEAR + 3}]
     )
-    assert plan.Lambda_in[0, 0] == pytest.approx(15_000)
-    assert plan.Lambda_in[0, 2] == pytest.approx(15_000)
+    # Signed pass-through: a negative amount is an expense, as in the HFP column.
+    assert plan.Lambda_in[0, 0] == pytest.approx(-15_000)
+    assert plan.Lambda_in[0, 2] == pytest.approx(-15_000)
     assert plan.Lambda_in[0, 3] == pytest.approx(0)
 
 
@@ -347,6 +389,149 @@ def test_big_ticket_items_single_year():
     assert plan.Lambda_in[0, 4] == pytest.approx(0)
     assert plan.Lambda_in[0, 5] == pytest.approx(60_000)
     assert plan.Lambda_in[0, 6] == pytest.approx(0)
+
+
+def test_other_income_populates_other_inc_in():
+    """Signed pass-through to the HFP "other inc": a negative amount is an above-the-line deduction (#225)."""
+    plan = _single(
+        other_income=[
+            {"person": 0, "annual_amount": -5_400, "start_year": THISYEAR, "end_year": THISYEAR + 2},
+            {"person": 0, "annual_amount": 12_000, "start_year": THISYEAR + 3, "end_year": THISYEAR + 4},
+        ]
+    )
+    assert plan.other_inc_in[0, 0] == pytest.approx(-5_400)
+    assert plan.other_inc_in[0, 1] == pytest.approx(-5_400)
+    assert plan.other_inc_in[0, 2] == pytest.approx(0)
+    assert plan.other_inc_in[0, 3] == pytest.approx(12_000)
+
+
+def test_hsa_contributions_stop_at_medicare(tmp_path):
+    """An HSA contribution entered through MCP stops at Medicare like one read from an HFP: the year
+    it starts keeps the months before it (a June 15 birthday keeps 5/12), and save_case writes the
+    amount entered, so reading the workbook back scales it once, not twice."""
+    born = THISYEAR - 64  # 65, and on Medicare, from June of next year
+    kwargs = dict(
+        names=["Robin"],
+        birth_dates=[f"{born}-06-15"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        hsa=[10_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[67],
+        contributions=[{"person": 0, "account": "hsa", "annual_amount": 4_300, "end_year": THISYEAR + 4}],
+        state="TX",
+    )
+    plan = _single(**kwargs)
+    assert plan.kappa_ijn[0, 3, 0] == pytest.approx(4_300)
+    assert plan.kappa_ijn[0, 3, 1] == pytest.approx(4_300 * 5 / 12)
+    assert plan.kappa_ijn[0, 3, 2] == pytest.approx(0)
+
+    save_case(**kwargs, output_dir=str(tmp_path))
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR + 1, "HSA ctrb"].iloc[0] == pytest.approx(4_300)
+    from owlplanner.config import readConfig
+    reread = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert reread.kappa_ijn[0, 3, 1] == pytest.approx(4_300 * 5 / 12)
+    assert reread.kappa_ijn[0, 3, 2] == pytest.approx(0)
+
+
+def test_every_tool_with_big_ticket_items_takes_other_income():
+    """The HFP time series travel together: a tool that takes one takes the others."""
+    import inspect
+    from owlplanner.assistant.tools import MCP_TOOLS
+    for tool in MCP_TOOLS:
+        params = inspect.signature(tool).parameters
+        if "big_ticket_items" in params:
+            assert "other_income" in params, tool.__name__
+            assert "months_worked" in params, tool.__name__
+
+
+def test_months_worked_populates_et_months_in(tmp_path):
+    """months_worked feeds the earnings test's grace year, as the HFP column does, and
+    save_case writes it to the workbook."""
+    plan = _single(months_worked=[{"person": 0, "year": THISYEAR + 1, "months": 6}])
+    assert plan.etMonths_in[0, 1] == 6
+    assert plan.etMonths_in[0, 0] == 0
+    with pytest.raises(ValueError, match="months_worked"):
+        _single(months_worked=[{"person": 0, "year": THISYEAR, "months": 13}])
+    save_case(
+        names=["Robin"],
+        birth_dates=["1966-07-01"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[62],
+        wages=[{"person": 0, "annual_amount": 80_000, "end_year": THISYEAR + 2}],
+        months_worked=[{"person": 0, "year": THISYEAR + 1, "months": 6}],
+        state="TX",
+        output_dir=str(tmp_path),
+    )
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR + 1, "months worked"].iloc[0] == 6
+
+
+def test_save_case_keeps_a_negative_other_income(tmp_path):
+    """A deduction saved by save_case lands in the HFP "other inc" column and reads back."""
+    save_case(
+        names=["Robin"],
+        birth_dates=["1966-07-01"],
+        life_expectancy=[90],
+        taxable=[200_000],
+        tax_deferred=[300_000],
+        roth=[100_000],
+        hsa=[10_000],
+        ss_monthly_pias=[2000],
+        ss_ages=[67],
+        contributions=[{"person": 0, "account": "hsa", "annual_amount": 5_400, "end_year": THISYEAR + 2}],
+        other_income=[{"person": 0, "annual_amount": -5_400, "end_year": THISYEAR + 2}],
+        state="TX",
+        output_dir=str(tmp_path),
+    )
+    df = pd.read_excel(tmp_path / "HFP_robin.xlsx", sheet_name="Robin")
+    assert df.loc[df["year"] == THISYEAR, "other inc"].iloc[0] == pytest.approx(-5_400)
+    from owlplanner.config import readConfig
+    plan = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert plan.other_inc_in[0, 0] == pytest.approx(-5_400)
+
+
+def test_rate_params_reach_run_from_params_and_save_case(tmp_path, monkeypatch):
+    """run_from_params passes rate_params to the plan builder, and save_case writes them
+    to the TOML, so a block bootstrap is not silently replaced by the iid default."""
+    import owlplanner.assistant.tools as tools_mod
+
+    seen = {}
+
+    def _capture(*args, **kwargs):
+        seen.update(kwargs)
+        raise RuntimeError("captured")
+
+    monkeypatch.setattr(tools_mod, "_build_plan_from_params", _capture)
+    out = json.loads(asyncio.run(run_from_params(
+        names=["Robin"], birth_dates=["1966-07-01"], life_expectancy=[90],
+        taxable=[200_000], tax_deferred=[300_000], roth=[100_000], state="TX",
+        rate_method="historical_bootstrap", rate_frm=1950, rate_to=2020,
+        rate_params={"bootstrap_type": "block", "block_size": 7},
+    )))
+    assert "captured" in out["error"]
+    assert seen["rate_params"] == {"bootstrap_type": "block", "block_size": 7}
+    monkeypatch.undo()
+
+    save_case(
+        names=["Robin"], birth_dates=["1966-07-01"], life_expectancy=[90],
+        taxable=[200_000], tax_deferred=[300_000], roth=[100_000], state="TX",
+        rate_method="historical_bootstrap", rate_frm=1950, rate_to=2020,
+        rate_params={"bootstrap_type": "block", "block_size": 7},
+        output_dir=str(tmp_path),
+    )
+    from owlplanner.config import readConfig
+    plan = readConfig(str(tmp_path / "Case_robin.toml"), verbose=False)
+    assert plan.rateMethod == "historical_bootstrap"
+    assert plan.rateModel.params["bootstrap_type"] == "block"
+    assert plan.rateModel.params["block_size"] == 7
 
 
 # ---------------------------------------------------------------------------
@@ -1421,7 +1606,7 @@ def test_swap_roth_converters_value_no_first_name_defaults_positive():
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_single_name():
+def test_run_from_params_optimize_ss_ages_single_name(few_ss_ages):
     """optimize_ss_ages='Alice' optimizes only Alice; Bob is fixed at ss_ages value."""
     result = _run(
         run_from_params(
@@ -1441,10 +1626,11 @@ def test_run_from_params_optimize_ss_ages_single_name():
     data = json.loads(result)
     assert data["status"] == "solved"
     assert data["spending_year1_today_dollars"] > 0
+    assert set(few_ss_ages) == {"Alice"}
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_all():
+def test_run_from_params_optimize_ss_ages_all(few_ss_ages):
     """optimize_ss_ages=True optimizes claiming age for all persons."""
     result = _run(
         run_from_params(
@@ -1464,29 +1650,31 @@ def test_run_from_params_optimize_ss_ages_all():
     data = json.loads(result)
     assert data["status"] == "solved"
     assert data["spending_year1_today_dollars"] > 0
+    assert set(few_ss_ages) == {"Alice", "Bob"}
 
 
 @pytest.mark.toml
-def test_run_from_params_optimize_ss_ages_already_claimed():
-    """A person whose current age >= ss_age is treated as already claimed; plan still solves."""
+def test_run_from_params_optimize_ss_ages_already_claimed(few_ss_ages):
+    """Selecting a person whose claiming age is already past is an error; selecting the other solves."""
     # Bob born 1955 → age 71 in 2026, already past any claiming age
-    result = _run(
-        run_from_params(
-            names=["Alice", "Bob"],
-            birth_dates=["1963-07-01", "1955-07-01"],
-            life_expectancy=[90, 87],
-            taxable=[150_000, 150_000],
-            tax_deferred=[600_000, 600_000],
-            roth=[75_000, 75_000],
-            ss_monthly_pias=[2333, 2667],
-            ss_ages=[67, 70],
-            state="TX",
-            rate_method="conservative",
-            optimize_ss_ages=True,
-        )
+    params = dict(
+        names=["Alice", "Bob"],
+        birth_dates=["1963-07-01", "1955-07-01"],
+        life_expectancy=[90, 87],
+        taxable=[150_000, 150_000],
+        tax_deferred=[600_000, 600_000],
+        roth=[75_000, 75_000],
+        ss_monthly_pias=[2333, 2667],
+        ss_ages=[67, 70],
+        state="TX",
+        rate_method="conservative",
     )
-    data = json.loads(result)
+    data = json.loads(_run(run_from_params(**params, optimize_ss_ages=True)))
+    assert "Bob's SS claiming age" in data["error"]
+    assert few_ss_ages == []  # refused before any search
+    data = json.loads(_run(run_from_params(**params, optimize_ss_ages="Alice")))
     assert data["status"] == "solved"
+    assert set(few_ss_ages) == {"Alice"}
 
 
 # ---------------------------------------------------------------------------
@@ -1568,7 +1756,7 @@ def test_run_historical_from_file_solves():
     result = _run(
         run_historical(
             filename="examples/Case_bill.toml",
-            overrides=["solver_options.withMedicare=None", "solver_options.withDecomposition=none"],
+            overrides=["solver_options.withMedicare=None"],
             ystart=1990,
             yend=2000,
         )
@@ -1695,7 +1883,6 @@ def test_run_monte_carlo_from_file_deterministic_toml():
             filename="examples/Case_bill.toml",
             overrides=[
                 "solver_options.withMedicare=None",
-                "solver_options.withDecomposition=none",
             ],
             rate_method="gmm",
             n_scenarios=15,
@@ -1847,11 +2034,305 @@ def test_save_case_persists_survivor_claim_age(tmp_path):
     """save_case round-trips the setting into the TOML it writes."""
     data = _save_survivor_case(str(tmp_path), case_name="surv", ss_survivor_claim_age="FRA")
     assert "error" not in data, data
-    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text()
+    assert 'social_security_survivor_claim_age = "FRA"' in Path(data["toml_file"]).read_text(encoding="utf-8")
 
 
 def test_save_case_omits_default_survivor_claim_age(tmp_path):
     """The default is not written, keeping generated case files clean."""
     data = _save_survivor_case(str(tmp_path), case_name="surv_default")
     assert "error" not in data, data
-    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text()
+    assert "social_security_survivor_claim_age" not in Path(data["toml_file"]).read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Change of state (#159) and the breakpoint method, through the MCP
+# ---------------------------------------------------------------------------
+
+
+def test_state_move_reaches_the_plan():
+    year = datetime.date.today().year + 3
+    plan = _single(state="NY", state_move={"year": year, "state": "FL"})
+    assert plan.state == "NY"
+    assert plan.state_moves == [(year, "FL")]
+
+
+def test_state_move_is_validated():
+    with pytest.raises(ValueError):
+        _single(state="NY", state_move={"year": 1900, "state": "FL"})
+
+
+@pytest.mark.toml
+@pytest.mark.deep
+def test_run_from_params_with_a_move_and_local_search():
+    year = datetime.date.today().year + 3
+    result = _run(
+        run_from_params(
+            names=["Martin"],
+            birth_dates=["1960-07-01"],
+            life_expectancy=[85],
+            taxable=[200_000],
+            tax_deferred=[800_000],
+            roth=[100_000],
+            ss_monthly_pias=[2500],
+            ss_ages=[67],
+            state="NY",
+            state_move={"year": year, "state": "FL"},
+            breakpoint_method="local-search",
+            rate_method="conservative",
+        )
+    )
+    data = json.loads(result)
+    assert data["status"] == "solved", data
+    assert data["breakpoint_method"].startswith("local search"), data["breakpoint_method"]
+
+
+def test_explanation_downgrade_drops_the_breakpoint_preset():
+    from owlplanner.assistant.tools import _downgrade_milp_tax_modes
+
+    opts = {"breakpointMethod": "local-search", "mipStrategy": "local-search", "withNIIT": "optimize"}
+    downgraded = _downgrade_milp_tax_modes(opts)
+    assert "breakpointMethod" not in opts and "mipStrategy" not in opts
+    assert opts["withNIIT"] == "loop"
+    assert set(downgraded) == {"withNIIT", "breakpointMethod"}
+
+
+def test_explanation_downgrade_reads_mode_names_in_any_case():
+    """A case file may spell a mode "Optimize", or withMedicare as true: still downgraded."""
+    from owlplanner.assistant.tools import _downgrade_milp_tax_modes
+
+    opts = {"withMedicare": "Optimize", "withSSTaxability": "OPTIMIZE", "withLTCG": True and "loop"}
+    downgraded = _downgrade_milp_tax_modes(opts)
+    assert opts["withMedicare"] == "loop" and opts["withSSTaxability"] == "loop"
+    assert set(downgraded) == {"withMedicare", "withSSTaxability"}
+    legacy = {"withMedicare": True}
+    assert _downgrade_milp_tax_modes(legacy) == [] and legacy["withMedicare"] == "loop"
+
+
+def test_debt_linked_to_a_property_is_paid_off_at_the_sale():
+    """debts "property" names a fixed asset: no balance is left after the year it is sold."""
+    sale = THISYEAR + 8
+    fa = [{"label": "home", "type": "residence", "value": 800000, "basis": 400000, "sell_year": sale}]
+    db = [{"label": "mtg", "type": "mortgage", "balance": 500000, "rate": 6.5, "years_remaining": 25}]
+    base = dict(names=["Alice", "Bob"], birth_dates=["1963-07-01", "1961-07-01"], life_expectancy=[90, 87],
+                taxable=[150_000, 150_000], tax_deferred=[600_000, 600_000], roth=[75_000, 75_000], state="TX",
+                rate_method="conservative", fixed_assets=fa)
+    runs = {}
+    for tag, debts in (("term", db), ("linked", [dict(db[0], property="home")])):
+        data = json.loads(_run(run_from_params(**base, debts=debts)))
+        assert data["status"] == "solved", data
+        runs[tag] = {y["year"]: y["debt"] for y in data["by_year"]}
+    assert runs["linked"][sale] == runs["term"][sale] > 0  # still owed that January
+    assert runs["linked"][sale + 1] == 0 < runs["term"][sale + 1]
+    bad = json.loads(_run(run_from_params(**base, debts=[dict(db[0], property="cottage")])))
+    assert "cottage" in bad["error"]
+
+
+def test_beneficiary_fractions_and_deposit_fraction_reach_the_plan():
+    plan = _couple(beneficiary_fractions=[0, 0.5, 0, 1], spousal_deposit_fraction=1.0)
+    assert list(plan.phi_j) == [0, 0.5, 0, 1]
+    assert plan.eta == 1.0
+
+
+def test_beneficiary_fractions_refused_for_a_single():
+    with pytest.raises(ValueError, match="couples only"):
+        _single(beneficiary_fractions=[0, 0, 0, 1])
+
+
+def test_partial_bequest_weight_reaches_the_solver_options():
+    from owlplanner.assistant.tools import _build_mcp_opts
+
+    assert _build_mcp_opts(partial_bequest_weight=0.02)["partialBequestWeight"] == 0.02
+    assert "partialBequestWeight" not in _build_mcp_opts()
+
+
+@pytest.mark.toml
+def test_run_from_params_reports_a_partial_bequest_and_solve_time():
+    """Accounts left to other heirs at the first death show as the partial bequest."""
+    data = json.loads(
+        _run(
+            run_from_params(
+                names=["Alice", "Bob"],
+                birth_dates=["1962-03-15", "1963-07-04"],
+                life_expectancy=[78, 90],
+                taxable=[300_000, 100_000],
+                tax_deferred=[800_000, 400_000],
+                roth=[50_000, 20_000],
+                ss_monthly_pias=[2800, 2000],
+                ss_ages=[67, 67],
+                state="TX",
+                rate_method="conservative",
+                objective="maxBequest",
+                net_spending=60_000,
+                beneficiary_fractions=[0, 0, 0, 1],
+                spousal_deposit_fraction=1.0,
+                # Above a dollar of final bequest, so Alice's accounts are kept for her heirs.
+                partial_bequest_weight=1.5,
+            )
+        )
+    )
+    assert data["status"] == "solved"
+    assert data["partial_bequest_today_dollars"] > 0
+    assert data["partial_bequest_year"] == 1962 + 78
+    assert data["solve_time_seconds"]["wall"] is not None
+
+
+def test_save_case_writes_the_estate_options(tmp_path):
+    import tomllib
+
+    out = json.loads(
+        save_case(
+            names=["Alice", "Bob"],
+            birth_dates=["1963-07-01", "1961-07-01"],
+            life_expectancy=[90, 87],
+            taxable=[150_000, 150_000],
+            tax_deferred=[600_000, 600_000],
+            roth=[75_000, 75_000],
+            state="TX",
+            beneficiary_fractions=[0, 0, 0, 1],
+            spousal_deposit_fraction=0.0,
+            partial_bequest_weight=0.02,
+            output_dir=str(tmp_path),
+        )
+    )
+    with open(out["toml_file"], "rb") as f:
+        conf = tomllib.load(f)
+    assert conf["savings_assets"]["beneficiary_fractions"] == [0, 0, 0, 1]
+    assert conf["savings_assets"]["spousal_surplus_deposit_fraction"] == 0.0
+    assert conf["solver_options"]["partialBequestWeight"] == 0.02
+
+
+def test_stress_tools_drop_the_breakpoint_preset():
+    """Local search is for one plan; scenario solves use the loop and say so."""
+    from owlplanner.assistant.tools import _drop_breakpoint_preset
+
+    opts = {"breakpointMethod": "local-search", "withMedicare": "optimize"}
+    note = _drop_breakpoint_preset(opts)
+    assert "breakpointMethod" not in opts and "local-search" in note
+    assert opts["withMedicare"] == "optimize"  # explicit per-family modes are left as given
+    for quiet in ({}, {"breakpointMethod": "loop"}, {"breakpointMethod": " Loop "}):
+        assert _drop_breakpoint_preset(quiet) is None and "breakpointMethod" not in quiet
+
+
+@pytest.mark.toml
+def test_run_historical_solves_scenarios_with_the_loop():
+    data = json.loads(
+        _run(
+            run_historical(
+                names=["Martin"],
+                birth_dates=["1960-07-01"],
+                life_expectancy=[80],
+                taxable=[200_000],
+                tax_deferred=[800_000],
+                roth=[100_000],
+                ss_monthly_pias=[2500],
+                ss_ages=[67],
+                state="TX",
+                breakpoint_method="local-search",
+                ystart=1990,
+                yend=1991,
+            )
+        )
+    )
+    assert data["n_scenarios_solved"] == 2
+    assert "local-search" in data["breakpoint_method_note"]
+
+
+def test_medical_settings_reach_the_plan():
+    plan = _single(other_medical_expenses=4_000, medical_inflation_excess=1.5)
+    assert plan.other_medical_k == 4_000
+    assert plan.medical_excess == pytest.approx(0.015)
+
+
+def test_medical_inflation_out_of_range_is_refused():
+    with pytest.raises(ValueError, match="between 0% and 10%"):
+        _single(medical_inflation_excess=12)
+
+
+def test_hsa_without_medical_expenses_is_disclosed():
+    assumed = []
+    _single(hsa=[50_000], assumed=assumed)
+    assert "other_medical_expenses" in {a["parameter"] for a in assumed}
+    assumed = []
+    _single(hsa=[50_000], other_medical_expenses=3_000, assumed=assumed)
+    assert "other_medical_expenses" not in {a["parameter"] for a in assumed}
+    assumed = []
+    _single(assumed=assumed)
+    assert "other_medical_expenses" not in {a["parameter"] for a in assumed}
+
+
+def test_part_d_options_reach_the_solver_options():
+    from owlplanner.assistant.tools import _build_mcp_opts
+
+    opts = _build_mcp_opts(include_medicare_part_d=False, medicare_part_d_base_premium=40)
+    assert opts["includeMedicarePartD"] is False
+    assert opts["medicarePartDBasePremium"] == 40.0
+    assert "includeMedicarePartD" not in _build_mcp_opts()
+    assert "medicarePartDBasePremium" not in _build_mcp_opts()
+
+
+def test_run_from_params_charges_dearer_health_care():
+    """Faster medical inflation raises Medicare premiums and lowers spending."""
+    base = dict(
+        names=["Pat"],
+        birth_dates=["1958-03-15"],
+        life_expectancy=[90],
+        taxable=[300_000],
+        tax_deferred=[700_000],
+        roth=[100_000],
+        hsa=[60_000],
+        ss_monthly_pias=[2500],
+        ss_ages=[70],
+        state="TX",
+        rate_method="conservative",
+        spending_profile="flat",
+        other_medical_expenses=4_000,
+    )
+    runs = [json.loads(_run(run_from_params(**base, medical_inflation_excess=x))) for x in (0, 3)]
+    assert all(r["status"] == "solved" for r in runs)
+    assert "other_medical_expenses" not in {a["parameter"] for a in runs[0].get("assumed_defaults", [])}
+    m0, m1 = (r["summary"]["medicare_nominal"] for r in runs)
+    s0, s1 = (r["summary"]["spending_basis_today_dollars"] for r in runs)
+    assert m1 > m0 and s1 < s0
+
+
+def test_save_case_writes_the_medical_settings(tmp_path):
+    import tomllib
+
+    out = json.loads(
+        save_case(
+            names=["Pat"],
+            birth_dates=["1958-03-15"],
+            life_expectancy=[90],
+            taxable=[300_000],
+            tax_deferred=[700_000],
+            roth=[100_000],
+            hsa=[60_000],
+            state="TX",
+            other_medical_expenses=4_000,
+            medical_inflation_excess=1.5,
+            include_medicare_part_d=False,
+            medicare_part_d_base_premium=40,
+            output_dir=str(tmp_path),
+        )
+    )
+    with open(out["toml_file"], "rb") as f:
+        conf = tomllib.load(f)
+    assert conf["optimization_parameters"]["other_medical_expenses"] == 4.0
+    assert conf["optimization_parameters"]["medical_inflation_excess"] == 1.5
+    assert conf["solver_options"]["includeMedicarePartD"] is False
+    assert conf["solver_options"]["medicarePartDBasePremium"] == 40.0
+
+
+def test_past_wages_and_months_reach_the_earnings_test():
+    """Wages and months worked before the plan fill its five lead-in years (#235)."""
+    p = _single(
+        wages=[{"person": 0, "annual_amount": 60_000, "start_year": THISYEAR - 2, "end_year": THISYEAR + 1}],
+        months_worked=[{"person": 0, "start_year": THISYEAR - 1, "months": 6}],
+        contributions=[{"person": 0, "account": "tax_deferred", "annual_amount": 5_000,
+                        "start_year": THISYEAR - 1, "end_year": THISYEAR}],
+    )
+    assert list(p.omegaPast_in[0]) == [0, 0, 0, 60_000, 60_000]
+    assert p.omega_in[0, 0] == 60_000 and p.omega_in[0, 1] == 0
+    assert list(p.etMonthsPast_in[0]) == [0, 0, 0, 0, 6]
+    earnings, _ = p._earnings_test_inputs(past=True)
+    assert earnings[0, 4] == 65_000

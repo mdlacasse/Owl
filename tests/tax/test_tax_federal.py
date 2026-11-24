@@ -60,6 +60,31 @@ def _obbba_bonus_mfj_total(magi):
 
 
 # ---------------------------------------------------------------------------
+# taxBirthYears(): age 65 is reached the day before the 65th birthday (issue #207)
+# ---------------------------------------------------------------------------
+
+
+def test_taxBirthYears_january_first_counts_in_prior_year():
+    yobs = tx.taxBirthYears([1961, 1962, 1962, 1962], [12, 1, 1, 2], [31, 1, 2, 1])
+    assert list(yobs) == [1961, 1961, 1962, 1962]
+
+
+def test_plan_january_first_birthday_gets_65_deductions_a_year_early():
+    """Born January 1 of the year that makes them 64: 65 for tax purposes this year."""
+    import owlplanner as owl
+
+    thisyear = date.today().year
+    sigma = {}
+    for dob in (f"{thisyear - 65}-12-31", f"{thisyear - 64}-01-01", f"{thisyear - 64}-01-02"):
+        p = owl.Plan(["A"], [dob], [80], "age65", verbose=False)
+        sigma[dob] = tx.taxParams(p.yobs_tax, p.i_d, p.n_d, p.N_n, np.ones(p.N_n + 1), np.zeros(p.N_n))[0][0]
+    dec31, jan1, jan2 = sigma.values()
+    assert jan1 == dec31
+    assert jan2 == float(tx.stdDeduction_OBBBA[0])
+    assert jan1 - jan2 >= float(tx.extra65Deduction[0])
+
+
+# ---------------------------------------------------------------------------
 # taxBrackets()
 # ---------------------------------------------------------------------------
 
@@ -207,6 +232,25 @@ def test_rho_in_table_ii_spot_check_owner73_spouse58():
 
     expected = 1.0 / JOINT_LIFE_TABLE[73][58]
     assert rho[0][0] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "owner, spouse, value",
+    [(90, 76, 14.7), (112, 102, 3.3), (112, 103, 3.2), (112, 107, 3.0)],
+)
+def test_joint_table_follows_the_regulation(owner, spouse, value):
+    """#217: 26 CFR 1.401(a)(9)-9(d) (T.D. 9930, 85 FR 72472), where Pub. 590-B (2025) prints
+    14.8, 3.2, 3.1 and 2.9; the regulation's table is symmetric in these cells."""
+    from owlplanner.data.irs_590b import JOINT_LIFE_TABLE
+
+    assert JOINT_LIFE_TABLE[owner][spouse] == value
+
+
+def test_rmd_owner90_spouse76_uses_the_regulation():
+    """The one corrected cell an RMD can reach (spouse more than 10 years younger)."""
+    thisyear = date.today().year
+    rho = tx.rho_in([thisyear - 90, thisyear - 76], [95, 95], 1)
+    assert rho[0][0] == pytest.approx(1.0 / 14.7)
 
 
 def test_rho_in_table_ii_no_longer_raises_for_large_gap():
