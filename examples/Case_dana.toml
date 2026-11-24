@@ -11,6 +11,7 @@ state = "CA"
 
 [savings_assets]
 taxable_savings_balances = [ 150.0,]
+taxable_cost_basis = [ 90.0,]
 tax_deferred_savings_balances = [ 937.0,]
 tax_free_savings_balances = [ 100.0,]
 hsa_savings_balances = [ 0.0,]

@@ -2981,6 +2981,7 @@ class Plan:
         self._add_roth_conversion_constraints(options)
         self._add_safety_net(options)
         self._add_roth_maturation_constraints()
+        self._add_first_year_income_cap(options)
         self._add_roth_early_withdrawal_limits()
         self._add_withdrawal_limits()
         self._add_hsa_medical_cap()
@@ -3166,6 +3167,75 @@ class Plan:
                     self.B.setRange(self.vm["w"].idx(self.i_d, j, n), 0, 0)
 
     @_fixedAcrossIterations
+    def _add_first_year_income_cap(self, options):
+        """Cap the first year's income at a known tax landmark, leaving the conversion free.
+
+        This is the commitment a practitioner actually makes -- fill this bracket, do not cross
+        it -- rather than a commitment to a dollar amount. It is the weaker promise of the two:
+        the feasible set contains every pinned conversion that fills the same landmark, so a
+        capped plan is never worse than the pinned one, and is better wherever it would rather
+        move dollars between accounts than cross the line. Regret measured under a pin is
+        therefore an upper bound on regret under the cap, not an estimate of it.
+
+        Two bases, because the landmarks do not share one. firstYearOrdinaryCap bounds
+        G_0 = sum_t f[t,0], the federal taxable ordinary income a bracket top bounds.
+        firstYearMAGICap bounds the AGI-basis MAGI e_0 + G_0 + Q_0 -- the same combination
+        _add_magi_constraints builds -- which is what an IRMAA tier bounds. Q_0 enters through
+        the q bracket variables for the reason given there: substituting the portfolio
+        expression cancels it at the partition minimum.
+        """
+        vm = self.vm
+        # "Do not cross L" and "fill L" are different commitments, and only the second is a
+        # decision. A ceiling above the income the plan wanted anyway binds nothing and costs
+        # nothing, so ranking landmarks under ceilings ranks them by looseness: every landmark
+        # above the free optimum scores zero. The practitioner rule is to convert enough to
+        # reach the landmark and no further, which is an equality.
+        exact = bool(options.get("firstYearIncomeCapExact", False))
+
+        def _bounds(cap):
+            return (float(cap), float(cap)) if exact else (-np.inf, float(cap))
+
+        def _ordinary(row):
+            if "gn" in vm:
+                row.addElem(vm["gn"].idx(0), 1)
+            else:
+                for t in range(self.N_t):
+                    row.addElem(vm["f"].idx(t, 0), 1)
+
+        cap = options.get("firstYearOrdinaryCap", None)
+        if cap is not None:
+            row = self.A.newRow()
+            _ordinary(row)
+            self.A.addRow(row, *_bounds(cap), tag=("first_year_ordinary_cap", 0))
+
+        cap = options.get("firstYearMAGICap", None)
+        if cap is not None:
+            row = self.A.newRow({vm["e"].idx(0): 1})
+            _ordinary(row)
+            for p in range(self.N_p):
+                row.addElem(vm["q"].idx(p, 0), 1)
+            self.A.addRow(row, *_bounds(cap), tag=("first_year_magi_cap", 0))
+
+        # G_0 + Q_0, federal taxable income: what the zero-rate ceiling for qualified dividends
+        # and long-term gains bounds. MAGI less the standard deduction, so neither cap above.
+        cap = options.get("firstYearTaxableCap", None)
+        if cap is not None:
+            row = self.A.newRow()
+            _ordinary(row)
+            for p in range(self.N_p):
+                row.addElem(vm["q"].idx(p, 0), 1)
+            self.A.addRow(row, *_bounds(cap), tag=("first_year_taxable_cap", 0))
+
+        # The state brackets sit on their own base, which the state rows assemble separately.
+        cap = options.get("firstYearStateCap", None)
+        if cap is not None:
+            if "st_f" not in vm:
+                raise ValueError("firstYearStateCap needs a state with an income tax.")
+            row = self.A.newRow()
+            for t in range(self.N_st):
+                row.addElem(vm["st_f"].idx(t, 0), 1)
+            self.A.addRow(row, *_bounds(cap), tag=("first_year_state_cap", 0))
+
     def _add_roth_maturation_constraints(self):
         """
         Enforce the Roth 5-year seasoning rule for conversions and contribution gains.
@@ -3327,6 +3397,40 @@ class Plan:
                 for n in range(nstop, self.horizons[i]):
                     self.B.setRange(self.vm["x"].idx(i, n), 0, 0)
 
+        if options.get("noFirstYearRothWithdrawals", False):
+            # Shut the round-trip backdoor. A first-year conversion the plan is told to make can
+            # otherwise be nullified within that same year: the conversion is ordinary income
+            # that yields no spendable cash, so the plan drops the tax-deferred withdrawal
+            # one-for-one to hold the year's ordinary income on target, then replaces the missing
+            # cash out of the Roth. Year-end balances, ordinary income and tax all land exactly
+            # where they would have without converting.
+            #
+            # The converted dollars themselves are already barred: the maturation rows are
+            # written on the start-of-year balance and carry no x[i,n] term, so
+            # w[i,2,0] <= b[i,2,0]. That is not enough, because dollars are fungible -- drawing
+            # the PRE-EXISTING balance achieves the same nullification. Blocking the withdrawal
+            # is what closes it, which is why this is a bound on w and not on the conversion.
+            #
+            # Measured on the 144 reference baselines of the conversion-regret sweeps, this is
+            # free on 133 and binds on 11 (dana 2 windows, at most $3,236; devon 9, at most
+            # $84,852), so turning it on moves x* on those. Default off for that reason.
+            for i in range(self.N_i):
+                self.B.setRange(self.vm["w"].idx(i, 2, 0), 0, 0)
+
+        if options.get("noFirstYearTaxableWithdrawals", False):
+            # Close the funding channel the literature's "pay the tax from outside the IRA"
+            # result turns on, so that the same plan can be solved with the conversion tax
+            # necessarily met from the tax-deferred account itself. With w[i,0,0] barred, every
+            # dollar of first-year conversion tax has to be raised by a larger tax-deferred
+            # withdrawal, which is ordinary income in its own right; with it open, the plan can
+            # pay the tax out of basis and principal that are not ordinary income at all.
+            #
+            # This is a control, not a modelling claim: balances, allocation and every later
+            # year are untouched, so the two arms differ in the funding channel alone and the
+            # response factor of Equation (4) can be attributed to it.
+            for i in range(self.N_i):
+                self.B.setRange(self.vm["w"].idx(i, 0, 0), 0, 0)
+
         if "swapRothConverters" in options and i_xcluded == -1:
             rhsopt = int(u.get_numeric_option(options, "swapRothConverters", 0))
             if self.N_i == 2 and rhsopt != 0:
@@ -3372,9 +3476,26 @@ class Plan:
                         f"{verb} flagged in the 'Roth conv fixed' column. Remove one of the two."
                     )
                 continue
+            net_pin = options.get("netFirstYearRothPin", False)
             for n in pinned:
                 v = self.myRothX_in[i][n]
-                self.B.setRange(self.vm["x"].idx(i, n), v, v)
+                if net_pin and n == 0:
+                    # The commitment is the NET first-year transfer, x[i,0] - w[i,2,0]: a
+                    # conversion satisfied by withdrawing from the Roth the same year nets to
+                    # nothing and so cannot meet the pin. This closes the same backdoor as
+                    # noFirstYearRothWithdrawals without its two defects. Measured over the
+                    # 1,728 pinned solves of zero_degeneracy_all72.json, 375 increments take a
+                    # same-year Roth withdrawal, and on 266 of them the tax-deferred draw is
+                    # already zero -- the Roth is the only cash left, so a bar on w forbids a
+                    # draw the plan has no alternative to. The bar also binds on 11 of the 144
+                    # unpinned baselines, moving v* itself; a pin cannot, because a baseline
+                    # carries no pin. Linear, so no binary and no MILP.
+                    self.A.addNewRow(
+                        {self.vm["x"].idx(i, 0): 1, self.vm["w"].idx(i, 2, 0): -1},
+                        v, v, tag=("net first-year Roth pin", i),
+                    )
+                else:
+                    self.B.setRange(self.vm["x"].idx(i, n), v, v)
 
     @_fixedAcrossIterations
     def _add_safety_net(self, options):
@@ -5236,6 +5357,14 @@ class Plan:
             "maxRothConversion",
             "minTaxableBalance",
             "netSpending",
+            "noFirstYearRothWithdrawals",  # bar w[i,2,0]: no Roth withdrawal in the first year
+            "noFirstYearTaxableWithdrawals",  # bar w[i,0,0]: the first year's tax cannot come from the taxable account
+            "netFirstYearRothPin",  # pin x[i,0] - w[i,2,0] instead of x[i,0]
+            "firstYearOrdinaryCap",  # cap G_0 at a bracket top, conversion free
+            "firstYearMAGICap",  # cap AGI-basis MAGI_0 at an IRMAA tier, conversion free
+            "firstYearTaxableCap",  # cap G_0+Q_0 at the 0% capital-gains ceiling
+            "firstYearStateCap",  # cap state taxable income at a state bracket top
+            "firstYearIncomeCapExact",  # make the caps equalities: fill the landmark, not merely stay under it
             "noLateSurplus",
             "noRothConversions",
             "oppCostX",
