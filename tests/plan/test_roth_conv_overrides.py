@@ -200,3 +200,25 @@ def test_a_multi_year_schedule_is_net_in_every_pinned_year():
     for n in range(h):
         net = p.x_in[0, n] - p.w_ijn[0, 2, n]
         assert abs(net - amount) < 1.0, f"year {n}: net ${net:,.2f}, not ${amount:,.2f}"
+
+
+# --- an unrecognized option is refused, not dropped ---------------------------
+
+
+def test_a_misspelled_option_raises_rather_than_being_dropped():
+    """A dropped typo is silent in every artifact a study writes.
+
+    Until 2026-11-25 an unknown option was logged and popped, so a run completed with the
+    option doing nothing and no artifact recorded the difference. Retired options keep
+    warning and continuing, which test_retired_options_warn covers elsewhere.
+    """
+    p = _make_plan("misspelled option")
+    with pytest.raises(ValueError, match="netRothPin"):
+        p.solve("maxSpending", dict(_BASE_OPTIONS, netRothPin=True))  # missing the plural
+
+
+def test_the_correct_spelling_is_accepted():
+    """The guard names the real option, so the pair proves the spelling that works."""
+    p = _make_plan("correct spelling")
+    p.solve("maxSpending", dict(_BASE_OPTIONS, netRothPins=True))
+    assert p.caseStatus == "solved"

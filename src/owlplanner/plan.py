@@ -94,7 +94,14 @@ _SCLOOP_RETIRED = (
     "phaseout and the cost-basis gain fractions are nonlinear in the solution -- and turning "
     "it off left Medicare out of the budget, overstating spending. Use maxIter to shorten it"
 )
+_ROTHOVERRIDES_RETIRED = (
+    "per-year Roth conversion pins are no longer switched on by an option: the \"Roth conv "
+    "fixed\" column of the Wages and Contributions table decides, per year and per person, "
+    "whether the \"Roth conv\" amount binds. A case file written before 2026-08-29 can carry "
+    "this key with either value and mean the same thing, so it is ignored rather than refused"
+)
 RETIRED_OPTIONS = {
+    "useRothConvOverrides": _ROTHOVERRIDES_RETIRED,
     "amoConstraints": _AMO_RETIRED,
     "amoRoth": _AMO_RETIRED,
     "amoSurplus": _AMO_RETIRED,
@@ -5433,9 +5440,16 @@ class Plan:
                 )
                 myoptions.pop(opt)
             elif opt not in knownOptions:
-                # raise ValueError(f"Option '{opt}' is not one of {knownOptions}.")
-                self.mylog.print(f"Ignoring unknown solver option '{opt}'.")
-                myoptions.pop(opt)
+                # Refused, not dropped. A dropped typo is silent in every artifact a study
+                # writes: the run completes, the option does nothing, and nothing downstream
+                # can tell that configuration apart from the one that was asked for. A
+                # misspelled option is a caller error, and the caller is the only one who can
+                # fix it. REMOVED_OPTIONS and RETIRED_OPTIONS above carry their own messages,
+                # so an option retired on purpose still warns and continues rather than raising.
+                raise ValueError(
+                    f"Solver option '{opt}' is not recognized; it is not one of "
+                    f"{sorted(knownOptions)}."
+                )
 
         if objective not in knownObjectives:
             raise ValueError(f"Objective '{objective}' is not one of {knownObjectives}.")

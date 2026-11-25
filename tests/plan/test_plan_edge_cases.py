@@ -397,15 +397,22 @@ def test_solve_invalid_objective():
 
 
 def test_solve_invalid_option():
-    """Test solve ignores unknown option."""
+    """An unrecognized option is refused, not dropped.
+
+    Until 2026-11-25 it was logged and popped, so a study could run start to finish with a
+    misspelled option doing nothing and no artifact recording the difference. Finding the one
+    shipped case file that still passed a deleted option (useRothConvOverrides, in
+    Case_avery+quinn) is what the change is for; a name retired on purpose still warns and
+    continues, which is why that one now lives in RETIRED_OPTIONS.
+    """
     p = owl.Plan(["Joe"], ["1961-01-15"], [80], "test")
     p.setSpendingProfile("flat")
     p.setAllocationRatios("individual", generic=[[[60, 40, 0, 0], [60, 40, 0, 0]]])
     p.setRates("trailing_30")
     p.setAccountBalances(taxable=[100], taxDeferred=[200], taxFree=[50])
 
-    p.solve("maxSpending", options={"invalid_option": True})
-    assert "invalid_option" not in p.solverOptions
+    with pytest.raises(ValueError, match="invalid_option"):
+        p.solve("maxSpending", options={"invalid_option": True})
 
 
 def test_solve_max_bequest_no_net_spending():

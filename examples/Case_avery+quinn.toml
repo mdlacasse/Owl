@@ -75,7 +75,6 @@ solver = "default"
 spendingSlack = 0
 startRothConversions = 2026
 timePreference = 0.0
-useRothConvOverrides = false
 withMedicare = "loop"
 withACA = "loop"
 withLTCG = "loop"
