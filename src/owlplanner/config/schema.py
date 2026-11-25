@@ -341,6 +341,7 @@ class SolverOptions(BaseModel):
     )
     gap: Optional[float] = None
     verbose: Optional[bool] = None
+    netRothPins: Optional[bool] = None
 
     # Tolerances
     absTol: Optional[float] = None

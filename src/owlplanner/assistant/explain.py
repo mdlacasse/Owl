@@ -69,6 +69,14 @@ CONSTRAINT_FAMILIES = {
         "label": "spending-profile band, upper edge",
         "indices": ("year",),
     },
+    "roth_pin_net": {
+        "class": "policy",
+        "label": "pinned Roth conversion, net of same-year Roth withdrawals",
+        "indices": ("person", "year"),
+        "note": "Years flagged in 'Roth conv fixed' with a positive amount, where the "
+        "conversion less the same-year Roth withdrawal must equal that amount. An equality, so the generic "
+        "explainer, which needs a single relaxation direction, does not report it.",
+    },
     "roth_maturation": {
         "class": "policy",
         "label": "Roth 5-year seasoning floor on withdrawals",

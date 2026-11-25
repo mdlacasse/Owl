@@ -141,3 +141,62 @@ def test_negative_amount_rejected_on_the_in_memory_path():
     tl.at[row, "Roth conv"] = -1.0
     with pytest.raises(ValueError, match="Roth conv fixed"):
         p.setContributions(p.timeLists)
+
+
+# --- the pin binds the NET transfer, in every pinned year ---------------------
+#
+# A retiree asking for a conversion is not asking for a same-year Roth withdrawal that undoes
+# it, so a positive pin binds x[i,n] - w[i,2,n] = c rather than x[i,n] = c. Generalized from a
+# first-year-only form on 2026-11-24; these tests exist because the old form left later pinned
+# years reading gross, and the regret sweeps pin schedules across every year.
+
+_GROSS = dict(_BASE_OPTIONS, netRothPins=False)
+
+
+def test_net_pin_binds_a_later_year_not_only_the_first():
+    """The net identity holds for a pin in year 3, which the first-year-only form did not cover."""
+    p = _make_plan("net later year")
+    n, amount = 3, 40_000.0
+    p.myRothX_in[0, n] = amount
+    p.rothXfixed_in[0, n] = True
+    p.solve("maxSpending", _BASE_OPTIONS)
+    assert p.caseStatus == "solved", p.caseStatus
+    net = p.x_in[0, n] - p.w_ijn[0, 2, n]
+    assert abs(net - amount) < 1.0, f"net transfer in year {n} is ${net:,.2f}, not ${amount:,.2f}"
+    assert p.x_in[0, n] >= amount - 1.0, "the pin lost its precedence bound x >= c"
+
+
+def test_gross_reading_pins_the_conversion_alone():
+    """netRothPins=False restores x = c, for a conversion already made."""
+    p = _make_plan("gross later year")
+    n, amount = 3, 40_000.0
+    p.myRothX_in[0, n] = amount
+    p.rothXfixed_in[0, n] = True
+    p.solve("maxSpending", _GROSS)
+    assert p.caseStatus == "solved", p.caseStatus
+    assert abs(p.x_in[0, n] - amount) < 1.0, f"gross pin gave ${p.x_in[0, n]:,.2f}"
+
+
+def test_a_zero_pin_is_a_bound_under_both_readings():
+    """A ticked 0 means "no conversion", not "no Roth spending", so it stays x = 0."""
+    for opts, label in ((_BASE_OPTIONS, "net"), (_GROSS, "gross")):
+        p = _make_plan(f"zero pin {label}")
+        p.myRothX_in[0, 2] = 0.0
+        p.rothXfixed_in[0, 2] = True
+        p.solve("maxSpending", opts)
+        assert p.caseStatus == "solved", p.caseStatus
+        assert abs(p.x_in[0, 2]) < 1.0, f"{label}: zero pin gave ${p.x_in[0, 2]:,.2f}"
+
+
+def test_a_multi_year_schedule_is_net_in_every_pinned_year():
+    """The case the sweeps rely on: a positive schedule pinned across all years."""
+    p = _make_plan("net schedule")
+    h = p.horizons[0]
+    amount = 25_000.0
+    p.myRothX_in[0, :h] = amount
+    p.rothXfixed_in[0, :h] = True
+    p.solve("maxSpending", _BASE_OPTIONS)
+    assert p.caseStatus == "solved", p.caseStatus
+    for n in range(h):
+        net = p.x_in[0, n] - p.w_ijn[0, 2, n]
+        assert abs(net - amount) < 1.0, f"year {n}: net ${net:,.2f}, not ${amount:,.2f}"

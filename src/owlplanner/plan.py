@@ -3461,9 +3461,34 @@ class Plan:
         # last-two-years zeroing. An amount of 0 is a pin like any other -- it holds that
         # year at no conversion.
         #
+        # A positive amount pins the NET transfer into the Roth, x[i,n] - w[i,2,n] = c, in
+        # EVERY pinned year rather than only the first: a retiree asking for a conversion is not
+        # asking for a same-year Roth withdrawal that undoes it, and a pin investigated for its
+        # cost can otherwise cost nothing. The bound x >= c keeps the pin's precedence over the
+        # cap and the start/stop years.
+        #
+        # The price is that a pinned year allows no net Roth spending. For a conversion already
+        # executed by a household that lives on its Roth that is wrong, and it can make the plan
+        # infeasible when the pin exhausts the tax-deferred account; netRothPins=False restores
+        # the gross reading, x = c. A zero amount stays a bound, x = 0, under either reading:
+        # its net form would forbid tax-free Roth spending, which is not what "no conversion"
+        # means -- so never-convert baselines are identical under both.
+        #
+        # Measured over the 1,728 pinned solves of zero_degeneracy_all72.json, 375 increments
+        # take a same-year Roth withdrawal, and on 266 of them the tax-deferred draw is already
+        # zero -- the Roth is the only cash left, so a BAR on w (noFirstYearRothWithdrawals)
+        # forbids a draw the plan has no alternative to, and binds on 11 of the 144 unpinned
+        # baselines, moving v* itself. The net row does neither. Linear: no binary, no MILP.
+        #
+        # Generalized from the first-year-only netFirstYearRothPin on 2026-11-24, adopting the
+        # name, default and semantics of d17a3273 on main/dev so the two engines agree and a
+        # later merge is trivial. The multi-year case is not hypothetical here: horizon_ladder.py
+        # and schedule_commitment.py pin a positive schedule across every year.
+        #
         # noRothConversions is the one that refuses instead of yielding, a few lines down.
         # It is a categorical statement about a person, so a pin against it is a
         # contradiction; a swap is only a schedule, so a pin simply overrides it.
+        net_pins = bool(options.get("netRothPins", True))
         for i in range(self.N_i):
             pinned = np.flatnonzero(self.rothXfixed_in[i, : self.horizons[i]])
             if i == i_xcluded:
@@ -3476,26 +3501,17 @@ class Plan:
                         f"{verb} flagged in the 'Roth conv fixed' column. Remove one of the two."
                     )
                 continue
-            net_pin = options.get("netFirstYearRothPin", False)
             for n in pinned:
                 v = self.myRothX_in[i][n]
-                if net_pin and n == 0:
-                    # The commitment is the NET first-year transfer, x[i,0] - w[i,2,0]: a
-                    # conversion satisfied by withdrawing from the Roth the same year nets to
-                    # nothing and so cannot meet the pin. This closes the same backdoor as
-                    # noFirstYearRothWithdrawals without its two defects. Measured over the
-                    # 1,728 pinned solves of zero_degeneracy_all72.json, 375 increments take a
-                    # same-year Roth withdrawal, and on 266 of them the tax-deferred draw is
-                    # already zero -- the Roth is the only cash left, so a bar on w forbids a
-                    # draw the plan has no alternative to. The bar also binds on 11 of the 144
-                    # unpinned baselines, moving v* itself; a pin cannot, because a baseline
-                    # carries no pin. Linear, so no binary and no MILP.
+                jx = self.vm["x"].idx(i, n)
+                if net_pins and v > 0:
+                    self.B.setRange(jx, v, np.inf)
                     self.A.addNewRow(
-                        {self.vm["x"].idx(i, 0): 1, self.vm["w"].idx(i, 2, 0): -1},
-                        v, v, tag=("net first-year Roth pin", i),
+                        {jx: 1, self.vm["w"].idx(i, 2, n): -1}, v, v,
+                        tag=("roth_pin_net", i, n),
                     )
                 else:
-                    self.B.setRange(self.vm["x"].idx(i, n), v, v)
+                    self.B.setRange(jx, v, v)
 
     @_fixedAcrossIterations
     def _add_safety_net(self, options):
@@ -5359,7 +5375,7 @@ class Plan:
             "netSpending",
             "noFirstYearRothWithdrawals",  # bar w[i,2,0]: no Roth withdrawal in the first year
             "noFirstYearTaxableWithdrawals",  # bar w[i,0,0]: the first year's tax cannot come from the taxable account
-            "netFirstYearRothPin",  # pin x[i,0] - w[i,2,0] instead of x[i,0]
+            "netRothPins",  # True (default): a positive Roth conv pin binds x - w[2]; False: x
             "firstYearOrdinaryCap",  # cap G_0 at a bracket top, conversion free
             "firstYearMAGICap",  # cap AGI-basis MAGI_0 at an IRMAA tier, conversion free
             "firstYearTaxableCap",  # cap G_0+Q_0 at the 0% capital-gains ceiling
