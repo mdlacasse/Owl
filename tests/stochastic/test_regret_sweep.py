@@ -196,6 +196,15 @@ def test_rejects_bad_arguments(dana):
 # deduction, which raised Dana's CA tax. maxSpending v_star 58_248.07 -> 57_848.20 (-0.7%) and
 # x_star 67_974.79 -> 59_924.62; maxBequest v_star 431_374.54 -> 389_539.57 (-9.7%), v_noconv
 # 396_444.36 -> 362_189.09, so never-convert regret goes from 34_930.18 to 27_350.48.
+# Refreshed 2026-11-25 for taxable_cost_basis in the case files (dana 90.0, committed in
+# 9075d646 after sitting uncommitted for weeks). The basis changes the gain fraction on taxable
+# withdrawals, so it moves every number here: maxSpending v_star 58_154.20 -> 57_952.41 (-0.3%)
+# and x_star 59_924.62 -> 36_859.81 (-38.5%); maxBequest v_star 411_381.28 -> 396_408.58 (-3.6%),
+# x_star 59_928.39 -> 36_842.09, v_noconv 381_832.42 -> 373_978.73.
+#
+# NOT caused by netRothPins becoming the default in 93ae1293: measured A/B on these exact cells,
+# the pin moves them by 0. Confirmed by removing the basis from the case file, which makes the
+# OLD values pass again.
 @pytest.mark.toml
 def test_dana_1966_maxspending_reference(dana):
     """Pin the paper's 1966 maxSpending numbers (Cost-of-Committing sweep, 2026-07-16)."""
@@ -208,11 +217,11 @@ def test_dana_1966_maxspending_reference(dana):
     # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each; Dana is over 65) were
     # modeled: v_star and the first two pinned solves rose by exactly the $306/yr credit; x_star
     # did not move.
-    assert _rel(res["v_star"][0], 58_154.20) < RTOL
-    assert _rel(res["x_star"][0], 59_924.62) < RTOL
-    assert _rel(res["v_at"][0, 0], 58_140.84) < RTOL
-    assert _rel(res["v_at"][0, 1], 58_154.15) < RTOL
-    assert _rel(res["v_at"][0, 2], 57_802.33) < RTOL
+    assert _rel(res["v_star"][0], 57_952.41) < RTOL
+    assert _rel(res["x_star"][0], 36_859.81) < RTOL
+    assert _rel(res["v_at"][0, 0], 57_939.41) < RTOL
+    assert _rel(res["v_at"][0, 1], 57_803.47) < RTOL
+    assert _rel(res["v_at"][0, 2], 57_336.59) < RTOL
     # Pinned solves can beat the SC-loop baseline only within the noise floor.
     regret = res["v_star"][0] - res["v_at"][0, :]
     assert (regret > -NOISE).all()
@@ -233,16 +242,25 @@ def test_dana_1966_maxbequest_reference(dana):
     # Re-pinned 2026-10-03 when CA's personal and senior credits ($153 each) were modeled: every
     # bequest rose by about $10.9k per credit (389_539.57 -> 411_381.28 for v_star) and x_star did
     # not move (59_920.91 -> 59_928.39), as a fixed yearly credit compounding into the estate would do.
-    assert _rel(res["v_star"][0], 411_381.28) < RTOL
-    assert _rel(res["x_star"][0], 59_928.39) < RTOL
-    assert _rel(res["v_at"][0, 0], 410_423.07) < RTOL
-    assert _rel(res["v_at"][0, 1], 411_176.90) < RTOL
-    assert _rel(res["v_noconv"][0], 381_832.42) < RTOL
-    # Orderings that carry the paper's story:
-    # never converting < skipping year 1 < converting near the optimum <= clairvoyant.
-    # The last link leans on NOISE: a pinned solve can come back above the SC-loop
-    # baseline, which is a reminder that v_star is a baseline solve and not a proven bound.
-    assert res["v_noconv"][0] < res["v_at"][0, 0] < res["v_at"][0, 1] <= res["v_star"][0] + NOISE
+    assert _rel(res["v_star"][0], 396_408.58) < RTOL
+    assert _rel(res["x_star"][0], 36_842.09) < RTOL
+    assert _rel(res["v_at"][0, 0], 395_807.18) < RTOL
+    assert _rel(res["v_at"][0, 1], 384_103.43) < RTOL
+    assert _rel(res["v_noconv"][0], 373_978.73) < RTOL
+    # Orderings that carry the paper's story: never converting is the worst outcome, and no
+    # pinned solve beats the clairvoyant baseline by more than the noise floor. The second
+    # leans on NOISE because a pinned solve can come back above the SC-loop baseline, which is
+    # a reminder that v_star is a baseline solve and not a proven bound.
+    assert res["v_noconv"][0] < res["v_at"][0, :].min()
+    assert res["v_at"][0, :].max() <= res["v_star"][0] + NOISE
+    # What this no longer asserts is v_at[0,0] < v_at[0,1] -- "skipping year one is worse than
+    # converting near the optimum". The grid point 63_636 was chosen when x_star was 59_928
+    # without the cost basis, where it sat just above the optimum. With the basis x_star is
+    # 36_842, so 63_636 is a 73% OVERSHOOT and costs more than skipping year one altogether
+    # (384_103 against 395_807). The grid is stale, not the ordering; the paper's grids are
+    # built from x_star, and this one is a fixed pair kept for continuity. Guard the premise
+    # so the day x_star moves back under the grid point, this is revisited rather than assumed.
+    assert res["x_star"][0] < 63_636, "63_636 is no longer an overshoot; restore the 3-way order"
 
     s = summarize_conversion_regret(res)
     assert s["n_scenarios"] == 1
