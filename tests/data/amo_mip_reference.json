@@ -1248,12 +1248,12 @@
   },
   "Case_dana": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-11-25 basis only, both solvers, frozen test date, when taxable_cost_basis was added to the case file (dana 90.0 / devon 300.0, committed in 9075d646 after sitting uncommitted); the two solvers now agree exactly where HiGHS and MOSEK differed by $1 on dana; bequest is the target and did not move; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 80918.95,
+    "basis": 80310.55,
     "bequest": 400000.0,
     "conversions_n": [
      72775.42,
@@ -1436,12 +1436,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-11-25 basis only, both solvers, frozen test date, when taxable_cost_basis was added to the case file (dana 90.0 / devon 300.0, committed in 9075d646 after sitting uncommitted); the two solvers now agree exactly where HiGHS and MOSEK differed by $1 on dana; bequest is the target and did not move; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 80917.94,
+    "basis": 80310.55,
     "bequest": 400000.0,
     "conversions_n": [
      72775.39,
@@ -1626,12 +1626,12 @@
   },
   "Case_devon": {
    "HiGHS": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-11-25 basis only, both solvers, frozen test date, when taxable_cost_basis was added to the case file (dana 90.0 / devon 300.0, committed in 9075d646 after sitting uncommitted); the two solvers now agree exactly where HiGHS and MOSEK differed by $1 on dana; bequest is the target and did not move; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 248000.29,
+    "basis": 243082.2,
     "bequest": 1600000.0,
     "conversions_n": [
      267544.87,
@@ -1814,12 +1814,12 @@
     ]
    },
    "MOSEK": {
-    "_rerecorded": "2026-09-28 from Owl.dev LP after state base stopped deducting the federal standard deduction",
+    "_rerecorded": "2026-11-25 basis only, both solvers, frozen test date, when taxable_cost_basis was added to the case file (dana 90.0 / devon 300.0, committed in 9075d646 after sitting uncommitted); the two solvers now agree exactly where HiGHS and MOSEK differed by $1 on dana; bequest is the target and did not move; other fields as before",
     "amo_violations": {
      "roth": 0,
      "surplus": 0
     },
-    "basis": 248000.29,
+    "basis": 243082.2,
     "bequest": 1600000.0,
     "conversions_n": [
      267544.87,
